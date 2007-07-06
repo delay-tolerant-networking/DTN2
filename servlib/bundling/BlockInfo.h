@@ -21,11 +21,14 @@
 #include <oasys/serialize/SerializableVector.h>
 #include <oasys/util/ScratchBuffer.h>
 
+#include "BP_Local.h"
+#include "Dictionary.h"
 #include "contacts/Link.h"
 
 namespace dtn {
 
 class BlockProcessor;
+class BP_Local;
 
 /**
  * Class used to store unparsed bundle blocks and associated metadata
@@ -45,10 +48,25 @@ public:
     /// Constructor for unserializing
     BlockInfo(oasys::Builder& builder);
 
+    /// Copy constructor to increment refcount for locals_
+    BlockInfo(const BlockInfo& bi);
+    
+    /// List of EIDs corresponding to EID-reference list
+    /// in the preamble. BlockProcessors should interact
+    /// with this list and not deal with the references.
+    typedef oasys::SerializableVector<EndpointID> EID_list;
+    typedef oasys::SerializableVector<EndpointID>::iterator EID_list_iterator;
+
+    /**
+     * Virtual destructor.
+     */
+    virtual ~BlockInfo();
+    
     /// @{ Accessors
     BlockProcessor*   owner()          const { return owner_; }
     const BlockInfo*  source()         const { return source_; }
     const DataBuffer& contents()       const { return contents_; }
+    BP_Local*         locals()         const { return locals_.object(); }
     u_int32_t         data_length()    const { return data_length_; }
     u_int32_t         data_offset()    const { return data_offset_; }
     u_int32_t         full_length()    const { return (data_offset_ +
@@ -60,15 +78,19 @@ public:
     ///@}
 
     /// @{ Mutating accessors
+    void        set_owner(BlockProcessor* o) { owner_ = o; }
+    EID_list*   eid_list()                   { return &eid_list_; }
     void        set_complete(bool t)         { complete_ = t; }
     void        set_data_length(u_int32_t l) { data_length_ = l; }
     void        set_data_offset(u_int32_t o) { data_offset_ = o; }
     DataBuffer* writable_contents()          { return &contents_; }
+    void        set_locals(BP_Local* l);
+    void        add_eid(EndpointID e)        { return eid_list_.push_back(e); }
     /// @}
 
     /// @{ These accessors need special case processing since the
     /// primary block doesn't have the fields in the same place.
-    u_int8_t  type()  const;
+    int       type()  const;
     u_int64_t flags() const;
     void      set_flag(u_int64_t flag);
     /// @}
@@ -76,12 +98,26 @@ public:
     /// Virtual from SerializableObject
     virtual void serialize(oasys::SerializeAction* action);
 
+    /**
+     * List owner indicator (not transmitted)
+     */
+    typedef enum {
+        LIST_NONE           = 0x00,
+        LIST_RECEIVED       = 0x01,
+        LIST_API            = 0x02,
+        LIST_EXT            = 0x03,
+        LIST_XMIT           = 0x04
+    } list_owner_t;
+
 protected:
     BlockProcessor*  owner_;       ///< Owner of this block
     u_int16_t        owner_type_;  ///< Extracted from owner
     const BlockInfo* source_;      ///< Owner of this block
+    EID_list         eid_list_;    ///< List of EIDs used in this block
+    list_owner_t     owner_list_;  ///< Which list this block instance is part of    
     DataBuffer       contents_;    ///< Block contents with length set to
                                    ///  the amount currently in the buffer
+    BP_LocalRef      locals_;      ///< Local variable storage for block processor
     u_int32_t        data_length_; ///< Length of the block data (w/o preamble)
     u_int32_t        data_offset_; ///< Offset of first byte of the block data
     bool             complete_;    ///< Whether or not this block is complete
@@ -94,11 +130,12 @@ class BlockInfoVec : public oasys::SerializableVector<BlockInfo> {
 public:
     /**
      * Append a block using the given processor and optional source
-     * block. Returns the newly allocated block. Note, however, that
-     * this block pointer may be invalidated with another call to
-     * append_block.
+     * block.
+     *
+     * @return the newly allocated block -- note that this pointer may
+     * be invalidated with a future call that changes the vector.
      */
-    BlockInfo* append_block(BlockProcessor* owner,
+    BlockInfo* append_block(BlockProcessor*  owner,
                             const BlockInfo* source = NULL);
 
     /**
@@ -112,6 +149,17 @@ public:
      * Check if an entry exists in the vector for the given block type.
      */
     bool has_block(u_int8_t type) const { return find_block(type) != NULL; }
+
+    /**
+     * Return the dictionary.
+     */
+    Dictionary* dict()  { return &dict_; }
+
+protected:
+    /**
+     * Dictionary for this vector of BlockInfo structures
+     */
+    Dictionary   dict_;
 };
 
 /**

@@ -34,6 +34,7 @@ BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
       owner_type_(owner->block_type()),
       source_(source),
       contents_(),
+      locals_("BlockInfo constructor"),
       data_length_(0),
       data_offset_(0),
       complete_(false)
@@ -42,10 +43,12 @@ BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
 
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(oasys::Builder& builder)
-    : owner_(NULL),
+    : SerializableObject(),
+      owner_(NULL),
       owner_type_(0),
       source_(NULL),
       contents_(),
+      locals_("BlockInfo constructor"),
       data_length_(0),
       data_offset_(0),
       complete_(false)
@@ -54,7 +57,35 @@ BlockInfo::BlockInfo(oasys::Builder& builder)
 }
 
 //----------------------------------------------------------------------
-u_int8_t
+BlockInfo::BlockInfo(const BlockInfo &bi)
+    : SerializableObject(),
+      owner_(bi.owner_),
+      owner_type_(bi.owner_type_),
+      source_(bi.source_),
+      eid_list_(bi.eid_list_),
+      owner_list_(bi.owner_list_),
+      contents_(bi.contents_),
+      locals_(bi.locals_.object(), "BlockInfo copy constructor"),
+      data_length_(bi.data_length_),
+      data_offset_(bi.data_offset_),
+      complete_(bi.complete_)
+{
+}
+
+//----------------------------------------------------------------------
+BlockInfo::~BlockInfo()
+{
+}
+
+//----------------------------------------------------------------------
+void
+BlockInfo::set_locals(BP_Local* l)
+{
+    locals_ = l; 
+}
+
+//----------------------------------------------------------------------
+int
 BlockInfo::type() const
 {
     if (owner_->block_type() == BundleProtocol::PRIMARY_BLOCK) {
@@ -62,9 +93,18 @@ BlockInfo::type() const
     }
 
     if (contents_.len() == 0) {
-        return 0xff;
+        if (owner_ != NULL)
+            return owner_->block_type();
+        
+        return BundleProtocol::UNKNOWN_BLOCK;
     }
 
+    u_char* data = contents_.buf();
+    (void)data;
+    if (owner_ != NULL)
+        ASSERT(contents_.buf()[0] == owner_->block_type()
+               || owner_->block_type() == BundleProtocol::UNKNOWN_BLOCK
+               || owner_->block_type() == BundleProtocol::API_EXTENSION_BLOCK);
     return contents_.buf()[0];
 }
 

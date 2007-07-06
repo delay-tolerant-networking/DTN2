@@ -31,168 +31,9 @@
 namespace dtn {
 
 //----------------------------------------------------------------------
-struct DictionaryEntry {
-    DictionaryEntry(const std::string& s, size_t off)
-        : str(s), offset(off) {}
-
-    std::string str;
-    size_t offset;
-};
-
-class DictionaryVector : public std::vector<DictionaryEntry> {};
-
-//----------------------------------------------------------------------
 PrimaryBlockProcessor::PrimaryBlockProcessor()
     : BlockProcessor(BundleProtocol::PRIMARY_BLOCK)
 {
-}
-
-//----------------------------------------------------------------------
-void
-PrimaryBlockProcessor::add_to_dictionary(const EndpointID& eid,
-                                         DictionaryVector* dict,
-                                         u_int64_t* dictlen,
-                                         u_int64_t* scheme_offset,
-                                         u_int64_t* ssp_offset)
-                                         
-{
-    /*
-     * For the scheme and ssp parts of the given endpoint id, see if
-     * they've already appeared in the vector. If not, add them, and
-     * record their length (with the null terminator) in the running
-     * length total.
-     */
-    DictionaryVector::iterator iter;
-    bool found_scheme = false;
-    bool found_ssp = false;
-
-    for (iter = dict->begin(); iter != dict->end(); ++iter) {
-        if (iter->str == eid.scheme_str()) {
-            found_scheme = true;
-            *scheme_offset = iter->offset;
-        }
-
-        if (iter->str == eid.ssp()) {
-            found_ssp = true;
-            *ssp_offset = iter->offset;
-        }
-    }
-
-    if (found_scheme == false) {
-        *scheme_offset = *dictlen;
-        dict->push_back(DictionaryEntry(eid.scheme_str(), *dictlen));
-        *dictlen += (eid.scheme_str().length() + 1);
-    }
-
-    if (found_ssp == false) {
-        *ssp_offset = *dictlen;
-        dict->push_back(DictionaryEntry(eid.ssp(), *dictlen));
-        *dictlen += (eid.ssp().length() + 1);
-    }
-}
-
-//----------------------------------------------------------------------
-void
-PrimaryBlockProcessor::get_dictionary_offsets(DictionaryVector *dict,
-                                              const EndpointID& eid,
-                                              u_int16_t* scheme_offset,
-                                              u_int16_t* ssp_offset)
-{
-    u_int16_t offset;
-    DictionaryVector::iterator iter;
-    for (iter = dict->begin(); iter != dict->end(); ++iter) {
-        if (iter->str == eid.scheme_str()) {
-            offset = htons(iter->offset);
-            memcpy(scheme_offset, &offset, sizeof(offset));
-        }
-
-        if (iter->str == eid.ssp()) {
-            offset = htons(iter->offset);
-            memcpy(ssp_offset, &offset, sizeof(offset));
-        }
-    }
-}
-
-//----------------------------------------------------------------------
-bool
-PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
-                                              const char* what,
-                                              u_int64_t scheme_offset,
-                                              u_int64_t ssp_offset,
-                                              u_char* dictionary,
-                                              u_int64_t dictionary_len)
-{
-    static const char* log = "/dtn/bundle/protocol";
-
-    if (scheme_offset >= (dictionary_len - 1)) {
-        log_err_p(log, "illegal offset for %s scheme dictionary offset: "
-                  "offset %llu, total length %llu", what,
-                  U64FMT(scheme_offset), U64FMT(dictionary_len));
-        return false;
-    }
-
-    if (ssp_offset >= (dictionary_len - 1)) {
-        log_err_p(log, "illegal offset for %s ssp dictionary offset: "
-                  "offset %llu, total length %llu", what,
-                  U64FMT(ssp_offset), U64FMT(dictionary_len));
-        return false;
-    }
-    
-    eid->assign((char*)&dictionary[scheme_offset],
-                (char*)&dictionary[ssp_offset]);
-
-    if (! eid->valid()) {
-        log_err_p(log, "invalid %s endpoint id '%s': "
-                  "scheme '%s' offset %llu/%llu ssp '%s' offset %llu/%llu",
-                  what, eid->c_str(),
-                  eid->scheme_str().c_str(),
-                  U64FMT(scheme_offset), U64FMT(dictionary_len),
-                  eid->ssp().c_str(),
-                  U64FMT(ssp_offset), U64FMT(dictionary_len));
-        return false;                                                      
-    }                                                                   
-    
-    log_debug_p(log, "parsed %s eid (offsets %llu, %llu) %s", 
-                what, U64FMT(scheme_offset), U64FMT(ssp_offset), eid->c_str());
-    return true;
-}
-
-//----------------------------------------------------------------------
-void
-PrimaryBlockProcessor::debug_dump_dictionary(const char* bp,
-                                             const PrimaryBlock& primary)
-{
-#ifndef NDEBUG
-    oasys::StringBuffer dict_copy;
-
-    const char* end = bp + primary.dictionary_length;
-    ASSERT(end[-1] == '\0');
-    
-    while (bp != end) {
-        dict_copy.appendf("%s ", bp);
-        bp += strlen(bp) + 1;
-    }
-
-    log_debug_p("/dtn/bundle/protocol",
-                "dictionary len %llu, value: '%s'",
-                U64FMT(primary.dictionary_length),
-                dict_copy.c_str());
-                  
-    log_debug_p("/dtn/bundle/protocol",
-                "dictionary offsets: dest %llu,%llu source %llu,%llu, "
-                "custodian %llu,%llu replyto %llu,%llu",
-                U64FMT(primary.dest_scheme_offset),
-                U64FMT(primary.dest_ssp_offset),
-                U64FMT(primary.source_scheme_offset),
-                U64FMT(primary.source_ssp_offset),
-                U64FMT(primary.custodian_scheme_offset),
-                U64FMT(primary.custodian_ssp_offset),
-                U64FMT(primary.replyto_scheme_offset),
-                U64FMT(primary.replyto_ssp_offset));
-#else
-    (void)bp;
-    (void)primary;
-#endif
 }
 
 //----------------------------------------------------------------------
@@ -333,9 +174,9 @@ PrimaryBlockProcessor::parse_srr_flags(Bundle* b, u_int64_t srr_flags)
 
 //----------------------------------------------------------------------
 size_t
-PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
-                                       DictionaryVector* dict,
-                                       PrimaryBlock* primary)
+PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
+                                       Dictionary*    dict,
+                                       PrimaryBlock*  primary)
 {
     static const char* log = "/dtn/bundle/protocol";
     size_t primary_len = 0;
@@ -352,30 +193,32 @@ PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
      * remembering their offsets and summing up their lengths
      * (including the null terminator for each).
      */
-    add_to_dictionary(bundle->dest_, dict, &primary->dictionary_length,
+    dict->get_offsets(bundle->dest_, 
                       &primary->dest_scheme_offset,
                       &primary->dest_ssp_offset);
     primary->block_length += SDNV::encoding_len(primary->dest_scheme_offset);
     primary->block_length += SDNV::encoding_len(primary->dest_ssp_offset);
     
-    add_to_dictionary(bundle->source_, dict, &primary->dictionary_length,
+    dict->get_offsets(bundle->source_, 
                       &primary->source_scheme_offset,
                       &primary->source_ssp_offset);
     primary->block_length += SDNV::encoding_len(primary->source_scheme_offset);
     primary->block_length += SDNV::encoding_len(primary->source_ssp_offset);
 
-    add_to_dictionary(bundle->replyto_, dict, &primary->dictionary_length,
+    dict->get_offsets(bundle->replyto_, 
                       &primary->replyto_scheme_offset,
                       &primary->replyto_ssp_offset);
     primary->block_length += SDNV::encoding_len(primary->replyto_scheme_offset);
     primary->block_length += SDNV::encoding_len(primary->replyto_ssp_offset);
 
-    add_to_dictionary(bundle->custodian_, dict, &primary->dictionary_length,
+    dict->get_offsets(bundle->custodian_, 
                       &primary->custodian_scheme_offset,
                       &primary->custodian_ssp_offset);
     primary->block_length += SDNV::encoding_len(primary->custodian_scheme_offset);
     primary->block_length += SDNV::encoding_len(primary->custodian_ssp_offset);
-    
+
+    primary->dictionary_length = dict->length();
+
     (void)log; // in case NDEBUG is defined
     log_debug_p(log, "generated dictionary length %llu",
                 U64FMT(primary->dictionary_length));
@@ -427,13 +270,30 @@ PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
 }
 
 //----------------------------------------------------------------------
-size_t
-PrimaryBlockProcessor::get_primary_len(const Bundle* bundle)
+void
+PrimaryBlockProcessor::prepare(const Bundle*   bundle,
+                              const LinkRef&   link,
+                              BlockInfoVec*    xmit_blocks,
+                              BlockInfoVec*    blocks,
+                              const BlockInfo* source,
+                              BlockInfo::list_owner_t list)
 {
-    DictionaryVector dict;
-    PrimaryBlock primary;
+    (void)bundle;
+    (void)link;
+    (void)blocks;
+    (void)list;
 
-    return get_primary_len(bundle, &dict, &primary);
+    // There shouldn't already be anything in the xmit_blocks
+    ASSERT(xmit_blocks->size() == 0);
+        
+    // Add EIDs to start off the dictionary
+    xmit_blocks->dict()->add_eid(bundle->dest_);
+    xmit_blocks->dict()->add_eid(bundle->source_);
+    xmit_blocks->dict()->add_eid(bundle->replyto_);
+    xmit_blocks->dict()->add_eid(bundle->custodian_);
+
+    // make sure to add the primary to the front
+    xmit_blocks->insert(xmit_blocks->begin(), BlockInfo(this, source));
 }
 
 //----------------------------------------------------------------------
@@ -446,6 +306,7 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
     
     ASSERT(! block->complete());
     
+    Dictionary* dict = bundle->recv_blocks_.dict();
     memset(&primary, 0, sizeof(primary));
     
     /*
@@ -575,27 +436,22 @@ tooshort:
     buf += primary.dictionary_length;
     len -= primary.dictionary_length;
 
-    extract_dictionary_eid(&bundle->source_, "source",
+    dict->set_dict(dictionary, primary.dictionary_length);
+    dict->extract_eid(&bundle->source_, 
                            primary.source_scheme_offset,
-                           primary.source_ssp_offset,
-                           dictionary, primary.dictionary_length);
+                           primary.source_ssp_offset);
     
-    extract_dictionary_eid(&bundle->dest_, "dest",
+    dict->extract_eid(&bundle->dest_, 
                            primary.dest_scheme_offset,
-                           primary.dest_ssp_offset,
-                           dictionary, primary.dictionary_length);
+                           primary.dest_ssp_offset);
     
-    extract_dictionary_eid(&bundle->replyto_, "replyto",
+    dict->extract_eid(&bundle->replyto_, 
                            primary.replyto_scheme_offset,
-                           primary.replyto_ssp_offset,
-                           dictionary, primary.dictionary_length);
+                           primary.replyto_ssp_offset);
     
-    extract_dictionary_eid(&bundle->custodian_, "custodian",
+    dict->extract_eid(&bundle->custodian_, 
                            primary.custodian_scheme_offset,
-                           primary.custodian_ssp_offset,
-                           dictionary, primary.dictionary_length);
-    
-    debug_dump_dictionary((char*)dictionary, primary);
+                           primary.custodian_ssp_offset);
     
     // If the bundle is a fragment, grab the fragment offset and original
     // bundle size (and make sure they fit in a 32 bit integer).
@@ -705,18 +561,30 @@ PrimaryBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
 void
 PrimaryBlockProcessor::generate(const Bundle*  bundle,
                                 const LinkRef& link,
+                                BlockInfoVec*  xmit_blocks,
                                 BlockInfo*     block,
                                 bool           last)
 {
+    (void)bundle;
     (void)link;
+    (void)xmit_blocks;
+    (void)block;
 
     /*
      * The primary can't be last since there must be a payload block
      */
     ASSERT(!last);
+}
 
+//----------------------------------------------------------------------
+void
+PrimaryBlockProcessor::generate_primary(const Bundle* bundle,
+                                        BlockInfoVec* xmit_blocks,
+                                        BlockInfo*    block)
+{
     static const char* log = "/dtn/bundle/protocol";
-    DictionaryVector dict;
+    // point at the local dictionary
+    Dictionary* dict = xmit_blocks->dict();
     size_t primary_len = 0;     // total length of the primary block
     PrimaryBlock primary;
     
@@ -725,7 +593,7 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
     /*
      * Calculate the primary block length and initialize the buffer.
      */
-    primary_len = get_primary_len(bundle, &dict, &primary);
+    primary_len = get_primary_len(bundle, dict, &primary);
     block->writable_contents()->reserve(primary_len);
     block->writable_contents()->set_len(primary_len);
     block->set_data_length(primary_len);
@@ -767,14 +635,10 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
     PBP_WRITE_SDNV(primary.dictionary_length);
     
     // Add the dictionary.
-    DictionaryVector::iterator dict_iter;
-    for (dict_iter = dict.begin(); dict_iter != dict.end(); ++dict_iter) {
-        strcpy((char*)buf, dict_iter->str.c_str());
-        buf += dict_iter->str.length() + 1;
-        len -= dict_iter->str.length() + 1;
-    }
+    memcpy(buf, dict->dict(), dict->length());
+    buf += dict->length();
+    len -= dict->length();
     
-    debug_dump_dictionary((char*)buf - primary.dictionary_length, primary);
     
     /*
      * If the bundle is a fragment, stuff in SDNVs for the fragment
@@ -786,18 +650,7 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
     }
     
 #undef PBP_WRITE_SDNV
-
-    // XXX/jward what is this?
-/*#ifndef NDEBUG
-    {
-        DictionaryVector dict2;
-        size_t dict2_len = 0;
-        size_t p2len;
-        size_t len2 = get_primary_len(bundle, &dict2, &dict2_len, &p2len);
-        ASSERT(len2 == primary_len);
-    }
-#endif*/
-
+    
     /*
      * Asuming that get_primary_len is written correctly, len should
      * now be zero since we initialized it to primary_len at the

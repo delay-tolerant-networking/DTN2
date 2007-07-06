@@ -40,9 +40,10 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
     static const char* log = "/dtn/bundle/protocol";
     (void)log;
     
+    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
     size_t consumed = 0;
     if (block->data_offset() == 0) {
-        int cc = consume_preamble(block, buf, len);
+        int cc = consume_preamble(recv_blocks, block, buf, len);
         if (cc == -1) {
             return -1;
         }
@@ -59,6 +60,7 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
     // the whole buffer
     if (block->data_offset() == 0) {
         ASSERT(len == 0);
+        return consumed;
     }
 
     // Special case for the simulator -- if the payload location is
@@ -71,6 +73,7 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
     // If we've consumed the length (because the data_offset is
     // non-zero) and the length is zero, then we're done.
     if (block->data_offset() != 0 && block->data_length() == 0) {
+        log_info_p(log, "bundle has zero-length payload block");
         block->set_complete(true);
         return consumed;
     }
@@ -150,14 +153,17 @@ PayloadBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
 void
 PayloadBlockProcessor::generate(const Bundle*  bundle,
                                 const LinkRef& link,
+                                BlockInfoVec*  xmit_blocks,
                                 BlockInfo*     block,
                                 bool           last)
 {
     (void)link;
+    (void)xmit_blocks;
     
     // in the ::generate pass, we just need to set up the preamble,
     // since the payload stays on disk
-    generate_preamble(block,
+    generate_preamble(xmit_blocks, 
+                      block,
                       BundleProtocol::PAYLOAD_BLOCK,
                       last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0,
                       bundle->payload_.length());

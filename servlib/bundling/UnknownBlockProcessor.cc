@@ -22,6 +22,7 @@
 
 #include "BlockInfo.h"
 #include "BundleProtocol.h"
+#include "Bundle.h"
 
 namespace dtn {
 
@@ -30,7 +31,10 @@ oasys::Singleton<UnknownBlockProcessor>::instance_ = NULL;
 
 //----------------------------------------------------------------------
 UnknownBlockProcessor::UnknownBlockProcessor()
-    : BlockProcessor(0xff) // typecode is ignored for this processor
+    : BlockProcessor(BundleProtocol::UNKNOWN_BLOCK) // typecode is ignored for this processor
+      // pl -- this raises the interesting situation where
+      // source->type()                  returns the actual type, and
+      // source->owner_->block_type()    will return UNKNOWN_BLOCK
 {
 }
 
@@ -38,8 +42,10 @@ UnknownBlockProcessor::UnknownBlockProcessor()
 void
 UnknownBlockProcessor::prepare(const Bundle*    bundle,
                                const LinkRef&   link,
+                               BlockInfoVec*    xmit_blocks,
                                BlockInfoVec*    blocks,
-                               const BlockInfo* source)
+                               const BlockInfo* source,
+                               BlockInfo::list_owner_t list)
 {
     ASSERT(source != NULL);
     ASSERT(source->owner() == this);
@@ -48,18 +54,20 @@ UnknownBlockProcessor::prepare(const Bundle*    bundle,
         return;
     }
 
-    BlockProcessor::prepare(bundle, link, blocks, source);
+    BlockProcessor::prepare(bundle, link, xmit_blocks, blocks, source, list);
 }
 
 //----------------------------------------------------------------------
 void
 UnknownBlockProcessor::generate(const Bundle*  bundle,
                                 const LinkRef& link,
+                                BlockInfoVec*  xmit_blocks,
                                 BlockInfo*     block,
                                 bool           last)
 {
     (void)bundle;
     (void)link;
+    (void)xmit_blocks;
     
     // This can only be called if there was a corresponding block in
     // the input path
@@ -86,7 +94,7 @@ UnknownBlockProcessor::generate(const Bundle*  bundle,
     }
     flags |= BundleProtocol::BLOCK_FLAG_FORWARDED_UNPROCESSED;
 
-    generate_preamble(block, source->type(), flags,
+    generate_preamble(xmit_blocks, block, source->type(), flags,
                       source->data_length());
     ASSERT(block->data_offset() == source->data_offset());
     ASSERT(block->data_length() == source->data_length());

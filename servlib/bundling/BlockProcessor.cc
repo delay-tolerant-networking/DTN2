@@ -40,7 +40,8 @@ BlockProcessor::~BlockProcessor()
 
 //----------------------------------------------------------------------
 int
-BlockProcessor::consume_preamble(BlockInfo* block,
+BlockProcessor::consume_preamble(BlockInfoVec*  recv_blocks, 
+                                 BlockInfo* block,
                                  u_char*    buf,
                                  size_t     len,
                                  u_int64_t* flagp)
@@ -54,15 +55,27 @@ BlockProcessor::consume_preamble(BlockInfo* block,
     // across multiple calls, we proactively copy up to the maximum
     // length of the preamble into the contents buffer, then adjust
     // the length of the buffer accordingly.
-    size_t max_preamble  = BundleProtocol::PREAMBLE_FIXED_LENGTH +
-            SDNV::MAX_LENGTH * 2;
+//    size_t max_preamble  = BundleProtocol::PREAMBLE_FIXED_LENGTH +
+//            SDNV::MAX_LENGTH * 2;
+    
+    
+    // The block info buffer usually will already contain enough space
+    // for the preamble in the static part of the scratch buffer, but the 
+    // presence of an EID-ref-list might cause it to be bigger.
+    // So we'll copy up to what will fit in the static part, or
+    // expand the buffer if it is already full. 
+    // Actually, we will probably never get here, as doing do
+    // would mean that there were about fifteen EID refs in the preamble.
+    if ( block->contents().nfree() == 0 ) {
+        block->writable_contents()->reserve(block->contents().len() + 64);
+    }
+    
+    
+    size_t max_preamble  = block->contents().buf_len();
     size_t prev_consumed = block->contents().len();
     size_t tocopy        = std::min(len, max_preamble - prev_consumed);
     
     ASSERT(max_preamble > prev_consumed);
-    
-    // The block info buffer must already contain enough space for the
-    // preamble in the static part of the scratch buffer
     BlockInfo::DataBuffer* contents = block->writable_contents();
     ASSERT(contents->nfree() >= tocopy);
     memcpy(contents->end(), buf, tocopy);
@@ -93,6 +106,55 @@ BlockProcessor::consume_preamble(BlockInfo* block,
         *flagp = flags;
     
     buf_offset += sdnv_len;
+    
+    // point at the local dictionary
+    Dictionary* dict = recv_blocks->dict();
+
+    // Now we try decoding the EID-references field, if it is present.
+    // As with the flags, if we don't finish then we have a partial
+    // preamble and will try again when we get more. 
+    // We assert that the whole incoming buffer was consumed.
+    u_int64_t eid_ref_count;
+    u_int64_t scheme_offset;
+    u_int64_t ssp_offset;
+    
+    if ( flags & BundleProtocol::BLOCK_FLAG_EID_REFS ) {
+        sdnv_len = SDNV::decode(contents->buf() + buf_offset,
+                                contents->len() - buf_offset,
+                                &eid_ref_count);
+        if (sdnv_len == -1) {
+            ASSERT(tocopy == len);
+            return len;
+        }
+            
+        buf_offset += sdnv_len;
+        ASSERT(block->eid_list()->empty());
+            
+        for ( u_int32_t i = 0; i < eid_ref_count; ++i ) {
+            // Now we try decoding the sdnv pair with the offsets
+            sdnv_len = SDNV::decode(contents->buf() + buf_offset,
+                                    contents->len() - buf_offset,
+                                    &scheme_offset);
+            if (sdnv_len == -1) {
+                ASSERT(tocopy == len);
+                return len;
+            }
+            buf_offset += sdnv_len;
+                    
+            sdnv_len = SDNV::decode(contents->buf() + buf_offset,
+                                    contents->len() - buf_offset,
+                                    &ssp_offset);
+            if (sdnv_len == -1) {
+                ASSERT(tocopy == len);
+                return len;
+            }
+            buf_offset += sdnv_len;
+                
+            EndpointID eid;
+            dict->extract_eid(&eid, scheme_offset, ssp_offset);
+            block->add_eid(eid);
+        }
+    }
     
     // Now we try decoding the sdnv that contains the actual block
     // length. If we can't, then we have a partial preamble, so we can
@@ -138,7 +200,8 @@ BlockProcessor::consume_preamble(BlockInfo* block,
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::generate_preamble(BlockInfo* block,
+BlockProcessor::generate_preamble(BlockInfoVec*  xmit_blocks, 
+                                  BlockInfo* block,
                                   u_int8_t   type,
                                   u_int64_t  flags,
                                   u_int64_t  data_length)
@@ -146,23 +209,66 @@ BlockProcessor::generate_preamble(BlockInfo* block,
     static const char* log = "/dtn/bundle/protocol";
     (void)log;
     
+    char        work[1000];
+    char*       ptr = work;
+    size_t      len = sizeof(work);
+    int32_t     sdnv_len;             // must be signed
+    u_int32_t   scheme_offset;
+    u_int32_t   ssp_offset;
+    
+    // point at the local dictionary
+    Dictionary* dict = xmit_blocks->dict();
+    
+    // see if we have EIDs in the list, and process them
+    u_int32_t eid_count = block->eid_list()->size();
+    if ( eid_count > 0 ) {
+        flags |= BundleProtocol::BLOCK_FLAG_EID_REFS;
+        sdnv_len = SDNV::encode(eid_count, ptr, len);
+        ptr += sdnv_len;
+        len -= sdnv_len;
+        BlockInfo::EID_list_iterator iter = block->eid_list()->begin();
+        for ( ; iter < block->eid_list()->end(); ++iter ) {
+            dict->add_eid(*iter);
+            dict->get_offsets(*iter, &scheme_offset, &ssp_offset);
+            sdnv_len = SDNV::encode(scheme_offset, ptr, len);
+            ptr += sdnv_len;
+            len -= sdnv_len;
+            sdnv_len = SDNV::encode(ssp_offset, ptr, len);
+            ptr += sdnv_len;
+            len -= sdnv_len;
+        }
+    }
+    
+    size_t eid_field_len = ptr - work;    // size of the data in the work buffer
+    
     size_t flag_sdnv_len = SDNV::encoding_len(flags);
     size_t length_sdnv_len = SDNV::encoding_len(data_length);
     ASSERT(block->contents().len() == 0);
     ASSERT(block->contents().buf_len() >= BundleProtocol::PREAMBLE_FIXED_LENGTH 
-            + flag_sdnv_len + length_sdnv_len);
+           + flag_sdnv_len + eid_field_len + length_sdnv_len);
 
     u_char* bp = block->writable_contents()->buf();
+    len = block->contents().buf_len();
     
     *bp = type;
-    SDNV::encode(flags, bp + BundleProtocol::PREAMBLE_FIXED_LENGTH,
-                 flag_sdnv_len);
-    SDNV::encode(data_length, bp + BundleProtocol::PREAMBLE_FIXED_LENGTH + 
-                 flag_sdnv_len, length_sdnv_len);
+    bp  += BundleProtocol::PREAMBLE_FIXED_LENGTH;
+    len -= BundleProtocol::PREAMBLE_FIXED_LENGTH;
+    
+    SDNV::encode(flags, bp, flag_sdnv_len);
+    bp  += flag_sdnv_len;
+    len -= flag_sdnv_len;
+    
+    memcpy(bp, work, eid_field_len);
+    bp  += eid_field_len;
+    len -= eid_field_len;
+    
+    SDNV::encode(data_length, bp, length_sdnv_len);
+    bp  += length_sdnv_len;
+    len -= length_sdnv_len;
 
     block->set_data_length(data_length);
     u_int32_t offset = BundleProtocol::PREAMBLE_FIXED_LENGTH + 
-            flag_sdnv_len + length_sdnv_len;
+                       flag_sdnv_len + eid_field_len + length_sdnv_len;
     block->set_data_offset(offset);
     block->writable_contents()->set_len(offset);
 
@@ -186,12 +292,13 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
     size_t consumed = 0;
 
     ASSERT(! block->complete());
+    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
 
     // Check if we still need to consume the preamble by checking if
     // the data_offset_ field is initialized in the block info
     // structure.
     if (block->data_offset() == 0) {
-        int cc = consume_preamble(block, buf, len);
+        int cc = consume_preamble(recv_blocks, block, buf, len);
         if (cc == -1) {
             return -1;
         }
@@ -254,8 +361,8 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
 //----------------------------------------------------------------------
 bool
 BlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
-                    BundleProtocol::status_report_reason_t* reception_reason,
-                    BundleProtocol::status_report_reason_t* deletion_reason)
+                         BundleProtocol::status_report_reason_t* reception_reason,
+                         BundleProtocol::status_report_reason_t* deletion_reason)
 {
     static const char * log = "/dtn/bundle/protocol";
     (void)reception_reason;
@@ -279,20 +386,38 @@ BlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
 void
 BlockProcessor::prepare(const Bundle*    bundle,
                         const LinkRef&   link,
+                        BlockInfoVec*    xmit_blocks,
                         BlockInfoVec*    blocks,
-                        const BlockInfo* source)
+                        const BlockInfo* source,
+                        BlockInfo::list_owner_t list)
 {
     (void)bundle;
     (void)link;
-    blocks->append_block(this, source);
+    (void)blocks;
+    (void)list;
+    
+    // Received blocks are added to the end of the list (which
+    // maintains the order they arrived in) but blocks from any other
+    // source are added after the primary block (that is, before the
+    // payload and the received blocks). This places them "outside"
+    // the original blocks.
+    if (list == BlockInfo::LIST_RECEIVED) {
+        xmit_blocks->append_block(this, source);
+    }
+    else {
+        ASSERT((*xmit_blocks)[0].type() == BundleProtocol::PRIMARY_BLOCK);
+        xmit_blocks->insert(xmit_blocks->begin() + 1, BlockInfo(this, source));
+    }
 }
 
 //----------------------------------------------------------------------
 void
 BlockProcessor::finalize(const Bundle*  bundle,
                          const LinkRef& link,
+                         BlockInfoVec*  xmit_blocks,
                          BlockInfo*     block)
 {
+    (void)xmit_blocks;
     (void)link;
         
     if (bundle->is_admin_ && block->type() != BundleProtocol::PRIMARY_BLOCK) {
@@ -318,7 +443,7 @@ BlockProcessor::init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
                            const u_char* bp, size_t len)
 {
     ASSERT(block->owner() != NULL);
-    generate_preamble(block, type, flags, len);
+    generate_preamble(NULL, block, type, flags, len);
     ASSERT(block->data_offset() != 0);
     block->writable_contents()->reserve(block->full_length());
     block->writable_contents()->set_len(block->full_length());

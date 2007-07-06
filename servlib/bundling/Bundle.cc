@@ -53,9 +53,10 @@ Bundle::init(u_int32_t id)
     frag_offset_	= 0;
     expiration_		= 0;
     owner_              = "";
+    fragmented_incoming_= false;
 
     // as per the spec, the creation timestamp should be calculated as
-    // seconds since 1/1/1970, and since the bundle id should be
+    // seconds since 1/1/2000, and since the bundle id should be
     // monotonically increasing, it's safe to use that for the seqno
     creation_ts_.seconds_ = BundleTimestamp::get_current_time();
     creation_ts_.seqno_   = bundleid_;
@@ -65,7 +66,8 @@ Bundle::init(u_int32_t id)
 
 //----------------------------------------------------------------------
 Bundle::Bundle(BundlePayload::location_t location)
-    : payload_(&lock_), fwdlog_(&lock_), xmit_blocks_(&lock_)
+    : payload_(&lock_), fwdlog_(&lock_), xmit_blocks_(&lock_),
+      recv_metadata_("recv_metadata")
 {
     u_int32_t id = GlobalStore::instance()->next_bundleid();
     init(id);
@@ -77,7 +79,8 @@ Bundle::Bundle(BundlePayload::location_t location)
 
 //----------------------------------------------------------------------
 Bundle::Bundle(const oasys::Builder&)
-    : payload_(&lock_), fwdlog_(&lock_), xmit_blocks_(&lock_)
+    : payload_(&lock_), fwdlog_(&lock_), xmit_blocks_(&lock_),
+      recv_metadata_("recv_metadata")
 {
     // don't do anything here except set the id to a bogus default
     // value and make sure the expiration timer is NULL, since the
@@ -157,6 +160,32 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     for (MappingsIterator i = mappings_begin(); i != mappings_end(); ++i) {
         buf->appendf("\t%s\n", (*i)->name().c_str());
     }
+
+    buf->append("\nblocks:");
+    for (BlockInfoVec::iterator iter = recv_blocks_.begin();
+         iter != recv_blocks_.end();
+         ++iter)
+    {
+        buf->appendf("\n type: 0x%02x ", iter->type());
+        if (iter->data_offset() == 0)
+            buf->append("(runt)");
+        else {
+            if (!iter->complete())
+                buf->append("(incomplete) ");
+            buf->appendf("data length: %d", iter->full_length());
+        }
+    }
+    if (api_blocks_.size() > 0) {
+        buf->append("\napi_blocks:");
+        for (BlockInfoVec::iterator iter = api_blocks_.begin();
+             iter != api_blocks_.end();
+             ++iter)
+        {
+            buf->appendf("\n type: 0x%02x data length: %d",
+                         iter->type(), iter->full_length());
+        }
+    }
+    buf->append("\n");
 }
 
 //----------------------------------------------------------------------

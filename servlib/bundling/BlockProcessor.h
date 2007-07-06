@@ -20,6 +20,8 @@
 #include <oasys/compat/inttypes.h>
 
 #include "BundleProtocol.h"
+#include "BlockInfo.h"
+#include "BP_Local.h"
 
 namespace dtn {
 
@@ -90,16 +92,22 @@ public:
      */
     virtual void prepare(const Bundle*    bundle,
                          const LinkRef&   link,
-                         BlockInfoVec*    blocks,
-                         const BlockInfo* source);
+                         BlockInfoVec*    xmit_blocks,
+                         BlockInfoVec*    source_blocks,
+                         const BlockInfo* source,
+                         BlockInfo::list_owner_t list);
     
     /**
      * Second callback for transmitting a bundle. This pass should
      * generate any data for the block that does not depend on other
-     * blocks' contents.
+     * blocks' contents.  It MUST add any EID references it needs by
+     * calling block->add_eid(), then call generate_preamble(), which
+     * will add the EIDs to the primary block's dictionary and write
+     * their offsets to this block's preamble.
      */
     virtual void generate(const Bundle*  bundle,
                           const LinkRef& link,
+                          BlockInfoVec*  xmit_blocks,
                           BlockInfo*     block,
                           bool           last) = 0;
     
@@ -109,10 +117,31 @@ public:
      * that may depend on other blocks' contents.
      *
      * The base class implementation does nothing. 
+     * 
+     * We pass xmit_blocks explicitly to indicate that ALL blocks
+     * might be changed by finalize, typically by being encrypted.
+     * Parameters such as length might also change due to padding
+     * and encapsulation.
      */
-    virtual void finalize(const Bundle*  bundle,
-                          const LinkRef& link,
+    virtual void finalize(const Bundle*  bundle, 
+                          const LinkRef& link, 
+                          BlockInfoVec*  xmit_blocks, 
                           BlockInfo*     block);
+
+    /**
+     * Parse a block preamble consisting of type, flags(SDNV),
+     * EID-list (composite field of SDNVs) and length(SDNV).
+     * This method does not apply to the primary block, but is
+     * suitable for payload and all extensions.
+     * The parse does NOT modify the BlockInfo fields, as 
+     * consume_preamble() does. This is a convenience routine
+     * for extension code, such as bundle security,  which must
+     * process blocks owned by other extensions.
+    int parse_preamble(BlockInfo* block,
+                         u_char* buf,
+                         size_t len,
+                         u_int64_t* flagp = NULL);
+     */
 
     /**
      * Accessor to virtualize copying contents out from the block
@@ -137,27 +166,27 @@ public:
                     const u_char* bp, size_t len);
     
 protected:
-    // XXX/demmer temporary until we get rid of the old interface
     friend class BundleProtocol;
     friend class BlockInfo;
     
     /**
-     * Consume a fixed-length preamble (defaulting to the standard
-     * BlockPreamble) followed by an SDNV containing the length of the
-     * rest of the block. The preamble_size is optionally overridden
-     * to allow this to be used by the primary block which has a
-     * differently-sized preamble.
+     * Consume a block preamble consisting of type, flags(SDNV),
+     * EID-list (composite field of SDNVs) and length(SDNV).
+     * This method does not apply to the primary block, but is
+     * suitable for payload and all extensions.
      */
-    int consume_preamble(BlockInfo* block,
+    int consume_preamble(BlockInfoVec*  recv_blocks, 
+                         BlockInfo* block,
                          u_char* buf,
                          size_t len,
                          u_int64_t* flagp = NULL);
     
     /**
-     * Generate the standard preamble for the given block type, flags
-     * and content length.
+     * Generate the standard preamble for the given block type, flags,
+     * EID-list and content length.
      */
-    void generate_preamble(BlockInfo* block,
+    void generate_preamble(BlockInfoVec*  xmit_blocks, 
+                           BlockInfo* block,
                            u_int8_t type,
                            u_int64_t flags,
                            u_int64_t data_length);

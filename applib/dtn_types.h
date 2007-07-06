@@ -235,6 +235,10 @@ struct dtn_bundle_spec_t {
 		u_int blocks_len;
 		dtn_extension_block_t *blocks_val;
 	} blocks;
+	struct {
+		u_int metadata_len;
+		dtn_extension_block_t *metadata_val;
+	} metadata;
 };
 typedef struct dtn_bundle_spec_t dtn_bundle_spec_t;
 

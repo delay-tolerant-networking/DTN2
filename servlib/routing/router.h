@@ -241,9 +241,9 @@ namespace dtn
     class key_value_pair_base;
     class key_value_pair;
     class bundleAttributesSimpleQueryType;
-    class bundleExtBlockTypeType;
-    class bundleExtBlockQueryType;
+    class bundleMetaBlockQueryType;
     class bundleAttributesQueryType;
+    class metadataBlockType;
     class bundleAttributesReportType;
     class bundle_received_event;
     class data_transmitted_event;
@@ -280,6 +280,7 @@ namespace dtn
     class inject_bundle_request;
     class delete_bundle_request;
     class set_cl_params_request;
+    class deliver_bundle_to_app_request;
     class link_report;
     class link_attributes_query;
     class link_attributes_report;
@@ -3521,7 +3522,7 @@ namespace dtn
         prevhop,
         location,
         payload,
-        ext_block_list
+        meta_block_list
       };
 
       bundleAttributesSimpleQueryType ();
@@ -3569,49 +3570,11 @@ namespace dtn
       static const _xsd_bundleAttributesSimpleQueryType _xsd_bundleAttributesSimpleQueryType_indexes_[24];
     };
 
-    class bundleExtBlockTypeType: public ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type >
+    class bundleMetaBlockQueryType: public ::xml_schema::type
     {
       public:
 
-      struct _xsd_bundleExtBlockTypeType
-      {
-        typedef ::xml_schema::unsigned_byte base_;
-      };
-
-      // Constructors.
-      //
-      public:
-      bundleExtBlockTypeType ();
-
-      bundleExtBlockTypeType (const _xsd_bundleExtBlockTypeType::base_& );
-
-      bundleExtBlockTypeType (const ::xercesc::DOMElement&,
-                              ::xml_schema::flags = 0,
-                              ::xml_schema::type* = 0);
-
-      bundleExtBlockTypeType (const ::xercesc::DOMAttr&,
-                              ::xml_schema::flags = 0,
-                              ::xml_schema::type* = 0);
-
-      bundleExtBlockTypeType (const ::std::basic_string< char >&,
-                              const ::xercesc::DOMElement*,
-                              ::xml_schema::flags = 0,
-                              ::xml_schema::type* = 0);
-
-      bundleExtBlockTypeType (const bundleExtBlockTypeType&,
-                              ::xml_schema::flags = 0,
-                              ::xml_schema::type* = 0);
-
-      virtual bundleExtBlockTypeType*
-      _clone (::xml_schema::flags = 0,
-              ::xml_schema::type* = 0) const;
-    };
-
-    class bundleExtBlockQueryType: public ::xml_schema::type
-    {
-      public:
-
-      struct _xsd_bundleExtBlockQueryType
+      struct _xsd_bundleMetaBlockQueryType
       {
         typedef ::xml_schema::type base_;
       };
@@ -3626,28 +3589,29 @@ namespace dtn
       public:
       struct type
       {
-        typedef ::dtn::rtrmessage::bundleExtBlockTypeType type_;
+        typedef ::xml_schema::long_ type_;
         typedef ::xsd::cxx::tree::traits< type_, char > traits;
+        typedef ::xsd::cxx::tree::optional< type_ > container;
       };
 
-      const type::type_&
+      const type::container&
       type () const;
 
-      type::type_&
+      type::container&
       type ();
 
       void
       type (const type::type_&);
 
       void
-      type (::std::auto_ptr< type::type_ >);
+      type (const type::container&);
 
       // identifier
       // 
       public:
       struct identifier
       {
-        typedef ::xml_schema::string type;
+        typedef ::xml_schema::unsigned_int type;
         typedef ::xsd::cxx::tree::traits< type, char > traits;
         typedef ::xsd::cxx::tree::optional< type > container;
       };
@@ -3664,25 +3628,20 @@ namespace dtn
       void
       identifier (const identifier::container&);
 
-      void
-      identifier (::std::auto_ptr< identifier::type >);
-
       // Constructors.
       //
       public:
-      bundleExtBlockQueryType ();
+      bundleMetaBlockQueryType ();
 
-      bundleExtBlockQueryType (const type::type_&);
+      bundleMetaBlockQueryType (const ::xercesc::DOMElement&,
+                                ::xml_schema::flags = 0,
+                                ::xml_schema::type* = 0);
 
-      bundleExtBlockQueryType (const ::xercesc::DOMElement&,
-                               ::xml_schema::flags = 0,
-                               ::xml_schema::type* = 0);
+      bundleMetaBlockQueryType (const bundleMetaBlockQueryType&,
+                                ::xml_schema::flags = 0,
+                                ::xml_schema::type* = 0);
 
-      bundleExtBlockQueryType (const bundleExtBlockQueryType&,
-                               ::xml_schema::flags = 0,
-                               ::xml_schema::type* = 0);
-
-      virtual bundleExtBlockQueryType*
+      virtual bundleMetaBlockQueryType*
       _clone (::xml_schema::flags = 0,
               ::xml_schema::type* = 0) const;
 
@@ -3692,7 +3651,7 @@ namespace dtn
       void
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
-      ::xsd::cxx::tree::one< type::type_ > _xsd_type_;
+      ::xsd::cxx::tree::optional< type::type_ > _xsd_type_;
       ::xsd::cxx::tree::optional< identifier::type > _xsd_identifier_;
     };
 
@@ -3730,30 +3689,30 @@ namespace dtn
       void
       query (::std::auto_ptr< query::type >);
 
-      // ext_blocks
+      // meta_blocks
       // 
       public:
-      struct ext_blocks
+      struct meta_blocks
       {
-        typedef ::dtn::rtrmessage::bundleExtBlockQueryType type;
+        typedef ::dtn::rtrmessage::bundleMetaBlockQueryType type;
         typedef ::xsd::cxx::tree::traits< type, char > traits;
         typedef ::xsd::cxx::tree::optional< type > container;
       };
 
-      const ext_blocks::container&
-      ext_blocks () const;
+      const meta_blocks::container&
+      meta_blocks () const;
 
-      ext_blocks::container&
-      ext_blocks ();
-
-      void
-      ext_blocks (const ext_blocks::type&);
+      meta_blocks::container&
+      meta_blocks ();
 
       void
-      ext_blocks (const ext_blocks::container&);
+      meta_blocks (const meta_blocks::type&);
 
       void
-      ext_blocks (::std::auto_ptr< ext_blocks::type >);
+      meta_blocks (const meta_blocks::container&);
+
+      void
+      meta_blocks (::std::auto_ptr< meta_blocks::type >);
 
       // Constructors.
       //
@@ -3779,7 +3738,130 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::optional< query::type > _xsd_query_;
-      ::xsd::cxx::tree::optional< ext_blocks::type > _xsd_ext_blocks_;
+      ::xsd::cxx::tree::optional< meta_blocks::type > _xsd_meta_blocks_;
+    };
+
+    class metadataBlockType: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_metadataBlockType
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Workaround for g++ bug# 23206.
+      //
+      public:
+      struct type;
+
+      // identifier
+      // 
+      public:
+      struct identifier
+      {
+        typedef ::xml_schema::unsigned_int type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const identifier::type&
+      identifier () const;
+
+      identifier::type&
+      identifier ();
+
+      void
+      identifier (const identifier::type&);
+
+      // generated
+      // 
+      public:
+      struct generated
+      {
+        typedef ::xml_schema::boolean type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const generated::type&
+      generated () const;
+
+      generated::type&
+      generated ();
+
+      void
+      generated (const generated::type&);
+
+      // type
+      // 
+      public:
+      struct type
+      {
+        typedef ::xml_schema::unsigned_int type_;
+        typedef ::xsd::cxx::tree::traits< type_, char > traits;
+      };
+
+      const type::type_&
+      type () const;
+
+      type::type_&
+      type ();
+
+      void
+      type (const type::type_&);
+
+      // contents
+      // 
+      public:
+      struct contents
+      {
+        typedef ::xml_schema::base64_binary type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const contents::type&
+      contents () const;
+
+      contents::type&
+      contents ();
+
+      void
+      contents (const contents::type&);
+
+      void
+      contents (::std::auto_ptr< contents::type >);
+
+      // Constructors.
+      //
+      public:
+      metadataBlockType ();
+
+      metadataBlockType (const identifier::type&,
+                         const generated::type&,
+                         const type::type_&,
+                         const contents::type&);
+
+      metadataBlockType (const ::xercesc::DOMElement&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      metadataBlockType (const metadataBlockType&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      virtual metadataBlockType*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< identifier::type > _xsd_identifier_;
+      ::xsd::cxx::tree::one< generated::type > _xsd_generated_;
+      ::xsd::cxx::tree::one< type::type_ > _xsd_type_;
+      ::xsd::cxx::tree::one< contents::type > _xsd_contents_;
     };
 
     class bundleAttributesReportType: public ::xml_schema::type
@@ -3891,47 +3973,26 @@ namespace dtn
       void
       prevhop (::std::auto_ptr< prevhop::type >);
 
-      // ext_block_list
+      // meta_blocks
       // 
       public:
-      struct ext_block_list
+      struct meta_blocks
       {
-        typedef ::dtn::rtrmessage::bundleExtBlockQueryType type;
+        typedef ::dtn::rtrmessage::metadataBlockType type;
         typedef ::xsd::cxx::tree::traits< type, char > traits;
         typedef ::xsd::cxx::tree::sequence< type > container;
         typedef container::iterator iterator;
         typedef container::const_iterator const_iterator;
       };
 
-      const ext_block_list::container&
-      ext_block_list () const;
+      const meta_blocks::container&
+      meta_blocks () const;
 
-      ext_block_list::container&
-      ext_block_list ();
-
-      void
-      ext_block_list (const ext_block_list::container&);
-
-      // ext_blocks
-      // 
-      public:
-      struct ext_blocks
-      {
-        typedef ::xml_schema::base64_binary type;
-        typedef ::xsd::cxx::tree::traits< type, char > traits;
-        typedef ::xsd::cxx::tree::sequence< type > container;
-        typedef container::iterator iterator;
-        typedef container::const_iterator const_iterator;
-      };
-
-      const ext_blocks::container&
-      ext_blocks () const;
-
-      ext_blocks::container&
-      ext_blocks ();
+      meta_blocks::container&
+      meta_blocks ();
 
       void
-      ext_blocks (const ext_blocks::container&);
+      meta_blocks (const meta_blocks::container&);
 
       // bundleid
       // 
@@ -4368,8 +4429,7 @@ namespace dtn
       ::xsd::cxx::tree::optional< custodian::type > _xsd_custodian_;
       ::xsd::cxx::tree::optional< replyto::type > _xsd_replyto_;
       ::xsd::cxx::tree::optional< prevhop::type > _xsd_prevhop_;
-      ::xsd::cxx::tree::sequence< ext_block_list::type > _xsd_ext_block_list_;
-      ::xsd::cxx::tree::sequence< ext_blocks::type > _xsd_ext_blocks_;
+      ::xsd::cxx::tree::sequence< meta_blocks::type > _xsd_meta_blocks_;
       ::xsd::cxx::tree::optional< bundleid::type > _xsd_bundleid_;
       ::xsd::cxx::tree::optional< is_admin::type > _xsd_is_admin_;
       ::xsd::cxx::tree::optional< do_not_fragment::type > _xsd_do_not_fragment_;
@@ -4544,6 +4604,28 @@ namespace dtn
       void
       bytes_received (const bytes_received::type&);
 
+      // num_meta_blocks
+      // 
+      public:
+      struct num_meta_blocks
+      {
+        typedef ::xml_schema::unsigned_int type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const num_meta_blocks::container&
+      num_meta_blocks () const;
+
+      num_meta_blocks::container&
+      num_meta_blocks ();
+
+      void
+      num_meta_blocks (const num_meta_blocks::type&);
+
+      void
+      num_meta_blocks (const num_meta_blocks::container&);
+
       // Constructors.
       //
       public:
@@ -4581,6 +4663,7 @@ namespace dtn
       ::xsd::cxx::tree::optional< prevhop::type > _xsd_prevhop_;
       ::xsd::cxx::tree::one< expiration::type > _xsd_expiration_;
       ::xsd::cxx::tree::one< bytes_received::type > _xsd_bytes_received_;
+      ::xsd::cxx::tree::optional< num_meta_blocks::type > _xsd_num_meta_blocks_;
     };
 
     class data_transmitted_event: public ::xml_schema::type
@@ -6806,6 +6889,27 @@ namespace dtn
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
 
+      // metadata_block
+      // 
+      public:
+      struct metadata_block
+      {
+        typedef ::dtn::rtrmessage::metadataBlockType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const metadata_block::container&
+      metadata_block () const;
+
+      metadata_block::container&
+      metadata_block ();
+
+      void
+      metadata_block (const metadata_block::container&);
+
       // link_id
       // 
       public:
@@ -6892,31 +6996,6 @@ namespace dtn
       void
       frag_offset (const frag_offset::container&);
 
-      // ext_block
-      // 
-      public:
-      struct ext_block
-      {
-        typedef ::xml_schema::base64_binary type;
-        typedef ::xsd::cxx::tree::traits< type, char > traits;
-        typedef ::xsd::cxx::tree::optional< type > container;
-      };
-
-      const ext_block::container&
-      ext_block () const;
-
-      ext_block::container&
-      ext_block ();
-
-      void
-      ext_block (const ext_block::type&);
-
-      void
-      ext_block (const ext_block::container&);
-
-      void
-      ext_block (::std::auto_ptr< ext_block::type >);
-
       // Constructors.
       //
       public:
@@ -6945,11 +7024,11 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::sequence< metadata_block::type > _xsd_metadata_block_;
       ::xsd::cxx::tree::one< link_id::type > _xsd_link_id_;
       ::xsd::cxx::tree::one< fwd_action::type > _xsd_fwd_action_;
       ::xsd::cxx::tree::optional< frag_size::type > _xsd_frag_size_;
       ::xsd::cxx::tree::optional< frag_offset::type > _xsd_frag_offset_;
-      ::xsd::cxx::tree::optional< ext_block::type > _xsd_ext_block_;
     };
 
     class send_bundle_broadcast_request: public ::xml_schema::type
@@ -6981,6 +7060,27 @@ namespace dtn
 
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
+
+      // metadata_block
+      // 
+      public:
+      struct metadata_block
+      {
+        typedef ::dtn::rtrmessage::metadataBlockType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const metadata_block::container&
+      metadata_block () const;
+
+      metadata_block::container&
+      metadata_block ();
+
+      void
+      metadata_block (const metadata_block::container&);
 
       // fwd_action
       // 
@@ -7047,31 +7147,6 @@ namespace dtn
       void
       frag_offset (const frag_offset::container&);
 
-      // ext_block
-      // 
-      public:
-      struct ext_block
-      {
-        typedef ::xml_schema::base64_binary type;
-        typedef ::xsd::cxx::tree::traits< type, char > traits;
-        typedef ::xsd::cxx::tree::optional< type > container;
-      };
-
-      const ext_block::container&
-      ext_block () const;
-
-      ext_block::container&
-      ext_block ();
-
-      void
-      ext_block (const ext_block::type&);
-
-      void
-      ext_block (const ext_block::container&);
-
-      void
-      ext_block (::std::auto_ptr< ext_block::type >);
-
       // Constructors.
       //
       public:
@@ -7099,10 +7174,10 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::sequence< metadata_block::type > _xsd_metadata_block_;
       ::xsd::cxx::tree::one< fwd_action::type > _xsd_fwd_action_;
       ::xsd::cxx::tree::optional< frag_size::type > _xsd_frag_size_;
       ::xsd::cxx::tree::optional< frag_offset::type > _xsd_frag_offset_;
-      ::xsd::cxx::tree::optional< ext_block::type > _xsd_ext_block_;
     };
 
     class cancel_bundle_request: public ::xml_schema::type
@@ -7599,6 +7674,87 @@ namespace dtn
 
       ::xsd::cxx::tree::sequence< cl_params::type > _xsd_cl_params_;
       ::xsd::cxx::tree::one< clayer::type > _xsd_clayer_;
+    };
+
+    class deliver_bundle_to_app_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_deliver_bundle_to_app_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // endpoint
+      // 
+      public:
+      struct endpoint
+      {
+        typedef ::dtn::rtrmessage::eidType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const endpoint::type&
+      endpoint () const;
+
+      endpoint::type&
+      endpoint ();
+
+      void
+      endpoint (const endpoint::type&);
+
+      void
+      endpoint (::std::auto_ptr< endpoint::type >);
+
+      // gbof_id
+      // 
+      public:
+      struct gbof_id
+      {
+        typedef ::dtn::rtrmessage::gbofIdType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const gbof_id::type&
+      gbof_id () const;
+
+      gbof_id::type&
+      gbof_id ();
+
+      void
+      gbof_id (const gbof_id::type&);
+
+      void
+      gbof_id (::std::auto_ptr< gbof_id::type >);
+
+      // Constructors.
+      //
+      public:
+      deliver_bundle_to_app_request ();
+
+      deliver_bundle_to_app_request (const endpoint::type&,
+                                     const gbof_id::type&);
+
+      deliver_bundle_to_app_request (const ::xercesc::DOMElement&,
+                                     ::xml_schema::flags = 0,
+                                     ::xml_schema::type* = 0);
+
+      deliver_bundle_to_app_request (const deliver_bundle_to_app_request&,
+                                     ::xml_schema::flags = 0,
+                                     ::xml_schema::type* = 0);
+
+      virtual deliver_bundle_to_app_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< endpoint::type > _xsd_endpoint_;
+      ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
     };
 
     class link_report: public ::xml_schema::type
@@ -9076,6 +9232,31 @@ namespace dtn
       void
       set_cl_params_request (::std::auto_ptr< set_cl_params_request::type >);
 
+      // deliver_bundle_to_app_request
+      // 
+      public:
+      struct deliver_bundle_to_app_request
+      {
+        typedef ::dtn::rtrmessage::deliver_bundle_to_app_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const deliver_bundle_to_app_request::container&
+      deliver_bundle_to_app_request () const;
+
+      deliver_bundle_to_app_request::container&
+      deliver_bundle_to_app_request ();
+
+      void
+      deliver_bundle_to_app_request (const deliver_bundle_to_app_request::type&);
+
+      void
+      deliver_bundle_to_app_request (const deliver_bundle_to_app_request::container&);
+
+      void
+      deliver_bundle_to_app_request (::std::auto_ptr< deliver_bundle_to_app_request::type >);
+
       // link_query
       // 
       public:
@@ -9506,6 +9687,7 @@ namespace dtn
       ::xsd::cxx::tree::optional< inject_bundle_request::type > _xsd_inject_bundle_request_;
       ::xsd::cxx::tree::optional< delete_bundle_request::type > _xsd_delete_bundle_request_;
       ::xsd::cxx::tree::optional< set_cl_params_request::type > _xsd_set_cl_params_request_;
+      ::xsd::cxx::tree::optional< deliver_bundle_to_app_request::type > _xsd_deliver_bundle_to_app_request_;
       ::xsd::cxx::tree::optional< link_query::type > _xsd_link_query_;
       ::xsd::cxx::tree::optional< link_report::type > _xsd_link_report_;
       ::xsd::cxx::tree::optional< link_attributes_query::type > _xsd_link_attributes_query_;
@@ -9831,23 +10013,15 @@ namespace dtn
 
     void
     operator<< (::xercesc::DOMElement&,
-                const bundleExtBlockTypeType&);
-
-    void
-    operator<< (::xercesc::DOMAttr&,
-                const bundleExtBlockTypeType&);
-
-    void
-    operator<< (::xsd::cxx::tree::list_stream< char >&,
-                const bundleExtBlockTypeType&);
-
-    void
-    operator<< (::xercesc::DOMElement&,
-                const bundleExtBlockQueryType&);
+                const bundleMetaBlockQueryType&);
 
     void
     operator<< (::xercesc::DOMElement&,
                 const bundleAttributesQueryType&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const metadataBlockType&);
 
     void
     operator<< (::xercesc::DOMElement&,
@@ -10062,6 +10236,10 @@ namespace dtn
     void
     operator<< (::xercesc::DOMElement&,
                 const set_cl_params_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const deliver_bundle_to_app_request&);
 
     void
     operator<< (::xercesc::DOMElement&,

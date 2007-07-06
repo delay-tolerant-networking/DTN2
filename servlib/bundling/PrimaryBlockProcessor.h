@@ -34,11 +34,24 @@ public:
     
     /// @{ Virtual from BlockProcessor
     int consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len);
+
     bool validate(const Bundle* bundle, BlockInfo* block,
                   BundleProtocol::status_report_reason_t* reception_reason,
                   BundleProtocol::status_report_reason_t* deletion_reason);
+
+    virtual void prepare(const Bundle*    bundle,
+                         const LinkRef&   link,
+                         BlockInfoVec*    xmit_blocks,
+                         BlockInfoVec*    source_blocks,
+                         const BlockInfo* source,
+                         BlockInfo::list_owner_t list);
+
     void generate(const Bundle* bundle, const LinkRef& link,
-                  BlockInfo* block, bool last);
+                  BlockInfoVec* xmit_blocks, BlockInfo* block, bool last);
+
+    void generate_primary(const Bundle* bundle,
+                          BlockInfoVec* xmit_blocks,
+                          BlockInfo*    block);
     /// @}
 
 protected:
@@ -84,32 +97,9 @@ protected:
     friend class BundleProtocol;
     
     static size_t get_primary_len(const Bundle* bundle,
-                                  DictionaryVector* dict,
+                                  Dictionary* dict,
                                   PrimaryBlock* primary);
 
-    static size_t get_primary_len(const Bundle* bundle);
-
-    static void add_to_dictionary(const EndpointID& eid,
-                                  DictionaryVector* dict,
-                                  u_int64_t* dictlen,
-                                  u_int64_t* scheme_offset,
-                                  u_int64_t* ssp_offset);
-    
-    static void get_dictionary_offsets(DictionaryVector *dict,
-                                       const EndpointID& eid,
-                                       u_int16_t* scheme_offset,
-                                       u_int16_t* ssp_offset);
-    
-
-    static bool extract_dictionary_eid(EndpointID* eid, const char* what,
-                                       u_int64_t scheme_offset,
-                                       u_int64_t ssp_offset,
-                                       u_char* dictionary,
-                                       u_int64_t dictionary_len);
-
-    static void debug_dump_dictionary(const char* bp,
-                                      const PrimaryBlock& primary);
-    
     static u_int64_t format_bundle_flags(const Bundle* bundle);
     static void parse_bundle_flags(Bundle* bundle, u_int64_t flags);
 

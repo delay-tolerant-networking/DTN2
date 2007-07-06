@@ -213,6 +213,7 @@ struct dtn_bundle_spec_t {
     dtn_timeval_t		expiration;
     dtn_timestamp_t		creation_ts;
     dtn_extension_block_t       blocks<DTN_MAX_BLOCKS>;
+    dtn_extension_block_t       metadata<DTN_MAX_BLOCKS>;
 };
 
 %

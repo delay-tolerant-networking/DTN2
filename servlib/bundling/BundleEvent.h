@@ -237,6 +237,22 @@ source_to_str(event_source_t source)
     }
 }
 
+class MetadataBlockRequest {
+public:
+    enum QueryType { QueryByIdentifier, QueryByType, QueryAll };
+
+    MetadataBlockRequest(QueryType query_type, unsigned int query_value) :
+        _query_type(query_type), _query_value(query_value) { }
+
+    int          query_type()  const { return _query_type; }
+    unsigned int query_value() const { return _query_value; }
+
+private:
+    QueryType    _query_type;
+    unsigned int _query_value;
+};
+typedef std::vector<MetadataBlockRequest> MetaBlockRequestVector;
+
 /**
  * Event base class.
  */
@@ -926,7 +942,7 @@ public:
     
     ~BundleInjectRequest() 
     {
-        delete payload_;
+        delete[] payload_;
     }
 
     // Bundle properties
@@ -1070,8 +1086,8 @@ public:
     /// bundle attributes requested by name.
     AttributeNameVector attribute_names_;
 
-    /// extension blocks requested by type/identifier
-    AttributeVector extension_blocks_;
+    /// metadata blocks requested by type/identifier
+    MetaBlockRequestVector metadata_blocks_;
 };
 
 class BundleAttributesReportEvent: public BundleEvent {
@@ -1079,12 +1095,12 @@ public:
     BundleAttributesReportEvent(const std::string& query_id,
                                 const BundleRef& bundle,
                                 const AttributeNameVector& attribute_names,
-                                const AttributeVector& extension_blocks)
+                                const MetaBlockRequestVector& metadata_blocks)
         : BundleEvent(BUNDLE_ATTRIB_REPORT),
           query_id_(query_id),
           bundle_(bundle.object(), "BundleAttributesReportEvent"),
           attribute_names_(attribute_names),
-          extension_blocks_(extension_blocks) {}
+          metadata_blocks_(metadata_blocks) {}
 
     /// Query Identifier
     std::string query_id_;
@@ -1095,8 +1111,8 @@ public:
     /// bundle attributes requested by name.
     AttributeNameVector attribute_names_;
 
-    /// extension blocks requested by type/identifier
-    AttributeVector extension_blocks_;
+    /// metadata blocks requested by type/identifier
+    MetaBlockRequestVector metadata_blocks_;
 };
 
 /**

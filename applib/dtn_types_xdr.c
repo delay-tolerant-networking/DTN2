@@ -284,6 +284,9 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 	 if (!xdr_array (xdrs, (char **)&objp->blocks.blocks_val, (u_int *) &objp->blocks.blocks_len, DTN_MAX_BLOCKS,
 		sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
 		 return FALSE;
+	 if (!xdr_array (xdrs, (char **)&objp->metadata.metadata_val, (u_int *) &objp->metadata.metadata_len, DTN_MAX_BLOCKS,
+		sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
+		 return FALSE;
 	return TRUE;
 }
 

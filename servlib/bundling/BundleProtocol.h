@@ -164,10 +164,15 @@ public:
      * (See http://www.dtnrg.org/wiki/AssignedNamesAndNumbers)
      */
     typedef enum {
-        PRIMARY_BLOCK          = 0x000, ///< INTERNAL USE ONLY -- NOT IN SPEC
-        PAYLOAD_BLOCK          = 0x001, 
-        PREVIOUS_HOP_BLOCK     = 0x005,
-        API_EXTENSION_BLOCK    = 0x100, ///< INTERNAL USE ONLY -- NOT IN SPEC
+        PRIMARY_BLOCK               = 0x000, ///< INTERNAL ONLY -- NOT IN SPEC
+        PAYLOAD_BLOCK               = 0x001, 
+        BUNDLE_AUTHENTICATION_BLOCK = 0x002,
+        PAYLOAD_SECURITY_BLOCK      = 0x003,
+        CONFIDENTIALITY_BLOCK       = 0x004,
+        PREVIOUS_HOP_BLOCK          = 0x005,
+        METADATA_BLOCK              = 0x008, ///< NOT IN SPEC YET
+        API_EXTENSION_BLOCK         = 0x100, ///< INTERNAL ONLY -- NOT IN SPEC
+        UNKNOWN_BLOCK               = 0x101, ///< INTERNAL ONLY -- NOT IN SPEC
     } bundle_block_type_t;
 
     /**
@@ -180,7 +185,8 @@ public:
         BLOCK_FLAG_DISCARD_BUNDLE_ONERROR  = 1 << 2,
         BLOCK_FLAG_LAST_BLOCK              = 1 << 3,
         BLOCK_FLAG_DISCARD_BLOCK_ONERROR   = 1 << 4,
-        BLOCK_FLAG_FORWARDED_UNPROCESSED   = 1 << 5
+        BLOCK_FLAG_FORWARDED_UNPROCESSED   = 1 << 5,
+        BLOCK_FLAG_EID_REFS                = 1 << 6
     } block_flag_t;
 
     /**
@@ -218,12 +224,8 @@ public:
         STATUS_FORWARDED        = 1 << 16,
         STATUS_DELIVERED        = 1 << 17,
         STATUS_DELETED          = 1 << 18,
-        STATUS_UNUSED           = 1 << 19,
+        STATUS_ACKED_BY_APP     = 1 << 19,
         STATUS_UNUSED2          = 1 << 20,
-        
-        //XXX delete me
-        STATUS_ACKED_BY_APP = 11111
-                
     } status_report_flag_t;
 
     /**

@@ -33,10 +33,11 @@ public:
     UnknownBlockProcessor();
     
     /// @{ Virtual from BlockProcessor
-    void prepare(const Bundle* bundle, const LinkRef& link,
-                 BlockInfoVec* blocks, const BlockInfo* source);
+    void prepare(const Bundle* bundle, const LinkRef& link, BlockInfoVec* xmit_blocks,
+                 BlockInfoVec* blocks, const BlockInfo* source,
+                 BlockInfo::list_owner_t list);
     void generate(const Bundle* bundle, const LinkRef& link,
-                  BlockInfo* block, bool last);
+                  BlockInfoVec*  xmit_blocks, BlockInfo* block, bool last);
     bool validate(const Bundle* bundle, BlockInfo* block,
                   BundleProtocol::status_report_reason_t* reception_reason,
                   BundleProtocol::status_report_reason_t* deletion_reason);

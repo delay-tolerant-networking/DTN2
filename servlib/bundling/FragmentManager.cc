@@ -18,16 +18,21 @@
 #  include <config.h>
 #endif
 
+#include <list>
+
 #include "Bundle.h"
 #include "BundleEvent.h"
 #include "BundleDaemon.h"
 #include "BundleList.h"
 #include "BundleRef.h"
 #include "FragmentManager.h"
+#include "FragmentState.h"
 #include "BlockInfo.h"
 #include "BundleProtocol.h"
 
 namespace dtn {
+    
+class BlockInfoPointerList : public std::list<BlockInfo*> { };
 
 //----------------------------------------------------------------------
 FragmentManager::FragmentManager()
@@ -37,11 +42,14 @@ FragmentManager::FragmentManager()
 
 //----------------------------------------------------------------------
 Bundle* 
-FragmentManager::create_fragment(Bundle* bundle, size_t offset, size_t length)
+FragmentManager::create_fragment(Bundle* bundle,
+                                 BlockInfoVec *blocks,
+                                 size_t offset,
+                                 size_t length)
 {
     Bundle* fragment = new Bundle();
 
-    // copy the metadata into the new  fragment (which can be further fragmented)
+    // copy the metadata into the new fragment (which can be further fragmented)
     bundle->copy_metadata(fragment);
     fragment->is_fragment_     = true;
     fragment->do_not_fragment_ = false;
@@ -64,10 +72,89 @@ FragmentManager::create_fragment(Bundle* bundle, size_t offset, size_t length)
               offset, length);
     }
 
-
     // initialize payload
     fragment->payload_.set_length(length);
     fragment->payload_.write_data(&bundle->payload_, offset, length, 0);
+
+    // copy all blocks that follow the payload, and all those before
+    // the payload that are marked with the "must be replicated in every
+    // fragment" bit
+    BlockInfoVec::iterator iter;
+    bool found_payload = false;
+    for (iter = blocks->begin(); iter != blocks->end(); iter++) {
+        int type = iter->type();
+        if (type == BundleProtocol::PRIMARY_BLOCK
+            || type == BundleProtocol::PAYLOAD_BLOCK
+            || found_payload
+            || iter->flags() & BundleProtocol::BLOCK_FLAG_REPLICATE) {
+
+            // we need to include this block; copy the BlockInfo into the
+            // fragment
+            fragment->recv_blocks_.push_back(*iter);
+            if (type == BundleProtocol::PAYLOAD_BLOCK) {
+                found_payload = true;
+            }
+        }
+    }
+
+    return fragment;
+}
+
+//----------------------------------------------------------------------
+Bundle* 
+FragmentManager::create_fragment(Bundle* bundle,
+                                 const LinkRef& link,
+                                 const BlockInfoPointerList& blocks_to_copy,
+                                 size_t offset,
+                                 size_t max_length)
+{
+    size_t block_length = 0;
+    BlockInfoPointerList::const_iterator block_i;
+    
+    for (block_i = blocks_to_copy.begin();
+         block_i != blocks_to_copy.end();
+         ++block_i) {
+        block_length += (*block_i)->contents().len();
+    }
+        
+    if (block_length > max_length) {
+        log_err("unable to create a fragment of length %zu; minimum length "
+                "required is %zu", max_length, block_length);
+        return NULL;
+    }
+    
+    Bundle* fragment = new Bundle();
+
+    // copy the metadata into the new fragment (which can be further fragmented)
+    bundle->copy_metadata(fragment);
+    fragment->is_fragment_     = true;
+    fragment->do_not_fragment_ = false;
+    
+    // initialize the fragment's orig_length and figure out the offset
+    // into the payload
+    if (! bundle->is_fragment_) {
+        fragment->orig_length_ = bundle->payload_.length();
+        fragment->frag_offset_ = offset;
+    } else {
+        fragment->orig_length_ = bundle->orig_length_;
+        fragment->frag_offset_ = bundle->frag_offset_ + offset;
+    }
+
+    // initialize payload
+    size_t to_copy = std::min(max_length - block_length,
+                              bundle->payload_.length() - offset);
+    fragment->payload_.set_length(to_copy);
+    fragment->payload_.write_data(&bundle->payload_, offset, to_copy, 0);
+    BlockInfoVec* xmit_blocks = fragment->xmit_blocks_.create_blocks(link);
+    
+    for (block_i = blocks_to_copy.begin();
+         block_i != blocks_to_copy.end();
+         ++block_i) {
+        xmit_blocks->push_back(BlockInfo(*(*block_i)));
+    }
+    
+    log_debug("created %zu byte fragment bundle with %zu bytes of payload",
+              to_copy + block_length, to_copy);
 
     return fragment;
 }
@@ -81,14 +168,43 @@ FragmentManager::try_to_convert_to_fragment(Bundle* bundle)
     if (!payload_block) {
         return false; // can't do anything
     }
+    if (payload_block->data_offset() == 0) {
+        return false; // there is not even enough data for the preamble
+    }
 
-    // the payload is already truncated to the length that was recieved
+    if (bundle->do_not_fragment_) {
+        return false; // can't do anything
+    }
+
+    // the payload is already truncated to the length that was received
     size_t payload_len  = payload_block->data_length();
     size_t payload_rcvd = bundle->payload_.length();
 
+    // A fragment cannot be created with only one byte of payload
+    // available.
+    if (payload_len <= 1) {
+        return false;
+    }
+
     if (payload_rcvd >= payload_len) {
         ASSERT(payload_block->complete() || payload_len == 0);
-        return false; // nothing to do
+
+        if (payload_block->last_block()) {
+            return false; // nothing to do - whole bundle present
+        }
+
+        // If the payload block is not the last block, there are extension
+        // blocks following it. See if they all appear to be present.
+        BlockInfoVec::iterator last_block = bundle->recv_blocks_.end() - 1;
+        if (last_block->data_offset() != 0 && last_block->complete()
+            && last_block->last_block()) {
+            return false; // nothing to do - whole bundle present
+        }
+
+        // At this point the payload is complete but the bundle is not,
+        // so force the creation of a fragment by dropping a byte.
+        payload_rcvd--;
+        bundle->payload_.truncate(payload_rcvd);
     }
     
     log_debug("partial bundle *%p, making reactive fragment of %zu bytes",
@@ -102,6 +218,7 @@ FragmentManager::try_to_convert_to_fragment(Bundle* bundle)
         // if it was already a fragment, the fragment headers are
         // already correct
     }
+    bundle->fragmented_incoming_ = true;
     
     return true;
 }
@@ -121,181 +238,140 @@ FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
 }
 
 //----------------------------------------------------------------------
-bool
-FragmentManager::check_completed(ReassemblyState* state)
+FragmentState*
+FragmentManager::proactively_fragment(Bundle* bundle, 
+                                      const LinkRef& link,
+                                      size_t max_length)
 {
+    size_t payload_len = bundle->payload_.length();
+    
     Bundle* fragment;
-    BundleList::iterator iter;
-    oasys::ScopeLock l(state->fragments_.lock(),
-                       "FragmentManager::check_completed");
+    FragmentState* state = new FragmentState(bundle);
     
-    size_t done_up_to = 0;  // running total of completed reassembly
-    size_t f_len;
-    size_t f_offset;
-    size_t f_origlen;
-
-    size_t total_len = state->bundle_->payload_.length();
+    size_t todo = payload_len;
+    size_t offset = 0;
+    size_t count = 0;
     
-    int fragi = 0;
-    int fragn = state->fragments_.size();
-    (void)fragn; // in case NDEBUG is defined
-
-    for (iter = state->fragments_.begin();
-         iter != state->fragments_.end();
-         ++iter, ++fragi)
-    {
-        fragment = *iter;
-
-        f_len = fragment->payload_.length();
-        f_offset = fragment->frag_offset_;
-        f_origlen = fragment->orig_length_;
+    BlockInfoPointerList first_frag_blocks;
+    BlockInfoPointerList all_frag_blocks;
+    BlockInfoPointerList& this_frag_blocks = first_frag_blocks;
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    
+    BlockInfoVec::iterator block_i;
+    for (block_i = blocks->begin(); block_i != blocks->end(); ++block_i) {
+        BlockInfo* block_info = &(*block_i);
         
-        ASSERT(fragment->is_fragment_);
-        
-        if (f_origlen != total_len) {
-            PANIC("check_completed: error fragment orig len %zu != total %zu",
-                  f_origlen, total_len);
-            // XXX/demmer deal with this
-        }
-
-        if (done_up_to == f_offset) {
-            /*
-             * fragment is adjacent to the bytes so far
-             * bbbbbbbbbb
-             *           fff
-             */
-            log_debug("check_completed fragment %d/%d: "
-                      "offset %zu len %zu total %zu done_up_to %zu: "
-                      "(perfect fit)",
-                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
-            done_up_to += f_len;
-        }
-
-        else if (done_up_to < f_offset) {
-            /*
-             * there's a gap
-             * bbbbbbb ffff
-             */
-            log_debug("check_completed fragment %d/%d: "
-                      "offset %zu len %zu total %zu done_up_to %zu: "
-                      "(found a hole)",
-                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
-            return false;
-
-        }
-
-        else if (done_up_to > (f_offset + f_len)) {
-            /* fragment is completely redundant, skip
-             * bbbbbbbbbb
-             *      fffff
-             */
-            log_debug("check_completed fragment %d/%d: "
-                      "offset %zu len %zu total %zu done_up_to %zu: "
-                      "(redundant fragment)",
-                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
-            continue;
+        if (block_info->type() == BundleProtocol::PRIMARY_BLOCK ||
+        block_info->type() == BundleProtocol::PAYLOAD_BLOCK) {
+            all_frag_blocks.push_back(block_info);
+            first_frag_blocks.push_back(block_info);
         }
         
-        else if (done_up_to > f_offset) {
-            /*
-             * there's some overlap, so reduce f_len accordingly
-             * bbbbbbbbbb
-             *      fffffff
-             */
-            log_debug("check_completed fragment %d/%d: "
-                      "offset %zu len %zu total %zu done_up_to %zu: "
-                      "(overlapping fragment, reducing len to %zu)",
-                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to,
-                      (f_len - (done_up_to - f_offset)));
-            
-            f_len -= (done_up_to - f_offset);
-            done_up_to += f_len;
-        }
-
-        else {
-            // all cases should be covered above
-            NOTREACHED;
-        }
+        else if (block_info->flags() & BundleProtocol::BLOCK_FLAG_REPLICATE)
+            all_frag_blocks.push_back(block_info);
+        else
+            first_frag_blocks.push_back(block_info);
     }
+    
+    do {
+        fragment = create_fragment(bundle, link, this_frag_blocks, 
+                                   offset, max_length);
+        ASSERT(fragment);
+        
+        state->add_fragment(fragment);
+        offset += fragment->payload_.length();
+        todo -= fragment->payload_.length();
+        this_frag_blocks = all_frag_blocks;
+        ++count;
+        
+    } while (todo > 0);
+    
+    log_info("proactively fragmenting "
+            "%zu byte payload into %zu %zu byte fragments",
+            payload_len, count, max_length);
+    
+    std::string hash_key;
+    get_hash_key(fragment, &hash_key);
+    fragment_table_[hash_key] = state;
 
-    if (done_up_to == total_len) {
-        log_debug("check_completed reassembly complete!");
-        return true;
+    return state;
+}
+
+FragmentState*
+FragmentManager::get_fragment_state(Bundle* bundle)
+{
+    std::string hash_key;
+    get_hash_key(bundle, &hash_key);
+    FragmentTable::iterator iter = fragment_table_.find(hash_key);
+
+    if (iter == fragment_table_.end()) {
+        return NULL;
     } else {
-        log_debug("check_completed reassembly not done (got %zu/%zu)",
-                  done_up_to, total_len);
-        return false;
+        return iter->second;
     }
 }
 
 //----------------------------------------------------------------------
-int
-FragmentManager::proactively_fragment(Bundle* bundle, size_t max_length)
+void
+FragmentManager::erase_fragment_state(FragmentState* state)
 {
-    size_t payload_len = bundle->payload_.length();
-    
-    if (max_length == 0 || max_length > payload_len) {
-        return 0;
-    }
-
-    log_info("proactively fragmenting "
-         "%zu byte bundle into %zu %zu byte fragments",
-         payload_len, (payload_len / max_length), max_length);
-
-    Bundle* fragment;
-    size_t todo = payload_len;
-    size_t offset = 0;
-    size_t fraglen = max_length;
-    size_t count = 0;
-    
-    do {
-        if ((offset + fraglen) > payload_len) {
-            fraglen = payload_len - offset; // tail
-        }
-        ASSERT(todo >= fraglen);
-        
-        fragment = create_fragment(bundle, offset, fraglen);
-        ASSERT(fragment);
-        
-        BundleDaemon::post(
-            new BundleReceivedEvent(fragment, EVENTSRC_FRAGMENTATION));
-        offset += fraglen;
-        todo -= fraglen;
-        ++count;
-        
-    } while (todo > 0);
-
-    return count;
+    std::string hash_key;
+    get_hash_key(state->bundle().object(), &hash_key);
+    fragment_table_.erase(hash_key);
 }
 
 //----------------------------------------------------------------------
 bool
 FragmentManager::try_to_reactively_fragment(Bundle* bundle,
-                                            size_t  payload_offset,
+                                            BlockInfoVec *blocks,
                                             size_t  bytes_sent)
 {
     if (bundle->do_not_fragment_) {
         return false; // can't do anything
     }
 
+    size_t payload_offset = BundleProtocol::payload_offset(blocks);
+    size_t total_length = BundleProtocol::total_length(blocks);
+
     if (bytes_sent <= payload_offset) {
         return false; // can't do anything
     }
-    
-    size_t payload_len  = bundle->payload_.length();
-    size_t payload_sent = std::min(payload_len, bytes_sent - payload_offset);
-    
-    if (payload_sent >= payload_len) {
+
+    if (bytes_sent >= total_length) {
         return false; // nothing to do
     }
     
-    size_t frag_off = payload_sent;
-    size_t frag_len = payload_len - payload_sent;
+    const BlockInfo *payload_block
+        = blocks->find_block(BundleProtocol::PAYLOAD_BLOCK);
+
+    size_t payload_len  = bundle->payload_.length();
+    size_t payload_sent = std::min(payload_len, bytes_sent - payload_offset);
+
+    // A fragment cannot be created with only one byte of payload
+    // available.
+    if (payload_len <= 1) {
+        return false;
+    }
+
+    size_t frag_off, frag_len;
+
+    if (payload_sent >= payload_len) {
+        // this means some but not all data after the payload was transmitted
+        ASSERT(! payload_block->last_block());
+
+        // keep a byte to put with the trailing blocks
+        frag_off = payload_len - 1;
+        frag_len = 1;
+    }
+    else {
+        frag_off = payload_sent;
+        frag_len = payload_len - payload_sent;
+    }
 
     log_debug("creating reactive fragment (offset %zu len %zu/%zu)",
               frag_off, frag_len, payload_len);
     
-    Bundle* tail = create_fragment(bundle, frag_off, frag_len);
+    Bundle* tail = create_fragment(bundle, blocks, frag_off, frag_len);
 
     // treat the new fragment as if it just arrived
     BundleDaemon::post_at_head(
@@ -308,61 +384,70 @@ FragmentManager::try_to_reactively_fragment(Bundle* bundle,
 void
 FragmentManager::process_for_reassembly(Bundle* fragment)
 {
-    ReassemblyState* state;
-    ReassemblyTable::iterator iter;
+    FragmentState* state;
+    FragmentTable::iterator iter;
 
     ASSERT(fragment->is_fragment_);
 
     // cons up the key to do the table lookup and look for reassembly state
     std::string hash_key;
     get_hash_key(fragment, &hash_key);
-    iter = reassembly_table_.find(hash_key);
+    iter = fragment_table_.find(hash_key);
 
     log_debug("processing bundle fragment id=%u hash=%s %d",
               fragment->bundleid_, hash_key.c_str(), fragment->is_fragment_);
 
-    if (iter == reassembly_table_.end()) {
+    if (iter == fragment_table_.end()) {
         log_debug("no reassembly state for key %s -- creating new state",
                   hash_key.c_str());
-        state = new ReassemblyState();
+        state = new FragmentState();
 
         // copy the metadata from the first fragment to arrive, but
         // make sure we mark the bundle that it's not a fragment (or
         // at least won't be for long)
-        state->bundle_ = new Bundle();
-        fragment->copy_metadata(state->bundle_.object());
-        state->bundle_->is_fragment_ = false;
-        state->bundle_->payload_.set_length(fragment->orig_length_);
-        reassembly_table_[hash_key] = state;
+        fragment->copy_metadata(state->bundle().object());
+        state->bundle()->is_fragment_ = false;
+        state->bundle()->payload_.set_length(fragment->orig_length_);
+        fragment_table_[hash_key] = state;
     } else {
         state = iter->second;
         log_debug("found reassembly state for key %s (%zu fragments)",
-                  hash_key.c_str(), state->fragments_.size());
+                  hash_key.c_str(), state->fragment_list().size());
     }
 
     // stick the fragment on the reassembly list
-    state->fragments_.insert_sorted(fragment, BundleList::SORT_FRAG_OFFSET);
+    state->add_fragment(fragment);
     
     // store the fragment data in the partially reassembled bundle file
     size_t fraglen = fragment->payload_.length();
     
     log_debug("write_data: length_=%zu src_offset=%u dst_offset=%u len %zu",
-              state->bundle_->payload_.length(), 
+              state->bundle()->payload_.length(), 
               0, fragment->frag_offset_, fraglen);
 
-    state->bundle_->payload_.write_data(&fragment->payload_, 0, fraglen,
-                                        fragment->frag_offset_);
+    state->bundle()->payload_.write_data(&fragment->payload_, 0, fraglen,
+                                         fragment->frag_offset_);
+    
+    // XXX/jmmikkel this ensures that we have a set of blocks in the
+    // reassembled bundle, but eventually reassembly will have to do much more
+    if (fragment->frag_offset_ == 0 && !state->bundle()->recv_blocks_.empty()) {
+        for (BlockInfoVec::iterator block_i = fragment->recv_blocks_.begin();
+             block_i != fragment->recv_blocks_.end();
+             ++block_i) {
+            state->bundle()->recv_blocks_.push_back(BlockInfo(*block_i));
+        }
+    }
     
     // check see if we're done
-    if (!check_completed(state)) {
+    if (state->check_completed()) {
         return;
     }
 
     BundleDaemon::post_at_head
-        (new ReassemblyCompletedEvent(state->bundle_.object(),
-                                      &state->fragments_));
-    ASSERT(state->fragments_.size() == 0); // moved into the event
-    reassembly_table_.erase(hash_key);
+        (new ReassemblyCompletedEvent(state->bundle().object(),
+                                      &state->fragment_list()));
+    ASSERT(state->fragment_list().size() == 0); // moved into the event
+    fragment_table_.erase(hash_key);
     delete state;
 }
 
@@ -370,25 +455,25 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
 void
 FragmentManager::delete_fragment(Bundle* fragment)
 {
-    ReassemblyState* state;
-    ReassemblyTable::iterator iter;
+    FragmentState* state;
+    FragmentTable::iterator iter;
 
     ASSERT(fragment->is_fragment_);
 
     // cons up the key to do the table lookup and look for reassembly state
     std::string hash_key;
     get_hash_key(fragment, &hash_key);
-    iter = reassembly_table_.find(hash_key);
+    iter = fragment_table_.find(hash_key);
 
     // no reassembly state, simply return
-    if (iter == reassembly_table_.end()) {
+    if (iter == fragment_table_.end()) {
         return;
     }
 
     state = iter->second;
 
     // remove the fragment from the reassembly list
-    bool erased = state->fragments_.erase(fragment);
+    bool erased = state->erase_fragment(fragment);
 
     // fragment was not in reassembly list, simply return
     if (!erased) {
@@ -401,12 +486,12 @@ FragmentManager::delete_fragment(Bundle* fragment)
     memset(buf, '\0', fragment->payload_.length());
     
     // remove the fragment data from the partially reassembled bundle file
-    state->bundle_->payload_.write_data(buf, fragment->frag_offset_,
-                                        fragment->payload_.length());
+    state->bundle()->payload_.write_data(buf, fragment->frag_offset_,
+                                         fragment->payload_.length());
 
     // delete reassembly state if no fragments now exist
-    if (state->fragments_.size() == 0) {
-        reassembly_table_.erase(hash_key);
+    if (state->num_fragments() == 0) {
+        fragment_table_.erase(hash_key);
         delete state;
     }
 }

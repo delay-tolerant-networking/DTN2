@@ -27,8 +27,12 @@ class SpinLock;
 
 namespace dtn {
 
+class Link;
 class Bundle;
 class BundleList;
+class BlockInfoVec;
+class FragmentState;
+class BlockInfoPointerList;
 
 // XXX/demmer should change the overall flow of the reassembly so all
 // arriving bundle fragments are enqueued onto the appropriate
@@ -68,7 +72,19 @@ public:
      * @return
      *   pointer to the newly created bundle
      */
-    Bundle* create_fragment(Bundle* bundle, size_t offset, size_t length);
+    Bundle* create_fragment(Bundle* bundle,
+                            BlockInfoVec* blocks,
+                            size_t offset,
+                            size_t length);
+
+    /**
+     * Create a fragment to be sent out on a particular link.
+     */
+    Bundle* create_fragment(Bundle* bundle,
+                            const LinkRef& link,
+                            const BlockInfoPointerList& blocks_to_copy,
+                            size_t offset, 
+                            size_t length);
 
     /**
      * Turn a bundle into a fragment. Note this is used just for
@@ -87,7 +103,13 @@ public:
      * Return the number of fragments created or zero if none were
      * created.
      */
-    int proactively_fragment(Bundle* bundle, size_t max_length);
+    FragmentState* proactively_fragment(Bundle* bundle, 
+                                        const LinkRef& link,
+                                        size_t max_length);
+    
+    FragmentState* get_fragment_state(Bundle* bundle);
+    
+    void erase_fragment_state(FragmentState* fragment);
 
     /**
      * If only part of the given bundle was sent successfully, split
@@ -95,7 +117,7 @@ public:
      *
      * Return true if a fragment was created
      */
-    bool try_to_reactively_fragment(Bundle* bundle, size_t payload_offset,
+    bool try_to_reactively_fragment(Bundle* bundle, BlockInfoVec *blocks,
                                     size_t bytes_sent);
 
     /**
@@ -119,16 +141,6 @@ public:
     void delete_fragment(Bundle* fragment);
     
  protected:
-    /// Reassembly state structure
-    struct ReassemblyState {
-        ReassemblyState()
-            : bundle_("reassembly_state"), fragments_("reassembly_state")
-        {}
-        
-        BundleRef  bundle_;	///< The bundle to eb 
-        BundleList fragments_;	///< List of partial fragments
-    };
-    
     /**
      * Calculate a hash table key from a bundle
      */
@@ -137,11 +149,11 @@ public:
     /**
      * Check if the bundle has been completely reassembled.
      */
-    bool check_completed(ReassemblyState* state);
+    //bool check_completed(FragmentState* state);
 
     /// Table of partial bundles
-    typedef oasys::StringHashMap<ReassemblyState*> ReassemblyTable;
-    ReassemblyTable reassembly_table_;
+    typedef oasys::StringHashMap<FragmentState*> FragmentTable;
+    FragmentTable fragment_table_;
 };
 
 } // namespace dtn

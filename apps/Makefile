@@ -32,13 +32,13 @@ SINGLE_SOURCE_APPS := 			\
 	dtnperf/dtnperf-client		\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\
-	dtnsend/dtnsend			\
 
 OTHER_APPS :=				\
 	dtnmoteproxy/dtnmoteproxy	\
 	dtntest/dtntest			\
 	dtntunnel/dtntunnel		\
 	tca_admin/tca_admin		\
+	dtnsend/dtnsend			\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
@@ -79,6 +79,13 @@ dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 # Rules for dtntest
 #
 dtntest/dtntest: dtntest/dtntest.o
+	$(CXX) $(CXXFLAGS) $^ -o $@ \
+		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
+
+#
+# Rules for dtntest
+#
+dtnsend/dtnsend: dtnsend/dtnsend.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ \
 		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
 

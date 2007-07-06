@@ -37,11 +37,15 @@ BUNDLING_SRCS := 				\
 	bundling/BundleTimestamp.cc		\
 	bundling/CustodySignal.cc		\
 	bundling/CustodyTimer.cc		\
+	bundling/Dictionary.cc          	\
 	bundling/ForwardingInfo.cc		\
 	bundling/ForwardingLog.cc		\
 	bundling/FragmentManager.cc		\
+	bundling/FragmentState.cc		\
 	bundling/ExpirationTimer.cc		\
 	bundling/GbofId.cc  		        \
+	bundling/MetadataBlock.cc		\
+	bundling/MetadataBlockProcessor.cc	\
 	bundling/PayloadBlockProcessor.cc	\
 	bundling/PreviousHopBlockProcessor.cc	\
 	bundling/PrimaryBlockProcessor.cc	\

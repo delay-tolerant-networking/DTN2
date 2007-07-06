@@ -2710,65 +2710,55 @@ namespace dtn
     }
 
 
-    // bundleExtBlockTypeType
+    // bundleMetaBlockQueryType
     // 
 
-
-    // bundleExtBlockQueryType
-    // 
-
-    const bundleExtBlockQueryType::type::type_& bundleExtBlockQueryType::
+    const bundleMetaBlockQueryType::type::container& bundleMetaBlockQueryType::
     type () const
     {
-      return this->_xsd_type_.get ();
+      return this->_xsd_type_;
     }
 
-    bundleExtBlockQueryType::type::type_& bundleExtBlockQueryType::
+    bundleMetaBlockQueryType::type::container& bundleMetaBlockQueryType::
     type ()
     {
-      return this->_xsd_type_.get ();
+      return this->_xsd_type_;
     }
 
-    void bundleExtBlockQueryType::
+    void bundleMetaBlockQueryType::
     type (const type::type_& type)
     {
       this->_xsd_type_.set (type);
     }
 
-    void bundleExtBlockQueryType::
-    type (::std::auto_ptr< type::type_ > type)
+    void bundleMetaBlockQueryType::
+    type (const type::container& type)
     {
-      this->_xsd_type_.set (type);
+      this->_xsd_type_ = type;
     }
 
-    const bundleExtBlockQueryType::identifier::container& bundleExtBlockQueryType::
+    const bundleMetaBlockQueryType::identifier::container& bundleMetaBlockQueryType::
     identifier () const
     {
       return this->_xsd_identifier_;
     }
 
-    bundleExtBlockQueryType::identifier::container& bundleExtBlockQueryType::
+    bundleMetaBlockQueryType::identifier::container& bundleMetaBlockQueryType::
     identifier ()
     {
       return this->_xsd_identifier_;
     }
 
-    void bundleExtBlockQueryType::
+    void bundleMetaBlockQueryType::
     identifier (const identifier::type& identifier)
     {
       this->_xsd_identifier_.set (identifier);
     }
 
-    void bundleExtBlockQueryType::
+    void bundleMetaBlockQueryType::
     identifier (const identifier::container& identifier)
     {
       this->_xsd_identifier_ = identifier;
-    }
-
-    void bundleExtBlockQueryType::
-    identifier (::std::auto_ptr< identifier::type > identifier)
-    {
-      this->_xsd_identifier_.set (identifier);
     }
 
 
@@ -2805,34 +2795,116 @@ namespace dtn
       this->_xsd_query_.set (query);
     }
 
-    const bundleAttributesQueryType::ext_blocks::container& bundleAttributesQueryType::
-    ext_blocks () const
+    const bundleAttributesQueryType::meta_blocks::container& bundleAttributesQueryType::
+    meta_blocks () const
     {
-      return this->_xsd_ext_blocks_;
+      return this->_xsd_meta_blocks_;
     }
 
-    bundleAttributesQueryType::ext_blocks::container& bundleAttributesQueryType::
-    ext_blocks ()
+    bundleAttributesQueryType::meta_blocks::container& bundleAttributesQueryType::
+    meta_blocks ()
     {
-      return this->_xsd_ext_blocks_;
-    }
-
-    void bundleAttributesQueryType::
-    ext_blocks (const ext_blocks::type& ext_blocks)
-    {
-      this->_xsd_ext_blocks_.set (ext_blocks);
+      return this->_xsd_meta_blocks_;
     }
 
     void bundleAttributesQueryType::
-    ext_blocks (const ext_blocks::container& ext_blocks)
+    meta_blocks (const meta_blocks::type& meta_blocks)
     {
-      this->_xsd_ext_blocks_ = ext_blocks;
+      this->_xsd_meta_blocks_.set (meta_blocks);
     }
 
     void bundleAttributesQueryType::
-    ext_blocks (::std::auto_ptr< ext_blocks::type > ext_blocks)
+    meta_blocks (const meta_blocks::container& meta_blocks)
     {
-      this->_xsd_ext_blocks_.set (ext_blocks);
+      this->_xsd_meta_blocks_ = meta_blocks;
+    }
+
+    void bundleAttributesQueryType::
+    meta_blocks (::std::auto_ptr< meta_blocks::type > meta_blocks)
+    {
+      this->_xsd_meta_blocks_.set (meta_blocks);
+    }
+
+
+    // metadataBlockType
+    // 
+
+    const metadataBlockType::identifier::type& metadataBlockType::
+    identifier () const
+    {
+      return this->_xsd_identifier_.get ();
+    }
+
+    metadataBlockType::identifier::type& metadataBlockType::
+    identifier ()
+    {
+      return this->_xsd_identifier_.get ();
+    }
+
+    void metadataBlockType::
+    identifier (const identifier::type& identifier)
+    {
+      this->_xsd_identifier_.set (identifier);
+    }
+
+    const metadataBlockType::generated::type& metadataBlockType::
+    generated () const
+    {
+      return this->_xsd_generated_.get ();
+    }
+
+    metadataBlockType::generated::type& metadataBlockType::
+    generated ()
+    {
+      return this->_xsd_generated_.get ();
+    }
+
+    void metadataBlockType::
+    generated (const generated::type& generated)
+    {
+      this->_xsd_generated_.set (generated);
+    }
+
+    const metadataBlockType::type::type_& metadataBlockType::
+    type () const
+    {
+      return this->_xsd_type_.get ();
+    }
+
+    metadataBlockType::type::type_& metadataBlockType::
+    type ()
+    {
+      return this->_xsd_type_.get ();
+    }
+
+    void metadataBlockType::
+    type (const type::type_& type)
+    {
+      this->_xsd_type_.set (type);
+    }
+
+    const metadataBlockType::contents::type& metadataBlockType::
+    contents () const
+    {
+      return this->_xsd_contents_.get ();
+    }
+
+    metadataBlockType::contents::type& metadataBlockType::
+    contents ()
+    {
+      return this->_xsd_contents_.get ();
+    }
+
+    void metadataBlockType::
+    contents (const contents::type& contents)
+    {
+      this->_xsd_contents_.set (contents);
+    }
+
+    void metadataBlockType::
+    contents (::std::auto_ptr< contents::type > contents)
+    {
+      this->_xsd_contents_.set (contents);
     }
 
 
@@ -2959,40 +3031,22 @@ namespace dtn
       this->_xsd_prevhop_.set (prevhop);
     }
 
-    const bundleAttributesReportType::ext_block_list::container& bundleAttributesReportType::
-    ext_block_list () const
+    const bundleAttributesReportType::meta_blocks::container& bundleAttributesReportType::
+    meta_blocks () const
     {
-      return this->_xsd_ext_block_list_;
+      return this->_xsd_meta_blocks_;
     }
 
-    bundleAttributesReportType::ext_block_list::container& bundleAttributesReportType::
-    ext_block_list ()
+    bundleAttributesReportType::meta_blocks::container& bundleAttributesReportType::
+    meta_blocks ()
     {
-      return this->_xsd_ext_block_list_;
-    }
-
-    void bundleAttributesReportType::
-    ext_block_list (const ext_block_list::container& ext_block_list)
-    {
-      this->_xsd_ext_block_list_ = ext_block_list;
-    }
-
-    const bundleAttributesReportType::ext_blocks::container& bundleAttributesReportType::
-    ext_blocks () const
-    {
-      return this->_xsd_ext_blocks_;
-    }
-
-    bundleAttributesReportType::ext_blocks::container& bundleAttributesReportType::
-    ext_blocks ()
-    {
-      return this->_xsd_ext_blocks_;
+      return this->_xsd_meta_blocks_;
     }
 
     void bundleAttributesReportType::
-    ext_blocks (const ext_blocks::container& ext_blocks)
+    meta_blocks (const meta_blocks::container& meta_blocks)
     {
-      this->_xsd_ext_blocks_ = ext_blocks;
+      this->_xsd_meta_blocks_ = meta_blocks;
     }
 
     const bundleAttributesReportType::bundleid::container& bundleAttributesReportType::
@@ -3615,6 +3669,30 @@ namespace dtn
     bytes_received (const bytes_received::type& bytes_received)
     {
       this->_xsd_bytes_received_.set (bytes_received);
+    }
+
+    const bundle_received_event::num_meta_blocks::container& bundle_received_event::
+    num_meta_blocks () const
+    {
+      return this->_xsd_num_meta_blocks_;
+    }
+
+    bundle_received_event::num_meta_blocks::container& bundle_received_event::
+    num_meta_blocks ()
+    {
+      return this->_xsd_num_meta_blocks_;
+    }
+
+    void bundle_received_event::
+    num_meta_blocks (const num_meta_blocks::type& num_meta_blocks)
+    {
+      this->_xsd_num_meta_blocks_.set (num_meta_blocks);
+    }
+
+    void bundle_received_event::
+    num_meta_blocks (const num_meta_blocks::container& num_meta_blocks)
+    {
+      this->_xsd_num_meta_blocks_ = num_meta_blocks;
     }
 
 
@@ -5017,6 +5095,24 @@ namespace dtn
       this->_xsd_gbof_id_.set (gbof_id);
     }
 
+    const send_bundle_request::metadata_block::container& send_bundle_request::
+    metadata_block () const
+    {
+      return this->_xsd_metadata_block_;
+    }
+
+    send_bundle_request::metadata_block::container& send_bundle_request::
+    metadata_block ()
+    {
+      return this->_xsd_metadata_block_;
+    }
+
+    void send_bundle_request::
+    metadata_block (const metadata_block::container& metadata_block)
+    {
+      this->_xsd_metadata_block_ = metadata_block;
+    }
+
     const send_bundle_request::link_id::type& send_bundle_request::
     link_id () const
     {
@@ -5113,36 +5209,6 @@ namespace dtn
       this->_xsd_frag_offset_ = frag_offset;
     }
 
-    const send_bundle_request::ext_block::container& send_bundle_request::
-    ext_block () const
-    {
-      return this->_xsd_ext_block_;
-    }
-
-    send_bundle_request::ext_block::container& send_bundle_request::
-    ext_block ()
-    {
-      return this->_xsd_ext_block_;
-    }
-
-    void send_bundle_request::
-    ext_block (const ext_block::type& ext_block)
-    {
-      this->_xsd_ext_block_.set (ext_block);
-    }
-
-    void send_bundle_request::
-    ext_block (const ext_block::container& ext_block)
-    {
-      this->_xsd_ext_block_ = ext_block;
-    }
-
-    void send_bundle_request::
-    ext_block (::std::auto_ptr< ext_block::type > ext_block)
-    {
-      this->_xsd_ext_block_.set (ext_block);
-    }
-
 
     // send_bundle_broadcast_request
     // 
@@ -5169,6 +5235,24 @@ namespace dtn
     gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
     {
       this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    const send_bundle_broadcast_request::metadata_block::container& send_bundle_broadcast_request::
+    metadata_block () const
+    {
+      return this->_xsd_metadata_block_;
+    }
+
+    send_bundle_broadcast_request::metadata_block::container& send_bundle_broadcast_request::
+    metadata_block ()
+    {
+      return this->_xsd_metadata_block_;
+    }
+
+    void send_bundle_broadcast_request::
+    metadata_block (const metadata_block::container& metadata_block)
+    {
+      this->_xsd_metadata_block_ = metadata_block;
     }
 
     const send_bundle_broadcast_request::fwd_action::type& send_bundle_broadcast_request::
@@ -5241,36 +5325,6 @@ namespace dtn
     frag_offset (const frag_offset::container& frag_offset)
     {
       this->_xsd_frag_offset_ = frag_offset;
-    }
-
-    const send_bundle_broadcast_request::ext_block::container& send_bundle_broadcast_request::
-    ext_block () const
-    {
-      return this->_xsd_ext_block_;
-    }
-
-    send_bundle_broadcast_request::ext_block::container& send_bundle_broadcast_request::
-    ext_block ()
-    {
-      return this->_xsd_ext_block_;
-    }
-
-    void send_bundle_broadcast_request::
-    ext_block (const ext_block::type& ext_block)
-    {
-      this->_xsd_ext_block_.set (ext_block);
-    }
-
-    void send_bundle_broadcast_request::
-    ext_block (const ext_block::container& ext_block)
-    {
-      this->_xsd_ext_block_ = ext_block;
-    }
-
-    void send_bundle_broadcast_request::
-    ext_block (::std::auto_ptr< ext_block::type > ext_block)
-    {
-      this->_xsd_ext_block_.set (ext_block);
     }
 
 
@@ -5665,6 +5719,58 @@ namespace dtn
     clayer (::std::auto_ptr< clayer::type > clayer)
     {
       this->_xsd_clayer_.set (clayer);
+    }
+
+
+    // deliver_bundle_to_app_request
+    // 
+
+    const deliver_bundle_to_app_request::endpoint::type& deliver_bundle_to_app_request::
+    endpoint () const
+    {
+      return this->_xsd_endpoint_.get ();
+    }
+
+    deliver_bundle_to_app_request::endpoint::type& deliver_bundle_to_app_request::
+    endpoint ()
+    {
+      return this->_xsd_endpoint_.get ();
+    }
+
+    void deliver_bundle_to_app_request::
+    endpoint (const endpoint::type& endpoint)
+    {
+      this->_xsd_endpoint_.set (endpoint);
+    }
+
+    void deliver_bundle_to_app_request::
+    endpoint (::std::auto_ptr< endpoint::type > endpoint)
+    {
+      this->_xsd_endpoint_.set (endpoint);
+    }
+
+    const deliver_bundle_to_app_request::gbof_id::type& deliver_bundle_to_app_request::
+    gbof_id () const
+    {
+      return this->_xsd_gbof_id_.get ();
+    }
+
+    deliver_bundle_to_app_request::gbof_id::type& deliver_bundle_to_app_request::
+    gbof_id ()
+    {
+      return this->_xsd_gbof_id_.get ();
+    }
+
+    void deliver_bundle_to_app_request::
+    gbof_id (const gbof_id::type& gbof_id)
+    {
+      this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    void deliver_bundle_to_app_request::
+    gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
+    {
+      this->_xsd_gbof_id_.set (gbof_id);
     }
 
 
@@ -7045,6 +7151,36 @@ namespace dtn
     set_cl_params_request (::std::auto_ptr< set_cl_params_request::type > set_cl_params_request)
     {
       this->_xsd_set_cl_params_request_.set (set_cl_params_request);
+    }
+
+    const bpa::deliver_bundle_to_app_request::container& bpa::
+    deliver_bundle_to_app_request () const
+    {
+      return this->_xsd_deliver_bundle_to_app_request_;
+    }
+
+    bpa::deliver_bundle_to_app_request::container& bpa::
+    deliver_bundle_to_app_request ()
+    {
+      return this->_xsd_deliver_bundle_to_app_request_;
+    }
+
+    void bpa::
+    deliver_bundle_to_app_request (const deliver_bundle_to_app_request::type& deliver_bundle_to_app_request)
+    {
+      this->_xsd_deliver_bundle_to_app_request_.set (deliver_bundle_to_app_request);
+    }
+
+    void bpa::
+    deliver_bundle_to_app_request (const deliver_bundle_to_app_request::container& deliver_bundle_to_app_request)
+    {
+      this->_xsd_deliver_bundle_to_app_request_ = deliver_bundle_to_app_request;
+    }
+
+    void bpa::
+    deliver_bundle_to_app_request (::std::auto_ptr< deliver_bundle_to_app_request::type > deliver_bundle_to_app_request)
+    {
+      this->_xsd_deliver_bundle_to_app_request_.set (deliver_bundle_to_app_request);
     }
 
     const bpa::link_query::container& bpa::
@@ -11439,7 +11575,7 @@ namespace dtn
       "prevhop",
       "location",
       "payload",
-      "ext_block_list"
+      "meta_block_list"
     };
 
     const bundleAttributesSimpleQueryType::_xsd_bundleAttributesSimpleQueryType bundleAttributesSimpleQueryType::
@@ -11455,11 +11591,11 @@ namespace dtn
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::dest,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::do_not_fragment,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::expiration,
-      ::dtn::rtrmessage::bundleAttributesSimpleQueryType::ext_block_list,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::forward_rcpt,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::is_admin,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::local_custody,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::location,
+      ::dtn::rtrmessage::bundleAttributesSimpleQueryType::meta_block_list,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::orig_length,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::owner,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::payload,
@@ -11471,100 +11607,35 @@ namespace dtn
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::source
     };
 
-    // bundleExtBlockTypeType
+    // bundleMetaBlockQueryType
     //
 
-    bundleExtBlockTypeType::
-    bundleExtBlockTypeType ()
-    : ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type > ()
-    {
-    }
-
-    bundleExtBlockTypeType::
-    bundleExtBlockTypeType (const _xsd_bundleExtBlockTypeType::base_& _xsd_bundleExtBlockTypeType)
-    : ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type > (_xsd_bundleExtBlockTypeType)
-    {
-    }
-
-    bundleExtBlockTypeType::
-    bundleExtBlockTypeType (const bundleExtBlockTypeType& _xsd_bundleExtBlockTypeType,
-                            ::xml_schema::flags f,
-                            ::xml_schema::type* c)
-    : ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type > (_xsd_bundleExtBlockTypeType, f, c)
-    {
-    }
-
-    bundleExtBlockTypeType::
-    bundleExtBlockTypeType (const ::xercesc::DOMElement& e,
-                            ::xml_schema::flags f,
-                            ::xml_schema::type* c)
-    : ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type > (e, f, c)
-    {
-    }
-
-    bundleExtBlockTypeType::
-    bundleExtBlockTypeType (const ::xercesc::DOMAttr& a,
-                            ::xml_schema::flags f,
-                            ::xml_schema::type* c)
-    : ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type > (a, f, c)
-    {
-    }
-
-    bundleExtBlockTypeType::
-    bundleExtBlockTypeType (const ::std::basic_string< char >& s,
-                            const ::xercesc::DOMElement* e,
-                            ::xml_schema::flags f,
-                            ::xml_schema::type* c)
-    : ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type > (s, e, f, c)
-    {
-    }
-
-    bundleExtBlockTypeType* bundleExtBlockTypeType::
-    _clone (::xml_schema::flags f,
-            ::xml_schema::type* c) const
-    {
-      return new bundleExtBlockTypeType (*this, f, c);
-    }
-
-    // bundleExtBlockQueryType
-    //
-
-    bundleExtBlockQueryType::
-    bundleExtBlockQueryType ()
+    bundleMetaBlockQueryType::
+    bundleMetaBlockQueryType ()
     : ::xml_schema::type (),
     _xsd_type_ (::xml_schema::flags (), this),
     _xsd_identifier_ (::xml_schema::flags (), this)
     {
     }
 
-    bundleExtBlockQueryType::
-    bundleExtBlockQueryType (const type::type_& _xsd_type)
-    : ::xml_schema::type (),
-    _xsd_type_ (_xsd_type,
-                ::xml_schema::flags (),
-                this),
-    _xsd_identifier_ (::xml_schema::flags (), this)
-    {
-    }
-
-    bundleExtBlockQueryType::
-    bundleExtBlockQueryType (const bundleExtBlockQueryType& _xsd_bundleExtBlockQueryType,
-                             ::xml_schema::flags f,
-                             ::xml_schema::type* c)
-    : ::xml_schema::type (_xsd_bundleExtBlockQueryType, f, c),
-    _xsd_type_ (_xsd_bundleExtBlockQueryType._xsd_type_,
+    bundleMetaBlockQueryType::
+    bundleMetaBlockQueryType (const bundleMetaBlockQueryType& _xsd_bundleMetaBlockQueryType,
+                              ::xml_schema::flags f,
+                              ::xml_schema::type* c)
+    : ::xml_schema::type (_xsd_bundleMetaBlockQueryType, f, c),
+    _xsd_type_ (_xsd_bundleMetaBlockQueryType._xsd_type_,
                 f | ::xml_schema::flags::not_root,
                 this),
-    _xsd_identifier_ (_xsd_bundleExtBlockQueryType._xsd_identifier_,
+    _xsd_identifier_ (_xsd_bundleMetaBlockQueryType._xsd_identifier_,
                       f | ::xml_schema::flags::not_root,
                       this)
     {
     }
 
-    bundleExtBlockQueryType::
-    bundleExtBlockQueryType (const ::xercesc::DOMElement& e,
-                             ::xml_schema::flags f,
-                             ::xml_schema::type* c)
+    bundleMetaBlockQueryType::
+    bundleMetaBlockQueryType (const ::xercesc::DOMElement& e,
+                              ::xml_schema::flags f,
+                              ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_type_ (f | ::xml_schema::flags::not_root, this),
     _xsd_identifier_ (f | ::xml_schema::flags::not_root, this)
@@ -11572,7 +11643,7 @@ namespace dtn
       parse (e, f);
     }
 
-    void bundleExtBlockQueryType::
+    void bundleMetaBlockQueryType::
     parse (const ::xercesc::DOMElement& e, ::xml_schema::flags f)
     {
       ::xsd::cxx::xml::dom::parser< char > p (e);
@@ -11586,15 +11657,13 @@ namespace dtn
         {
           if (e.name () == "type" && e.namespace_ ().empty ())
           {
-            ::std::auto_ptr< type::type_ > r (
+            if (this->type ())
+              continue;
+            this->type (
               type::traits::create (
                 e.dom_element (),
                 f | ::xml_schema::flags::not_root,
                 this));
-
-            if (_xsd_type_.present ())
-              continue;
-            this->type (r);
             continue;
           }
         }
@@ -11604,33 +11673,24 @@ namespace dtn
         {
           if (e.name () == "identifier" && e.namespace_ ().empty ())
           {
-            ::std::auto_ptr< identifier::type > r (
+            if (this->identifier ())
+              continue;
+            this->identifier (
               identifier::traits::create (
                 e.dom_element (),
                 f | ::xml_schema::flags::not_root,
                 this));
-
-            if (this->identifier ())
-              continue;
-            this->identifier (r);
             continue;
           }
         }
       }
-
-      if (!_xsd_type_.present ())
-      {
-        throw ::xsd::cxx::tree::expected_element< char > (
-          "type",
-          "");
-      }
     }
 
-    bundleExtBlockQueryType* bundleExtBlockQueryType::
+    bundleMetaBlockQueryType* bundleMetaBlockQueryType::
     _clone (::xml_schema::flags f,
             ::xml_schema::type* c) const
     {
-      return new bundleExtBlockQueryType (*this, f, c);
+      return new bundleMetaBlockQueryType (*this, f, c);
     }
 
     // bundleAttributesQueryType
@@ -11640,7 +11700,7 @@ namespace dtn
     bundleAttributesQueryType ()
     : ::xml_schema::type (),
     _xsd_query_ (::xml_schema::flags (), this),
-    _xsd_ext_blocks_ (::xml_schema::flags (), this)
+    _xsd_meta_blocks_ (::xml_schema::flags (), this)
     {
     }
 
@@ -11652,9 +11712,9 @@ namespace dtn
     _xsd_query_ (_xsd_bundleAttributesQueryType._xsd_query_,
                  f | ::xml_schema::flags::not_root,
                  this),
-    _xsd_ext_blocks_ (_xsd_bundleAttributesQueryType._xsd_ext_blocks_,
-                      f | ::xml_schema::flags::not_root,
-                      this)
+    _xsd_meta_blocks_ (_xsd_bundleAttributesQueryType._xsd_meta_blocks_,
+                       f | ::xml_schema::flags::not_root,
+                       this)
     {
     }
 
@@ -11664,7 +11724,7 @@ namespace dtn
                                ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_query_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_ext_blocks_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_meta_blocks_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -11696,20 +11756,20 @@ namespace dtn
           }
         }
 
-        // ext_blocks
+        // meta_blocks
         //
         {
-          if (e.name () == "ext_blocks" && e.namespace_ ().empty ())
+          if (e.name () == "meta_blocks" && e.namespace_ ().empty ())
           {
-            ::std::auto_ptr< ext_blocks::type > r (
-              ext_blocks::traits::create (
+            ::std::auto_ptr< meta_blocks::type > r (
+              meta_blocks::traits::create (
                 e.dom_element (),
                 f | ::xml_schema::flags::not_root,
                 this));
 
-            if (this->ext_blocks ())
+            if (this->meta_blocks ())
               continue;
-            this->ext_blocks (r);
+            this->meta_blocks (r);
             continue;
           }
         }
@@ -11723,6 +11783,161 @@ namespace dtn
       return new bundleAttributesQueryType (*this, f, c);
     }
 
+    // metadataBlockType
+    //
+
+    metadataBlockType::
+    metadataBlockType ()
+    : ::xml_schema::type (),
+    _xsd_identifier_ (::xml_schema::flags (), this),
+    _xsd_generated_ (::xml_schema::flags (), this),
+    _xsd_type_ (::xml_schema::flags (), this),
+    _xsd_contents_ (::xml_schema::flags (), this)
+    {
+    }
+
+    metadataBlockType::
+    metadataBlockType (const identifier::type& _xsd_identifier,
+                       const generated::type& _xsd_generated,
+                       const type::type_& _xsd_type,
+                       const contents::type& _xsd_contents)
+    : ::xml_schema::type (),
+    _xsd_identifier_ (_xsd_identifier,
+                      ::xml_schema::flags (),
+                      this),
+    _xsd_generated_ (_xsd_generated,
+                     ::xml_schema::flags (),
+                     this),
+    _xsd_type_ (_xsd_type,
+                ::xml_schema::flags (),
+                this),
+    _xsd_contents_ (_xsd_contents,
+                    ::xml_schema::flags (),
+                    this)
+    {
+    }
+
+    metadataBlockType::
+    metadataBlockType (const metadataBlockType& _xsd_metadataBlockType,
+                       ::xml_schema::flags f,
+                       ::xml_schema::type* c)
+    : ::xml_schema::type (_xsd_metadataBlockType, f, c),
+    _xsd_identifier_ (_xsd_metadataBlockType._xsd_identifier_,
+                      f | ::xml_schema::flags::not_root,
+                      this),
+    _xsd_generated_ (_xsd_metadataBlockType._xsd_generated_,
+                     f | ::xml_schema::flags::not_root,
+                     this),
+    _xsd_type_ (_xsd_metadataBlockType._xsd_type_,
+                f | ::xml_schema::flags::not_root,
+                this),
+    _xsd_contents_ (_xsd_metadataBlockType._xsd_contents_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
+    {
+    }
+
+    metadataBlockType::
+    metadataBlockType (const ::xercesc::DOMElement& e,
+                       ::xml_schema::flags f,
+                       ::xml_schema::type* c)
+    : ::xml_schema::type (e, f, c),
+    _xsd_identifier_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_generated_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_type_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_contents_ (f | ::xml_schema::flags::not_root, this)
+    {
+      parse (e, f);
+    }
+
+    void metadataBlockType::
+    parse (const ::xercesc::DOMElement& e, ::xml_schema::flags f)
+    {
+      ::xsd::cxx::xml::dom::parser< char > p (e);
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "identifier" && a.namespace_ ().empty ())
+        {
+          this->identifier (
+            identifier::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
+        if (a.name () == "generated" && a.namespace_ ().empty ())
+        {
+          this->generated (
+            generated::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
+        if (a.name () == "type" && a.namespace_ ().empty ())
+        {
+          this->type (
+            type::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
+        if (a.name () == "contents" && a.namespace_ ().empty ())
+        {
+          ::std::auto_ptr< contents::type > r (
+            contents::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+
+          this->contents (r);
+          continue;
+        }
+      }
+
+      if (!_xsd_identifier_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "identifier",
+          "");
+      }
+
+      if (!_xsd_generated_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "generated",
+          "");
+      }
+
+      if (!_xsd_type_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "type",
+          "");
+      }
+
+      if (!_xsd_contents_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "contents",
+          "");
+      }
+    }
+
+    metadataBlockType* metadataBlockType::
+    _clone (::xml_schema::flags f,
+            ::xml_schema::type* c) const
+    {
+      return new metadataBlockType (*this, f, c);
+    }
+
     // bundleAttributesReportType
     //
 
@@ -11733,8 +11948,7 @@ namespace dtn
     _xsd_custodian_ (::xml_schema::flags (), this),
     _xsd_replyto_ (::xml_schema::flags (), this),
     _xsd_prevhop_ (::xml_schema::flags (), this),
-    _xsd_ext_block_list_ (::xml_schema::flags (), this),
-    _xsd_ext_blocks_ (::xml_schema::flags (), this),
+    _xsd_meta_blocks_ (::xml_schema::flags (), this),
     _xsd_bundleid_ (::xml_schema::flags (), this),
     _xsd_is_admin_ (::xml_schema::flags (), this),
     _xsd_do_not_fragment_ (::xml_schema::flags (), this),
@@ -11773,12 +11987,9 @@ namespace dtn
     _xsd_prevhop_ (_xsd_bundleAttributesReportType._xsd_prevhop_,
                    f | ::xml_schema::flags::not_root,
                    this),
-    _xsd_ext_block_list_ (_xsd_bundleAttributesReportType._xsd_ext_block_list_,
-                          f | ::xml_schema::flags::not_root,
-                          this),
-    _xsd_ext_blocks_ (_xsd_bundleAttributesReportType._xsd_ext_blocks_,
-                      f | ::xml_schema::flags::not_root,
-                      this),
+    _xsd_meta_blocks_ (_xsd_bundleAttributesReportType._xsd_meta_blocks_,
+                       f | ::xml_schema::flags::not_root,
+                       this),
     _xsd_bundleid_ (_xsd_bundleAttributesReportType._xsd_bundleid_,
                     f | ::xml_schema::flags::not_root,
                     this),
@@ -11845,8 +12056,7 @@ namespace dtn
     _xsd_custodian_ (f | ::xml_schema::flags::not_root, this),
     _xsd_replyto_ (f | ::xml_schema::flags::not_root, this),
     _xsd_prevhop_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_ext_block_list_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_ext_blocks_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_meta_blocks_ (f | ::xml_schema::flags::not_root, this),
     _xsd_bundleid_ (f | ::xml_schema::flags::not_root, this),
     _xsd_is_admin_ (f | ::xml_schema::flags::not_root, this),
     _xsd_do_not_fragment_ (f | ::xml_schema::flags::not_root, this),
@@ -11950,34 +12160,18 @@ namespace dtn
           }
         }
 
-        // ext_block_list
+        // meta_blocks
         //
         {
-          if (e.name () == "ext_block_list" && e.namespace_ ().empty ())
+          if (e.name () == "meta_blocks" && e.namespace_ ().empty ())
           {
-            ::std::auto_ptr< ext_block_list::type > r (
-              ext_block_list::traits::create (
+            ::std::auto_ptr< meta_blocks::type > r (
+              meta_blocks::traits::create (
                 e.dom_element (),
                 f | ::xml_schema::flags::not_root,
                 this));
 
-            this->ext_block_list ().push_back (r);
-            continue;
-          }
-        }
-
-        // ext_blocks
-        //
-        {
-          if (e.name () == "ext_blocks" && e.namespace_ ().empty ())
-          {
-            ::std::auto_ptr< ext_blocks::type > r (
-              ext_blocks::traits::create (
-                e.dom_element (),
-                f | ::xml_schema::flags::not_root,
-                this));
-
-            this->ext_blocks ().push_back (r);
+            this->meta_blocks ().push_back (r);
             continue;
           }
         }
@@ -12196,7 +12390,8 @@ namespace dtn
     _xsd_replyto_ (::xml_schema::flags (), this),
     _xsd_prevhop_ (::xml_schema::flags (), this),
     _xsd_expiration_ (::xml_schema::flags (), this),
-    _xsd_bytes_received_ (::xml_schema::flags (), this)
+    _xsd_bytes_received_ (::xml_schema::flags (), this),
+    _xsd_num_meta_blocks_ (::xml_schema::flags (), this)
     {
     }
 
@@ -12226,7 +12421,8 @@ namespace dtn
                       this),
     _xsd_bytes_received_ (_xsd_bytes_received,
                           ::xml_schema::flags (),
-                          this)
+                          this),
+    _xsd_num_meta_blocks_ (::xml_schema::flags (), this)
     {
     }
 
@@ -12255,7 +12451,10 @@ namespace dtn
                       this),
     _xsd_bytes_received_ (_xsd_bundle_received_event._xsd_bytes_received_,
                           f | ::xml_schema::flags::not_root,
-                          this)
+                          this),
+    _xsd_num_meta_blocks_ (_xsd_bundle_received_event._xsd_num_meta_blocks_,
+                           f | ::xml_schema::flags::not_root,
+                           this)
     {
     }
 
@@ -12270,7 +12469,8 @@ namespace dtn
     _xsd_replyto_ (f | ::xml_schema::flags::not_root, this),
     _xsd_prevhop_ (f | ::xml_schema::flags::not_root, this),
     _xsd_expiration_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_bytes_received_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_bytes_received_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_num_meta_blocks_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -12421,6 +12621,16 @@ namespace dtn
         {
           this->bytes_received (
             bytes_received::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
+        if (a.name () == "num_meta_blocks" && a.namespace_ ().empty ())
+        {
+          this->num_meta_blocks (
+            num_meta_blocks::traits::create (
               a.dom_attribute (),
               f | ::xml_schema::flags::not_root,
               this));
@@ -15503,11 +15713,11 @@ namespace dtn
     send_bundle_request ()
     : ::xml_schema::type (),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_metadata_block_ (::xml_schema::flags (), this),
     _xsd_link_id_ (::xml_schema::flags (), this),
     _xsd_fwd_action_ (::xml_schema::flags (), this),
     _xsd_frag_size_ (::xml_schema::flags (), this),
-    _xsd_frag_offset_ (::xml_schema::flags (), this),
-    _xsd_ext_block_ (::xml_schema::flags (), this)
+    _xsd_frag_offset_ (::xml_schema::flags (), this)
     {
     }
 
@@ -15519,6 +15729,7 @@ namespace dtn
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
                    this),
+    _xsd_metadata_block_ (::xml_schema::flags (), this),
     _xsd_link_id_ (_xsd_link_id,
                    ::xml_schema::flags (),
                    this),
@@ -15526,8 +15737,7 @@ namespace dtn
                       ::xml_schema::flags (),
                       this),
     _xsd_frag_size_ (::xml_schema::flags (), this),
-    _xsd_frag_offset_ (::xml_schema::flags (), this),
-    _xsd_ext_block_ (::xml_schema::flags (), this)
+    _xsd_frag_offset_ (::xml_schema::flags (), this)
     {
     }
 
@@ -15539,6 +15749,9 @@ namespace dtn
     _xsd_gbof_id_ (_xsd_send_bundle_request._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
                    this),
+    _xsd_metadata_block_ (_xsd_send_bundle_request._xsd_metadata_block_,
+                          f | ::xml_schema::flags::not_root,
+                          this),
     _xsd_link_id_ (_xsd_send_bundle_request._xsd_link_id_,
                    f | ::xml_schema::flags::not_root,
                    this),
@@ -15550,10 +15763,7 @@ namespace dtn
                      this),
     _xsd_frag_offset_ (_xsd_send_bundle_request._xsd_frag_offset_,
                        f | ::xml_schema::flags::not_root,
-                       this),
-    _xsd_ext_block_ (_xsd_send_bundle_request._xsd_ext_block_,
-                     f | ::xml_schema::flags::not_root,
-                     this)
+                       this)
     {
     }
 
@@ -15563,11 +15773,11 @@ namespace dtn
                          ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_metadata_block_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_fwd_action_ (f | ::xml_schema::flags::not_root, this),
     _xsd_frag_size_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_frag_offset_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_ext_block_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_frag_offset_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -15595,6 +15805,22 @@ namespace dtn
             if (_xsd_gbof_id_.present ())
               continue;
             this->gbof_id (r);
+            continue;
+          }
+        }
+
+        // metadata_block
+        //
+        {
+          if (e.name () == "metadata_block" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< metadata_block::type > r (
+              metadata_block::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            this->metadata_block ().push_back (r);
             continue;
           }
         }
@@ -15654,18 +15880,6 @@ namespace dtn
               this));
           continue;
         }
-
-        if (a.name () == "ext_block" && a.namespace_ ().empty ())
-        {
-          ::std::auto_ptr< ext_block::type > r (
-            ext_block::traits::create (
-              a.dom_attribute (),
-              f | ::xml_schema::flags::not_root,
-              this));
-
-          this->ext_block (r);
-          continue;
-        }
       }
 
       if (!_xsd_link_id_.present ())
@@ -15697,10 +15911,10 @@ namespace dtn
     send_bundle_broadcast_request ()
     : ::xml_schema::type (),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_metadata_block_ (::xml_schema::flags (), this),
     _xsd_fwd_action_ (::xml_schema::flags (), this),
     _xsd_frag_size_ (::xml_schema::flags (), this),
-    _xsd_frag_offset_ (::xml_schema::flags (), this),
-    _xsd_ext_block_ (::xml_schema::flags (), this)
+    _xsd_frag_offset_ (::xml_schema::flags (), this)
     {
     }
 
@@ -15711,12 +15925,12 @@ namespace dtn
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
                    this),
+    _xsd_metadata_block_ (::xml_schema::flags (), this),
     _xsd_fwd_action_ (_xsd_fwd_action,
                       ::xml_schema::flags (),
                       this),
     _xsd_frag_size_ (::xml_schema::flags (), this),
-    _xsd_frag_offset_ (::xml_schema::flags (), this),
-    _xsd_ext_block_ (::xml_schema::flags (), this)
+    _xsd_frag_offset_ (::xml_schema::flags (), this)
     {
     }
 
@@ -15728,6 +15942,9 @@ namespace dtn
     _xsd_gbof_id_ (_xsd_send_bundle_broadcast_request._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
                    this),
+    _xsd_metadata_block_ (_xsd_send_bundle_broadcast_request._xsd_metadata_block_,
+                          f | ::xml_schema::flags::not_root,
+                          this),
     _xsd_fwd_action_ (_xsd_send_bundle_broadcast_request._xsd_fwd_action_,
                       f | ::xml_schema::flags::not_root,
                       this),
@@ -15736,10 +15953,7 @@ namespace dtn
                      this),
     _xsd_frag_offset_ (_xsd_send_bundle_broadcast_request._xsd_frag_offset_,
                        f | ::xml_schema::flags::not_root,
-                       this),
-    _xsd_ext_block_ (_xsd_send_bundle_broadcast_request._xsd_ext_block_,
-                     f | ::xml_schema::flags::not_root,
-                     this)
+                       this)
     {
     }
 
@@ -15749,10 +15963,10 @@ namespace dtn
                                    ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_metadata_block_ (f | ::xml_schema::flags::not_root, this),
     _xsd_fwd_action_ (f | ::xml_schema::flags::not_root, this),
     _xsd_frag_size_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_frag_offset_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_ext_block_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_frag_offset_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -15780,6 +15994,22 @@ namespace dtn
             if (_xsd_gbof_id_.present ())
               continue;
             this->gbof_id (r);
+            continue;
+          }
+        }
+
+        // metadata_block
+        //
+        {
+          if (e.name () == "metadata_block" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< metadata_block::type > r (
+              metadata_block::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            this->metadata_block ().push_back (r);
             continue;
           }
         }
@@ -15825,18 +16055,6 @@ namespace dtn
               a.dom_attribute (),
               f | ::xml_schema::flags::not_root,
               this));
-          continue;
-        }
-
-        if (a.name () == "ext_block" && a.namespace_ ().empty ())
-        {
-          ::std::auto_ptr< ext_block::type > r (
-            ext_block::traits::create (
-              a.dom_attribute (),
-              f | ::xml_schema::flags::not_root,
-              this));
-
-          this->ext_block (r);
           continue;
         }
       }
@@ -16463,6 +16681,123 @@ namespace dtn
             ::xml_schema::type* c) const
     {
       return new set_cl_params_request (*this, f, c);
+    }
+
+    // deliver_bundle_to_app_request
+    //
+
+    deliver_bundle_to_app_request::
+    deliver_bundle_to_app_request ()
+    : ::xml_schema::type (),
+    _xsd_endpoint_ (::xml_schema::flags (), this),
+    _xsd_gbof_id_ (::xml_schema::flags (), this)
+    {
+    }
+
+    deliver_bundle_to_app_request::
+    deliver_bundle_to_app_request (const endpoint::type& _xsd_endpoint,
+                                   const gbof_id::type& _xsd_gbof_id)
+    : ::xml_schema::type (),
+    _xsd_endpoint_ (_xsd_endpoint,
+                    ::xml_schema::flags (),
+                    this),
+    _xsd_gbof_id_ (_xsd_gbof_id,
+                   ::xml_schema::flags (),
+                   this)
+    {
+    }
+
+    deliver_bundle_to_app_request::
+    deliver_bundle_to_app_request (const deliver_bundle_to_app_request& _xsd_deliver_bundle_to_app_request,
+                                   ::xml_schema::flags f,
+                                   ::xml_schema::type* c)
+    : ::xml_schema::type (_xsd_deliver_bundle_to_app_request, f, c),
+    _xsd_endpoint_ (_xsd_deliver_bundle_to_app_request._xsd_endpoint_,
+                    f | ::xml_schema::flags::not_root,
+                    this),
+    _xsd_gbof_id_ (_xsd_deliver_bundle_to_app_request._xsd_gbof_id_,
+                   f | ::xml_schema::flags::not_root,
+                   this)
+    {
+    }
+
+    deliver_bundle_to_app_request::
+    deliver_bundle_to_app_request (const ::xercesc::DOMElement& e,
+                                   ::xml_schema::flags f,
+                                   ::xml_schema::type* c)
+    : ::xml_schema::type (e, f, c),
+    _xsd_endpoint_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this)
+    {
+      parse (e, f);
+    }
+
+    void deliver_bundle_to_app_request::
+    parse (const ::xercesc::DOMElement& e, ::xml_schema::flags f)
+    {
+      ::xsd::cxx::xml::dom::parser< char > p (e);
+
+      while (p.more_elements ())
+      {
+        const ::xsd::cxx::xml::dom::element< char > e (p.next_element ());
+
+        // endpoint
+        //
+        {
+          if (e.name () == "endpoint" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< endpoint::type > r (
+              endpoint::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_endpoint_.present ())
+              continue;
+            this->endpoint (r);
+            continue;
+          }
+        }
+
+        // gbof_id
+        //
+        {
+          if (e.name () == "gbof_id" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< gbof_id::type > r (
+              gbof_id::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_gbof_id_.present ())
+              continue;
+            this->gbof_id (r);
+            continue;
+          }
+        }
+      }
+
+      if (!_xsd_endpoint_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "endpoint",
+          "");
+      }
+
+      if (!_xsd_gbof_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "gbof_id",
+          "");
+      }
+    }
+
+    deliver_bundle_to_app_request* deliver_bundle_to_app_request::
+    _clone (::xml_schema::flags f,
+            ::xml_schema::type* c) const
+    {
+      return new deliver_bundle_to_app_request (*this, f, c);
     }
 
     // link_report
@@ -17266,6 +17601,7 @@ namespace dtn
     _xsd_inject_bundle_request_ (::xml_schema::flags (), this),
     _xsd_delete_bundle_request_ (::xml_schema::flags (), this),
     _xsd_set_cl_params_request_ (::xml_schema::flags (), this),
+    _xsd_deliver_bundle_to_app_request_ (::xml_schema::flags (), this),
     _xsd_link_query_ (::xml_schema::flags (), this),
     _xsd_link_report_ (::xml_schema::flags (), this),
     _xsd_link_attributes_query_ (::xml_schema::flags (), this),
@@ -17394,6 +17730,9 @@ namespace dtn
     _xsd_set_cl_params_request_ (_xsd_bpa._xsd_set_cl_params_request_,
                                  f | ::xml_schema::flags::not_root,
                                  this),
+    _xsd_deliver_bundle_to_app_request_ (_xsd_bpa._xsd_deliver_bundle_to_app_request_,
+                                         f | ::xml_schema::flags::not_root,
+                                         this),
     _xsd_link_query_ (_xsd_bpa._xsd_link_query_,
                       f | ::xml_schema::flags::not_root,
                       this),
@@ -17482,6 +17821,7 @@ namespace dtn
     _xsd_inject_bundle_request_ (f | ::xml_schema::flags::not_root, this),
     _xsd_delete_bundle_request_ (f | ::xml_schema::flags::not_root, this),
     _xsd_set_cl_params_request_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_deliver_bundle_to_app_request_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_query_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_report_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_attributes_query_ (f | ::xml_schema::flags::not_root, this),
@@ -18136,6 +18476,24 @@ namespace dtn
             if (this->set_cl_params_request ())
               continue;
             this->set_cl_params_request (r);
+            continue;
+          }
+        }
+
+        // deliver_bundle_to_app_request
+        //
+        {
+          if (e.name () == "deliver_bundle_to_app_request" && e.namespace_ () == "")
+          {
+            ::std::auto_ptr< deliver_bundle_to_app_request::type > r (
+              deliver_bundle_to_app_request::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (this->deliver_bundle_to_app_request ())
+              continue;
+            this->deliver_bundle_to_app_request (r);
             continue;
           }
         }
@@ -19835,37 +20193,19 @@ namespace dtn
 
     void
     operator<< (::xercesc::DOMElement& e,
-                const bundleExtBlockTypeType& i)
-    {
-      e << static_cast< const ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type >& > (i);
-    }
-
-    void
-    operator<< (::xercesc::DOMAttr& a,
-                const bundleExtBlockTypeType& i)
-    {
-      a << static_cast< const ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type >& > (i);
-    }
-
-    void
-    operator<< (::xsd::cxx::tree::list_stream< char >& l,
-                const bundleExtBlockTypeType& i)
-    {
-      l << static_cast< const ::xsd::cxx::tree::fundamental_base< ::xml_schema::unsigned_byte, char, ::xml_schema::simple_type >& > (i);
-    }
-
-    void
-    operator<< (::xercesc::DOMElement& e,
-                const bundleExtBlockQueryType& i)
+                const bundleMetaBlockQueryType& i)
     {
       while (::xercesc::DOMNode* n = e.getFirstChild ())
         e.removeChild (n);
 
       {
-        ::xsd::cxx::xml::dom::element< char > s (
-          "type",
-          e);
-        s.dom_element () << i.type ();
+        if (i.type ())
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "type",
+            e);
+          s.dom_element () << *i.type ();
+        }
       }
 
       {
@@ -19897,13 +20237,53 @@ namespace dtn
       }
 
       {
-        if (i.ext_blocks ())
+        if (i.meta_blocks ())
         {
           ::xsd::cxx::xml::dom::element< char > s (
-            "ext_blocks",
+            "meta_blocks",
             e);
-          s.dom_element () << *i.ext_blocks ();
+          s.dom_element () << *i.meta_blocks ();
         }
+      }
+    }
+
+    void
+    operator<< (::xercesc::DOMElement& e,
+                const metadataBlockType& i)
+    {
+      while (::xercesc::DOMNode* n = e.getFirstChild ())
+        e.removeChild (n);
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "identifier",
+          e);
+
+        a.dom_attribute () << i.identifier ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "generated",
+          e);
+
+        a.dom_attribute () << i.generated ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "type",
+          e);
+
+        a.dom_attribute () << i.type ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "contents",
+          e);
+
+        a.dom_attribute () << i.contents ();
       }
     }
 
@@ -19955,24 +20335,12 @@ namespace dtn
       }
 
       {
-        for (bundleAttributesReportType::ext_block_list::const_iterator
-             b (i.ext_block_list ().begin ()), n (i.ext_block_list ().end ());
+        for (bundleAttributesReportType::meta_blocks::const_iterator
+             b (i.meta_blocks ().begin ()), n (i.meta_blocks ().end ());
              b != n; ++b)
         {
           ::xsd::cxx::xml::dom::element< char > s (
-            "ext_block_list",
-            e);
-          s.dom_element () << *b;
-        }
-      }
-
-      {
-        for (bundleAttributesReportType::ext_blocks::const_iterator
-             b (i.ext_blocks ().begin ()), n (i.ext_blocks ().end ());
-             b != n; ++b)
-        {
-          ::xsd::cxx::xml::dom::element< char > s (
-            "ext_blocks",
+            "meta_blocks",
             e);
           s.dom_element () << *b;
         }
@@ -20357,6 +20725,15 @@ namespace dtn
           e);
 
         a.dom_attribute () << i.bytes_received ();
+      }
+
+      if (i.num_meta_blocks ())
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "num_meta_blocks",
+          e);
+
+        a.dom_attribute () << *i.num_meta_blocks ();
       }
     }
 
@@ -21000,6 +21377,18 @@ namespace dtn
       }
 
       {
+        for (send_bundle_request::metadata_block::const_iterator
+             b (i.metadata_block ().begin ()), n (i.metadata_block ().end ());
+             b != n; ++b)
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "metadata_block",
+            e);
+          s.dom_element () << *b;
+        }
+      }
+
+      {
         ::xsd::cxx::xml::dom::attribute< char > a (
           "link_id",
           e);
@@ -21032,15 +21421,6 @@ namespace dtn
 
         a.dom_attribute () << *i.frag_offset ();
       }
-
-      if (i.ext_block ())
-      {
-        ::xsd::cxx::xml::dom::attribute< char > a (
-          "ext_block",
-          e);
-
-        a.dom_attribute () << *i.ext_block ();
-      }
     }
 
     void
@@ -21055,6 +21435,18 @@ namespace dtn
           "gbof_id",
           e);
         s.dom_element () << i.gbof_id ();
+      }
+
+      {
+        for (send_bundle_broadcast_request::metadata_block::const_iterator
+             b (i.metadata_block ().begin ()), n (i.metadata_block ().end ());
+             b != n; ++b)
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "metadata_block",
+            e);
+          s.dom_element () << *b;
+        }
       }
 
       {
@@ -21081,15 +21473,6 @@ namespace dtn
           e);
 
         a.dom_attribute () << *i.frag_offset ();
-      }
-
-      if (i.ext_block ())
-      {
-        ::xsd::cxx::xml::dom::attribute< char > a (
-          "ext_block",
-          e);
-
-        a.dom_attribute () << *i.ext_block ();
       }
     }
 
@@ -21249,6 +21632,28 @@ namespace dtn
           e);
 
         a.dom_attribute () << i.clayer ();
+      }
+    }
+
+    void
+    operator<< (::xercesc::DOMElement& e,
+                const deliver_bundle_to_app_request& i)
+    {
+      while (::xercesc::DOMNode* n = e.getFirstChild ())
+        e.removeChild (n);
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "endpoint",
+          e);
+        s.dom_element () << i.endpoint ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "gbof_id",
+          e);
+        s.dom_element () << i.gbof_id ();
       }
     }
 
@@ -21803,6 +22208,16 @@ namespace dtn
             "set_cl_params_request",
             e);
           s.dom_element () << *i.set_cl_params_request ();
+        }
+      }
+
+      {
+        if (i.deliver_bundle_to_app_request ())
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "deliver_bundle_to_app_request",
+            e);
+          s.dom_element () << *i.deliver_bundle_to_app_request ();
         }
       }
 

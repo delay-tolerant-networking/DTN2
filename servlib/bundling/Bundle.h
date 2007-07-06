@@ -32,7 +32,7 @@
 #include "CustodyTimer.h"
 #include "ForwardingLog.h"
 #include "naming/EndpointID.h"
-
+#include "MetadataBlock.h"
 
 namespace dtn {
 
@@ -255,10 +255,16 @@ public:
     ForwardingLog fwdlog_;	///< Log of bundle forwarding records
     ExpirationTimer* expiration_timer_;	///< The expiration timer
     CustodyTimerVec custody_timers_; ///< Live custody timers for this bundle
+    bool fragmented_incoming_;  ///< Is the bundle an incoming reactive
+                                ///  fragment
 
     BlockInfoVec recv_blocks_;	///< BP blocks as they arrived off the wire
     BlockInfoVec api_blocks_;	///< BP blocks as they arrived from API
     LinkBlockSet xmit_blocks_;	///< Block vector for each link
+
+    MetadataVec     recv_metadata_;      ///< Metadata as arrived in bundle 
+    LinkMetadataSet generated_metadata_; ///< Metadata to be included in bundle
+
 protected:
     friend class BundleList;
     

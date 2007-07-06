@@ -28,6 +28,7 @@
 #include <memory>
 #include <iostream>
 #include <map>
+#include <vector>
 #include <sys/ioctl.h>
 #include <string.h>
 #include <time.h>
@@ -39,6 +40,7 @@
 #include "bundling/GbofId.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleActions.h"
+#include "bundling/MetadataBlockProcessor.h"
 #include "contacts/ContactManager.h"
 #include "contacts/NamedAttribute.h"
 #include "reg/RegistrationTable.h"
@@ -151,6 +153,13 @@ ExternalRouter::handle_bundle_received(BundleReceivedEvent *event)
 
     // optional param, so has to be added after constructor call
     e.prevhop(event->bundleref_.object()->prevhop_);
+
+    LinkRef null_link("ExternalRouter::handle_bundle_received");
+    MetadataVec * gen_meta = event->bundleref_->generated_metadata_.
+                                                    find_blocks(null_link);
+    unsigned int num_meta_blocks = event->bundleref_->recv_metadata_.size() +
+                                   ((gen_meta == NULL)? 0 : gen_meta->size());
+    e.num_meta_blocks(num_meta_blocks);
 
     SEND(bundle_received_event, e)
 }
@@ -556,58 +565,86 @@ ExternalRouter::handle_bundle_attributes_report(BundleAttributesReportEvent *eve
             br->payload_.read_data(0, len, buf); 
             response.payload( xml_schema::base64_binary(buf, len) );
         }
-        else if (name == "ext_block_list") {
-            bundleAttributesReportType::ext_block_list::container c;
-
-            BlockInfoVec& blocks = br->recv_blocks_;
-            BlockInfoVec::const_iterator iter;
-            int index = 1;
-            for (iter = blocks.begin(); iter != blocks.end(); ++iter)
-            {
-                if (iter->type() != BundleProtocol::PRIMARY_BLOCK
-                    && iter->type() != BundleProtocol::PAYLOAD_BLOCK) {
-
-                    oasys::StringBuffer buf;
-                    buf.appendf("%d", index);
-                    bundleExtBlockQueryType block(iter->type());
-                    block.identifier(buf.c_str());
-                    c.push_back(block);
-                }
-                index++;
-            }
-            response.ext_block_list(c);
-        }
     }
 
-    if (event->extension_blocks_.size() > 0) {
-        BlockInfoVec& blocks = br->recv_blocks_;
+    if (event->metadata_blocks_.size() > 0) {
 
-        bundleAttributesReportType::ext_blocks::container c;
+        // We don't want to send duplicate blocks, so keep track of which
+        // blocks have been added to the outgoing list with this.
+        std::vector<unsigned int> added_blocks;
 
-        AttributeVector::iterator i = event->extension_blocks_.begin();
-        AttributeVector::iterator end = event->extension_blocks_.begin();
+        // Iterate through the requests.
+        MetaBlockRequestVector::iterator requested;
+        for (requested = event->metadata_blocks_.begin(); 
+             requested != event->metadata_blocks_.end();
+             ++requested) {
 
-        for (; i != end; ++i) {
-            BlockInfoVec::const_iterator iter;
-            u_int8_t type = i->u_int_val();
-            int index = 1;
-            for (iter = blocks.begin(); iter != blocks.end(); ++iter)
-            {
-                if (iter->type() == type) {
-                    oasys::StringBuffer buf;
-                    buf.appendf("%d", index);
-                    if (i->name() == "" || i->name() == buf.c_str()) {
-                        // @@@ this includes the entire block, header and all
-                        c.push_back(
-                            xml_schema::base64_binary(iter->contents().buf(),
-                                                      iter->contents().len()) );
+            for (unsigned int i = 0; i < 2; ++i) {
+                MetadataVec * block_vec = NULL;
+                if (i == 0) {
+                    block_vec = &br->recv_metadata_;
+                    ASSERT(block_vec != NULL);
+                } else if (i == 1) {
+                    LinkRef null_link("ExternalRouter::"
+                                      "handle_bundle_attributes_report");
+                    block_vec = br->generated_metadata_.find_blocks(null_link);
+                    if (block_vec == NULL) {
+                        continue;
                     }
+                } else {
+                    ASSERT(block_vec != NULL);
                 }
-                index++;
+
+                MetadataVec::iterator block_i;
+                for (block_i  = block_vec->begin();
+                     block_i != block_vec->end();
+                     ++block_i) {
+
+                    MetadataBlock* block = *block_i;
+
+                    // Skip this block if we already added it.
+                    bool added = false;
+                    for (unsigned int i = 0; i < added_blocks.size(); ++i) {
+                        if (added_blocks[i] == block->id()) {
+                            added = true;
+                            break;
+                        }
+                    }
+                    if (added) {
+                        continue;
+                    }
+
+                    switch (requested->query_type()) {
+                    // Match the block's identifier (index).
+                    case MetadataBlockRequest::QueryByIdentifier:
+                        if (requested->query_value() != block->id())
+                            continue;
+                        break;
+
+                    // Match the block's type.
+                    case MetadataBlockRequest::QueryByType:
+                        if (block->ontology() != requested->query_value())
+                            continue;
+                        break;
+
+                    // All blocks were requested.
+                    case MetadataBlockRequest::QueryAll:
+                        break;
+                    }
+
+                    // Note that we have added this block.
+                    added_blocks.push_back(block->id());
+
+                    // Add the block to the list.
+                    response.meta_blocks().push_back(
+                        rtrmessage::metadataBlockType(
+                            block->id(), false, block->ontology(),
+                            xml_schema::base64_binary(
+                                    block->ontology_data(),
+                                    block->ontology_data_len())));
+                }
             }
         }
-
-        response.ext_blocks(c);
     }
 
     bundle_attributes_report e(event->query_id_, response);
@@ -833,13 +870,11 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
     // Examine message contents
     if (instance->send_bundle_request().present()) {
         log_debug("posting BundleSendRequest");
+        send_bundle_request& in_request = instance->send_bundle_request().get();
 
-        gbofIdType id =
-            instance->send_bundle_request().get().gbof_id();
-        std::string link =
-            instance->send_bundle_request().get().link_id();
-        int action =
-            convert_fwd_action(instance->send_bundle_request().get().fwd_action());
+        gbofIdType id = in_request.gbof_id();
+        std::string link = in_request.link_id();
+        int action = convert_fwd_action(in_request.fwd_action());
 
         GbofId gbof_id;
         gbof_id.source_ = EndpointID( id.source().uri() );
@@ -853,8 +888,131 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         BundleRef br = bd->pending_bundles()->find(gbof_id);
         BundleSendRequest *request = new BundleSendRequest(br, link, action);
 
-        // @@@ need to handle optional params frag_size, frag_offset, ext_block
+        // @@@ need to handle optional params frag_size, frag_offset
+        
+        if (in_request.metadata_block().size() > 0) {
+            typedef ::xsd::cxx::tree::sequence<rtrmessage::metadataBlockType>
+                    MetaBlockSequence;
+            
+            MetadataBlockProcessor* meta_processor = 
+                    dynamic_cast<MetadataBlockProcessor*>(
+                        BundleProtocol::find_processor(
+                        BundleProtocol::METADATA_BLOCK));
+            ASSERT(meta_processor != NULL);
+            
+            oasys::ScopeLock bundle_lock(&br->lock_, "ExternalRouter");
+            
+            LinkRef link_ref = bd->contactmgr()->find_link(link.c_str());
+            
+            MetaBlockSequence::const_iterator block_i;
+            for (block_i = in_request.metadata_block().begin();
+                 block_i != in_request.metadata_block().end();
+                 ++block_i) {
 
+                if (!block_i->generated()) {
+
+                    MetadataBlock* existing = NULL;
+                    for (unsigned int i = 0;
+                         i < br->recv_metadata_.size(); ++i) {
+                        if (br->recv_metadata_[i]->id() ==
+                            block_i->identifier()) {
+                            existing = br->recv_metadata_[i];
+			    break;
+                        }
+                    }
+
+                    if (existing != NULL) {
+                        // Lock the block so nobody tries to read it while
+                        // we are changing it.
+                        oasys::ScopeLock metadata_lock(existing->lock(),
+                                                       "ExternalRouter");
+                    
+                        // If the new block size is zero, it is being removed
+                        // for this particular link.
+                        if (block_i->contents().size() == 0) {
+                            existing->remove_outgoing_metadata(link_ref);                        
+                            log_info("Removing metadata block %u from bundle "
+                                     "%u on link %s", block_i->identifier(),
+                                     br->bundleid_, link.c_str());
+                        }
+                    
+                        // Otherwise, if the new block size is non-zero, it
+                        // it is being modified for this link.
+                        else {
+                            log_info("Modifying metadata block %u on bundle "
+                                     "%u on link %s", block_i->identifier(),
+                                     br->bundleid_, link.c_str());
+                            existing->modify_outgoing_metadata(
+                                          link_ref,
+                                          (u_char*)block_i->contents().data(),
+                                          block_i->contents().size());
+                        }
+                        continue;
+                    }
+
+                    ASSERT(existing == NULL);
+
+                    LinkRef null_link("ExternalRouter::process_action");
+                    MetadataVec * nulldata = br->generated_metadata_.
+                                                     find_blocks(null_link);
+                    if (nulldata != NULL) {
+                        for (unsigned int i = 0; i < nulldata->size(); ++i) {
+                            if ((*nulldata)[i]->id() == block_i->identifier()) {
+                                existing = (*nulldata)[i];
+                                break;
+                            }
+	                }
+                    }
+
+                    if (existing != NULL) {
+                        MetadataVec * link_vec = br->generated_metadata_.
+                                                         find_blocks(link_ref);
+                        if (link_vec == NULL) {
+                            link_vec = br->generated_metadata_.
+                                               create_blocks(link_ref);
+                        }
+                        ASSERT(link_vec != NULL);
+
+                        ASSERT(existing->ontology() == block_i->type());
+
+                        MetadataBlock * meta_block =
+                            new MetadataBlock(
+                                    existing->id(),
+                                    block_i->type(),
+                                    (u_char *)block_i->contents().data(),
+                                    block_i->contents().size());
+                        meta_block->set_flags(existing->flags());
+
+			link_vec->push_back(meta_block);
+
+                        log_info("Adding a metadata block to bundle %u on "
+                                 "link %s", br->bundleid_, link.c_str());
+                        continue;
+                    }
+
+                    log_err("bundle %u does not have a block %u",
+                            br->bundleid_, block_i->identifier());
+
+                } else {
+                    ASSERT(block_i->generated());
+
+                    MetadataVec* vec = 
+                            br->generated_metadata_.find_blocks(link_ref);
+                    if (vec == NULL)
+                        vec = br->generated_metadata_.create_blocks(link_ref);
+                    
+                    MetadataBlock* meta_block = new MetadataBlock(
+                            block_i->type(),
+                            (u_char*)block_i->contents().data(),
+                            block_i->contents().size());
+                    
+                    vec->push_back(meta_block);
+                    log_info("Adding an metadata block to bundle %u on "
+                             "link %s", br->bundleid_, link.c_str());
+                }
+             }
+        }
+        
         BundleDaemon::post(request);
     }
 
@@ -1176,7 +1334,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         BundleRef br = bd->pending_bundles()->find(gbof_id);
 
         AttributeNameVector attribute_names;
-        AttributeVector extension_blocks;
+        MetaBlockRequestVector metadata_blocks;
         bundle_attributes_query::query_params::container
             c = query.query_params();
         bundle_attributes_query::query_params::container::iterator iter;
@@ -1187,23 +1345,34 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             if (q.query().present()) {
                 attribute_names.push_back( AttributeName(q.query().get()) );
             }
-            if (q.ext_blocks().present()) {
-                bundleExtBlockQueryType& block = q.ext_blocks().get();
-                // XXX the ext_blocks part of the query may change
-                std::string identifier = "";
+            if (q.meta_blocks().present()) {
+                bundleMetaBlockQueryType& block = q.meta_blocks().get();
+                int query_value = -1;
+                MetadataBlockRequest::QueryType query_type;
+                
                 if (block.identifier().present()) {
-                    identifier = block.identifier().get();
+                    query_value = block.identifier().get();
+                    query_type = MetadataBlockRequest::QueryByIdentifier;
                 }
-                extension_blocks.push_back(
-                    NamedAttribute(identifier, block.type()) );
+                
+                else if (block.type().present()) {
+                    query_value = block.type().get();
+                    query_type = MetadataBlockRequest::QueryByType;
+                }
+                
+                if (query_value < 0)
+                    query_type = MetadataBlockRequest::QueryAll;
+                
+                metadata_blocks.push_back(
+                    MetadataBlockRequest(query_type, query_value) );
             }
         }
 
         BundleAttributesQueryRequest* request
             = new BundleAttributesQueryRequest(query_id, br, attribute_names);
 
-        if (extension_blocks.size() > 0) {
-            request->extension_blocks_ = extension_blocks;
+        if (metadata_blocks.size() > 0) {
+            request->metadata_blocks_ = metadata_blocks;
         }
 
         BundleDaemon::post(request);
@@ -1258,6 +1427,31 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         log_debug("posting RouteQueryRequest");
         BundleDaemon::post(new RouteQueryRequest());
     }
+
+	/* This is needed for delivering to LB applications */
+	if (instance->deliver_bundle_to_app_request().present()) {
+        log_debug("posting DeliverBundleToAppRequest");
+		deliver_bundle_to_app_request& in_request = 
+				instance->deliver_bundle_to_app_request().get();
+
+		eidType reg = in_request.endpoint();
+		EndpointID reg_eid;
+		reg_eid.assign(reg.uri());
+
+        gbofIdType id = in_request.gbof_id();
+        GbofId gbof_id;
+        gbof_id.source_ = EndpointID( id.source().uri() );
+        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
+        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
+        gbof_id.is_fragment_ = id.is_fragment();
+        gbof_id.frag_length_ = id.frag_length();
+        gbof_id.frag_offset_ = id.frag_offset();
+
+        BundleDaemon *bd = BundleDaemon::instance();
+        BundleRef br = bd->pending_bundles()->find(gbof_id);
+
+		bd->check_and_deliver_to_registrations(br.object(), reg_eid);
+	}
 }
 
 Link::link_type_t

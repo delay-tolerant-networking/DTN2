@@ -18,6 +18,7 @@
 #  include <config.h>
 #endif
 
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <oasys/compat/inet_aton.h>
 #include <oasys/compat/rpc.h>
@@ -735,7 +736,32 @@ APIClient::handle_send()
                        (u_char*)block->data.data_val,
                        block->data.data_len);
     }
-    
+
+    for (unsigned int i = 0; i < spec.metadata.metadata_len; ++i) {
+        dtn_extension_block_t* block = &spec.metadata.metadata_val[i];
+
+        LinkRef null_link("APIServer::handle_send");
+        MetadataVec * vec = b->generated_metadata_.find_blocks(null_link);
+        if (vec == NULL) {
+            vec = b->generated_metadata_.create_blocks(null_link);
+        }
+        ASSERT(vec != NULL);
+
+        MetadataBlock * meta_block = new MetadataBlock(
+                                             (u_int64_t)block->type,
+                                             (u_char *)block->data.data_val,
+                                             (u_int32_t)block->data.data_len);
+        meta_block->set_flags((u_int64_t)block->flags);
+
+        // XXX/demmer currently this block needs to be stuck on the
+        // outgoing metadata for the null link (so it's transmit to
+        // all destinations) as well as on the recv_metadata vector so
+        // it's conveyed to local applications. this should really be
+        // cleaned up...
+        vec->push_back(meta_block);
+        b->recv_metadata_.push_back(meta_block);
+    }
+
     // set up the payload, including calculating its length, but don't
     // copy it in yet
     size_t payload_len;
@@ -985,8 +1011,78 @@ APIClient::handle_recv()
     spec.creation_ts.secs = b->creation_ts_.seconds_;
     spec.creation_ts.seqno = b->creation_ts_.seqno_;
 
-    // XXX copy extension blocks
-    
+    // copy extension blocks
+    unsigned int blocks_found = 0;
+    unsigned int data_len = 0;
+    for (unsigned int i = 0; i < b->recv_blocks_.size(); ++i) {
+        if ((b->recv_blocks_[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
+            (b->recv_blocks_[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
+            (b->recv_blocks_[i].type() == BundleProtocol::METADATA_BLOCK)) {
+            continue;
+        }
+        blocks_found++;
+        data_len += b->recv_blocks_[i].data_length();
+    }
+
+    if (blocks_found > 0) {
+        unsigned int buf_len = (blocks_found * sizeof(dtn_extension_block_t)) +
+                               data_len;
+        char * buf = (char *)malloc(buf_len);
+        memset(buf, 0, buf_len);
+
+        dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
+        char * dp = buf + (blocks_found * sizeof(dtn_extension_block_t));
+        for (unsigned int i = 0; i < b->recv_blocks_.size(); ++i) {
+            if ((b->recv_blocks_[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
+                (b->recv_blocks_[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
+                (b->recv_blocks_[i].type() == BundleProtocol::METADATA_BLOCK)) {
+                continue;
+            }
+
+            bp->type          = b->recv_blocks_[i].type();
+            bp->flags         = b->recv_blocks_[i].flags();
+            bp->data.data_len = b->recv_blocks_[i].data_length();
+            bp->data.data_val = dp;
+            memcpy(dp, b->recv_blocks_[i].data(), bp->data.data_len);
+
+            bp++;
+            dp += bp->data.data_len;
+        }
+
+        spec.blocks.blocks_len = blocks_found;
+        spec.blocks.blocks_val = (dtn_extension_block_t *)buf;
+    }
+
+    // copy metadata extension blocks
+    blocks_found = 0;
+    data_len = 0;
+    for (unsigned int i = 0; i < b->recv_metadata_.size(); ++i) {
+        blocks_found++;
+        data_len += b->recv_metadata_[i]->metadata_len();
+    }
+
+    if (blocks_found > 0) {
+        unsigned int buf_len = (blocks_found * sizeof(dtn_extension_block_t)) +
+                               data_len;
+        char * buf = (char *)malloc(buf_len);
+        memset(buf, 0, buf_len);
+
+        dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
+        char * dp = buf + (blocks_found * sizeof(dtn_extension_block_t));
+        for (unsigned int i = 0; i < b->recv_metadata_.size(); ++i) {
+            bp->type          = b->recv_metadata_[i]->ontology();
+            bp->flags         = b->recv_metadata_[i]->flags();
+            bp->data.data_len = b->recv_metadata_[i]->metadata_len();
+            bp->data.data_val = dp;
+            memcpy(dp, b->recv_metadata_[i]->metadata(), bp->data.data_len);
+            dp += bp->data.data_len;
+            bp++;
+        }
+
+        spec.metadata.metadata_len = blocks_found;
+        spec.metadata.metadata_val = (dtn_extension_block_t *)buf;
+    }
+
     // XXX/demmer verify bundle size constraints
     payload.location = location;
     

@@ -53,6 +53,7 @@ APIBlockProcessor::consume(Bundle* bundle,
 void
 APIBlockProcessor::generate(const Bundle*  bundle,
                             const LinkRef& link,
+                            BlockInfoVec*  xmit_blocks,
                             BlockInfo*     block,
                             bool           last)
 {
@@ -75,7 +76,7 @@ APIBlockProcessor::generate(const Bundle*  bundle,
         flags &= ~BundleProtocol::BLOCK_FLAG_LAST_BLOCK;
     }
 
-    generate_preamble(block, source->type(), flags, source->data_length());
+    generate_preamble(xmit_blocks, block, source->type(), flags, source->data_length());
     ASSERT(block->data_offset() == source->data_offset());
     ASSERT(block->data_length() == source->data_length());
     

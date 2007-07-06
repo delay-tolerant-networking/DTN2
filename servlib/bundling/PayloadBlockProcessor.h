@@ -32,7 +32,7 @@ public:
     /// @{ Virtual from BlockProcessor
     int consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len);
     void generate(const Bundle* bundle, const LinkRef& link,
-                  BlockInfo* block, bool last);
+                  BlockInfoVec* xmit_blocks, BlockInfo* block, bool last);
     bool validate(const Bundle* bundle, BlockInfo* block,
                   BundleProtocol::status_report_reason_t* reception_reason,
                   BundleProtocol::status_report_reason_t* deletion_reason);

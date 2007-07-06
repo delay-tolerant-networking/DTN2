@@ -125,7 +125,9 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     }
 
     // check if we're trying to send it right back where it came from
-    if (link->remote_eid() == bundle->prevhop_) {
+    if (link->remote_eid() == bundle->prevhop_ &&
+        link->remote_eid() != EndpointID::NULL_EID())
+    {
         log_debug("should_fwd bundle %d: "
                   "skip %s since remote eid %s == bundle prevhop",
                   bundle->bundleid_, link->name(), link->remote_eid().c_str());

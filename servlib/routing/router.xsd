@@ -348,7 +348,6 @@ For bundle fragments, offset into the file (todo)
             <xs:element name="length" type="xs:unsignedInt"/>
             <xs:element name="location" type="bundleLocationType"/>
             <xs:element name="payload" type="xs:base64Binary" minOccurs="0" maxOccurs="1"/>
-<!--            <xs:element name="ext_blocks" type="xs:base64Binary" minOccurs="0"/> -->
         </xs:sequence>
         <xs:attributeGroup ref="bundleAttributes"/>
     </xs:complexType>
@@ -786,27 +785,27 @@ Seconds of idle time before the link is closed. Zero for always on links (i.e. t
             <xs:enumeration value="prevhop"/>
             <xs:enumeration value="location"/>
 	    <xs:enumeration value="payload"/>
-	    <xs:enumeration value="ext_block_list"/>
+	    <xs:enumeration value="meta_block_list"/>
         </xs:restriction>
     </xs:simpleType>
 
-    <xs:simpleType name="bundleExtBlockTypeType">
+<!--    <xs:simpleType name="bundleMetaBlockTypeType">
         <xs:restriction base="xs:unsignedByte">
             <xs:minInclusive value="2"/>
         </xs:restriction>
-    </xs:simpleType>
+    </xs:simpleType>-->
 
-    <xs:complexType name="bundleExtBlockQueryType">
-        <xs:sequence>
-	    <xs:element name="type" type="bundleExtBlockTypeType"/>
-	    <xs:element name="identifier" type="xs:string" minOccurs="0" maxOccurs="1"/>
-        </xs:sequence>
+    <xs:complexType name="bundleMetaBlockQueryType">
+        <xs:choice>
+            <xs:element name="type" type="xs:long"/>
+            <xs:element name="identifier" type="xs:unsignedInt"/>
+        </xs:choice>
     </xs:complexType>
 
     <xs:complexType name="bundleAttributesQueryType">
         <xs:choice>
             <xs:element name="query" type="bundleAttributesSimpleQueryType"/>
-            <xs:element name="ext_blocks" type="bundleExtBlockQueryType"/>
+            <xs:element name="meta_blocks" type="bundleMetaBlockQueryType"/>
         </xs:choice>
     </xs:complexType>
 
@@ -831,18 +830,26 @@ Seconds of idle time before the link is closed. Zero for always on links (i.e. t
         <xs:attribute name="payload" type="xs:base64Binary" use="optional"/>
     </xs:attributeGroup>
 
+    <xs:complexType name="metadataBlockType">
+        <xs:attribute name="identifier" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="generated" type="xs:boolean" use="required"/>
+        <xs:attribute name="type" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="contents" type="xs:base64Binary" use="required"/>
+    </xs:complexType>
+
     <xs:complexType name="bundleAttributesReportType">
         <xs:sequence>
             <xs:element name="dest" type="eidType" minOccurs="0" maxOccurs="1"/>
             <xs:element name="custodian" type="eidType" minOccurs="0" maxOccurs="1"/>
             <xs:element name="replyto" type="eidType" minOccurs="0" maxOccurs="1"/>
             <xs:element name="prevhop" type="eidType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="ext_block_list" type="bundleExtBlockQueryType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="ext_blocks" type="xs:base64Binary" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="meta_blocks" type="metadataBlockType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attributeGroup ref="bundleQueriedAttributes"/>
     </xs:complexType>
 
+    
+    
 <!-- EVENTS -->
 
     <!-- Bundle Received Event -->
@@ -856,13 +863,14 @@ Signals a new bundle arrival.
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="gbof_id" type="gbofIdType"/> 
-	        <xs:element name="dest" type="eidType"/>
+	            <xs:element name="dest" type="eidType"/>
                 <xs:element name="custodian" type="eidType"/>
                 <xs:element name="replyto" type="eidType"/>
-		<xs:element name="prevhop" type="eidType" minOccurs="0"/>
+		        <xs:element name="prevhop" type="eidType" minOccurs="0"/>
             </xs:sequence>
             <xs:attribute name="expiration" type="xs:unsignedInt" use="required"/>
             <xs:attribute name="bytes_received" type="xs:unsignedInt" use="required"/>
+            <xs:attribute name="num_meta_blocks" type="xs:unsignedInt" use="optional"/>
         </xs:complexType>
     </xs:element>
 
@@ -1309,14 +1317,15 @@ Request that a bundle with "gbof_id" be sent on "link_id" with a particular "fwd
         </xs:annotation>
         <xs:complexType>
 	    <xs:sequence>
-                <xs:element name="gbof_id" type="gbofIdType"/> 
-	    </xs:sequence>
+            <xs:element name="gbof_id" type="gbofIdType"/> 
+            <xs:element name="metadata_block" type="metadataBlockType"
+                        minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
 
 	    <xs:attribute name="link_id" type="xs:string" use="required"/>
 	    <xs:attribute name="fwd_action" type="bundleForwardActionType" use="required"/>
 	    <xs:attribute name="frag_size" type="xs:unsignedLong" use="optional"/>
 	    <xs:attribute name="frag_offset" type="xs:unsignedLong" use="optional"/>
-            <xs:attribute name="ext_block" type="xs:base64Binary" use="optional"/>
         </xs:complexType>
     </xs:element>
 
@@ -1331,12 +1340,13 @@ Request that a bundle with "gbof_id" be broadcasted with a particular "fwd_actio
         <xs:complexType>
 	    <xs:sequence>
                 <xs:element name="gbof_id" type="gbofIdType"/> 
+	        <xs:element name="metadata_block" type="metadataBlockType"
+		    minOccurs="0" maxOccurs="unbounded"/>
 	    </xs:sequence>
 
 	    <xs:attribute name="fwd_action" type="bundleForwardActionType" use="required"/>
 	    <xs:attribute name="frag_size" type="xs:unsignedLong" use="optional"/>
 	    <xs:attribute name="frag_offset" type="xs:unsignedLong" use="optional"/>
-            <xs:attribute name="ext_block" type="xs:base64Binary" use="optional"/>
         </xs:complexType>
     </xs:element>
 
@@ -1411,6 +1421,23 @@ Pass-through request to BPA to set convergence layer adapter params.
 	<xs:attribute name="clayer" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
+
+    <!-- Deliver Bundle To Application Request -->
+
+    <xs:element name="deliver_bundle_to_app_request">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Requests delivery of a specific bundle to a specific registration on this node.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+        <xs:sequence>
+	    	<xs:element name="endpoint" type="eidType"/>
+	    	<xs:element name="gbof_id" type="gbofIdType"/>
+        </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
 
 <!-- QUERIES / REPORTS -->
 
@@ -1608,6 +1635,7 @@ Carry two or more router message on a single packet.
             <xs:element ref="inject_bundle_request" minOccurs="0"/>
             <xs:element ref="delete_bundle_request" minOccurs="0"/>
             <xs:element ref="set_cl_params_request" minOccurs="0"/>
+            <xs:element ref="deliver_bundle_to_app_request" minOccurs="0"/>
             <xs:element ref="link_query" minOccurs="0"/>
             <xs:element ref="link_report" minOccurs="0"/>
             <xs:element ref="link_attributes_query" minOccurs="0"/>

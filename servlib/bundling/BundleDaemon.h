@@ -271,6 +271,11 @@ public:
      */
     void init_idle_shutdown(int interval);
     
+    /**
+     * This is used for delivering bundle to app by Late Binding
+     */
+    void check_and_deliver_to_registrations(Bundle* bundle, const EndpointID&);
+
 protected:
     friend class BundleActions;
 

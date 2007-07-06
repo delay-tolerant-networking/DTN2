@@ -18,6 +18,7 @@
 #  include <config.h>
 #endif
 
+#include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -27,13 +28,16 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include <vector>
+
 #include "dtn_api.h"
 
 char *progname;
 
 // global options
 dtn_bundle_payload_location_t 
-payload_type    = 0;    // the type of data source for the bundle
+payload_type            = DTN_PAYLOAD_FILE;  // type of data source for
+                                             //the bundle
 int copies              = 1;    // the number of copies to send
 int verbose             = 0;
 int sleep_time          = 0;
@@ -52,11 +56,57 @@ int wait_for_report     = 0;    // wait for bundle status reports
 char * data_source      = NULL; // filename or message, depending on type
 char date_buf[256];             // buffer for date payloads
 
-// extension block information
-int extension_block     = 0;
-u_int block_type        = 0;
-u_int block_flags       = BLOCK_FLAG_NONE;
-char * block_buf        = NULL;
+// extension/metatdata block information
+class ExtBlock {
+public:
+    ExtBlock(u_int type = 0): metadata_(false) {
+        block_.type          = type;
+        block_.flags         = 0;
+        block_.data.data_len = 0;
+        block_.data.data_val = NULL;
+    }
+    ~ExtBlock() {
+        if (block_.data.data_val != NULL) {
+            free(block_.data.data_val);
+            block_.data.data_val = NULL;
+            block_.data.data_len = 0;
+        }
+    }
+
+    ExtBlock(const ExtBlock& o)
+    {
+        metadata_            = o.metadata_;
+        block_.type          = o.block_.type;
+        block_.flags         = o.block_.flags;
+        block_.data.data_len = o.block_.data.data_len;
+        block_.data.data_val = (char*)malloc(block_.data.data_len);
+        memcpy(block_.data.data_val, o.block_.data.data_val,
+               block_.data.data_len);
+    }
+    
+    bool        metadata() const { return metadata_; }
+    void        set_metadata()   { metadata_ = true; }
+
+    dtn_extension_block_t & block() { return block_; }
+    void set_block_buf(char * buf, u_int len) {
+        if (block_.data.data_val != NULL) {
+            free(block_.data.data_val);
+            block_.data.data_val = NULL;
+            block_.data.data_len = 0;
+        }
+        block_.data.data_val = buf;
+        block_.data.data_len = len;
+    }
+
+    static unsigned int   num_meta_blocks_;
+
+private:
+    bool                  metadata_;
+    dtn_extension_block_t block_;
+};
+unsigned int ExtBlock::num_meta_blocks_ = 0;
+
+std::vector<ExtBlock> ext_blocks;
 
 // specified options for bundle eids
 char * arg_replyto      = NULL;
@@ -86,7 +136,6 @@ main(int argc, char** argv)
     dtn_bundle_id_t bundle_id;
     dtn_bundle_payload_t send_payload;
     dtn_bundle_payload_t reply_payload;
-    dtn_extension_block_t block;
     struct timeval start, end;
     
     // force stdout to always be line buffered, even if output is
@@ -189,17 +238,53 @@ main(int argc, char** argv)
     }
     
     // set extension block information
-    memset(&block, 0, sizeof(block));
-    if (extension_block == 1) {
-        block.type = block_type;
-        block.flags = block_flags;
-        block.data.data_len = strlen(block_buf);
-        block.data.data_val = block_buf;
+    unsigned int num_ext_blocks = ext_blocks.size() - ExtBlock::num_meta_blocks_;
+    unsigned int num_meta_blocks = ExtBlock::num_meta_blocks_;
 
-        bundle_spec.blocks.blocks_len = 1;
-        bundle_spec.blocks.blocks_val = &block;
+    if (num_ext_blocks > 0) {
+        u_char * buf = new u_char[num_ext_blocks *
+                                  sizeof(dtn_extension_block_t)];
+        memset(buf, 0, num_ext_blocks * sizeof(dtn_extension_block_t));
+
+        dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
+        for (unsigned int i = 0; i < ext_blocks.size(); ++i) {
+            if (ext_blocks[i].metadata()) {
+                continue;
+            }
+
+            bp->type          = ext_blocks[i].block().type;
+            bp->flags         = ext_blocks[i].block().flags;
+            bp->data.data_len = ext_blocks[i].block().data.data_len;
+            bp->data.data_val = ext_blocks[i].block().data.data_val;
+            bp++;
+        }
+
+        bundle_spec.blocks.blocks_len = num_ext_blocks;
+        bundle_spec.blocks.blocks_val = (dtn_extension_block_t *)buf;
     }
-    
+
+    if (num_meta_blocks > 0) {
+        u_char * buf = new u_char[num_meta_blocks *
+                                  sizeof(dtn_extension_block_t)];
+        memset(buf, 0, num_ext_blocks * sizeof(dtn_extension_block_t));
+
+        dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
+        for (unsigned int i = 0; i < ext_blocks.size(); ++i) {
+            if (!ext_blocks[i].metadata()) {
+                continue;
+            }
+
+            bp->type          = ext_blocks[i].block().type;
+            bp->flags         = ext_blocks[i].block().flags;
+            bp->data.data_len = ext_blocks[i].block().data.data_len;
+            bp->data.data_val = ext_blocks[i].block().data.data_val;
+            bp++;
+        }
+
+        bundle_spec.metadata.metadata_len = num_meta_blocks;
+        bundle_spec.metadata.metadata_val = (dtn_extension_block_t *)buf;
+    }
+
     // loop, sending sends and getting replies.
     for (i = 0; i < copies; ++i) {
         gettimeofday(&start, NULL);
@@ -228,7 +313,8 @@ main(int argc, char** argv)
             
             // now we block waiting for any replies
             if ((ret = dtn_recv(handle, &reply_spec,
-                                DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
+                                DTN_PAYLOAD_MEM, &reply_payload,
+                                DTN_TIMEOUT_INF)) < 0)
             {
                 fprintf(stderr, "error getting reply: %d (%s)\n",
                         ret, dtn_strerror(dtn_errno(handle)));
@@ -250,11 +336,20 @@ main(int argc, char** argv)
 
     dtn_close(handle);
  
-    if (block_buf != NULL) {
-        free(block_buf);
-        block_buf = NULL;
+    if (num_ext_blocks > 0) {
+        assert(bundle_spec.blocks.blocks_val != NULL);
+        delete bundle_spec.blocks.blocks_val;
+        bundle_spec.blocks.blocks_val = NULL;
+        bundle_spec.blocks.blocks_len = 0;
     }
-    
+
+    if (num_meta_blocks > 0) {
+        assert(bundle_spec.metadata.metadata_val != NULL);
+        delete bundle_spec.metadata.metadata_val;
+        bundle_spec.metadata.metadata_val = NULL;
+        bundle_spec.metadata.metadata_len = 0;
+    }
+
     return 0;
 }
 
@@ -283,8 +378,9 @@ void print_usage()
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
     fprintf(stderr, " -E <int> include extension block and specify type\n");
-    fprintf(stderr, " -P <int> flag value(s) to include in extension block\n");
-    fprintf(stderr, " -S <string> extension block content\n");
+    fprintf(stderr, " -M <int> include metadata block and specify type\n");
+    fprintf(stderr, " -P <int> flags to include in extension/metadata block\n");
+    fprintf(stderr, " -S <string> extension/metadata block content\n");
     
     exit(1);
 }
@@ -298,7 +394,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHr:s:d:e:n:woDXFRcCt:p:i:z:E:P:S:");
+        c = getopt(argc, argv, "vhHr:s:d:e:n:woDXFRcCt:p:i:z:E:M:P:S:");
         switch (c)
         {
         case 'v':
@@ -358,14 +454,23 @@ void parse_options(int argc, char**argv)
             sleep_time = atoi(optarg);
             break;
         case 'E':
-            extension_block = 1;
-            block_type = atoi(optarg);
+            ext_blocks.push_back(ExtBlock(atoi(optarg)));
+            break;
+        case 'M':
+            ext_blocks.push_back(ExtBlock(atoi(optarg)));
+            ext_blocks.back().set_metadata();
+            ExtBlock::num_meta_blocks_++;
             break;
         case 'P':
-            block_flags = atoi(optarg);
+            if (ext_blocks.size() > 0) {
+                ext_blocks.back().block().flags = atoi(optarg);
+            }
             break;
         case 'S':
-            block_buf = strdup(optarg);
+            if (ext_blocks.size() > 0) {
+                char * block_buf = strdup(optarg);
+                ext_blocks.back().set_block_buf(block_buf, strlen(block_buf));
+            }
             break;
         case -1:
             done = 1;
@@ -405,20 +510,6 @@ void parse_options(int argc, char**argv)
         fprintf(stderr, "dtnsend: type argument '%d' invalid\n", arg_type);
         print_usage();
         exit(1);
-    }
-
-    if (extension_block == 1) {
-        if (block_type > 255) {
-            fprintf(stderr, "dtnsend: invalid block type %d\n", block_type);
-            print_usage();
-            exit(1);
-        }
-
-        if (block_flags > 255) {
-            fprintf(stderr, "dtnsend: invalid block flags %d\n", block_flags);
-            print_usage();
-            exit(1);
-        }
     }
 }
 

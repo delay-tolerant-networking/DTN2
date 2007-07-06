@@ -316,8 +316,8 @@ ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
                                           Bundle* bundle)
 {
     if (!link->isopen()) {
-        log_err("cancel_bundle *%p but link *%p isn't open!!",
-                bundle, link.object());
+        log_debug("cancel_bundle *%p but link *%p isn't open!!",
+                  bundle, link.object());
         return false;
     }
     

@@ -165,6 +165,52 @@ parse_options(int argc, char**argv)
 }
 
 
+static void
+print_data(char* buffer, u_int length)
+{
+    u_int k;
+    char s_buffer[BUFSIZE];
+    for (k=0; k < length; k++)
+    {
+        if (buffer[k] >= ' ' && buffer[k] <= '~')
+            s_buffer[k%BUFSIZE] = buffer[k];
+        else
+            s_buffer[k%BUFSIZE] = '.';
+
+        if (k%BUFSIZE == 0) // new line every 16 bytes
+        {
+            printf("%07x ", k);
+        }
+        else if (k%2 == 0)
+        {
+            printf(" "); // space every 2 bytes
+        }
+                    
+        printf("%02x", buffer[k] & 0xff);
+                    
+            // print character summary (a la emacs hexl-mode)
+        if (k%BUFSIZE == BUFSIZE-1)
+        {
+            printf(" |  %.*s\n", BUFSIZE, s_buffer);
+        }
+    }
+    
+        // print spaces to fill out the rest of the line
+    if (k%BUFSIZE != BUFSIZE-1) {
+        while (k%BUFSIZE != BUFSIZE-1) {
+            if (k%2 == 0) {
+                printf(" ");
+            }
+            printf("  ");
+            k++;
+        }
+        printf("   |  %.*s\n",
+               (int)length%BUFSIZE, 
+               s_buffer);
+    }
+    printf("\n");
+}
+
 int
 main(int argc, char** argv)
 {
@@ -177,8 +223,6 @@ main(int argc, char** argv)
     dtn_reg_info_t reginfo;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
-    unsigned char* buffer;
-    char s_buffer[BUFSIZE];
     int call_bind;
 
     // force stdout to always be line buffered, even if output is
@@ -325,55 +369,57 @@ main(int argc, char** argv)
 
         if (quiet) {
             dtn_free_payload(&payload);
+            if (spec.blocks.blocks_len > 0) {
+                free(spec.blocks.blocks_val);
+                spec.blocks.blocks_val = NULL;
+                spec.blocks.blocks_len = 0;
+            }
+            if (spec.metadata.metadata_len > 0) {
+                free(spec.metadata.metadata_val);
+                spec.metadata.metadata_val = NULL;
+                spec.metadata.metadata_len = 0;
+            }
             continue;
         }
-        
-        printf("%d bytes from [%s]: transit time=%d ms\n",
+
+        printf("\n%d extension blocks from [%s]: transit time=%d ms\n",
+               spec.blocks.blocks_len, spec.source.uri, 0);
+        dtn_extension_block_t *block = spec.blocks.blocks_val;
+        for (k = 0; k < spec.blocks.blocks_len; k++) {
+            printf("Extension Block %i:\n", k);
+            printf("\ttype = %i\n\tflags = %i\n",
+                   block[k].type, block[k].flags);
+            print_data(block[k].data.data_val, block[k].data.data_len);
+        }
+
+        printf("\n%d metadata blocks from [%s]: transit time=%d ms\n",
+               spec.metadata.metadata_len, spec.source.uri, 0);
+        dtn_extension_block_t *meta = spec.metadata.metadata_val;
+        for (k = 0; k < spec.metadata.metadata_len; k++) {
+            printf("Metadata Extension Block %i:\n", k);
+            printf("\ttype = %i\n\tflags = %i\n",
+                   meta[k].type, meta[k].flags);
+            print_data(meta[k].data.data_val, meta[k].data.data_len);
+        }
+
+        printf("%d payload bytes from [%s]: transit time=%d ms\n",
                payload.buf.buf_len,
                spec.source.uri, 0);
-
-        buffer = (unsigned char *) payload.buf.buf_val;
-        for (k=0; k < payload.buf.buf_len; k++)
-        {
-            if (buffer[k] >= ' ' && buffer[k] <= '~')
-                s_buffer[k%BUFSIZE] = buffer[k];
-            else
-                s_buffer[k%BUFSIZE] = '.';
-
-            if (k%BUFSIZE == 0) // new line every 16 bytes
-            {
-                printf("%07x ", k);
-            }
-            else if (k%2 == 0)
-            {
-                printf(" "); // space every 2 bytes
-            }
-                    
-            printf("%02x", buffer[k] & 0xff);
-                    
-            // print character summary (a la emacs hexl-mode)
-            if (k%BUFSIZE == BUFSIZE-1)
-            {
-                printf(" |  %.*s\n", BUFSIZE, s_buffer);
-            }
-        }
-
-        // print spaces to fill out the rest of the line
-	if (k%BUFSIZE != BUFSIZE-1) {
-            while (k%BUFSIZE != BUFSIZE-1) {
-                if (k%2 == 0) {
-                    printf(" ");
-                }
-                printf("  ");
-                k++;
-            }
-            printf("   |  %.*s\n",
-                   (int)payload.buf.buf_len%BUFSIZE, 
-                   s_buffer);
-        }
-	printf("\n");
+        
+        print_data(payload.buf.buf_val, payload.buf.buf_len);
+        printf("\n");
 
         dtn_free_payload(&payload);
+        if (spec.blocks.blocks_len > 0) {
+            free(spec.blocks.blocks_val);
+            spec.blocks.blocks_val = NULL;
+            spec.blocks.blocks_len = 0;
+        }
+        if (spec.metadata.metadata_len > 0) {
+            free(spec.metadata.metadata_val);
+            spec.metadata.metadata_val = NULL;
+            spec.metadata.metadata_len = 0;
+        }
     }
 
     printf("dtnrecv (pid %d) exiting: %d bundles received, %d total bytes\n\n",

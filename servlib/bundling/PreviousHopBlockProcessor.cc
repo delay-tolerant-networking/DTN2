@@ -36,25 +36,29 @@ PreviousHopBlockProcessor::PreviousHopBlockProcessor()
 void
 PreviousHopBlockProcessor::prepare(const Bundle*    bundle,
                                    const LinkRef&   link,
+                                   BlockInfoVec*    xmit_blocks,
                                    BlockInfoVec*    blocks,
-                                   const BlockInfo* source)
+                                   const BlockInfo* source,
+                                   BlockInfo::list_owner_t list)
 {
     if (link == NULL || !link->params().prevhop_hdr_) {
         return;
     }
     
-    BlockProcessor::prepare(bundle, link, blocks, source);
+    BlockProcessor::prepare(bundle, link, xmit_blocks, blocks, source, list);
 }
 
 //----------------------------------------------------------------------
 void
 PreviousHopBlockProcessor::generate(const Bundle*  bundle,
                                     const LinkRef& link,
+                                    BlockInfoVec*  xmit_blocks,
                                     BlockInfo*     block,
                                     bool           last)
 {
     (void)bundle;
     (void)link;
+    (void)xmit_blocks;
 
     // XXX/demmer this is not the right protocol spec'd format since
     // it's supposed to use the dictionary
@@ -66,7 +70,8 @@ PreviousHopBlockProcessor::generate(const Bundle*  bundle,
     BundleDaemon* bd = BundleDaemon::instance();
     size_t length = bd->local_eid().length();
     
-    generate_preamble(block,
+    generate_preamble(xmit_blocks, 
+                      block,
                       BundleProtocol::PREVIOUS_HOP_BLOCK,
                       BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
                         (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
