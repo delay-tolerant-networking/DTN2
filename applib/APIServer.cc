@@ -1027,11 +1027,11 @@ APIClient::handle_recv()
     if (blocks_found > 0) {
         unsigned int buf_len = (blocks_found * sizeof(dtn_extension_block_t)) +
                                data_len;
-        char * buf = (char *)malloc(buf_len);
+        void * buf = malloc(buf_len);
         memset(buf, 0, buf_len);
 
         dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
-        char * dp = buf + (blocks_found * sizeof(dtn_extension_block_t));
+        char * dp = (char*)buf + (blocks_found * sizeof(dtn_extension_block_t));
         for (unsigned int i = 0; i < b->recv_blocks_.size(); ++i) {
             if ((b->recv_blocks_[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
                 (b->recv_blocks_[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
@@ -1064,11 +1064,11 @@ APIClient::handle_recv()
     if (blocks_found > 0) {
         unsigned int buf_len = (blocks_found * sizeof(dtn_extension_block_t)) +
                                data_len;
-        char * buf = (char *)malloc(buf_len);
+        void * buf = (char *)malloc(buf_len);
         memset(buf, 0, buf_len);
 
         dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
-        char * dp = buf + (blocks_found * sizeof(dtn_extension_block_t));
+        char * dp = (char*)buf + (blocks_found * sizeof(dtn_extension_block_t));
         for (unsigned int i = 0; i < b->recv_metadata_.size(); ++i) {
             bp->type          = b->recv_metadata_[i]->ontology();
             bp->flags         = b->recv_metadata_[i]->flags();
