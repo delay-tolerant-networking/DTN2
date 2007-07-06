@@ -71,7 +71,7 @@ test::script {
 
     puts "* waiting to receive bundle at destination"
     dtn::wait_for_bundle 2 $id
-    dtn::check_bundle_data 2 $id recv_blocks 3 block,0x10,flags 0x28
+    dtn::check_bundle_data 2 $id recv_blocks 3 block,0x10,flags 0x20
 
     puts "* checking that each node received/transmitted bundle"
     dtn::wait_for_bundle_stats 0 {1 received 1 transmitted}
@@ -99,7 +99,7 @@ test::script {
     puts "* waiting to receive bundle at destination"
     dtn::wait_for_bundle 2 $id
     dtn::check_bundle_data 2 $id recv_blocks 3
-    dtn::check_bundle_data 2 $id recv_blocks 3 block,0x10,flags 0x2a
+    dtn::check_bundle_data 2 $id recv_blocks 3 block,0x10,flags 0x22
 
     puts "* waiting for status reports"
     set sr_guid "$id,$mid_eid"
