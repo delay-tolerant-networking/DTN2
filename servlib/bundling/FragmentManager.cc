@@ -439,7 +439,7 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
     }
     
     // check see if we're done
-    if (state->check_completed()) {
+    if (! state->check_completed()) {
         return;
     }
 
