@@ -242,8 +242,7 @@ main(int argc, char** argv)
     unsigned int num_meta_blocks = ExtBlock::num_meta_blocks_;
 
     if (num_ext_blocks > 0) {
-        u_char * buf = new u_char[num_ext_blocks *
-                                  sizeof(dtn_extension_block_t)];
+        void* buf = malloc(num_ext_blocks * sizeof(dtn_extension_block_t));
         memset(buf, 0, num_ext_blocks * sizeof(dtn_extension_block_t));
 
         dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
@@ -264,8 +263,7 @@ main(int argc, char** argv)
     }
 
     if (num_meta_blocks > 0) {
-        u_char * buf = new u_char[num_meta_blocks *
-                                  sizeof(dtn_extension_block_t)];
+        void* buf = malloc(num_meta_blocks * sizeof(dtn_extension_block_t));
         memset(buf, 0, num_ext_blocks * sizeof(dtn_extension_block_t));
 
         dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
@@ -338,14 +336,14 @@ main(int argc, char** argv)
  
     if (num_ext_blocks > 0) {
         assert(bundle_spec.blocks.blocks_val != NULL);
-        delete bundle_spec.blocks.blocks_val;
+        free(bundle_spec.blocks.blocks_val);
         bundle_spec.blocks.blocks_val = NULL;
         bundle_spec.blocks.blocks_len = 0;
     }
 
     if (num_meta_blocks > 0) {
         assert(bundle_spec.metadata.metadata_val != NULL);
-        delete bundle_spec.metadata.metadata_val;
+        free(bundle_spec.metadata.metadata_val);
         bundle_spec.metadata.metadata_val = NULL;
         bundle_spec.metadata.metadata_len = 0;
     }
