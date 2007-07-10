@@ -5,11 +5,11 @@ IRTF Delay Tolerant Networking                                  K. Scott
 Research Group                                     The MITRE Corporation
 Internet-Draft                                               S. Burleigh
 Intended status: Experimental             NASA Jet Propulsion Laboratory
-Expires: October 19, 2007                                 April 17, 2007
+Expires: January 4, 2008                                    July 3, 2007
 
 
                      Bundle Protocol Specification
-                  draft-irtf-dtnrg-bundle-spec-09.txt
+                  draft-irtf-dtnrg-bundle-spec-10.txt
 
 Status of this Memo
 
@@ -34,7 +34,7 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on October 19, 2007.
+   This Internet-Draft will expire on January 4, 2008.
 
 Copyright Notice
 
@@ -52,9 +52,9 @@ Copyright Notice
 
 
 
-Scott & Burleigh        Expires October 19, 2007                [Page 1]
+Scott & Burleigh         Expires January 4, 2008                [Page 1]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 Abstract
@@ -108,9 +108,9 @@ Table of Contents
 
 
 
-Scott & Burleigh        Expires October 19, 2007                [Page 2]
+Scott & Burleigh         Expires January 4, 2008                [Page 2]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
      5.13. Bundle Deletion  . . . . . . . . . . . . . . . . . . . . . 38
@@ -164,9 +164,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007                [Page 3]
+Scott & Burleigh         Expires January 4, 2008                [Page 3]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 1.  Requirements notation
@@ -220,9 +220,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007                [Page 4]
+Scott & Burleigh         Expires January 4, 2008                [Page 4]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 2.  Introduction
@@ -251,6 +251,12 @@ Internet-Draft        Bundle Protocol Specification           April 2007
    architecture, see [ARCH] and [SIGC].  [TUT] contains a tutorial-level
    overview of DTN concepts.
 
+   This is an experimental protocol, produced within the IRTF's Delay
+   Tolerant Networking Research Group (DTNRG) and represents the
+   consensus of all of the active contributors to this Group.  If this
+   protocol is used on the Internet, IETF standard protocols for
+   security and congestion control should be used.
+
    BP's location within the standard protocol stack is as shown in
    Figure 1.  BP uses the "native" internet protocols for communications
    within a given internet.  Note that "internet" in the preceding is
@@ -270,15 +276,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-
-
-
-
-
-
-Scott & Burleigh        Expires October 19, 2007                [Page 5]
+Scott & Burleigh         Expires January 4, 2008                [Page 5]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    +-----------+                                         +-----------+
@@ -332,9 +332,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007                [Page 6]
+Scott & Burleigh         Expires January 4, 2008                [Page 6]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 3.  Service Description
@@ -388,9 +388,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007                [Page 7]
+Scott & Burleigh         Expires January 4, 2008                [Page 7]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
       number of bundle nodes on a single computer; it might be
@@ -444,9 +444,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007                [Page 8]
+Scott & Burleigh         Expires January 4, 2008                [Page 8]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
       sort of endpoint, but in general the endpoint notion is meant to
@@ -500,9 +500,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007                [Page 9]
+Scott & Burleigh         Expires January 4, 2008                [Page 9]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
          registration and (b) either the registration is polled or else
@@ -556,9 +556,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 10]
+Scott & Burleigh         Expires January 4, 2008               [Page 10]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Deletion, Discarding -  A bundle protocol agent "discards" a bundle
@@ -612,9 +612,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 11]
+Scott & Burleigh         Expires January 4, 2008               [Page 11]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    specification, four example architectures are briefly described
@@ -668,9 +668,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 12]
+Scott & Burleigh         Expires January 4, 2008               [Page 12]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
        adapters, and the administrative element of the application agent
@@ -724,9 +724,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 13]
+Scott & Burleigh         Expires January 4, 2008               [Page 13]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 4.  Bundle Format
@@ -780,9 +780,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 14]
+Scott & Burleigh         Expires January 4, 2008               [Page 14]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    0xABC  : 1010 1011 1100
@@ -836,9 +836,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 15]
+Scott & Burleigh         Expires January 4, 2008               [Page 15]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    represent an integer whose value typically falls in the range 128 to
@@ -892,9 +892,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 16]
+Scott & Burleigh         Expires January 4, 2008               [Page 16]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    being of higher priority: 00 = bulk, 01 = normal, 10 = expedited, 11
@@ -948,9 +948,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 17]
+Scott & Burleigh         Expires January 4, 2008               [Page 17]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
                         0
@@ -1004,9 +1004,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 18]
+Scott & Burleigh         Expires January 4, 2008               [Page 18]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    in the "dictionary" byte array in the bundle's primary block.  This
@@ -1060,9 +1060,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 19]
+Scott & Burleigh         Expires January 4, 2008               [Page 19]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    The format of the two basic BP blocks is shown in Figure 5 below.
@@ -1116,9 +1116,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 20]
+Scott & Burleigh         Expires January 4, 2008               [Page 20]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    therefore variable-length.  A four-octet SDNV is shown here for
@@ -1172,9 +1172,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 21]
+Scott & Burleigh         Expires January 4, 2008               [Page 21]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Version:   A 1-byte field indicating the version of the bundle
@@ -1228,9 +1228,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 22]
+Scott & Burleigh         Expires January 4, 2008               [Page 22]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Custodian SSP Offset:   The Destination SSP Offset field contains the
@@ -1284,9 +1284,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 23]
+Scott & Burleigh         Expires January 4, 2008               [Page 23]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Total Application Data Unit Length:   If the Bundle Processing
@@ -1340,9 +1340,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 24]
+Scott & Burleigh         Expires January 4, 2008               [Page 24]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
           +-----------+-----------+-----------+-----------+
@@ -1396,9 +1396,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 25]
+Scott & Burleigh         Expires January 4, 2008               [Page 25]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    never set.  The block body data for payload blocks is the application
@@ -1452,9 +1452,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 26]
+Scott & Burleigh         Expires January 4, 2008               [Page 26]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 5.  Bundle Processing
@@ -1508,9 +1508,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 27]
+Scott & Burleigh         Expires January 4, 2008               [Page 27]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    o  A "custody acceptance status report" is a bundle status report
@@ -1564,9 +1564,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 28]
+Scott & Burleigh         Expires January 4, 2008               [Page 28]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Step 3:   Processing proceeds from Step 1 of Section 5.4.
@@ -1579,7 +1579,7 @@ Internet-Draft        Bundle Protocol Specification           April 2007
       which the node is a member, the bundle delivery procedure defined
       in Section 5.7 must be followed.
 
-   Step 2:   Processing proceeds from Step 1 of section Section 5.4.
+   Step 2:   Processing proceeds from Step 1 of Section 5.4.
 
 5.4.  Bundle Forwarding
 
@@ -1620,9 +1620,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 29]
+Scott & Burleigh         Expires January 4, 2008               [Page 29]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Step 3:   If forwarding of the bundle is determined to be
@@ -1647,7 +1647,7 @@ Internet-Draft        Bundle Protocol Specification           April 2007
       of the blocks in a forwarded bundle must not be changed as it
       transits a node; received blocks must be transmitted in the same
       relative order as that in which they were received.  While blocks
-      may be added to bundles as they transit intermeditate nodes,
+      may be added to bundles as they transit intermediate nodes,
       removal of blocks that do not have their 'Discard block if it
       can't be processed' flag in the block processing control flags set
       to 1 may cause security to fail.
@@ -1676,9 +1676,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 30]
+Scott & Burleigh         Expires January 4, 2008               [Page 30]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 5.4.1.  Forwarding Contraindicated
@@ -1732,9 +1732,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 31]
+Scott & Burleigh         Expires January 4, 2008               [Page 31]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 5.5.  Bundle Expiration
@@ -1788,9 +1788,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 32]
+Scott & Burleigh         Expires January 4, 2008               [Page 32]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Step 4:   If the bundle's custody transfer requested flag (in the
@@ -1844,9 +1844,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 33]
+Scott & Burleigh         Expires January 4, 2008               [Page 33]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Step 3:   As soon as the bundle has been delivered:
@@ -1900,9 +1900,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 34]
+Scott & Burleigh         Expires January 4, 2008               [Page 34]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    o  The concatenation of the payloads of all fragments produced by
@@ -1956,9 +1956,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 35]
+Scott & Burleigh         Expires January 4, 2008               [Page 35]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    o  The "Reassembly pending" retention constraint must be removed from
@@ -2012,9 +2012,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 36]
+Scott & Burleigh         Expires January 4, 2008               [Page 36]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    The bundle protocol agent must assert the new current custodian for
@@ -2068,9 +2068,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 37]
+Scott & Burleigh         Expires January 4, 2008               [Page 37]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Upon determination of custody transfer failure, the action taken by
@@ -2124,9 +2124,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 38]
+Scott & Burleigh         Expires January 4, 2008               [Page 38]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 5.16.  Polling
@@ -2180,9 +2180,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 39]
+Scott & Burleigh         Expires January 4, 2008               [Page 39]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 6.  Administrative Record Processing
@@ -2236,9 +2236,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 40]
+Scott & Burleigh         Expires January 4, 2008               [Page 40]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 6.1.1.  Bundle Status Reports
@@ -2292,9 +2292,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 41]
+Scott & Burleigh         Expires January 4, 2008               [Page 41]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    in the primary block of the subject bundle.  As such they are SDNVs
@@ -2348,9 +2348,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 42]
+Scott & Burleigh         Expires January 4, 2008               [Page 42]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
            +---------+--------------------------------------------+
@@ -2404,9 +2404,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 43]
+Scott & Burleigh         Expires January 4, 2008               [Page 43]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Time of Delivery (if present):   If the bundle-delivered bit is set
@@ -2460,9 +2460,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 44]
+Scott & Burleigh         Expires January 4, 2008               [Page 44]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    The Fragment Offset field, if present, is an SDNV and is therefore
@@ -2516,9 +2516,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 45]
+Scott & Burleigh         Expires January 4, 2008               [Page 45]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
            +---------+--------------------------------------------+
@@ -2572,9 +2572,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 46]
+Scott & Burleigh         Expires January 4, 2008               [Page 46]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Source Endpoint ID text:   The text of the source endpoint ID of the
@@ -2628,9 +2628,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 47]
+Scott & Burleigh         Expires January 4, 2008               [Page 47]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 7.  Services Required of the Convergence Layer
@@ -2684,9 +2684,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 48]
+Scott & Burleigh         Expires January 4, 2008               [Page 48]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 8.  Security Considerations
@@ -2740,9 +2740,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 49]
+Scott & Burleigh         Expires January 4, 2008               [Page 49]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
    Additionally, to provide "security-source" to "security-destination"
@@ -2774,9 +2774,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
    must not be changed as it transits a node; received blocks must be
    transmitted in the same relative order as that in which they were
    received.  While blocks may be added to bundles as they transit
-   intermeditate nodes, removal of blocks that do not have their
-   'Discard block if it can't be processed' flag in the block processing
-   control flags set to 1 may cause security to fail.
+   intermediate nodes, removal of blocks that do not have their 'Discard
+   block if it can't be processed' flag in the block processing control
+   flags set to 1 may cause security to fail.
 
    Inclusion of the Bundle Security Protocol in any Bundle Protocol
    implementation is RECOMMENDED.  Use of the Bundle Security Protocol
@@ -2796,15 +2796,16 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 50]
+Scott & Burleigh         Expires January 4, 2008               [Page 50]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 9.  IANA Considerations
 
-   The new Uniform Resource Identifier scheme "dtn", defined by the
-   Bundle Protocol, will need to be documented.
+   The "dtn:" URI scheme has been provisionally registered by IANA.  See
+   http://www.iana.org/assignments/uri-schemes.html for the latest
+   details.
 
 
 
@@ -2851,10 +2852,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-
-Scott & Burleigh        Expires October 19, 2007               [Page 51]
+Scott & Burleigh         Expires January 4, 2008               [Page 51]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 10.  References
@@ -2891,15 +2891,15 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
    [BSP]      Symington, S., "Bundle Security Protocol Specification,
               work in progress", Work in
-              progress, draft-irtf-dtnrg-bundle-security-02,
-              October 2006.
+              progress, draft-irtf-dtnrg-bundle-security-03,
+              October 2007.
 
    [NTP]      Mills, D., "Network Time Protocol (Version 3)
               Specification", RFC 1305, March 1992.
 
-   [SECO]     Farrell, S., Symington, S., and H. Weiss, "Delay-Tolerant
-              Networking Security Overview", Work in
-              progress, draft-irtf-dtnrg-sec-overview-02, October 2006.
+   [SECO]     Farrell, S., Symington, S., Weiss, H., and P. Lovell,
+              "Delay-Tolerant Networking Security Overview", Work in
+              progress, draft-irtf-dtnrg-sec-overview-03, July 2007.
 
    [SIGC]     Fall, K., "A Delay-Tolerant Network Architecture for
               Challenged Internets", SIGCOMM 2003 .
@@ -2908,9 +2908,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 52]
+Scott & Burleigh         Expires January 4, 2008               [Page 52]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
               Tutorial", <http://www.dtnrg.org>.
@@ -2964,9 +2964,9 @@ Internet-Draft        Bundle Protocol Specification           April 2007
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 53]
+Scott & Burleigh         Expires January 4, 2008               [Page 53]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 Appendix A.  Contributors
@@ -2977,9 +2977,10 @@ Appendix A.  Contributors
    Adrian Hooke, and Leigh Torgerson of the Jet Propulsion Laboratory,
    Michael Demmer of the University of California at Berkeley, Robert
    Durst, Keith Scott, and Susan Symington of The MITRE Corporation,
-   Kevin Fall, Stephen Farrell of Trinity College Dublin, Peter Lovell
-   of SPARTA, Inc., Manikantan Ramadas of Ohio University (most of
-   Section 4.1), and Howard Weiss of SPARTA, Inc. (text of Section 8) .
+   Kevin Fall of Intel Research, Stephen Farrell of Trinity College
+   Dublin, Peter Lovell of SPARTA, Inc., Manikantan Ramadas of Ohio
+   University (most of Section 4.1), and Howard Weiss of SPARTA, Inc.
+   (text of Section 8) .
 
 
 
@@ -3019,10 +3020,9 @@ Appendix A.  Contributors
 
 
 
-
-Scott & Burleigh        Expires October 19, 2007               [Page 54]
+Scott & Burleigh         Expires January 4, 2008               [Page 54]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 Appendix B.  Comments
@@ -3076,9 +3076,9 @@ Appendix B.  Comments
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 55]
+Scott & Burleigh         Expires January 4, 2008               [Page 55]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 Authors' Addresses
@@ -3132,9 +3132,9 @@ Authors' Addresses
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 56]
+Scott & Burleigh         Expires January 4, 2008               [Page 56]
 
-Internet-Draft        Bundle Protocol Specification           April 2007
+Internet-Draft        Bundle Protocol Specification            July 2007
 
 
 Full Copyright Statement
@@ -3188,5 +3188,5 @@ Acknowledgment
 
 
 
-Scott & Burleigh        Expires October 19, 2007               [Page 57]
+Scott & Burleigh         Expires January 4, 2008               [Page 57]
 
