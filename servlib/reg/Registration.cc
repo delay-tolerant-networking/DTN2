@@ -173,7 +173,7 @@ Registration::ExpirationTimer::timeout(const struct timeval& now)
     reg_->set_expired(true);
                       
     if (! reg_->active()) {
-        BundleDaemon::post(new RegistrationExpiredEvent(reg_->regid()));
+        BundleDaemon::post(new RegistrationExpiredEvent(reg_));
     } 
 }
 

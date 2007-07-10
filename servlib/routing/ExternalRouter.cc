@@ -356,7 +356,7 @@ void
 ExternalRouter::handle_registration_expired(RegistrationExpiredEvent* event)
 {
     bpa::registration_expired_event::type e(
-        event->regid_);
+        event->registration_->regid_);
     SEND(registration_expired_event, e)
 }
 

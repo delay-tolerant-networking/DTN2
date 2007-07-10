@@ -142,7 +142,7 @@ APIClient::close_session()
 
         if (reg->expired()) {
             log_debug("removing expired registration %d", reg->regid());
-            BundleDaemon::post(new RegistrationExpiredEvent(reg->regid()));
+            BundleDaemon::post(new RegistrationExpiredEvent(reg));
         }
     }
 }

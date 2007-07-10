@@ -90,6 +90,7 @@ typedef enum {
     REGISTRATION_ADDED,         ///< New registration arrived
     REGISTRATION_REMOVED,       ///< Registration removed
     REGISTRATION_EXPIRED,       ///< Registration expired
+    REGISTRATION_DELETE,	///< Registration to be deleted
 
     ROUTE_ADD,                  ///< Add a new entry to the route table
     ROUTE_DEL,                  ///< Remove an entry from the route table
@@ -172,6 +173,7 @@ event_to_str(event_type_t event)
     case REGISTRATION_ADDED:    return "REGISTRATION_ADDED";
     case REGISTRATION_REMOVED:  return "REGISTRATION_REMOVED";
     case REGISTRATION_EXPIRED:  return "REGISTRATION_EXPIRED";
+    case REGISTRATION_DELETE:   return "REGISTRATION_DELETE";
 
     case ROUTE_ADD:             return "ROUTE_ADD";
     case ROUTE_DEL:             return "ROUTE_DEL";
@@ -730,11 +732,29 @@ public:
  */
 class RegistrationExpiredEvent : public BundleEvent {
 public:
-    RegistrationExpiredEvent(u_int32_t regid)
-        : BundleEvent(REGISTRATION_EXPIRED), regid_(regid) {}
+    RegistrationExpiredEvent(Registration* registration)
+        : BundleEvent(REGISTRATION_EXPIRED),
+          registration_(registration) {}
+    
+    /// The to-be-removed registration 
+    Registration* registration_;
+};
 
-    /// The to-be-removed registration id
-    u_int32_t regid_;
+/**
+ * Daemon-only event class used to delete a registration after it's
+ * removed or expired.
+ */
+class RegistrationDeleteRequest : public BundleEvent {
+public:
+    RegistrationDeleteRequest(Registration* registration)
+        : BundleEvent(REGISTRATION_DELETE),
+          registration_(registration)
+    {
+        daemon_only_ = true;
+    }
+
+    /// The registration to be deleted
+    Registration* registration_;
 };
 
 /**

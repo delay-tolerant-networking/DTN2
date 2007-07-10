@@ -821,10 +821,10 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         // this node
     }
 
-    // remove the bundle from the link's delayed-send queue
+    // remove the bundle from the link's queue
     if (link->queue()->erase(bundle, false))
     {
-        log_info("removed delayed-send bundle id:%d from link %s queue",
+        log_info("removed bundle id:%d from link %s queue",
                  bundle->bundleid_,
                  link->name());
     }
@@ -1256,17 +1256,18 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
         return;
     }
 
-    delete registration;
+    post_at_head(new RegistrationDeleteRequest(registration));
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
 {
-    Registration* registration = reg_table_->get(event->regid_);
+    Registration* registration = event->registration_;
 
-    if (registration == NULL) {
-        log_err("REGISTRATION_EXPIRED -- dead regid %d", event->regid_);
+    if (reg_table_->get(registration->regid()) == NULL) {
+        // this shouldn't ever happen
+        log_err("REGISTRATION_EXPIRED -- dead regid %d", registration->regid());
         return;
     }
     
@@ -1277,13 +1278,21 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
         // binding), we wait for the binding to clear, which will then
         // clean up the registration
         log_info("REGISTRATION_EXPIRED %d -- deferred until binding clears",
-                 event->regid_);
+                 registration->regid());
     } else {
         // otherwise remove the registration from the table
-        log_info("REGISTRATION_EXPIRED %d", event->regid_);
+        log_info("REGISTRATION_EXPIRED %d", registration->regid());
         reg_table_->del(registration->regid());
-        delete registration;
+        post_at_head(new RegistrationDeleteRequest(registration));
     }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_registration_delete(RegistrationDeleteRequest* request)
+{
+    log_info("REGISTRAITON_DELETE %d", request->registration_->regid());
+    delete request->registration_;
 }
 
 //----------------------------------------------------------------------

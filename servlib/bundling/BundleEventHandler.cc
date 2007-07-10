@@ -116,8 +116,12 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
     case REGISTRATION_EXPIRED:
         handle_registration_expired((RegistrationExpiredEvent*)e);
         break;
+ 
+    case REGISTRATION_DELETE:
+        handle_registration_delete((RegistrationDeleteRequest*)e);
+        break;
 
-    case ROUTE_ADD:
+   case ROUTE_ADD:
         handle_route_add((RouteAddEvent*)e);
         break;
 
@@ -449,6 +453,14 @@ BundleEventHandler::handle_registration_removed(RegistrationRemovedEvent*)
  */
 void
 BundleEventHandler::handle_registration_expired(RegistrationExpiredEvent*)
+{
+}
+
+/**
+ * Default event handler when a registration is to be deleted
+ */
+void
+BundleEventHandler::handle_registration_delete(RegistrationDeleteRequest*)
 {
 }
 
