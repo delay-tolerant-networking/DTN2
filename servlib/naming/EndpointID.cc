@@ -151,7 +151,7 @@ EndpointID::is_singleton() const
         bool ret = BundleDaemon::instance()->params_.is_singleton_default_;
         log_info_p("/dtn/naming/endpoint/",
                    "setting is_singleton for unknown scheme %s to default %s",
-                   scheme_str().c_str(), ret);
+                   scheme_str().c_str(), ret ? "true" : "false");
         return ret;
             
     }
