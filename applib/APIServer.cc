@@ -413,6 +413,14 @@ APIClient::handle_register()
                 reginfo.endpoint.uri);
         return DTN_EINVAL;
     }
+
+    if (! endpoint.known_scheme() &&
+        ! BundleDaemon::instance()->params_.allow_unknown_schemes_)
+    {
+        log_err("registration endpoint %s is an unknown scheme",
+                endpoint.c_str());
+        return DTN_EINVAL;
+    }
     
     switch (reginfo.failure_action) {
     case DTN_REG_DEFER: action = Registration::DEFER; break;
@@ -660,6 +668,14 @@ APIClient::handle_send()
     oasys::StringBuffer error;
     if (!b->validate(&error)) {
         log_err("bundle validation failed: %s", error.data());
+        return DTN_EINVAL;
+    }
+
+    if (! b->dest_.known_scheme() &&
+        ! BundleDaemon::instance()->params_.allow_unknown_schemes_)
+    {
+        log_err("bundle destination %s is an unknown scheme",
+                b->dest_.c_str());
         return DTN_EINVAL;
     }
     

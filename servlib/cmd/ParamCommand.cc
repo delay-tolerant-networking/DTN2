@@ -22,7 +22,7 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundlePayload.h"
 #include "bundling/CustodyTimer.h"
-#include "conv_layers/TCPConvergenceLayer.h"
+#include "naming/EndpointID.h"
 
 namespace dtn {
 
@@ -60,6 +60,16 @@ ParamCommand::ParamCommand()
                                 "Permute the order of bundles before "
                                 "delivering to registrations"));
 
+    bind_var(new oasys::BoolOpt("allow_unknown_schemes",
+                                &BundleDaemon::params_.allow_unknown_schemes_,
+                                "Whether or not applications should be able to "
+                                "send/receive bundles to/from unknown schemes"));
+    
+    bind_var(new oasys::BoolOpt("is_singleton_default",
+                                &BundleDaemon::params_.is_singleton_default_,
+                                "Whether or not EIDs for unknown schemes "
+                                "are assumed to be singletons"));
+    
     bind_var(new oasys::UIntOpt("link_min_retry_interval",
                                &Link::default_params_.min_retry_interval_,
                                "interval",

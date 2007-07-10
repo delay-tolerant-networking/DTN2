@@ -26,6 +26,7 @@
 #include "EndpointID.h"
 #include "Scheme.h"
 #include "SchemeTable.h"
+#include "bundling/BundleDaemon.h"
 
 namespace dtn {
 
@@ -147,9 +148,12 @@ bool
 EndpointID::is_singleton() const
 {
     if (! known_scheme()) {
-        log_crit_p("/dtn/naming/endpoint/",
-                   "is_singleton can't be determined for unknown schemes");
-        return true;  // XXX/demmer is this the right assumptionm?
+        bool ret = BundleDaemon::instance()->params_.is_singleton_default_;
+        log_info_p("/dtn/naming/endpoint/",
+                   "setting is_singleton for unknown scheme %s to default %s",
+                   scheme_str().c_str(), ret);
+        return ret;
+            
     }
     return scheme_->is_singleton(uri_);
 }

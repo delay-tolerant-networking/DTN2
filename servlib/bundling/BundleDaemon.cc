@@ -57,7 +57,9 @@ BundleDaemon::Params::Params()
        accept_custody_(true),
        reactive_frag_enabled_(true),
        retry_reliable_unacked_(true),
-       test_permuted_delivery_(false) {}
+       test_permuted_delivery_(false),
+       allow_unknown_schemes_(true),
+       is_singleton_default_(false) {}
 
 BundleDaemon::Params BundleDaemon::params_;
 
@@ -371,6 +373,14 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
 bool
 BundleDaemon::check_local_delivery(Bundle* bundle, bool deliver)
 {
+    if (bundle->is_duplicate_) {
+        log_debug("check_registrations: not delivering duplicate bundle *%p ",
+                  bundle);
+        return;
+    }
+    
+    ASSERT(!bundle->is_fragment_);
+
     log_debug("checking for matching registrations for bundle *%p", bundle);
 
     RegistrationList matches;
