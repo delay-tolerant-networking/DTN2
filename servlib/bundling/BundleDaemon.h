@@ -265,14 +265,6 @@ public:
     }
 
     /**
-     * Accessor for the simulator bit.
-     */
-    static bool is_simulator()
-    {
-        return is_simulator_;
-    }
-
-    /**
      * Initialize an idle shutdown handler that will cleanly exit the
      * tcl event loop whenever no bundle events have been handled
      * for the specified interval.

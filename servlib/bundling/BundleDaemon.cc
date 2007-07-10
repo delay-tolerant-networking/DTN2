@@ -49,9 +49,6 @@ namespace dtn {
 template <>
 BundleDaemon* oasys::Singleton<BundleDaemon, false>::instance_ = NULL;
 
-bool
-BundleDaemon::is_simulator_ = false;
-
 BundleDaemon::Params::Params()
     :  early_deletion_(true),
        accept_custody_(true),
@@ -373,14 +370,6 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
 bool
 BundleDaemon::check_local_delivery(Bundle* bundle, bool deliver)
 {
-    if (bundle->is_duplicate_) {
-        log_debug("check_registrations: not delivering duplicate bundle *%p ",
-                  bundle);
-        return;
-    }
-    
-    ASSERT(!bundle->is_fragment_);
-
     log_debug("checking for matching registrations for bundle *%p", bundle);
 
     RegistrationList matches;
