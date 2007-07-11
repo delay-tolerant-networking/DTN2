@@ -1,16 +1,19 @@
 Release Notes for DTN2
 ----------------------
 
-2.4.0 (June 2007) 
---------------------- 
+2.4.0 (July 2007) 
+-----------------
 
 - BBN updated the protocol implementation to conform to BP spec
-  version 9, implementing bundle protocol version 5, converting most
+  Sversion 10, implementing bundle protocol version 5, converting most
   fixed-length fields to SDNVs and several other changes.
 
 - BBN added support for external convergence layers and data stores,
   matching the DTN reference architecture specification, as well as
   support for deleting links.
+
+- BBN added support for the metadata extension block and improved
+  fragmentation handling.
 
 - Added a new router implementation called DTLSR (Delay Tolerant Link
   State Routing) intended for environments where the inter-node
@@ -26,26 +29,25 @@ Release Notes for DTN2
   results, and an internal restructuring making the simulation
   environment match the real-world environment much more closely.
 
-- Rework to the internal class used to represent bundle payloads so
+- Reworked the internal class used to represent bundle payloads so
   that the router can now support fully in-memory bundles which can
   safely contain binary data in all cases.
 
 - Jeff Wilson did a complete rewrite of the Prophet router
   implementation.
 
-- Change to the API to include bundle creation timestamp when
-  receiving a bundle so that it's available to applications that may
-  need it.
+- Changed the API to include bundle creation timestamp when receiving
+  a bundle so that it's available to applications that may need it.
 
 - Added support for neighbor discovery that uses multicast dns (aka
   Apple's Bonjour protocol). Reworked the internal structure of the
   neighbor discovery subsystem.
 
-- Optimizations made to the table based routers (including the default
+- Made optimizations to the table based routers (including the default
   static router) to be more efficient when links are coming up and
   down.
 
-- Updates to the dtntunnel application to support tunnelling protocols
+- Updated the dtntunnel application to support tunnelling protocols
   where the server side is the first to send data. Reworked command
   line arguments to be more intuitive (and similar to ssh tunnels).
 
@@ -56,6 +58,9 @@ Release Notes for DTN2
 - Modified the build environment to enable liboasys and libdtnapi to
   be built as shared libraries, and thereby used via SWIG export to
   other programming languages.
+
+- Resurrected the Cygwin build though it's not yet back to full
+  functionality.
 
 2.3.0 (December 2006)
 ---------------------
