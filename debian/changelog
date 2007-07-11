@@ -1,3 +1,9 @@
+dtn (2.4.0-1) unstable; urgency=low
+
+  * Updated version of the package
+
+ -- Michael Demmer <demmer@cs.berkeley.edu>  Wed, 11 Jul 2007 00:39:03 -0700
+
 dtn (2.3.0-1) unstable; urgency=low
 
   * Updated version of the package
