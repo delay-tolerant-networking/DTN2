@@ -212,6 +212,8 @@ DECLARE_TEST(Cleanup) {
     l1 = NULL;
     l2 = NULL;
     l3 = NULL;
+
+    return UNIT_TEST_PASSED;
 }
 
 DECLARE_TESTER(RouteTableTest) {
