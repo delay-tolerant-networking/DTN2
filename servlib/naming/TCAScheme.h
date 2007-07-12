@@ -70,6 +70,11 @@ public:
      */
     virtual bool append_service_tag(URI* uri, const char* tag);
     
+    /**
+     * Check if the given URI is a singleton EID.
+     */
+    virtual singleton_info_t is_singleton(const URI& uri);
+    
 private:
     friend class oasys::Singleton<TCAScheme>;
     TCAScheme() {}

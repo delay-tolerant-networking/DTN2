@@ -173,4 +173,17 @@ TCAScheme::append_service_tag(URI* uri, const char* tag)
     return true;
 }
 
+//----------------------------------------------------------------------
+Scheme::singleton_info_t
+TCAScheme::is_singleton(const URI& uri)
+{
+    // if there's a * in the hostname part of the URI, then it's not a
+    // singleton endpoint
+    if (uri.host().find('*') != std::string::npos) {
+        return EndpointID::MULTINODE;
+    }
+    
+    return EndpointID::SINGLETON;
+}
+
 } // namespace dtn

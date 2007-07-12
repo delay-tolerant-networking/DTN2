@@ -190,12 +190,22 @@ public:
      * @return true if eid is set to node_id, false otherwise
      */
     bool remove_service_tag();
+
+    /**
+     * Typedef for the return value possibilities from is_singleton.
+     */
+    typedef enum { UNKNOWN, SINGLETON, MULTINODE } singleton_info_t;
     
     /**
      * Return whether or not this endpoint id is a singleton or a
      * multi-node endpoint.
      */
-    bool is_singleton() const;
+    singleton_info_t is_singleton() const;
+
+    /**
+     * Default setting for endpoint ids in unknown schemes.
+     */
+    static singleton_info_t is_singleton_default_;
 
     /**
      * Copy the endpoint id contents out to the API type

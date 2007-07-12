@@ -39,7 +39,12 @@ public:
      */
     virtual bool match(const EndpointIDPattern& pattern,
                        const EndpointID& eid);
-    
+
+    /**
+     * Check if the given URI is a singleton EID.
+     */
+    virtual singleton_info_t is_singleton(const URI& uri);
+
 private:
     friend class oasys::Singleton<StringScheme>;
     StringScheme() {}

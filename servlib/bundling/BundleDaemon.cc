@@ -54,9 +54,7 @@ BundleDaemon::Params::Params()
        accept_custody_(true),
        reactive_frag_enabled_(true),
        retry_reliable_unacked_(true),
-       test_permuted_delivery_(false),
-       allow_unknown_schemes_(true),
-       is_singleton_default_(false) {}
+       test_permuted_delivery_(false) {}
 
 BundleDaemon::Params BundleDaemon::params_;
 

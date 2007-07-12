@@ -178,16 +178,22 @@ DTNScheme::remove_service_tag(URI* uri)
 }
 
 //----------------------------------------------------------------------
-bool
+Scheme::singleton_info_t
 DTNScheme::is_singleton(const URI& uri)
 {
     // if there's a * in the hostname part of the URI, then it's not a
     // singleton endpoint
     if (uri.host().find('*') != std::string::npos) {
-        return false;
+        log_debug_p("/dtn/scheme/dtn",
+                    "URI host %s contains a wildcard, so is MULTINODE",
+                    uri.host().c_str());
+        return EndpointID::MULTINODE;
     }
     
-    return true;
+    log_debug_p("/dtn/scheme/dtn",
+                "URI host %s does not contain a wildcard, so is SINGLETON",
+                uri.host().c_str());
+    return EndpointID::SINGLETON;
 }
 
 } // namespace dtn

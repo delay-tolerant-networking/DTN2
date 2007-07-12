@@ -221,14 +221,6 @@ public:
 
         /// Test hook to permute bundles before delivering to registrations
         bool test_permuted_delivery_;
-
-        /// Whether or not applications should be able to send/receive
-        /// bundles to/from unknown schemes
-        bool allow_unknown_schemes_;
-    
-        /// Whether or not EIDs for unknown schemes are assumed to be
-        /// singletons
-        bool is_singleton_default_;
     };
 
     static Params params_;

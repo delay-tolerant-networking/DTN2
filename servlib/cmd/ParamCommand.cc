@@ -60,21 +60,25 @@ ParamCommand::ParamCommand()
                                 "Permute the order of bundles before "
                                 "delivering to registrations"));
 
-    bind_var(new oasys::BoolOpt("allow_unknown_schemes",
-                                &BundleDaemon::params_.allow_unknown_schemes_,
-                                "Whether or not applications should be able to "
-                                "send/receive bundles to/from unknown schemes"));
+    static oasys::EnumOpt::Case IsSingletonCases[] = {
+        {"unknown",   EndpointID::UNKNOWN},
+        {"singleton", EndpointID::SINGLETON},
+        {"multinode", EndpointID::MULTINODE},
+        {0, 0}
+    };
     
-    bind_var(new oasys::BoolOpt("is_singleton_default",
-                                &BundleDaemon::params_.is_singleton_default_,
-                                "Whether or not EIDs for unknown schemes "
-                                "are assumed to be singletons"));
+    bind_var(new oasys::EnumOpt("is_singleton_default",
+                                IsSingletonCases,
+                                (int*)&EndpointID::is_singleton_default_,
+                                "<unknown|singleton|multinode>",
+                                "How to set the is_singleton bit for "
+                                "unknown schemes"));
     
     bind_var(new oasys::UIntOpt("link_min_retry_interval",
-                               &Link::default_params_.min_retry_interval_,
-                               "interval",
+                                &Link::default_params_.min_retry_interval_,
+                                "interval",
                                 "Default minimum connection retry "
-                               "interval for links"));
+                                "interval for links"));
 
     bind_var(new oasys::UIntOpt("link_max_retry_interval",
                                 &Link::default_params_.max_retry_interval_,

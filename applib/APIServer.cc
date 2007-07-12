@@ -414,14 +414,6 @@ APIClient::handle_register()
         return DTN_EINVAL;
     }
 
-    if (! endpoint.known_scheme() &&
-        ! BundleDaemon::instance()->params_.allow_unknown_schemes_)
-    {
-        log_err("registration endpoint %s is an unknown scheme",
-                endpoint.c_str());
-        return DTN_EINVAL;
-    }
-    
     switch (reginfo.failure_action) {
     case DTN_REG_DEFER: action = Registration::DEFER; break;
     case DTN_REG_DROP:  action = Registration::DROP;  break;
@@ -657,26 +649,53 @@ APIClient::handle_send()
     // assign the addressing fields
     b->source_.assign(&spec.source);
     b->dest_.assign(&spec.dest);
-    b->singleton_dest_ = b->dest_.is_singleton();
     if (spec.replyto.uri[0] == '\0') {
         b->replyto_.assign(EndpointID::NULL_EID());
     } else {
         b->replyto_.assign(&spec.replyto);
     }
     b->custodian_.assign(EndpointID::NULL_EID());
-     
-    oasys::StringBuffer error;
-    if (!b->validate(&error)) {
-        log_err("bundle validation failed: %s", error.data());
-        return DTN_EINVAL;
-    }
 
-    if (! b->dest_.known_scheme() &&
-        ! BundleDaemon::instance()->params_.allow_unknown_schemes_)
+    // set the is_singleton bit, first checking if the application
+    // specified a value, then seeing if the scheme is known and can
+    // therefore determine for itself, and finally, checking the
+    // global default
+    if (spec.dopts & DOPTS_SINGLETON_DEST)
     {
-        log_err("bundle destination %s is an unknown scheme",
-                b->dest_.c_str());
-        return DTN_EINVAL;
+        b->singleton_dest_ = true;
+    }
+    else if (spec.dopts & DOPTS_MULTINODE_DEST)
+    {
+        b->singleton_dest_ = false;
+    }
+    else 
+    {
+        EndpointID::singleton_info_t info;
+        
+        if (b->dest_.known_scheme()) {
+            info = b->dest_.is_singleton();
+
+            // all schemes must make a decision one way or the other
+            ASSERT(info != EndpointID::UNKNOWN);
+        } else {
+            info = EndpointID::is_singleton_default_;
+        }
+
+        switch (info) {
+        case EndpointID::UNKNOWN:
+            log_err("bundle destination %s in unknown scheme and "
+                    "app did not assert singleton/multipoint",
+                    b->dest_.c_str());
+            return DTN_EINVAL;
+
+        case EndpointID::SINGLETON:
+            b->singleton_dest_ = true;
+            break;
+
+        case EndpointID::MULTINODE:
+            b->singleton_dest_ = false;
+            break;
+        }
     }
     
     // the priority code
@@ -739,9 +758,13 @@ APIClient::handle_send()
     if (spec.dopts & DOPTS_DELETE_RCPT)
         b->deletion_rcpt_ = true;
 
+    if (spec.dopts & DOPTS_DO_NOT_FRAGMENT)
+        b->do_not_fragment_ = true;
+
     // expiration time
     b->expiration_ = spec.expiration;
 
+    // extension blocks
     for (u_int i = 0; i < spec.blocks.blocks_len; i++) {
         dtn_extension_block_t* block = &spec.blocks.blocks_val[i];
 
@@ -753,6 +776,7 @@ APIClient::handle_send()
                        block->data.data_len);
     }
 
+    // metadata blocks
     for (unsigned int i = 0; i < spec.metadata.metadata_len; ++i) {
         dtn_extension_block_t* block = &spec.metadata.metadata_val[i];
 
@@ -778,6 +802,13 @@ APIClient::handle_send()
         b->recv_metadata_.push_back(meta_block);
     }
 
+    // validate the bundle metadata
+    oasys::StringBuffer error;
+    if (!b->validate(&error)) {
+        log_err("bundle validation failed: %s", error.data());
+        return DTN_EINVAL;
+    }
+    
     // set up the payload, including calculating its length, but don't
     // copy it in yet
     size_t payload_len;

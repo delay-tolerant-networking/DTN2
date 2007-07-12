@@ -35,26 +35,21 @@
 char *progname;
 
 // global options
-dtn_bundle_payload_location_t 
-payload_type            = DTN_PAYLOAD_FILE;  // type of data source for
-                                             //the bundle
 int copies              = 1;    // the number of copies to send
 int verbose             = 0;
 int sleep_time          = 0;
-
-// bundle options
-int expiration          = 3600; // expiration timer (default one hour)
-int delivery_receipts   = 0;    // request end to end delivery receipts
-int delete_receipts     = 0;    // request deletion receipts
-int forwarding_receipts = 0;    // request per hop departure
-int custody             = 0;    // request custody transfer
-int custody_receipts    = 0;    // request per custodian receipts
-int receive_receipts    = 0;    // request per hop arrival receipt
-int overwrite           = 0;    // queue overwrite option
 int wait_for_report     = 0;    // wait for bundle status reports
 
-char * data_source      = NULL; // filename or message, depending on type
-char date_buf[256];             // buffer for date payloads
+// bundle options
+int expiration                 = 3600; // expiration timer (default one hour)
+int delivery_options           = 0;    // bundle delivery option bit vector
+dtn_bundle_priority_t priority = COS_NORMAL; // bundle priority
+
+// payload options
+dtn_bundle_payload_location_t
+payload_type        = DTN_PAYLOAD_FILE; // type of payload
+char * data_source  = NULL;             // file or message, depending on type
+char date_buf[256];                     // buffer for date payloads
 
 // extension/metatdata block information
 class ExtBlock {
@@ -200,43 +195,9 @@ main(int argc, char** argv)
     
     // set the dtn options
     bundle_spec.expiration = expiration;
-    
-    if (delivery_receipts)
-    {
-        // set the delivery receipt option
-        bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
-    }
-
-    if (delete_receipts)
-    {
-        // set the delivery receipt option
-        bundle_spec.dopts |= DOPTS_DELETE_RCPT;
-    }
-
-    if (forwarding_receipts)
-    {
-        // set the forward receipt option
-        bundle_spec.dopts |= DOPTS_FORWARD_RCPT;
-    }
-
-    if (custody)
-    {
-        // request custody transfer
-        bundle_spec.dopts |= DOPTS_CUSTODY;
-    }
-
-    if (custody_receipts)
-    {
-        // request custody transfer
-        bundle_spec.dopts |= DOPTS_CUSTODY_RCPT;
-    }
-
-    if (receive_receipts)
-    {
-        // request receive receipt
-        bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
-    }
-    
+    bundle_spec.dopts      = delivery_options;
+    bundle_spec.priority   = priority;
+   
     // set extension block information
     unsigned int num_ext_blocks = ext_blocks.size() - ExtBlock::num_meta_blocks_;
     unsigned int num_meta_blocks = ExtBlock::num_meta_blocks_;
@@ -365,6 +326,7 @@ void print_usage()
     fprintf(stderr, " -t <f|t|m|d> payload type: file, tmpfile, message, or date\n");
     fprintf(stderr, " -p <filename|string> payload data\n");
     fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
+    fprintf(stderr, " -P <priority> one of bulk, normal, expedited, or reserved\n");
     fprintf(stderr, " -i <regid> registration id for reply to\n");
     fprintf(stderr, " -n <int> copies of the bundle to send\n");
     fprintf(stderr, " -z <time> msecs to sleep between transmissions\n");
@@ -374,12 +336,14 @@ void print_usage()
     fprintf(stderr, " -X request for deletion receipt\n");
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
+    fprintf(stderr, " -1 assert destination endpoint is a singleton\n");
+    fprintf(stderr, " -N assert destination endpoint is not a singleton\n");
+    fprintf(stderr, " -W set the do not fragment option\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
     fprintf(stderr, " -E <int> include extension block and specify type\n");
     fprintf(stderr, " -M <int> include metadata block and specify type\n");
-    fprintf(stderr, " -P <int> flags to include in extension/metadata block\n");
+    fprintf(stderr, " -O <int> flags to include in extension/metadata block\n");
     fprintf(stderr, " -S <string> extension/metadata block content\n");
-    
     exit(1);
 }
 
@@ -392,7 +356,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHr:s:d:e:n:woDXFRcCt:p:i:z:E:M:P:S:");
+        c = getopt(argc, argv, "vhHr:s:d:e:P:n:woDXFRcC1NWt:p:i:z:E:M:O:S:");
         switch (c)
         {
         case 'v':
@@ -415,6 +379,20 @@ void parse_options(int argc, char**argv)
         case 'e':
             expiration = atoi(optarg);
             break;
+        case 'P':
+            if (!strcasecmp(optarg, "bulk"))   {
+                priority = COS_BULK;
+            } else if (!strcasecmp(optarg, "normal")) {
+                priority = COS_NORMAL;
+            } else if (!strcasecmp(optarg, "expedited")) {
+                priority = COS_EXPEDITED;
+            } else if (!strcasecmp(optarg, "reserved")) {
+                priority = COS_RESERVED;
+            } else {
+                fprintf(stderr, "invalid priority value %s\n", optarg);
+                exit(1);
+            }
+            break;
         case 'n':
             copies = atoi(optarg);
             break;
@@ -422,22 +400,31 @@ void parse_options(int argc, char**argv)
             wait_for_report = 1;
             break;
         case 'D':
-            delivery_receipts = 1;
+            delivery_options |= DOPTS_DELIVERY_RCPT;
             break;
         case 'X':
-            delete_receipts = 1;
+            delivery_options |= DOPTS_DELETE_RCPT;
             break;
         case 'F':
-            forwarding_receipts = 1;
+            delivery_options |= DOPTS_FORWARD_RCPT;
             break;
         case 'R':
-            receive_receipts = 1;
+            delivery_options |= DOPTS_RECEIVE_RCPT;
             break;
         case 'c':
-            custody = 1;
+            delivery_options |= DOPTS_CUSTODY;
             break;
         case 'C':
-            custody_receipts = 1;
+            delivery_options |= DOPTS_CUSTODY_RCPT;
+            break;
+        case '1':
+            delivery_options |= DOPTS_SINGLETON_DEST;
+            break;
+        case 'N':
+            delivery_options |= DOPTS_MULTINODE_DEST;
+            break;
+        case 'W':
+            delivery_options |= DOPTS_DO_NOT_FRAGMENT;
             break;
         case 't':
             arg_type = optarg[0];
@@ -459,7 +446,7 @@ void parse_options(int argc, char**argv)
             ext_blocks.back().set_metadata();
             ExtBlock::num_meta_blocks_++;
             break;
-        case 'P':
+        case 'O':
             if (ext_blocks.size() > 0) {
                 ext_blocks.back().block().flags = atoi(optarg);
             }

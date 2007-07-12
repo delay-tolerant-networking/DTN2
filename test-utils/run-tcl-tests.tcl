@@ -46,6 +46,7 @@ set tests(basic) {
     "flood-router.tcl"		""
     "inflight-expiration.tcl"	""
     "inflight-interrupt.tcl"	""
+    "is-singleton.tcl"		""
     "ipc-version-test.tcl"	""
     "loopback-link.tcl"		""
     "multipath-forwarding.tcl"	""

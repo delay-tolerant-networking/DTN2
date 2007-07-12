@@ -146,25 +146,31 @@ enum dtn_bundle_priority_t {
 
 %
 %/**
-% * Bundle delivery option flags. Note that multiple options
-% * may be selected for a given bundle.
+% * Bundle delivery option flags. Note that multiple options may be
+% * selected for a given bundle.
 % *     
-% *     DOPTS_NONE           - no custody, etc
-% *     DOPTS_CUSTODY        - custody xfer
-% *     DOPTS_DELIVERY_RCPT  - end to end delivery (i.e. return receipt)
-% *     DOPTS_RECEIVE_RCPT   - per hop arrival receipt
-% *     DOPTS_FORWARD_RCPT   - per hop departure receipt
-% *     DOPTS_CUSTODY_RCPT   - per custodian receipt
-% *     DOPTS_DELETE_RCPT    - request deletion receipt
+% *     DOPTS_NONE            - no custody, etc
+% *     DOPTS_CUSTODY         - custody xfer
+% *     DOPTS_DELIVERY_RCPT   - end to end delivery (i.e. return receipt)
+% *     DOPTS_RECEIVE_RCPT    - per hop arrival receipt
+% *     DOPTS_FORWARD_RCPT    - per hop departure receipt
+% *     DOPTS_CUSTODY_RCPT    - per custodian receipt
+% *     DOPTS_DELETE_RCPT     - request deletion receipt
+% *     DOPTS_SINGLETON_DEST  - destination is a singleton
+% *     DOPTS_MULTINODE_DEST  - destination is not a singleton
+% *     DOPTS_DO_NOT_FRAGMENT - set the do not fragment bit
 % */
 enum dtn_bundle_delivery_opts_t {
-    DOPTS_NONE 		= 0,
-    DOPTS_CUSTODY 	= 1,
-    DOPTS_DELIVERY_RCPT = 2,
-    DOPTS_RECEIVE_RCPT 	= 4,
-    DOPTS_FORWARD_RCPT 	= 8,
-    DOPTS_CUSTODY_RCPT 	= 16,
-    DOPTS_DELETE_RCPT 	= 32
+    DOPTS_NONE            = 0,
+    DOPTS_CUSTODY         = 1,
+    DOPTS_DELIVERY_RCPT   = 2,
+    DOPTS_RECEIVE_RCPT    = 4,
+    DOPTS_FORWARD_RCPT    = 8,
+    DOPTS_CUSTODY_RCPT    = 16,
+    DOPTS_DELETE_RCPT     = 32,
+    DOPTS_SINGLETON_DEST  = 64,
+    DOPTS_MULTINODE_DEST  = 128,
+    DOPTS_DO_NOT_FRAGMENT = 256
 };
 
 %

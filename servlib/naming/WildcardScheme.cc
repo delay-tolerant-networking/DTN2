@@ -23,16 +23,11 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 template <>
 WildcardScheme* oasys::Singleton<WildcardScheme>::instance_ = 0;
 
-/**
- * Validate that the SSP in the given URI is legitimate for
- * this scheme. If the 'is_pattern' paraemeter is true, then
- * the ssp is being validated as an EndpointIDPattern.
- *
- * @return true if valid
- */
+//----------------------------------------------------------------------
 bool
 WildcardScheme::validate(const URI& uri, bool is_pattern)
 {
@@ -45,10 +40,7 @@ WildcardScheme::validate(const URI& uri, bool is_pattern)
     return true;
 }
     
-/**
- * Match the pattern to the endpoint id in a scheme-specific
- * manner.
- */
+//----------------------------------------------------------------------
 bool
 WildcardScheme::match(const EndpointIDPattern& pattern,
                       const EndpointID& eid)
@@ -64,6 +56,14 @@ WildcardScheme::match(const EndpointIDPattern& pattern,
 //     }
 
     return true;
+}
+
+//----------------------------------------------------------------------
+Scheme::singleton_info_t
+WildcardScheme::is_singleton(const URI& uri)
+{
+    (void)uri;
+    return EndpointID::MULTINODE;
 }
 
 } // namespace dtn

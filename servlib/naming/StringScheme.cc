@@ -26,13 +26,7 @@ namespace dtn {
 template <>
 StringScheme* oasys::Singleton<StringScheme>::instance_ = 0;
 
-/**
- * Validate that the SSP in the given URI is legitimate for
- * this scheme. If the 'is_pattern' paraemeter is true, then
- * the ssp is being validated as an EndpointIDPattern.
- *
- * @return true if valid
- */
+//----------------------------------------------------------------------
 bool
 StringScheme::validate(const URI& uri, bool is_pattern)
 {
@@ -44,10 +38,7 @@ StringScheme::validate(const URI& uri, bool is_pattern)
     return true;
 }
 
-/**
- * Match the pattern to the endpoint id in a scheme-specific
- * manner.
-     */
+//----------------------------------------------------------------------
 bool
 StringScheme::match(const EndpointIDPattern& pattern,
                     const EndpointID& eid)
@@ -55,6 +46,14 @@ StringScheme::match(const EndpointIDPattern& pattern,
     // sanity check
     ASSERT(pattern.scheme() == this);
     return (pattern.str() == eid.str());
+}
+
+//----------------------------------------------------------------------
+Scheme::singleton_info_t
+StringScheme::is_singleton(const URI& uri)
+{
+    (void)uri;
+    return EndpointID::SINGLETON;
 }
 
 } // namespace dtn

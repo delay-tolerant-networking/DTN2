@@ -34,6 +34,9 @@ namespace dtn {
 EndpointID        GlobalEndpointIDs::null_eid_;
 EndpointIDPattern GlobalEndpointIDs::wildcard_eid_;
 
+EndpointID::singleton_info_t
+  EndpointID::is_singleton_default_ = EndpointID::MULTINODE;
+
 //----------------------------------------------------------------------
 bool
 EndpointID::validate()
@@ -120,6 +123,7 @@ EndpointID::append_service_wildcard()
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 EndpointID::remove_service_tag()
 {
@@ -144,16 +148,18 @@ EndpointID::remove_service_tag()
 }
 
 //----------------------------------------------------------------------
-bool
+EndpointID::singleton_info_t
 EndpointID::is_singleton() const
 {
     if (! known_scheme()) {
-        bool ret = BundleDaemon::instance()->params_.is_singleton_default_;
-        log_info_p("/dtn/naming/endpoint/",
-                   "setting is_singleton for unknown scheme %s to default %s",
-                   scheme_str().c_str(), ret ? "true" : "false");
+        singleton_info_t ret = is_singleton_default_;
+        log_warn_p("/dtn/naming/endpoint/",
+                   "returning is_singleton=%s for unknown scheme %s",
+                   ret == SINGLETON ? "true" :
+                   ret == MULTINODE ? "false" :
+                   "unknown",
+                   scheme_str().c_str());
         return ret;
-            
     }
     return scheme_->is_singleton(uri_);
 }

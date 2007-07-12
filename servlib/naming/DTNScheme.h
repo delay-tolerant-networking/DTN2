@@ -89,7 +89,7 @@ public:
     /**
      * Check if the given URI is a singleton EID.
      */
-    virtual bool is_singleton(const URI& uri);
+    virtual singleton_info_t is_singleton(const URI& uri);
     
 private:
     friend class oasys::Singleton<DTNScheme>;

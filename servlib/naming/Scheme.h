@@ -20,6 +20,7 @@
 #include <string>
 
 #include <oasys/util/URI.h>
+#include "EndpointID.h"
 
 namespace dtn {
 
@@ -97,13 +98,15 @@ public:
     }
 
     /**
+     * Copy of the EndpointID's type structure for determining if the
+     * endpoint is, is not, or may be a singleton.
+     */
+    typedef EndpointID::singleton_info_t singleton_info_t;
+    
+    /**
      * Check if the given URI is a singleton endpoint id.
      */
-    virtual bool is_singleton(const URI& uri)
-    {
-        (void)uri;
-        return true;
-    }
+    virtual singleton_info_t is_singleton(const URI& uri) = 0;
 };
     
 }
