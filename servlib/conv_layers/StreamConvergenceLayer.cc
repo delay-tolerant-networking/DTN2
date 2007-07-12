@@ -342,9 +342,8 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
         link->set_remote_eid(peer_eid);
     } else if (link->remote_eid() != peer_eid) {
         log_warn("handle_contact_initiation: remote eid mismatch: "
-                 "link remote eid was set to %s, overriding with peer eid %s",
+                 "link remote eid was set to %s but peer eid is %s",
                  link->remote_eid().c_str(), peer_eid.c_str());
-        link->set_remote_eid(peer_eid);
     }
     
     /*
