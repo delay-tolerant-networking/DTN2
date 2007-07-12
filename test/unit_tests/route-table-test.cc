@@ -208,12 +208,19 @@ DECLARE_TEST(DelEntriesForNextHop) {
     return UNIT_TEST_PASSED;
 }
 
+DECLARE_TEST(Cleanup) {
+    l1 = NULL;
+    l2 = NULL;
+    l3 = NULL;
+}
+
 DECLARE_TESTER(RouteTableTest) {
     ADD_TEST(Init);
     ADD_TEST(GetMatching);
     ADD_TEST(DelEntry);
     ADD_TEST(DelEntries);
     ADD_TEST(DelEntriesForNextHop);
+    ADD_TEST(Cleanup);
 }
 
 DECLARE_TEST_FILE(RouteTableTest, "route table test");
