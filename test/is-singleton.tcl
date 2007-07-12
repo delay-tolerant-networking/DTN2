@@ -53,6 +53,8 @@ test::script {
             if {$log != "error sending bundle: -1 (invalid argument)"} {
                 error "expected failure, output is \"$log\""
             }
+            # clear the output file
+            run::run_cmd $net::host(0) echo "" > $run::dirs(0)/dtnsend.out
             
         } else {
             dtn::wait_for_bundle_stats 0 {1 delivered}
