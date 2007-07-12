@@ -9,16 +9,21 @@ The process used to build the debian packages is:
 First update the debian/changelog, typically using:
 dch -v <version>
 
-Then check in the updated changelog.
+Then check in the updated changelog and create a release tag
+containing the update.
+
+Make sure you have debuild, debhelper, and fakeroot installed.
 
 cvs export -r <release_tag> -d dtn-<version> DTN2
 dpkg-source -b dtn-<version>
 cd dtn-<version> && debuild -r fakeroot binary
 
-Then, to buld the apt repository, the following commands were used:
+Then, to buld an apt repository, the following commands were used,
+where debian_version is the release name (i.e. sarge/etch) of the
+target system:
 
-reprepro -b <repository_dir> includedeb sarge dtn-<version>_i386.deb
+reprepro -b <repository_dir> includedeb <debian_version> dtn-<version>_i386.deb
 reprepro -b <repository_dir> -S contrib -P optional \
-	 includedsc sarge dtn_-<version>.dsc
+	 includedsc <debian_version> dtn_-<version>.dsc
 
 
