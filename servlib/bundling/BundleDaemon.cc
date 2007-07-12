@@ -2384,6 +2384,8 @@ BundleDaemon::load_bundles()
     log_notice("loading bundles from data store");
 
     u_int64_t total_size = 0;
+
+    std::vector<Bundle*> doa_bundles;
     
     for (iter->begin(); iter->more(); iter->next()) {
         bundle = bundle_store->get(iter->cur_val());
@@ -2396,6 +2398,16 @@ BundleDaemon::load_bundles()
 
         total_size += bundle->durable_size();
         
+        // if the bundle payload file is missing, we need to kill the
+        // bundle, but we can't do so while holding the durable
+        // iterator or it may deadlock, so cleanup is deferred 
+        if (bundle->payload_.location() != BundlePayload::DISK) {
+            log_err("error loading payload for *%p from data store",
+                    bundle);
+            doa_bundles.push_back(bundle);
+            continue;
+        }
+
         BundleReceivedEvent e(bundle, EVENTSRC_STORE);
         handle_event(&e);
 
@@ -2408,6 +2420,12 @@ BundleDaemon::load_bundles()
     bundle_store->set_total_size(total_size);
 
     delete iter;
+
+    // now that the durable iterator is gone, purge the doa bundles
+    for (int i = 0; i < doa_bundles.size(); ++i) {
+        actions_->store_del(doa_bundles[i]);
+        delete doa_bundles[i];
+    }
 }
 
 //----------------------------------------------------------------------

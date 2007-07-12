@@ -103,8 +103,13 @@ BundlePayload::init_from_store(int bundleid)
     
     if (file_.open(path.c_str(), O_RDWR, S_IRUSR | S_IWUSR) < 0)
     {
+        // if the payload file open fails when trying to initialize,
+        // we're in some amount of trouble, so set the location state
+        // to NODATA to signal the upper layers that there's a problem
+        // and that the bundle isn't valid
         log_crit("error opening payload file %s: %s",
                  path.c_str(), strerror(errno));
+        location_ = NODATA;
         return;
     }
 
