@@ -195,8 +195,8 @@ print_data(char* buffer, u_int length)
         }
     }
     
-        // print spaces to fill out the rest of the line
-    if (k%BUFSIZE != BUFSIZE-1) {
+    // handle leftovers
+    if ((length % BUFSIZE) != 0) {
         while (k%BUFSIZE != BUFSIZE-1) {
             if (k%2 == 0) {
                 printf(" ");
