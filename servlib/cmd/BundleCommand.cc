@@ -128,7 +128,23 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         eids_valid &= b->replyto_.assign(Tcl_GetStringFromObj(objv[2], 0));
         b->custodian_.assign(EndpointID::NULL_EID());
         eids_valid &= b->dest_.assign(Tcl_GetStringFromObj(objv[3], 0));
-        b->singleton_dest_ = b->dest_.is_singleton();
+
+        EndpointID::singleton_info_t info = b->dest_.known_scheme() ?
+                                            b->dest_.is_singleton() :
+                                            EndpointID::is_singleton_default_;
+        switch (info) {
+        case EndpointID::SINGLETON:
+            b->singleton_dest_ = true;
+            break;
+        case EndpointID::MULTINODE:
+            b->singleton_dest_ = false;
+            break;
+        case EndpointID::UNKNOWN:
+            resultf("can't determine is_singleton for destination %s",
+                    b->dest_.c_str());
+            delete b;
+            return TCL_ERROR;
+        }
         
         if (!eids_valid) {
             resultf("bad value for one or more EIDs");
