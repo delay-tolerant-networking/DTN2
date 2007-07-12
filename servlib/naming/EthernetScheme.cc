@@ -113,6 +113,13 @@ EthernetScheme::match(const EndpointIDPattern& pattern,
     return false;
 }
 
+EndpointID::singleton_info_t
+EthernetScheme::is_singleton(const URI& uri)
+{
+    (void)uri;
+    return EndpointID::SINGLETON;
+}
+
 char* 
 EthernetScheme::to_string(u_int8_t* addr, char* outstring)
 {

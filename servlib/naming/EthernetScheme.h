@@ -58,6 +58,11 @@ public:
     virtual bool match(const EndpointIDPattern& pattern,
                        const EndpointID& eid);
     
+    /**
+     * Check if the given URI is a singleton endpoint id.
+     */
+    virtual singleton_info_t is_singleton(const URI& uri);
+    
     /*
      * Parse out an ethernet address from the ssp.
      *
