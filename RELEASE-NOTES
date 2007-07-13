@@ -5,7 +5,7 @@ Release Notes for DTN2
 -----------------
 
 - BBN updated the protocol implementation to conform to BP spec
-  Sversion 10, implementing bundle protocol version 5, converting most
+  version 10, implementing bundle protocol version 5, converting most
   fixed-length fields to SDNVs and several other changes.
 
 - BBN added support for external convergence layers and data stores,
