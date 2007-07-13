@@ -965,7 +965,7 @@ ECLModule::read_bundle_file(const std::string& location,
     // continue anyway.
     if (file_offset < file_stat.st_size) {
         log_warn("Used only %llu of %llu bytes for the bundle", 
-                 (u_int64_t)file_offset, (u_int64_t)file_stat.st_size);
+                 U64FMT(file_offset), U64FMT(file_stat.st_size));
     }
     
     // Tell the BundleDaemon about this bundle.

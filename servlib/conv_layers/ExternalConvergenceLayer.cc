@@ -1088,7 +1088,7 @@ ExternalConvergenceLayer::build_param_sequence(int argc, const char* argv[],
         std::string arg_string(argv[arg_i]);
         
         // Split the string in two around the '='.
-        unsigned index = arg_string.find('=');
+        size_t index = arg_string.find('=');
         if (index == std::string::npos) {
             log_warn("Invalid parameter: %s", argv[arg_i]);
             continue;
