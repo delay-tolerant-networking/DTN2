@@ -356,7 +356,7 @@ void
 ExternalRouter::handle_registration_expired(RegistrationExpiredEvent* event)
 {
     bpa::registration_expired_event::type e(
-        event->registration_->regid_);
+        event->registration_->regid());
     SEND(registration_expired_event, e)
 }
 
@@ -600,7 +600,7 @@ ExternalRouter::handle_bundle_attributes_report(BundleAttributesReportEvent *eve
                      block_i != block_vec->end();
                      ++block_i) {
 
-                    MetadataBlock* block = *block_i;
+                    MetadataBlockRef block = *block_i;
 
                     // Skip this block if we already added it.
                     bool added = false;
@@ -640,8 +640,8 @@ ExternalRouter::handle_bundle_attributes_report(BundleAttributesReportEvent *eve
                         rtrmessage::metadataBlockType(
                             block->id(), false, block->ontology(),
                             xml_schema::base64_binary(
-                                    block->ontology_data(),
-                                    block->ontology_data_len())));
+                                    block->metadata(),
+                                    block->metadata_len())));
                 }
             }
         }
@@ -911,7 +911,8 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
 
                 if (!block_i->generated()) {
 
-                    MetadataBlock* existing = NULL;
+
+                    MetadataBlockRef existing("ExternalRouter metadata block search");
                     for (unsigned int i = 0;
                          i < br->recv_metadata_.size(); ++i) {
                         if (br->recv_metadata_[i]->id() ==
