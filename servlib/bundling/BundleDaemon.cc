@@ -2422,7 +2422,7 @@ BundleDaemon::load_bundles()
     delete iter;
 
     // now that the durable iterator is gone, purge the doa bundles
-    for (int i = 0; i < doa_bundles.size(); ++i) {
+    for (unsigned int i = 0; i < doa_bundles.size(); ++i) {
         actions_->store_del(doa_bundles[i]);
         delete doa_bundles[i];
     }
