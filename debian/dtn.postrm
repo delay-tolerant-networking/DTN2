@@ -1,0 +1,35 @@
+#!/bin/sh
+
+test $DEBIAN_SCRIPT_DEBUG && set -v -x
+
+case $1 in
+  remove)
+    echo "Removing dtn user..."
+    deluser --system dtn || true;
+
+    if [ ! -z "`find /var/dtn -type f 2> /dev/null`" ] ; then
+      echo
+      echo "DTN data is still kept in /var/dtn. Remove "
+      echo "this directory and all its contents if you want to "
+      echo "clear all of the data."
+      echo
+    fi
+  ;;
+
+  purge)
+    rm -rf /var/dtn/db       || true
+    rm -rf /var/dtn/bundles  || true
+    rm -f  /var/dtn/dtnd.log || true
+    rm -f  /var/log/dtnd.log || true
+  ;;
+
+  failed-upgrade|upgrade)
+  ;;
+
+  *)
+    echo "postrm called with unknown argument \`$1'" >&2
+    exit 1
+  ;;
+esac
+
+#DEBHELPER#

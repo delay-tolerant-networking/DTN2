@@ -52,6 +52,10 @@ if [catch {
     set sock [socket localhost $port]
 
 } err] {
+    if {$operation == "stop"} {
+        puts "(already stopped)"
+        exit 0
+    }
     puts stderr "dtnd-control: cannot connect to localhost port $port"
     exit 1
 }
@@ -89,6 +93,14 @@ regsub -all -- {\\n} $result "\n" result
 
 if {$cmd_error == 0} {
     puts $result
+
+    # if the daemon is stopping, wait until the socket closes before
+    # exiting the script so we know it's actually dead
+    if {$operation == "stop"} {
+        catch {gets $sock}
+        after 1000
+    }
+    
     exit 0
 } else {
     puts "error running command '$cmd':"

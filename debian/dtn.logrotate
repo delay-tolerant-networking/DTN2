@@ -1,0 +1,12 @@
+/var/dtn/dtnd.log {
+	daily
+	missingok
+	rotate 7
+	sharedscripts
+	postrotate
+		invoke-rc.d --quiet dtn logrotate > /dev/null && sleep 10
+	endscript
+	compress
+	delaycompress
+	notifempty
+}

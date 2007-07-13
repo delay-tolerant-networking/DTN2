@@ -10,11 +10,13 @@
 NAME=dtnd
 DAEMON=/usr/bin/$NAME
 CONTROL=/usr/bin/$NAME-control
-ARGS="-d -o /var/log/dtnd.log"
+ARGS="-d -o /var/dtn/dtnd.log"
 PIDFILE=/var/run/$NAME.pid
-# note: SSD is required only at startup of the daemon.
 SSD=`which start-stop-daemon`
+SSDARGS="-u dtn -c dtn:root --exec $DAEMON"
 ENV="env -i LANG=C PATH=/bin:/usr/bin:/usr/local/bin"
+
+test $DEBIAN_SCRIPT_DEBUG && set -v -x
 
 trap "" 1
 
@@ -31,24 +33,29 @@ case "$1" in
   start)
     echo -n "Starting DTN daemon..."
     should_start
-    start-stop-daemon --start --exec $DAEMON -- $ARGS
+    $SSD $SSDARGS --start -- $ARGS
     ;;
 
   start_tidy)
     should_start
     echo -n "Starting DTN daemon (tidy mode)..."
-    $ENV $DAEMON $ARGS -t > /dev/null 2>/dev/null &
+    $SSD $SSDARGS --start -- $ARGS -t
     ;;
 
   stop)
     echo -n "Stopping DTN daemon..."
-    $CONTROL stop
+    $CONTROL stop || true
+    echo -n "Making sure DTN daemon stops..."
+    $SSD $SSDARGS --stop || true
     ;;
 
   restart)
+    echo -n "Stopping DTN daemon..."
+    $CONTROL stop || true
+    echo -n "Making sure DTN daemon stops..."
+    $SSD $SSDARGS --stop || true
     echo -n "Restarting DTN daemon..."
-    $CONTROL stop
-    $ENV $DAEMON $ARGS > /dev/null 2>/dev/null &
+    $SSD $SSDARGS --start -- $ARGS
     ;;
 
   logrotate)
