@@ -9289,8 +9289,8 @@ echo "${ECHO_T}yes (dir $ac_with_xerces_c)" >&6
     ac_save_LDFLAGS="$LDFLAGS"
     ac_save_LIBS="$LIBS"
 
-    echo "$as_me:$LINENO: checking whether xerces-c (>= v2.7.0) was found" >&5
-echo $ECHO_N "checking whether xerces-c (>= v2.7.0) was found... $ECHO_C" >&6
+    echo "$as_me:$LINENO: checking whether xerces-c (>= v2.6.0) was found" >&5
+echo $ECHO_N "checking whether xerces-c (>= v2.6.0) was found... $ECHO_C" >&6
     if test "${oasys_cv_path_xerces_c+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
@@ -9322,7 +9322,7 @@ int
 main ()
 {
 
-                            #if _XERCES_VERSION >= 20700
+                            #if _XERCES_VERSION >= 20600
 
                             xercesc::XMLPlatformUtils::Initialize();
                             {
