@@ -158,7 +158,6 @@ AC_CACHE_SAVE
 # Checks for dependent third-party libraries
 # -------------------------------------------------------------------------
 AC_OASYS_CONFIG_TCL
-AC_OASYS_CONFIG_STORAGE
 AC_OASYS_CONFIG_GOOGLE_PERFTOOLS
 AC_OASYS_CONFIG_BLUEZ
 AC_OASYS_CONFIG_BONJOUR
@@ -167,9 +166,11 @@ AC_OASYS_CONFIG_XERCES
 AC_OASYS_CONFIG_TCLREADLINE
 AC_OASYS_CONFIG_ZLIB
 AC_OASYS_CONFIG_XSD
+AC_OASYS_CONFIG_STORAGE
 
 #--------------------------------------------------------------------------
-# Not sure where these belong... but seems to work if they're here
+# Checks for other optional features that may depend on third-party 
+# libraries.
 #--------------------------------------------------------------------------
 AC_CONFIG_EXTERNAL_CL
 AC_CONFIG_EXTERNAL_DP

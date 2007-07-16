@@ -1,12 +1,12 @@
-gdnl
+dnl
 dnl Autoconf support for external data plane
 dnl
 
 AC_DEFUN(AC_CONFIG_EXTERNAL_DP, [
-    ac_edp='no'
-    AC_ARG_WITH(edp,
-        AC_HELP_STRING([--with-edp],
-    		   	[external data plane support]),
+    ac_edp='yes'
+    AC_ARG_ENABLE(edp,
+        AC_HELP_STRING([--disable-edp],
+    		   	[disable external data plane support]),
         ac_edp=$withval) 
     dnl
     dnl First make sure we even want it
@@ -14,6 +14,9 @@ AC_DEFUN(AC_CONFIG_EXTERNAL_DP, [
     if test "$ac_edp" = no; then
         EXTERNAL_DP_ENABLED=0
     else
+        if test ! "$XERCES_C_ENABLED" = 1 ; then
+	    AC_MSG_ERROR([external data plane support requires xerces... install it or configure --disable-edp])
+        fi
         EXTERNAL_DP_ENABLED=1
         AC_DEFINE_UNQUOTED(EXTERNAL_DP_ENABLED, 1, [whether external data plane support is enabled])
     fi # EXTERNAL_DP_ENABLED
