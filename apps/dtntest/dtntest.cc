@@ -622,6 +622,135 @@ public:
 };
 
 //----------------------------------------------------------------------
+class DTNPollChannelCommand : public oasys::TclCommand {
+public:
+    DTNPollChannelCommand() : TclCommand("dtn_poll_channel")
+    {
+    }
+    
+    int exec(int argc, const char **argv,  Tcl_Interp* interp)
+    {
+        (void)argc;
+        (void)argv;
+        (void)interp;
+
+        // need cmd and handle
+        if (argc != 2) {
+            wrong_num_args(argc, argv, 1, 2, 2);
+            return TCL_ERROR;
+        }
+
+        int n = atoi(argv[1]);
+        HandleMap::iterator iter = State::instance()->handles_.find(n);
+        if (iter == State::instance()->handles_.end()) {
+            resultf("invalid dtn handle %d", n);
+            return TCL_ERROR;
+        }
+
+        dtn_handle_t h = iter->second;
+
+        int fd = dtn_poll_fd(h);
+        if (fd < 0) {
+            resultf("error in dtn_poll_fd: %s",
+                    dtn_strerror(dtn_errno(h)));
+            return TCL_ERROR;
+        }
+
+        Tcl_Channel chan = oasys::TclCommandInterp::instance()->
+                           register_file_channel((ClientData)fd, TCL_READABLE);
+        if (!chan) {
+            resultf("error making tcl channel");
+            return TCL_ERROR;
+        }
+        set_result(Tcl_GetChannelName(chan));
+
+        return TCL_OK;
+    }
+};
+
+//----------------------------------------------------------------------
+class DTNBeginPollCommand : public oasys::TclCommand {
+public:
+    DTNBeginPollCommand() : TclCommand("dtn_begin_poll")
+    {
+    }
+    
+    int exec(int argc, const char **argv,  Tcl_Interp* interp)
+    {
+        (void)argc;
+        (void)argv;
+        (void)interp;
+
+        // need cmd, handle, and timeout
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 1, 3, 3);
+            return TCL_ERROR;
+        }
+
+        int n = atoi(argv[1]);
+        HandleMap::iterator iter = State::instance()->handles_.find(n);
+        if (iter == State::instance()->handles_.end()) {
+            resultf("invalid dtn handle %d", n);
+            return TCL_ERROR;
+        }
+
+        dtn_handle_t h = iter->second;
+
+        int timeout = atoi(argv[2]);
+
+        int err = dtn_begin_poll(h, timeout);
+        if (err < 0) {
+            resultf("error in dtn_begin_poll: %s",
+                    dtn_strerror(dtn_errno(h)));
+            return TCL_ERROR;
+        }
+
+        return TCL_OK;
+    }
+};
+
+//----------------------------------------------------------------------
+class DTNCancelPollCommand : public oasys::TclCommand {
+public:
+    DTNCancelPollCommand() : TclCommand("dtn_cancel_poll")
+    {
+    }
+    
+    int exec(int argc, const char **argv,  Tcl_Interp* interp)
+    {
+        (void)argc;
+        (void)argv;
+        (void)interp;
+
+        // need cmd and handle
+        if (argc != 2) {
+            wrong_num_args(argc, argv, 1, 2, 2);
+            return TCL_ERROR;
+        }
+
+        int n = atoi(argv[1]);
+        HandleMap::iterator iter = State::instance()->handles_.find(n);
+        if (iter == State::instance()->handles_.end()) {
+            resultf("invalid dtn handle %d", n);
+            return TCL_ERROR;
+        }
+
+        dtn_handle_t h = iter->second;
+
+        // XXX/demmer should keep a reference to the tcl channel so we
+        // can deregister it
+        int err = dtn_cancel_poll(h);
+        if (err != 0) {
+            resultf("error in dtn_cancel_poll: %s",
+                    dtn_strerror(dtn_errno(h)));
+            return TCL_ERROR;
+        }
+        
+        return TCL_OK;
+    }
+};
+
+//----------------------------------------------------------------------
 class ShutdownCommand : public oasys::TclCommand {
 public:
     ShutdownCommand() : TclCommand("shutdown") {}
@@ -661,6 +790,7 @@ main(int argc, char** argv)
     
     oasys::TclCommandInterp::init("dtn-test");
     interp = oasys::TclCommandInterp::instance();
+    interp->logpathf("/dtn-test/tclcmd");
 
     oasys::Getopt opts;
     opts.addopt(
@@ -689,6 +819,9 @@ main(int argc, char** argv)
     interp->reg(new DTNUnbindCommand());
     interp->reg(new DTNSendCommand());
     interp->reg(new DTNRecvCommand());
+    interp->reg(new DTNPollChannelCommand());
+    interp->reg(new DTNBeginPollCommand());
+    interp->reg(new DTNCancelPollCommand());
     interp->reg(new ShutdownCommand());
 
     if (conf_file_set) {

@@ -31,6 +31,7 @@ if {[llength $argv] < 1} {
 # the basic test group
 set tests(basic) {
     "alwayson-links.tcl"	""
+    "api-poll.tcl"		""
     "bundle-status-reports.tcl"	""
     "custody-transfer.tcl"      ""
     "dtlsr.tcl"			""
