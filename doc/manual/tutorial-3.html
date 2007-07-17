@@ -54,9 +54,9 @@ transport layer protocol we will be using to send our bundles on. There are
 other transport layer protocols we can use but for now we are going to use TCP.
 The local_addr is the address of the computer. It can be an IP address or a
 name. We won't be using the name as we will be using the default IP address on
-the machine. Finally the local_port is the port of the machine that the daemon
-will listen for incoming bundles on. We have changed it to 4556 so that the
-Daemon will know incoming traffic will be going to port 4556.
+the machine. Finally the (optional) local_port is the port of the
+machine that the daemon will listen for incoming bundles on. The default is
+4556.
 
 <h3>Links</h3>
 
@@ -66,7 +66,7 @@ It points the bundles in the direction of the distant computer.
 Go down to the link section in the conf file. Add the following:
 
 <blockquote>
-link add <i>link_name</i> <i>ip address</i>:<i>port number</i> ONDEMAND tcp
+link add <i>link_name</i> <i>ip address</i>[:<i>port number</i>] ONDEMAND tcp
 </blockquote>
 
 <p>For example:
@@ -78,7 +78,7 @@ The link_name is what the link will be called and referenced to. It may be
 called anything. The ip address is the IP address of the computer running the
 other DTN daemon. The computer name on the network can be used, for
 instance if DHCP is in use and we don't know the IP address of the machine. We
-will stick with IP addresses for now. The port number should be the port
+will stick with IP addresses for now. The (optional) port number should be the port
 number that the other DTN daemon will listen on.
 
 <h3>Route</h3>
