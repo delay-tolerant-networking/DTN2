@@ -1311,7 +1311,7 @@ Optional Features:
                           compile with google profiling
   --enable-eds            enable external data store support
   --disable-ecl           disable external convergence layer support
-  --disable-edp           disable external data plane support
+  --disable-edp           disable external decision plane support
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -10956,7 +10956,7 @@ echo "$as_me: error: can't find usable postgres library" >&2;}
     ac_eds='no'
     # Check whether --enable-eds was given.
 if test "${enable_eds+set}" = set; then
-  enableval=$enable_eds; ac_eds=$withval
+  enableval=$enable_eds; ac_eds=$enableval
 fi
 
                 if test "$ac_eds" = no; then
@@ -10993,7 +10993,7 @@ _ACEOF
     ac_ecl='yes'
     # Check whether --enable-ecl was given.
 if test "${enable_ecl+set}" = set; then
-  enableval=$enable_ecl; ac_ecl=$withval
+  enableval=$enable_ecl; ac_ecl=$enableval
 fi
 
                 if test "$ac_ecl" = no; then
@@ -11016,15 +11016,15 @@ _ACEOF
     ac_edp='yes'
     # Check whether --enable-edp was given.
 if test "${enable_edp+set}" = set; then
-  enableval=$enable_edp; ac_edp=$withval
+  enableval=$enable_edp; ac_edp=$enableval
 fi
 
                 if test "$ac_edp" = no; then
         EXTERNAL_DP_ENABLED=0
     else
         if test ! "$XERCES_C_ENABLED" = 1 ; then
-	    { { echo "$as_me:$LINENO: error: external data plane support requires xerces... install it or configure --disable-edp" >&5
-echo "$as_me: error: external data plane support requires xerces... install it or configure --disable-edp" >&2;}
+	    { { echo "$as_me:$LINENO: error: external decision plane support requires xerces... install it or configure --disable-edp" >&5
+echo "$as_me: error: external decision plane support requires xerces... install it or configure --disable-edp" >&2;}
    { (exit 1); exit 1; }; }
         fi
         EXTERNAL_DP_ENABLED=1

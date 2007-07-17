@@ -6,7 +6,7 @@
 /* whether external convergence layer support is enabled */
 #undef EXTERNAL_CL_ENABLED
 
-/* whether external data plane support is enabled */
+/* whether external decision plane support is enabled */
 #undef EXTERNAL_DP_ENABLED
 
 /* whether external data store support is enabled */

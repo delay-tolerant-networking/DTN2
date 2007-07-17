@@ -7,7 +7,7 @@ AC_DEFUN(AC_CONFIG_EXTERNAL_CL, [
     AC_ARG_ENABLE(ecl,
         AC_HELP_STRING([--disable-ecl],
     		   	[disable external convergence layer support]),
-        ac_ecl=$withval) 
+        ac_ecl=$enableval) 
     dnl
     dnl First make sure we even want it
     dnl
