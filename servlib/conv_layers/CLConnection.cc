@@ -418,6 +418,7 @@ CLConnection::close_contact()
         }
 
         inflight_.pop_front();
+        delete inflight;
     }
 
     // check the tail of the incoming queue to see if there's a
