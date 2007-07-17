@@ -138,11 +138,9 @@ TCPConvergenceLayer::parse_nexthop(const LinkRef& link, LinkParams* lparams)
         return false;
     }
     
-    // make sure the port was specified
+    // if the port wasn't specified, use the default
     if (params->remote_port_ == 0) {
-        log_err("port not specified in next hop address '%s'",
-                link->nexthop());
-        return false;
+        params->remote_port_ = TCPCL_DEFAULT_PORT;
     }
     
     return true;

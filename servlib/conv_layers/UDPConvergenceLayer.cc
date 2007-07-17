@@ -276,10 +276,9 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
         return false;
     }
 
-    // make sure the port was specified
+    // if the port wasn't specified, use the default
     if (port == 0) {
-        log_err("port not specified in next hop address '%s'",
-                link->nexthop());
+        port = UDPCL_DEFAULT_PORT;
         return false;
     }
 
