@@ -51,7 +51,7 @@ namespace dtn {
 
 //----------------------------------------------------------------------
 APIServer::APIServer()
-    : TCPServerThread("APIServer", "/dtn/apiserver", DELETE_ON_EXIT)
+    : TCPServerThread("APIServer", "/dtn/apiserver")
 {
     enabled_    = true;
     local_addr_ = htonl(INADDR_LOOPBACK);

@@ -226,21 +226,9 @@ TCPConvergenceLayer::interface_up(Interface* iface,
 bool
 TCPConvergenceLayer::interface_down(Interface* iface)
 {
-    // grab the listener object, set a flag for the thread to stop and
-    // then close the socket out from under it, which should cause the
-    // thread to break out of the blocking call to accept() and
-    // terminate itself
     Listener* listener = dynamic_cast<Listener*>(iface->cl_info());
     ASSERT(listener != NULL);
-    
-    listener->set_should_stop();
-    
-    listener->interrupt_from_io();
-    
-    while (! listener->is_stopped()) {
-        oasys::Thread::yield();
-    }
-
+    listener->stop();
     delete listener;
     return true;
 }
@@ -259,8 +247,7 @@ TCPConvergenceLayer::dump_interface(Interface* iface,
 
 //----------------------------------------------------------------------
 TCPConvergenceLayer::Listener::Listener(TCPConvergenceLayer* cl)
-    : IOHandlerBase(new oasys::Notifier("/dtn/cl/tcp/listener")), 
-      TCPServerThread("TCPConvergenceLayer::Listener",
+    : TCPServerThread("TCPConvergenceLayer::Listener",
                       "/dtn/cl/tcp/listener"),
       cl_(cl)
 {
