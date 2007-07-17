@@ -307,7 +307,7 @@ BonjourDiscovery::handle_resolve(DNSServiceRef sdRef,
     }
 
     if (remote_eid.equals(BundleDaemon::instance()->local_eid())) {
-        log_warn("handle_resolve(%s, %s): ignoring resolution of local eid %s",
+        log_info("handle_resolve(%s, %s): ignoring resolution of local eid %s",
                  fullname, hosttarget, remote_eid.c_str());
         goto done;
     }
