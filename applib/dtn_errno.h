@@ -17,6 +17,10 @@
 #ifndef DTN_ERRNO_H
 #define DTN_ERRNO_H
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /**
  * DTN API error codes
  */
@@ -36,5 +40,14 @@
 #define DTN_EMSGTYPE    (DTN_ERRBASE+12) /* unknown message type */
 #define DTN_ENOSPACE	(DTN_ERRBASE+13) /* no storage space */
 #define DTN_ERRMAX 255
+
+/**
+ * Get a string value associated with the dtn error code.
+ */
+char* dtn_strerror(int err);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* DTN_ERRNO_H */

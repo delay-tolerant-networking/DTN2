@@ -262,11 +262,11 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
     // reset the xdr decoder before reading in any data
     xdr_setpos(&handle->xdr_decode, 0);
 
-    // read as much as possible into the buffer
-    ret = read(handle->sock, handle->buf, sizeof(handle->buf));
+    // read the status code and length
+    ret = read(handle->sock, handle->buf, 8);
 
-    // make sure we got at least the status code and length
-    if (ret < 8) {
+    // make sure we got it all
+    if (ret != 8) {
         handle->err = DTN_ECOMM;
         dtnipc_close(handle);
         return -1;
@@ -279,8 +279,8 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
     memcpy(&len, &handle->buf[4], sizeof(len));
     len = ntohl(len);
 
-    // read the rest of the message if we didn't get it all
-    nread = ret;
+    // read the rest of the message 
+    nread = 8;
     while (nread < len + 8) {
         ret = read(handle->sock,
                    &handle->buf[nread], sizeof(handle->buf) - nread);

@@ -25,6 +25,7 @@ XDRSRCS        := dtn_types_xdr.c
 CLIENTLIB_SRCS := 			\
 		$(XDRSRCS)		\
 		dtn_api.c		\
+		dtn_errno.c		\
 		dtn_ipc.c		\
 		sdnv-c.c		\
 
@@ -36,6 +37,7 @@ CLIENT_EXTRA_SRCS :=			\
 SERVERLIB_SRCS := 			\
 		$(XDRSRCS)		\
 		APIServer.cc		\
+		dtn_errno.c		\
 		dtn_ipc.c		\
 
 CLIENTLIB_OBJS := $(CLIENTLIB_SRCS:.c=.o)

@@ -73,36 +73,6 @@ dtn_errno(dtn_handle_t handle)
 }
 
 //----------------------------------------------------------------------
-char*
-dtn_strerror(int err)
-{
-    switch(err) {
-    case DTN_SUCCESS: 	return "success";
-    case DTN_EINVAL: 	return "invalid argument";
-    case DTN_EXDR: 	return "error in xdr routines";
-    case DTN_ECOMM: 	return "error in ipc communication";
-    case DTN_ECONNECT: 	return "error connecting to server";
-    case DTN_ETIMEOUT: 	return "operation timed out";
-    case DTN_ESIZE: 	return "payload too large";
-    case DTN_ENOTFOUND: return "not found";
-    case DTN_EINTERNAL: return "internal error";
-    case DTN_EINPOLL:   return "illegal operation called after dtn_poll";
-    case DTN_EBUSY:     return "registration already in use";
-    case DTN_EMSGTYPE:  return "unknown ipc message type";
-    case DTN_ENOSPACE:	return "no storage space";
-    case -1:            return "(invalid error code -1)";
-    }
-
-    // there's a small race condition here in case there are two
-    // simultaneous calls that will clobber the same buffer, but this
-    // should be rare and the worst that happens is that the output
-    // string is garbled
-    static char buf[128];
-    snprintf(buf, sizeof(buf), "(unknown error %d)", err);
-    return buf;
-}
-
-//----------------------------------------------------------------------
 int
 dtn_build_local_eid(dtn_handle_t h,
                     dtn_endpoint_id_t* local_eid,
@@ -455,6 +425,8 @@ dtn_recv(dtn_handle_t h,
     XDR* xdr_decode = &handle->xdr_decode;
 
     if (handle->in_poll) {
+        handle->in_poll = 0;
+        
         int poll_status = 0;
         if (dtnipc_recv(handle, &poll_status) != 0) {
             return -1;
@@ -465,7 +437,6 @@ dtn_recv(dtn_handle_t h,
             return -1;
         }
     }
-
     
     // zero out the spec and payload structures
     memset(spec, 0, sizeof(*spec));
@@ -497,6 +468,14 @@ dtn_recv(dtn_handle_t h,
 
 //----------------------------------------------------------------------
 int
+dtn_poll_fd(dtn_handle_t h)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    return handle->sock;
+}
+
+//----------------------------------------------------------------------
+int
 dtn_begin_poll(dtn_handle_t h, dtn_timeval_t timeout)
 {
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
@@ -522,7 +501,7 @@ dtn_begin_poll(dtn_handle_t h, dtn_timeval_t timeout)
         return -1;
     }
     
-    return 0;
+    return handle->sock;
 }
 
 //----------------------------------------------------------------------
@@ -540,11 +519,21 @@ dtn_cancel_poll(dtn_handle_t h)
     // clear the poll flag
     handle->in_poll = 0;
     
-    // send the message and get the response code. however there is a
-    // race condition meaning that we can't tell whether what we get
-    // back is the original response from poll or from the subsequent
-    // call to cancel poll
-    if (dtnipc_send_recv(handle, DTN_CANCEL_POLL) < 0) {
+    // send the message and get two response codes, one from poll
+    // command, and one from the cancel request.
+    int poll_status = dtnipc_send_recv(handle, DTN_CANCEL_POLL);
+    if (poll_status != DTN_SUCCESS && poll_status != DTN_ETIMEOUT) {
+        handle->err = poll_status;
+        return -1;
+    }
+
+    int cancel_status;
+    if (dtnipc_recv(handle, &cancel_status) != 0) {
+        return -1;
+    }
+    handle->err = cancel_status;
+
+    if (cancel_status != DTN_SUCCESS) {
         return -1;
     }
     

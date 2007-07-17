@@ -313,7 +313,7 @@ APIClient::send_response(int ret)
     // the xdr position should still be zero
     len = xdr_getpos(&xdr_encode_);
     log_debug("building reply: status %s, length %d",
-              dtnipc_msgtoa(ret), len);
+              dtn_strerror(ret), len);
 
     msglen = len + 8;
     ret = ntohl(ret);
@@ -1033,8 +1033,8 @@ APIClient::handle_recv()
     Bundle* b = bref.object();
     ASSERT(b != NULL);
     
-    log_debug("handle_recv: popped bundle %d for registration %d (timeout %d)",
-              b->bundleid_, reg->regid(), timeout);
+    log_debug("handle_recv: popped *%p for registration %d (timeout %d)",
+              b, reg->regid(), timeout);
     
     memset(&spec, 0, sizeof(spec));
     memset(&payload, 0, sizeof(payload));

@@ -55,11 +55,6 @@ extern int dtn_close(dtn_handle_t handle);
 extern int dtn_errno(dtn_handle_t handle);
 
 /**
- * Get a string value associated with the dtn error code.
- */
-char* dtn_strerror(int err);
-
-/**
  * Build an appropriate local endpoint id by appending the specified
  * service tag to the daemon's preferred administrative endpoint id.
  */
@@ -150,17 +145,24 @@ extern int dtn_recv(dtn_handle_t handle,
                     dtn_timeval_t timeout);
 
 /**
+ * Return a file descriptor for the given handle suitable for calling
+ * poll() or select() in conjunction with a call to dtn_begin_poll().
+ */
+extern int dtn_poll_fd(dtn_handle_t handle);
+
+/**
  * Begin a polling period for incoming bundles. Returns a file
- * descriptor suitable for calling poll() or select() on. Note that
- * dtn_bind() must have been previously called at least once on the
- * handle.
+ * descriptor suitable for calling poll() or select() on (similar to
+ * dtn_poll_fd). Note that dtn_bind() must have been previously called
+ * at least once on the handle.
  *
  * If the kernel returns an indication that there is data ready on the
  * file descriptor, a call to dtn_recv will then return the bundle
- * without blocking.
+ * without blocking, then dtn_poll must be called again to wait for
+ * more bundles.
  *
  * Also, no other API calls besides dtn_recv can be executed during a
- * polling period, so an app must call dtn_poll_cancel before trying
+ * polling period, so an app must call dtn_cancel_poll before trying
  * to run other API calls.
  */
 extern int dtn_begin_poll(dtn_handle_t handle, dtn_timeval_t timeout);
