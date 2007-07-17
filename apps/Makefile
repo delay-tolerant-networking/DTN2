@@ -72,31 +72,30 @@ dtnmoteproxy/serialsource.o: dtnmoteproxy/serialsource.c
 	$(CC) $(CPPFLAGS) -Wno-cast-align $(CFLAGS) -c $< -o $@
 
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
-			   dtnmoteproxy/serialsource.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
+			   dtnmoteproxy/serialsource.o \
+			   $(DTN_LIBS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)
 
 #
 # Rules for dtntest
 #
-dtntest/dtntest: dtntest/dtntest.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ \
-		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
+dtntest/dtntest: dtntest/dtntest.o $(DTN_LIBS++) 
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS) 
 
 #
 # Rules for dtntest
 #
-dtnsend/dtnsend: dtnsend/dtnsend.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ \
-		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
+dtnsend/dtnsend: dtnsend/dtnsend.o $(DTN_LIBS++) 
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS) 
 
 #
 # Rules for dtntunnel
 #
 dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
-		     dtntunnel/UDPTunnel.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ \
-		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
+		     dtntunnel/UDPTunnel.o \
+		     $(DTN_LIBS++)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS) 
 
 #
 # Rules for tca_admin
@@ -109,13 +108,13 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_prot_clnt.o \
                 tca_admin/libs/gateway_prot_xdr.o \
                 tca_admin/libs/gateway_rpc.o \
-                tca_admin/libs/sha1.o
-	$(CXX) $(CXXFLAGS) $^ -o \
-		$@ $(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS)
+                tca_admin/libs/sha1.o \
+		$(DTN_LIBS++)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS)
 
 #
 # Default rule for all single source apps
 #
-$(SINGLE_SOURCE_APPS): %: %.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
+$(SINGLE_SOURCE_APPS): %: %.o $(DTN_LIBS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)
 
