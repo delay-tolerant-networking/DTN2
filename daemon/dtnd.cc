@@ -155,7 +155,7 @@ DTND::main(int argc, char* argv[])
 
     log_notice_p("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
 
-    if (oasys::TclCommandInterp::init(argv[0]) != 0)
+    if (oasys::TclCommandInterp::init(argv[0], "/dtn/tclcmd") != 0)
     {
         log_crit_p("/dtnd", "Can't init TCL");
         notify_and_exit(1);
