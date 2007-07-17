@@ -1386,8 +1386,8 @@ APIClient::wait_for_bundle(const char* operation, dtn_timeval_t dtn_timeout,
     }
 
     log_debug("wait_for_bundle(%s): "
-              "blocking to get bundle for registration %d (timeout %d)",
-              operation, reg->regid(), timeout);
+              "blocking to get bundles from %zu registrations (timeout %d)",
+              operation, bindings_->size(), timeout);
     int nready = oasys::IO::poll_multiple(&pollfds[0], npollfds, timeout,
                                           NULL, logpath_);
 
