@@ -88,6 +88,33 @@ xdrs:
 	rpcgen -h dtn_types.x -o dtn_types.h
 	rpcgen -c dtn_types.x -o dtn_types_xdr.c
 
+#
+# SWIG Rules
+#
+.PHONY: swig
+swig: 
+	swig -c++ -tcl    -w302          -o dtn_api_wrap_tcl.cc    dtn_api.i
+	swig -c++ -python -w302 -classic -o dtn_api_wrap_python.cc dtn_api.i
+
+SWIGLIBS := dtn-tcl.$(SHLIB_EXT) dtn-py.$(SHLIB_EXT)
+
+.PHONY: swiglibs
+swiglibs: libs $(SWIGLIBS)
+
+dtn-tcl.$(SHLIB_EXT): dtn_api_wrap_tcl.cc
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) $(LDDLAGS) -ldtnapi -ltcl -o $@
+
+# This could be done in the configure script...
+ifeq ($(BUILD_SYSTEM),Darwin)
+PYTHON_FLAGS := -I /Library/Frameworks/Python.framework/Headers -framework Python 
+endif
+
+dtn-py.$(SHLIB_EXT): dtn_api_wrap_python.cc
+	$(CXX) $(CXXFLAGS) $(PYTHON_FLAGS) $^ $(LDFLAGS_SHLIB) $(LDDLAGS) -ldtnapi -o $@
+
+#
+# Linking rules for the libraries.
+#
 libdtnapi.a: $(CLIENTLIB_OBJS)
 	rm -f $@
 	$(AR) ruc $@ $^
@@ -106,16 +133,14 @@ libdtnapi++.$(SHLIB_EXT): $(CLIENT_EXTRA_OBJS) libdtnapi.a
 	rm -f $@
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) -L../oasys -loasys libdtnapi.a $(LDFLAGS) -o $@
 
-foo:
-	echo $(CLIENTLIB)
-
 libdtnapisrv.a: $(SERVERLIB_OBJS)
 	rm -f $@
 	$(AR) ruc $@ $^
 	$(RANLIB) $@ || true
 
-
+#
 # Generate the list of files that is built by default
+#
 LIBFILES = libdtnapi.a libdtnapi++.a libdtnapisrv.a
 ifeq ($(SHLIBS),yes)
 LIBFILES += libdtnapi.$(SHLIB_EXT) libdtnapi++.$(SHLIB_EXT)
