@@ -102,8 +102,8 @@ test::script {
     tell_dtnd 0 bundle inject $source_eid2 $dest_eid2 $payload expiration=10
 
     puts "* running dtnrecv to create registrations"
-    set pid1 [dtn::run_app 0 dtnrecv "-x $reg_eid1 -e 10"]
-    set pid2 [dtn::run_app 0 dtnrecv "-x $reg_eid2 -f drop -e 30"]
+    set pid1 [dtn::run_app 0 dtnrecv "-x -e 10 $reg_eid1"]
+    set pid2 [dtn::run_app 0 dtnrecv "-x -e 30 -f drop $reg_eid2"]
 
     run::wait_for_pid_exit 0 $pid1
     run::wait_for_pid_exit 0 $pid2
