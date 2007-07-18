@@ -2494,15 +2494,16 @@ BundleDaemon::run()
     
     while (1) {
         if (should_stop()) {
-                log_debug("BundleDaemon: stopping");
+            log_debug("BundleDaemon: stopping");
             break;
         }
 
         int timeout = timersys->run_expired_timers();
 
-                log_debug_p(LOOP_LOG, 
-                "BundleDaemon: checking eventq_->size() > 0, its size is %zu", 
-                eventq_->size());
+        log_debug_p(LOOP_LOG, 
+                    "BundleDaemon: checking eventq_->size() > 0, its size is %zu", 
+                    eventq_->size());
+
         if (eventq_->size() > 0) {
             bool ok = eventq_->try_pop(&event);
             ASSERT(ok);
