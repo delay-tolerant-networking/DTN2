@@ -691,6 +691,7 @@ PICFLAGS
 RPATH
 LDFLAGS_SHLIB
 TARGET
+BUILD_SYSTEM
 EXTRA_CFLAGS
 EXTRA_LDFLAGS
 CXX
@@ -3393,6 +3394,9 @@ echo "${ECHO_T}$rpath" >&6; }
     else
         TARGET=native
     fi
+
+
+                    BUILD_SYSTEM=`uname -s || echo UNKNOWN | sed 's/CYGWIN.*/CYGWIN/'`
 
 
                 EXTRA_CFLAGS=""
@@ -9473,7 +9477,7 @@ echo "${ECHO_T}try" >&6; }
 echo "${ECHO_T}yes" >&6; }
     fi
 
-                if test `uname -s | sed 's/CYGWIN.*/CYGWIN/'` = 'CYGWIN' ; then
+                if test $BUILD_SYSTEM = 'CYGWIN' ; then
         TCLREADLINE_ENABLED=0
     else
         { echo "$as_me:$LINENO: checking for library containing readline" >&5
@@ -11761,6 +11765,7 @@ PICFLAGS!$PICFLAGS$ac_delim
 RPATH!$RPATH$ac_delim
 LDFLAGS_SHLIB!$LDFLAGS_SHLIB$ac_delim
 TARGET!$TARGET$ac_delim
+BUILD_SYSTEM!$BUILD_SYSTEM$ac_delim
 EXTRA_CFLAGS!$EXTRA_CFLAGS$ac_delim
 EXTRA_LDFLAGS!$EXTRA_LDFLAGS$ac_delim
 CXX!$CXX$ac_delim
@@ -11783,7 +11788,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 79; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 80; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
