@@ -93,13 +93,13 @@ extern int dtn_unregister(dtn_handle_t handle,
  */
 extern int dtn_find_registration(dtn_handle_t handle,
                                  dtn_endpoint_id_t* eid,
-                                 dtn_reg_id_t* regid);
+                                 dtn_reg_id_t* newregid);
 
 /**
  * Modify an existing registration.
  */
 extern int dtn_change_registration(dtn_handle_t handle,
-                                   dtn_reg_id_t newregid,
+                                   dtn_reg_id_t regid,
                                    dtn_reg_info_t *reginfo);
 
 /**
@@ -124,6 +124,9 @@ extern int dtn_send(dtn_handle_t handle,
                     dtn_bundle_payload_t* payload,
                     dtn_bundle_id_t* id);
 
+/**
+ * Cancel a bundle transmission.
+ */
 extern int dtn_cancel(dtn_handle_t handle,
                       dtn_bundle_id_t* id);
 
