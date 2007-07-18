@@ -52,7 +52,7 @@ proc check {} {
     global reg_eid1 reg_eid2
     global payload
 
-    dtn::check_bundle_stats 0 2 pending
+    dtn::wait_for_bundle_stat 0 2 pending
 
     dtn::check_bundle_data 0 bundleid-0 \
 	    bundleid     0 \
