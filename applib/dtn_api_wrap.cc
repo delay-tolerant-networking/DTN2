@@ -291,7 +291,7 @@ struct dtn_bundle {
 
 //----------------------------------------------------------------------
 dtn_bundle*
-dtn_recv(int handle, int timeout)
+dtn_recv(int handle, unsigned int payload_location, int timeout)
 {
     dtn_handle_t h = find_handle(handle);
     if (!h) return NULL;
@@ -302,7 +302,10 @@ dtn_recv(int handle, int timeout)
     dtn_bundle_payload_t payload;
     memset(&payload, 0, sizeof(payload));
 
-    int err = dtn_recv(h, &spec, DTN_PAYLOAD_MEM, &payload, timeout);
+    dtn_bundle_payload_location_t location =
+        (dtn_bundle_payload_location_t)payload_location;
+    
+    int err = dtn_recv(h, &spec, location, &payload, timeout);
     if (err != DTN_SUCCESS) {
         return NULL;
     }

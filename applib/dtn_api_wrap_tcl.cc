@@ -7219,25 +7219,33 @@ static swig_class _wrap_class_dtn_bundle = { "dtn_bundle", &SWIGTYPE_p_dtn_bundl
 SWIGINTERN int
 _wrap_dtn_recv(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   int arg1 ;
-  int arg2 ;
+  unsigned int arg2 ;
+  int arg3 ;
   dtn_bundle *result = 0 ;
   int val1 ;
   int ecode1 = 0 ;
-  int val2 ;
+  unsigned int val2 ;
   int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
   
-  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_recv handle timeout ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  if (SWIG_GetArgs(interp, objc, objv,"ooo:dtn_recv handle payload_location timeout ",(void *)0,(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
   ecode1 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[1], &val1);
   if (!SWIG_IsOK(ecode1)) {
     SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_recv" "', argument " "1"" of type '" "int""'");
   } 
   arg1 = static_cast< int >(val1);
-  ecode2 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_recv" "', argument " "2"" of type '" "int""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_recv" "', argument " "2"" of type '" "unsigned int""'");
   } 
-  arg2 = static_cast< int >(val2);
-  result = (dtn_bundle *)dtn_recv(arg1,arg2);
+  arg2 = static_cast< unsigned int >(val2);
+  ecode3 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[3], &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "dtn_recv" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = static_cast< int >(val3);
+  result = (dtn_bundle *)dtn_recv(arg1,arg2,arg3);
   Tcl_SetObjResult(interp, SWIG_NewInstanceObj( SWIG_as_voidptr(result), SWIGTYPE_p_dtn_bundle,0));
   return TCL_OK;
 fail:

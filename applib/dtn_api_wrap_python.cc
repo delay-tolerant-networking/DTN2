@@ -8442,27 +8442,36 @@ SWIGINTERN PyObject *dtn_bundle_swigregister(PyObject *SWIGUNUSEDPARM(self), PyO
 SWIGINTERN PyObject *_wrap_dtn_recv(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   int arg1 ;
-  int arg2 ;
+  unsigned int arg2 ;
+  int arg3 ;
   dtn_bundle *result = 0 ;
   int val1 ;
   int ecode1 = 0 ;
-  int val2 ;
+  unsigned int val2 ;
   int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OO:dtn_recv",&obj0,&obj1)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:dtn_recv",&obj0,&obj1,&obj2)) SWIG_fail;
   ecode1 = SWIG_AsVal_int(obj0, &val1);
   if (!SWIG_IsOK(ecode1)) {
     SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_recv" "', argument " "1"" of type '" "int""'");
   } 
   arg1 = static_cast< int >(val1);
-  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  ecode2 = SWIG_AsVal_unsigned_SS_int(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_recv" "', argument " "2"" of type '" "int""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_recv" "', argument " "2"" of type '" "unsigned int""'");
   } 
-  arg2 = static_cast< int >(val2);
-  result = (dtn_bundle *)dtn_recv(arg1,arg2);
+  arg2 = static_cast< unsigned int >(val2);
+  ecode3 = SWIG_AsVal_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "dtn_recv" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = static_cast< int >(val3);
+  result = (dtn_bundle *)dtn_recv(arg1,arg2,arg3);
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_dtn_bundle, 0 |  0 );
   return resultobj;
 fail:

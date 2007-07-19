@@ -47,7 +47,7 @@ puts "  creation_seqno: [dtn_bundle_id_creation_seqno_get $id]"
 delete_dtn_bundle_id $id
 
 puts "receiving a bundle in memory..."
-set bundle [dtn_recv $h 10000]
+set bundle [dtn_recv $h $DTN_PAYLOAD_MEM 10000]
 puts "bundle:"
 puts "  source: [dtn_bundle_source_get $bundle]"
 puts "  dest: [dtn_bundle_dest_get $bundle]"
