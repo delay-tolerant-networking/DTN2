@@ -461,6 +461,12 @@ DTLSRRouter::recompute_routes()
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
         LinkRef link = cm->find_link(edge->info().id_.c_str());
         if (link == NULL) {
+
+            // XXX/demmer this is a bug... we might have sent out an
+            // LSA that we then get back from the network, which may
+            // contain an old (high) lsa seqno, but then also may
+            // contain references to bogus links
+            
             log_crit("internal error: link %s not in local link table!!",
                      edge->info().id_.c_str());
             continue;
@@ -546,8 +552,10 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
 
 
             // XXX/demmer need a better way to cancel transmissions
+            log_debug("cancelling pending transmissions for *%p", bundle.object());
             bundle->fwdlog_.update_all(ForwardingInfo::TRANSMIT_PENDING,
                                        ForwardingInfo::CANCELLED);
+            bundle->owner_ = "DO_NOT_FORWARD";
             
             BundleDaemon::post_at_head(new BundleNotNeededEvent(bundle.object()));
             found_stale_lsa = true;
