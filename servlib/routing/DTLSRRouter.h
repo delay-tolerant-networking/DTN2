@@ -71,9 +71,14 @@ protected:
     //----------------------------------------------------------------------
     /// Class used for per-node state in the graph
     struct NodeInfo {
-        NodeInfo() : last_lsa_seqno_(0), last_eida_seqno_(0) {}
-
+        NodeInfo()
+            : last_lsa_seqno_(0),
+              last_lsa_creation_ts_(0),
+              last_eida_seqno_(0) {}
+        
         u_int32_t last_lsa_seqno_;
+        u_int32_t last_lsa_creation_ts_;
+        
         u_int32_t last_eida_seqno_;
 
         // XXX/demmer put list of alternate endpoints for destination here

@@ -524,11 +524,16 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
                                 Bundle* bundle, u_int32_t seqno)
 {
     bool found_stale_lsa = false;
-    if (seqno <= node->info().last_lsa_seqno_) {
+    if (seqno <= node->info().last_lsa_seqno_ &&
+        bundle->creation_ts_.seconds_ < node->info().last_lsa_creation_ts_)
+    {
         log_info("update_current_lsa: "
-                 "ignoring stale LSA (seqno %u <= last %u)",
-                 seqno, node->info().last_lsa_seqno_);
-
+                 "ignoring stale LSA (seqno %u <= last %u, "
+                 "creation_ts %u <= last %u)",
+                 seqno, node->info().last_lsa_seqno_,
+                 bundle->creation_ts_.seconds_,
+                 node->info().last_lsa_creation_ts_);
+        
         // XXX/demmer this is a big gross hack to make sure the stale
         // lsa isn't forwarded.
         bundle->owner_ = "DO_NOT_FORWARD";
@@ -545,25 +550,26 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
             // be careful not to let the bundle reference count drop
             // to zero by keeping a local reference until we can make
             // sure it's at least in the NotNeededEvent
-            BundleRef bundle("DTLSRRouter::update_current_lsa");
-            bundle = *iter;
+            BundleRef stale_lsa("DTLSRRouter::update_current_lsa");
+            stale_lsa = *iter;
 
             current_lsas_.erase(iter);
 
 
             // XXX/demmer need a better way to cancel transmissions
-            log_debug("cancelling pending transmissions for *%p", bundle.object());
-            bundle->fwdlog_.update_all(ForwardingInfo::TRANSMIT_PENDING,
-                                       ForwardingInfo::CANCELLED);
-            bundle->owner_ = "DO_NOT_FORWARD";
+            log_debug("cancelling pending transmissions for *%p",
+                      stale_lsa.object());
+            stale_lsa->fwdlog_.update_all(ForwardingInfo::TRANSMIT_PENDING,
+                                          ForwardingInfo::CANCELLED);
+            stale_lsa->owner_ = "DO_NOT_FORWARD";
             
-            BundleDaemon::post_at_head(new BundleNotNeededEvent(bundle.object()));
+            BundleDaemon::post_at_head(new BundleNotNeededEvent(stale_lsa.object()));
             found_stale_lsa = true;
-
+            
 //             oasys::StringBuffer buf("Stale LSA: ");
 //             bundle->format_verbose(&buf);
 //             log_multiline(oasys::LOG_INFO, buf.c_str());
-
+            
             if (node->info().last_lsa_seqno_ == 0) {
                 NOTREACHED;
             }
@@ -584,6 +590,7 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
     }
 
     node->mutable_info().last_lsa_seqno_ = seqno;
+    node->mutable_info().last_lsa_creation_ts_ = bundle->creation_ts_.seconds_;
     current_lsas_.push_back(bundle);
     return true;
 }
