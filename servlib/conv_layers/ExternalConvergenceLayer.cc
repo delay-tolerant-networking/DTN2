@@ -1207,12 +1207,11 @@ ExternalConvergenceLayer::give_resources(LinkHashMap& list)
 }
 
 ExternalConvergenceLayer::Listener::Listener(ExternalConvergenceLayer& cl)
-    : IOHandlerBase(new oasys::Notifier("/dtn/cl/Listener")),
-      TCPServerThread("/dtn/cl/Listener"),
+    : TCPServerThread("ExternalConvergenceLayer::Listener",
+                      "/dtn/cl/Listener"),
       cl_(cl)
 {
     Thread::set_flag(Thread::DELETE_ON_EXIT);
-    set_logpath("/dtn/cl/Listener");
     set_logfd(false);
 }
 
