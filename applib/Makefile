@@ -97,17 +97,17 @@ swig:
 	swig -c++ -tcl    -w302          -o dtn_api_wrap_tcl.cc    dtn_api.i
 	swig -c++ -python -w302 -classic -o dtn_api_wrap_python.cc dtn_api.i
 
-libdtntcl-$(DTN_VERSION).$(SHLIB_EXT): dtn_api_wrap_tcl.cc
-	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) $(LDDLAGS) \
-		-ldtnapi-$(DTN_VERSION) -ltcl -o $@
+libdtntcl-$(DTN_VERSION).$(SHLIB_EXT): dtn_api_wrap_tcl.o libdtnapi-$(DTN_VERSION).$(SHLIB_EXT)
+	$(CXX) $(CXXFLAGS) $< $(LDFLAGS_SHLIB) $(LDFLAGS) \
+		-ldtnapi-$(DTN_VERSION) $(TCL_LDFLAGS) -o $@
 
 # Add rules for python, but don't build by default for now
 ifeq ($(BUILD_SYSTEM),Darwin)
 PYTHON_FLAGS := -I /Library/Frameworks/Python.framework/Headers -framework Python 
 endif
-libdtnpy-$(DTN_VERSION).$(SHLIB_EXT): dtn_api_wrap_python.cc
-	$(CXX) $(CXXFLAGS) $(PYTHON_FLAGS) $^ $(LDFLAGS_SHLIB) $(LDDLAGS) \
-		-ldtnapi-$(DTN_VERSION) -o $@
+libdtnpy-$(DTN_VERSION).$(SHLIB_EXT): dtn_api_wrap_python.o
+	$(CXX) $(CXXFLAGS) $(PYTHON_FLAGS) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) \
+		-ldtnapi$(DTN_VERSION) -o $@
 
 #
 # Linking rules for the libraries.

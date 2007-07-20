@@ -23,7 +23,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-
+#
 ## --------------------- ##
 ## M4sh Initialization.  ##
 ## --------------------- ##
@@ -708,6 +708,7 @@ INSTALL_SCRIPT
 INSTALL_DATA
 SET_MAKE
 LFSDEFS
+TCL_LDFLAGS
 XSD_TOOL
 OASYS_LIBS
 subdirs
@@ -3358,7 +3359,7 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
 		 { echo "$as_me:$LINENO: result: $rpath" >&5
 echo "${ECHO_T}$rpath" >&6; }
 		 if [ $rpath = yes ] ; then
-		     RPATH="-Wl,-rpath=. -Wl,-rpath=\$(prefix)/lib"
+		     RPATH="-L. -Wl,-rpath=. -Wl,-rpath=\$(prefix)/lib"
 		 fi
                  break
              fi
@@ -8300,9 +8301,14 @@ echo "$as_me: error: can't find usable tcl.h" >&2;}
         OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_tcl_h"
     fi
 
+    TCL_LDFLAGS=
     if test ! x"$oasys_cv_path_tcl_lib" = x"/usr/lib" ; then
         OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_tcl_lib"
+	TCL_LDFLAGS=-L$oasys_cv_path_tcl_lib
     fi
+
+    TCL_LDFLAGS="$TCL_LDFLAGS -l$oasys_cv_lib_tcl"
+
 
     OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
 
@@ -11772,6 +11778,7 @@ INSTALL_SCRIPT!$INSTALL_SCRIPT$ac_delim
 INSTALL_DATA!$INSTALL_DATA$ac_delim
 SET_MAKE!$SET_MAKE$ac_delim
 LFSDEFS!$LFSDEFS$ac_delim
+TCL_LDFLAGS!$TCL_LDFLAGS$ac_delim
 XSD_TOOL!$XSD_TOOL$ac_delim
 OASYS_LIBS!$OASYS_LIBS$ac_delim
 subdirs!$subdirs$ac_delim
@@ -11779,7 +11786,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 80; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 81; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
