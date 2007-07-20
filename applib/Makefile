@@ -74,9 +74,10 @@ BUILDDIR := ..
 endif
 
 #
-# Include the common rules
+# Include the common rules and the version rules
 #
 include ../Rules.make
+include $(SRCDIR)/dtn-version.mk
 
 #
 # When dtn_types.x changes, we now manually rebuild dtn_types.h and
@@ -96,40 +97,36 @@ swig:
 	swig -c++ -tcl    -w302          -o dtn_api_wrap_tcl.cc    dtn_api.i
 	swig -c++ -python -w302 -classic -o dtn_api_wrap_python.cc dtn_api.i
 
-SWIGLIBS := dtn-tcl.$(SHLIB_EXT) dtn-py.$(SHLIB_EXT)
+libdtntcl-$(DTN_VERSION).$(SHLIB_EXT): dtn_api_wrap_tcl.cc
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) $(LDDLAGS) \
+		-ldtnapi-$(DTN_VERSION) -ltcl -o $@
 
-.PHONY: swiglibs
-swiglibs: libs $(SWIGLIBS)
-
-dtn-tcl.$(SHLIB_EXT): dtn_api_wrap_tcl.cc
-	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) $(LDDLAGS) -ldtnapi -ltcl -o $@
-
-# This could be done in the configure script...
+# Add rules for python, but don't build by default for now
 ifeq ($(BUILD_SYSTEM),Darwin)
 PYTHON_FLAGS := -I /Library/Frameworks/Python.framework/Headers -framework Python 
 endif
-
-dtn-py.$(SHLIB_EXT): dtn_api_wrap_python.cc
-	$(CXX) $(CXXFLAGS) $(PYTHON_FLAGS) $^ $(LDFLAGS_SHLIB) $(LDDLAGS) -ldtnapi -o $@
+libdtnpy-$(DTN_VERSION).$(SHLIB_EXT): dtn_api_wrap_python.cc
+	$(CXX) $(CXXFLAGS) $(PYTHON_FLAGS) $^ $(LDFLAGS_SHLIB) $(LDDLAGS) \
+		-ldtnapi-$(DTN_VERSION) -o $@
 
 #
 # Linking rules for the libraries.
 #
-libdtnapi.a: $(CLIENTLIB_OBJS)
+libdtnapi-$(DTN_VERSION).a: $(CLIENTLIB_OBJS)
 	rm -f $@
 	$(AR) ruc $@ $^
 	$(RANLIB) $@ || true
 
-libdtnapi.$(SHLIB_EXT): $(CLIENTLIB_OBJS)
+libdtnapi-$(DTN_VERSION).$(SHLIB_EXT): $(CLIENTLIB_OBJS)
 	rm -f $@
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) -o $@
 
-libdtnapi++.a: $(CLIENT_EXTRA_OBJS)
+libdtnapi++-$(DTN_VERSION).a: $(CLIENT_EXTRA_OBJS)
 	rm -f $@
 	$(AR) ruc $@ $^
 	$(RANLIB) $@ || true
 
-libdtnapi++.$(SHLIB_EXT): $(CLIENT_EXTRA_OBJS) libdtnapi.a
+libdtnapi++-$(DTN_VERSION).$(SHLIB_EXT): $(CLIENT_EXTRA_OBJS) libdtnapi.a
 	rm -f $@
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) -L../oasys -loasys libdtnapi.a $(LDFLAGS) -o $@
 
@@ -138,12 +135,23 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 	$(AR) ruc $@ $^
 	$(RANLIB) $@ || true
 
+# Generate symbolic links to the versioned libraries
+lib%.a : lib%-$(DTN_VERSION).a
+	rm -f $@
+	ln -s $< $@
+
+lib%.$(SHLIB_EXT) : lib%-$(DTN_VERSION).$(SHLIB_EXT)
+	rm -f $@
+	ln -s $< $@
+
 #
 # Generate the list of files that is built by default
 #
-LIBFILES = libdtnapi.a libdtnapi++.a libdtnapisrv.a
+LIBFILES = libdtnapi.a libdtnapi-$(DTN_VERSION).a libdtnapi++.a libdtnapi++-$(DTN_VERSION).a libdtnapisrv.a 
 ifeq ($(SHLIBS),yes)
-LIBFILES += libdtnapi.$(SHLIB_EXT) libdtnapi++.$(SHLIB_EXT)
+LIBFILES += libdtnapi.$(SHLIB_EXT) libdtnapi-$(DTN_VERSION).$(SHLIB_EXT) 
+LIBFILES += libdtnapi++.$(SHLIB_EXT) libdtnapi++-$(DTN_VERSION).$(SHLIB_EXT)
+LIBFILES += libdtntcl.$(SHLIB_EXT) libdtntcl-$(DTN_VERSION).$(SHLIB_EXT)
 endif
 
 libs: $(LIBFILES)

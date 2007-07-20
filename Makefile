@@ -41,6 +41,7 @@ endif
 # Include the common rules
 #
 include Rules.make
+include dtn-version.mk
 
 #
 # Dependency rules between subdirectories needed for make -j
@@ -55,16 +56,17 @@ sim: servlib
 #
 dtn-version.o: dtn-version.c
 dtn-version.c: dtn-version.h
-dtn-version.h: dtn-version.h.in version.dat
-	$(SRCDIR)/tools/subst-version < $(SRCDIR)/dtn-version.h.in > dtn-version.h
+dtn-version.h: dtn-version.h.in dtn-version.dat
+	$(SRCDIR)/oasys/tools/subst-version $(SRCDIR)/dtn-version.dat \
+		< $(SRCDIR)/dtn-version.h.in > dtn-version.h
 
 vpath dtn-version.h.in $(SRCDIR)
 vpath dtn-version.h    $(SRCDIR)
 vpath dtn-version.c    $(SRCDIR)
-vpath version.dat      $(SRCDIR)
+vpath dtn-version.dat  $(SRCDIR)
 
 bump-version:
-	cd $(SRCDIR) && tools/bump-version
+	cd $(SRCDIR) && tools/bump-version dtn-version.dat
 
 #
 # Test rules
@@ -108,11 +110,18 @@ install:
 	    ($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir)) ; \
 	done
 
-	[ x$(SHLIBS) = x ] || for lib in oasys/liboasys.$(SHLIB_EXT) \
+	[ x$(SHLIBS) = x ] || \
+	for lib in oasys/liboasys.$(SHLIB_EXT) \
 		   oasys/liboasyscompat.$(SHLIB_EXT) \
-		   applib/libdtnapi.$(SHLIB_EXT) \
-	           applib/libdtnapi++.$(SHLIB_EXT) ; do \
+		   applib/libdtnapi-$(DTN_VERSION).$(SHLIB_EXT) \
+	           applib/libdtnapi++-$(DTN_VERSION).$(SHLIB_EXT) \
+	           applib/libdtntcl-$(DTN_VERSION).$(SHLIB_EXT) ; do \
 	    ($(INSTALL_PROGRAM) $$lib $(DESTDIR)$(libdir)) ; \
+	done
+
+	for lib in libdtnapi libdtnapi++ libdtntcl ; do \
+		(cd $(DESTDIR)$(libdir) && rm -f $$lib.$(SHLIB_EXT) && \
+		 ln -s $$lib-$(DTN_VERSION).$(SHLIB_EXT) $$lib.$(SHLIB_EXT)) \
 	done
 
 	[ x$(DTN_USER) = x ] || chown -R $(DTN_USER) $(DESTDIR)$(bindir)

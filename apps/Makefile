@@ -42,6 +42,7 @@ OTHER_APPS :=				\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
+# XXX/demmer fix these to use dynamic linking now that there's versions...
 DTN_LIBS := ../applib/libdtnapi.a ../oasys/liboasyscompat.a
 DTN_LIBS++ := $(DTN_LIBS) ../applib/libdtnapi++.a ../oasys/liboasys.a
 
