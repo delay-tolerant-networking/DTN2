@@ -14,7 +14,7 @@
 #    limitations under the License.
 #
 
-load dtn-tcl[info sharedlibextension]
+load libdtntcl[info sharedlibextension] dtn
 
 set h [dtn_open]
 if {$h == -1} {
@@ -62,7 +62,7 @@ puts "  payload: [dtn_bundle_payload_get $bundle]"
 delete_dtn_bundle $bundle
 
 puts "dtn_recv timeout:"
-set bundle [dtn_recv $h 0]
+set bundle [dtn_recv $h $DTN_PAYLOAD_MEM 0]
 if {($bundle != "NULL") || ([dtn_errno $h] != $DTN_ETIMEOUT) } {
     puts "  bundle is $bundle, errno is [dtn_errno $h]"
 } else {
