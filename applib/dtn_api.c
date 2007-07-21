@@ -73,6 +73,13 @@ dtn_errno(dtn_handle_t handle)
 }
 
 //----------------------------------------------------------------------
+void
+dtn_set_errno(dtn_handle_t handle, int err)
+{
+    ((dtnipc_handle_t*)handle)->err = err;
+}
+
+//----------------------------------------------------------------------
 int
 dtn_build_local_eid(dtn_handle_t h,
                     dtn_endpoint_id_t* local_eid,

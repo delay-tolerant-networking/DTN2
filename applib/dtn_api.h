@@ -55,6 +55,11 @@ extern int dtn_close(dtn_handle_t handle);
 extern int dtn_errno(dtn_handle_t handle);
 
 /**
+ * Set the error associated with the given handle
+ */
+extern void dtn_set_errno(dtn_handle_t handle, int err);
+
+/**
  * Build an appropriate local endpoint id by appending the specified
  * service tag to the daemon's preferred administrative endpoint id.
  */
