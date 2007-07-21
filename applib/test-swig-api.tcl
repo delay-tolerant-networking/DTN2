@@ -18,7 +18,7 @@ load libdtntcl[info sharedlibextension] dtn
 
 set h [dtn_open]
 if {$h == -1} {
-    error "error in dtn_open_handle"
+    error "error in dtn_open"
 }
 puts "handle is $h"
 
