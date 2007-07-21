@@ -23,7 +23,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-#
+
 ## --------------------- ##
 ## M4sh Initialization.  ##
 ## --------------------- ##
@@ -3359,7 +3359,7 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
 		 { echo "$as_me:$LINENO: result: $rpath" >&5
 echo "${ECHO_T}$rpath" >&6; }
 		 if [ $rpath = yes ] ; then
-		     RPATH="-L. -Wl,-rpath=. -Wl,-rpath=\$(prefix)/lib"
+		     RPATH="-Wl,-rpath=. -Wl,-rpath=\$(prefix)/lib"
 		 fi
                  break
              fi
@@ -11047,7 +11047,7 @@ _ACEOF
 #
 CPPFLAGS="-I\$(SRCDIR)/servlib -I\$(SRCDIR)/oasys $OASYS_CPPFLAGS $DTN_CPPFLAGS $CPPFLAGS"
 # CPPFLAGS="-I\$(SRCDIR)/servlib $OASYS_CPPFLAGS $DTN_CPPFLAGS $CPPFLAGS"
-LDFLAGS="$OASYS_LDFLAGS $DTN_LDFLAGS $LDFLAGS"
+LDFLAGS="-L. $OASYS_LDFLAGS $DTN_LDFLAGS $LDFLAGS"
 
 if test "x$STATIC" = "xlibs" ; then
    OASYS_LIBS="-Wl,-Bstatic $OASYS_LIBS -Wl,-Bdynamic"
