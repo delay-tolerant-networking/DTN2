@@ -22,7 +22,7 @@ using namespace std;
 typedef map<unsigned int, dtn_handle_t> HandleMap;
 
 HandleMap    Handles;
-static unsigned int HandleID = 0;
+static unsigned int HandleID = 1;
 
 //----------------------------------------------------------------------
 int
@@ -218,15 +218,15 @@ dtn_send(int           handle,
     dtn_bundle_spec_t spec;
     memset(&spec, 0, sizeof(spec));
     
-    dtn_bundle_payload_t payload;
-    memset(&payload, 0, sizeof(payload));
-
     strcpy(spec.source.uri, source.c_str());
     strcpy(spec.dest.uri, dest.c_str());
     strcpy(spec.replyto.uri, replyto.c_str());
     spec.priority   = (dtn_bundle_priority_t)priority;
     spec.dopts      = dopts;
     spec.expiration = expiration;
+
+    dtn_bundle_payload_t payload;
+    memset(&payload, 0, sizeof(payload));
 
     switch (payload_location) {
     case DTN_PAYLOAD_MEM:
@@ -245,10 +245,12 @@ dtn_send(int           handle,
         payload.filename.filename_len = payload_data.length();
         break;
     default:
+        dtn_set_errno(h, DTN_EINVAL);
         return NULL;
     }
 
     dtn_bundle_id_t id;
+    memset(&id, 0, sizeof(id));
     int err = dtn_send(h, &spec, &payload, &id);
     if (err != DTN_SUCCESS) {
         return NULL;
@@ -319,8 +321,21 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
     bundle->expiration     = spec.expiration;
     bundle->creation_secs  = spec.creation_ts.secs;
     bundle->creation_seqno = spec.creation_ts.seqno;
-    bundle->payload.assign(payload.buf.buf_val,
-                           payload.buf.buf_len);
+
+    switch(location) {
+    case DTN_PAYLOAD_MEM:
+        bundle->payload.assign(payload.buf.buf_val,
+                               payload.buf.buf_len);
+        break;
+    case DTN_PAYLOAD_FILE:
+    case DTN_PAYLOAD_TEMP_FILE:
+        bundle->payload.assign(payload.filename.filename_val,
+                               payload.filename.filename_len);
+        break;
+    default:
+        dtn_set_errno(h, DTN_EINVAL);
+        return NULL;
+    }
 
     return bundle;
 }
