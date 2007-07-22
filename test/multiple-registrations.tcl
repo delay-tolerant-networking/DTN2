@@ -120,7 +120,7 @@ test::script {
     }
 
     for {set i 0} {$i < 100} {incr i} {
-        dtn::tell_dtntest 0 dtn_recv $h0 payload_mem=true timeout=5000
+        dtn::tell_dtntest 0 dtn_recv $h0 payload_mem=true timeout=30000
     }
 
     puts "* Checking final bundle stats"
