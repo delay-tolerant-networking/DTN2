@@ -41,7 +41,7 @@ endif
 # Include the common rules
 #
 include Rules.make
-include dtn-version.mk
+include $(SRCDIR)/dtn-version.mk
 
 #
 # Dependency rules between subdirectories needed for make -j
