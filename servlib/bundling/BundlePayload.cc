@@ -58,9 +58,22 @@ BundlePayload::init(int bundleid, location_t location)
     // initialize the file handle for the backing store, but
     // immediately close it
     BundleStore* bs = BundleStore::instance();
+
+    // XXX/demmer the simulator can't really deal with files, so this
+    // is a hacky way to handle bundles that get created with a DISK
+    // location in the simulator... a better fix would have this class
+    // use oasys::FileBackedObjectStore and then have an in-memory
+    // abstraction of the store that we use in the simulator, akin
+    // to the memorydb version of the DurableStore
+    if (bs->payload_dir() == "NO_PAYLOAD_FILES") {
+        location_ = MEMORY;
+        return;
+    }
+
     oasys::StringBuffer path("%s/bundle_%d.dat",
                              bs->payload_dir().c_str(), bundleid);
     
+
     file_.logpathf("%s/file", logpath_);
     
     int open_errno = 0;

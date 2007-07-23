@@ -48,8 +48,9 @@ Node::Node(const char* name)
     storage_config_.tidy_ = true;
     storage_config_.tidy_wait_ = 0;
     storage_config_.leave_clean_file_ = false;
-    storage_config_.payload_dir_ = std::string("/tmp/dtnsim_payloads_") +
-                                   getenv("USER");
+
+    // XXX/demmer see comment in BundlePayload::init
+    storage_config_.payload_dir_ = "NO_PAYLOAD_FILES"; 
 }
 
 //----------------------------------------------------------------------
