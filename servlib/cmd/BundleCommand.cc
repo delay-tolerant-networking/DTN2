@@ -49,6 +49,7 @@ BundleCommand::BundleCommand()
     add_to_help("daemon_stats", "daemon stats");
     add_to_help("reset_stats", "reset currently maintained statistics");
     add_to_help("list", "list all of the bundles in the system");
+    add_to_help("ids", "list the ids of all bundles the system");
     add_to_help("info <id>", "get info on a specific bundle");
     add_to_help("dump <id>", "dump a specific bundle");
     add_to_help("dump_tcl <id>", "dump a bundle as a tcl list");
@@ -285,6 +286,19 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         }
         
         set_result(buf.c_str());
+        
+        return TCL_OK;
+        
+    } else if (!strcmp(cmd, "ids")) {
+        BundleList::const_iterator iter;
+        BundleList* pending =
+            BundleDaemon::instance()->pending_bundles();
+        
+        oasys::ScopeLock l(pending->lock(), "BundleCommand::exec");
+    
+        for (iter = pending->begin(); iter != pending->end(); ++iter) {
+            append_resultf("%d ", (*iter)->bundleid_);
+        }
         
         return TCL_OK;
         
