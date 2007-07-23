@@ -102,6 +102,7 @@ install:
 		    apps/dtncat/dtncat \
 		    apps/dtncp/dtncp \
 		    apps/dtncpd/dtncpd \
+		    apps/dtnhttpproxy/dtnhttpproxy \
 		    apps/dtnping/dtnping \
 		    apps/dtnping/dtntraceroute \
 		    apps/dtnrecv/dtnrecv \
