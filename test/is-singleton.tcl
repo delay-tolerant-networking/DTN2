@@ -29,7 +29,7 @@ test::script {
 
     puts "* Setting up flamebox ignores"
     dtn::tell_dtnd 0 log /test always \
-	    "flamebox-ignore ign1 client error or disconnection"
+	    "flamebox-ignore ign1 client disconnected without calling dtn_close"
     dtn::tell_dtnd 0 log /test always \
 	    "flamebox-ignore ign2 bundle destination .* in unknown scheme and app did not assert.*"
     dtn::tell_dtnd 0 log /test always \

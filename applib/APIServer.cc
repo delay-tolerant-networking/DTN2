@@ -213,7 +213,7 @@ APIClient::run()
         ret = read(&buf_[3], DTN_MAX_API_MSG);
             
         if (ret <= 0) {
-            log_warn("client error or disconnection");
+            log_warn("client disconnected without calling dtn_close");
             close_session();
             return;
         }
