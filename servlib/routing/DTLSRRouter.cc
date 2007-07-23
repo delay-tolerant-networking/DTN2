@@ -625,13 +625,28 @@ DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
     }
     
     // XXX/demmer here we should drop all the links that aren't
-    // present in the LSA
+    // present in the LSA...
 
     // Handle all the link announcements
     for (LinkStateVec::iterator iter = lsa->links_.begin();
          iter != lsa->links_.end(); ++iter)
     {
         LinkState* ls = &(*iter);
+
+        // check for the case where we're re-receiving an LSA that was
+        // sent previously, but our link configuration has changed so
+        // we no longer have the link
+        if (a == local_node_) {
+            LinkRef link("DTLSRRouter::send_lsa");
+            link = BundleDaemon::instance()->contactmgr()->
+                   find_link(ls->id_.c_str());
+            if (link == NULL) {
+                log_warn("local link %s in LSA but no longer exists, ignoring...",
+                         ls->id_.c_str());
+                continue;
+            }
+            
+        }
 
         // find or add the node
         RoutingGraph::Node* b = graph_.find_node(ls->dest_.str());
@@ -641,7 +656,7 @@ DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
             b = graph_.add_node(ls->dest_.str(), NodeInfo());
         }
 
-        // add or update the edge
+        // try to find and update the edge in the graph, otherwise add it
         RoutingGraph::Edge *e = NULL;
         RoutingGraph::EdgeVector::const_iterator ei;
         for (ei = a->out_edges().begin(); ei != a->out_edges().end(); ++ei) {
@@ -665,6 +680,7 @@ DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
                       a->id().c_str(), b->id().c_str());
         }
 
+        // XXX/demmer fold this into a parameter update method
         e->mutable_info().last_update_.get_time();
     }
 
@@ -756,7 +772,7 @@ DTLSRRouter::send_lsa()
     log_debug("send_lsa: generated %zu link states for local ndoe",
               lsa.links_.size());
 
-    Bundle* bundle = new TempBundle();
+    Bundle* bundle = new Bundle();
 
     if (config()->area_ != "") {
         snprintf(tmp, sizeof(tmp), "dtn://*/%s?area=%s;lsa_seqno=%u",
