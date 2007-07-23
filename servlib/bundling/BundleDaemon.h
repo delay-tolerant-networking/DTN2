@@ -506,9 +506,6 @@ protected:
     // indicator that a BundleDaemon shutdown is in progress
     static bool shutting_down_;
 
-    // bit that's set when we're running in the simulator
-    static bool is_simulator_;
-
     /// Class used for the idle timer
     struct DaemonIdleExit : public oasys::IdleTclExit {
         DaemonIdleExit(int interval) : IdleTclExit(interval) {}
