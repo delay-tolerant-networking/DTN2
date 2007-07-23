@@ -30,10 +30,27 @@ proc arg0 { l } {
 }
 
 #----------------------------------------------------------------------
-proc dbg {msg} {
+proc dbg {args} {
     global opt
     if {$opt(verbose)} {
-        puts $msg
+        set nonewline ""
+        if {[arg0 $args] == "-nonewline"} {
+            set nonewline -nonewline
+            shift args
+        }
+
+        set chan stdout
+        if {[llength $args] == 2} {
+            set chan [arg0 $args]
+            shift args
+        }
+        
+        set msg [arg0 $args]
+        if {$nonewline != ""} {
+            puts $nonewline $chan $msg
+        } else {
+            puts $chan $msg
+        }
     }
 }
 
@@ -109,23 +126,24 @@ proc proxy_loop {} {
         dbg "calling dtn_recv..."
         set bundle [dtn_recv $handle $DTN_PAYLOAD_FILE -1]
         if {$bundle == "NULL"} {
-            puts "error in dtn_recv: [dtn_strerror [dtn_errno $handle]]"
-            exit 1
+            error "error in dtn_recv: [dtn_strerror [dtn_errno $handle]]"
         }
 
-        dbg "received bundle:"
-        dbg "  source: [dtn_bundle_source_get $bundle]"
-        dbg "  dest: [dtn_bundle_dest_get $bundle]"
-        dbg "  expiration: [dtn_bundle_expiration_get $bundle]"
-        dbg "  creation_secs: [dtn_bundle_creation_secs_get $bundle]"
-        dbg "  creation_seqno: [dtn_bundle_creation_seqno_get $bundle]"
-        dbg "  payload: [dtn_bundle_payload_get $bundle]"
-
+        set source [dtn_bundle_source_get $bundle]
         set dest [dtn_bundle_dest_get $bundle]
-        set payload_file "[dtn_bundle_payload_get $bundle]"
-        set payload_size [file size $payload_file]
-        set temp_file ""
+        set payload_file [dtn_bundle_payload_get $bundle]
+        set expiration [dtn_bundle_expiration_get $bundle]
+        set creation_ts "[dtn_bundle_creation_secs_get $bundle].\
+                [dtn_bundle_creation_seqno_get $bundle]"
         
+        dbg "received bundle:"
+        dbg "  source: $source"
+        dbg "  dest: $dest"
+        dbg "  expiration: $expiration"
+        dbg "  creation_ts: $creation_ts"
+        dbg "  payload: $payload_file"
+        dbg "  payload_size: [file size $payload_file]"
+
         set fd [open $payload_file r]
 
         # default values for params
@@ -163,12 +181,18 @@ proc proxy_loop {} {
                 
                 while {![eof $fd]} {
                     set buf [read $fd 1024]
-                    puts $tmpfd $buf
+                    puts -nonewline $tmpfd $buf
                 }
                 puts -nonewline $tmpfd "--xYzZY--\r\n"
                 
                 close $fd
                 close $tmpfd
+
+                if [catch {file delete $payload_file} err] {
+                    puts "error removing payload file: $err"
+                }
+
+                set payload_file $temp_file
                 set fd [open $temp_file]
                 set params(content_type) "multipart/form-data, boundary=xYzZY"
                 set channel -querychannel
@@ -181,19 +205,19 @@ proc proxy_loop {} {
         }
         
         if [catch {
-            dbg " calling http::geturl for $url..."
+            dbg -nonewline " calling http::geturl for $url..."
             set token [::http::geturl $url \
+                    -type $params(content_type) \
                     -blocksize 1024 \
                     -progress http_progress \
-                    -type $params(content_type) \
                     $channel $fd]
 
-            dbg " calling http::wait..."
+            dbg -nonewline " waiting..."
             ::http::wait $token
-            
+            dbg ""
+
             dbg " status: [::http::status $token]"
             dbg " error:  [::http::error $token]"
-            dbg " data:   [::http::data $token]"
             
         } err] {
             puts "error in geturl: $err"
@@ -203,13 +227,22 @@ proc proxy_loop {} {
 }
 
 proc http_progress {token total current} {
-   puts -nonewline stderr .
-   flush stderr
+   dbg -nonewline .
+   flush stdout
 }
 
 #----------------------------------------------------------------------
 init $argv
-connect
-register
-proxy_loop
+
+while {1} {
+    if [catch {
+        connect
+        register
+        proxy_loop
+    } err] {
+        puts "$err"
+    }
+    catch {dtn_close $handle} err
+    after 5000
+}
 
