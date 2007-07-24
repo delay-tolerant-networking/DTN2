@@ -72,6 +72,7 @@ void
 DTNTunnel::fill_options()
 {
     App::fill_default_options(DAEMONIZE_OPT);
+    App::set_extra_usage("<destination_eid>");
     
     opts_.addopt(
         new oasys::BoolOpt('L', "listen", &listen_,
@@ -123,16 +124,14 @@ DTNTunnel::validate_options(int argc, char* const argv[], int remainder)
         if (dtn_parse_eid_string(&dest_eid_, argv[argc-1]) == -1) {
             fprintf(stderr, "invalid destination endpoint id '%s'\n",
                     argv[argc - 1]);
-            goto usage;
+            print_usage_and_exit();
         } else {
             dest_eid_set = true;
         }
         
     } else if (remainder != argc) {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
-usage:
-        opts_.usage(argv[0], "<destination eid>");
-        exit(1);
+        print_usage_and_exit();
     }
 
     // parse the tunnel spec
@@ -142,7 +141,7 @@ usage:
         if (ntoks < 3 || ntoks > 4) {
             fprintf(stderr, "invalid tunnel specification %s: bad format\n",
                     tunnel_spec_.c_str());
-            goto usage;
+            print_usage_and_exit();
         }
 
         if (ntoks == 4) {
@@ -150,7 +149,7 @@ usage:
                 fprintf(stderr,
                         "invalid tunnel specification %s: local addr %s invalid\n",
                         tunnel_spec_.c_str(), tokens[0].c_str());
-                goto usage;
+                print_usage_and_exit();
             }
         }
     
@@ -160,7 +159,7 @@ usage:
             fprintf(stderr,
                     "invalid tunnel specification %s: remote host %s invalid\n",
                     tunnel_spec_.c_str(), tokens[ntoks - 2].c_str());
-            goto usage;
+            print_usage_and_exit();
         }
     
         remote_port_ = atoi(tokens[ntoks - 1].c_str());
@@ -169,7 +168,7 @@ usage:
 #define CHECK_OPT(_condition, _err)             \
     if ((_condition)) {                         \
         fprintf(stderr, "error: " _err "\n");   \
-        goto usage;                             \
+        print_usage_and_exit();                 \
     }
 
     //
