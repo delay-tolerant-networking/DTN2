@@ -141,7 +141,8 @@ void
 ExternalRouter::handle_bundle_received(BundleReceivedEvent *event)
 {
     // filter out bundles already delivered
-    if (event->bundleref_->owner_ == "daemon") return;
+  // if (event->bundleref_->owner_ == "daemon") return; // MOS - filtering is not a good idea 
+  // because it prevents routing of already delivered bundles, e.g. for multicast routing
 
     bpa::bundle_received_event::type e(
         event->bundleref_.object(),
