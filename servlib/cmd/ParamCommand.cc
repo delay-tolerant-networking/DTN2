@@ -60,6 +60,11 @@ ParamCommand::ParamCommand()
                                 "Permute the order of bundles before "
                                 "delivering to registrations"));
 
+    bind_var(new oasys::BoolOpt("injected_bundles_in_memory",
+                                &BundleDaemon::params_.injected_bundles_in_memory_,
+                                "Injected bundles are held in memory by default"
+                                "(default is false)"));
+
     static oasys::EnumOpt::Case IsSingletonCases[] = {
         {"unknown",   EndpointID::UNKNOWN},
         {"singleton", EndpointID::SINGLETON},

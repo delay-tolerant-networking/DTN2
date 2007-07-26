@@ -221,6 +221,9 @@ public:
 
         /// Test hook to permute bundles before delivering to registrations
         bool test_permuted_delivery_;
+
+        /// Whether or not injected bundles are held in memory by default
+        bool injected_bundles_in_memory_;
     };
 
     static Params params_;

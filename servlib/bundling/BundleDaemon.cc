@@ -54,7 +54,8 @@ BundleDaemon::Params::Params()
        accept_custody_(true),
        reactive_frag_enabled_(true),
        retry_reliable_unacked_(true),
-       test_permuted_delivery_(false) {}
+       test_permuted_delivery_(false),
+       injected_bundles_in_memory_(false) {}
 
 BundleDaemon::Params BundleDaemon::params_;
 
@@ -1117,7 +1118,8 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
     
     // The new bundle is placed on the pending queue but not
     // in durable storage (no call to BundleActions::inject_bundle)
-    Bundle *bundle=new Bundle();
+    Bundle *bundle = new Bundle(params_.injected_bundles_in_memory_ ? 
+                                BundlePayload::MEMORY : BundlePayload::DISK);
 
     bundle->source_.assign(src);
     bundle->dest_.assign(dest);
