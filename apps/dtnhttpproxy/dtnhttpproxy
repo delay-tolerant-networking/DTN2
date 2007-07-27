@@ -223,6 +223,13 @@ proc proxy_loop {} {
             puts "error in geturl: $err"
         }
         puts stderr ""
+
+        if [catch {file delete $payload_file} err] {
+            puts "error removing payload file: $err"
+        }
+	
+	close $fd
+
     }
 }
 
