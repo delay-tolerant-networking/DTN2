@@ -408,6 +408,11 @@ public:
     const char* nexthop() const { return nexthop_.c_str(); }
 
     /**
+     * Accessor to next hop string
+     */
+    const std::string& nexthop_str() const { return nexthop_; }
+
+    /**
      * Override for the next hop string.
      */
     void set_nexthop(const std::string& nexthop) { nexthop_.assign(nexthop); }
