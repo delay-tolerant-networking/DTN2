@@ -56,7 +56,7 @@ proc dbg {args} {
 
 #----------------------------------------------------------------------
 proc usage {} {
-    puts "Usage: dtnhttpproxy [Options]"
+    puts "Usage: dtnhttpproxy \[Options\]"
     puts ""
     puts "Options:"
     puts "    -h | --help        Print help message"
