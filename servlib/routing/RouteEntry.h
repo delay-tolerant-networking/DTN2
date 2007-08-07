@@ -19,6 +19,7 @@
 
 #include <oasys/debug/Formatter.h>
 #include <oasys/serialize/Serialize.h>
+#include <oasys/util/StringUtils.h>
 
 #include "bundling/CustodyTimer.h"
 #include "bundling/ForwardingInfo.h"
@@ -53,10 +54,24 @@ class RouteEntryInfo;
 class RouteEntry : public oasys::Formatter,
                    public oasys::SerializableObject {
 public:
+    /// Share the ForwardingInfo::action_t type
+    typedef ForwardingInfo::action_t action_t;
+
+    /// Functor classes used to match route entries (defined below)
+    class DestMatches;
+    class NextHopMatches;
+
     /**
-     * Default constructor requires a destination pattern and a link.
+     * First constructor requires a destination pattern and a next hop link.
      */
     RouteEntry(const EndpointIDPattern& dest_pattern, const LinkRef& link);
+
+    /**
+     * Alternate constructor requires a destination pattern and a
+     * route destination endpoint id.
+     */
+    RouteEntry(const EndpointIDPattern& dest_pattern,
+               const EndpointIDPattern& route_to);
 
     /**
      * Destructor.
@@ -77,16 +92,21 @@ public:
     /**
      * Dump a header string in preparation for subsequent calls to dump();
      */
-    static void dump_header(int dest_eid_limit, int source_eid_limit,
-                            oasys::StringBuffer* buf);
+    static void dump_header(oasys::StringBuffer* buf,
+                            int dest_eid_width,
+                            int source_eid_width,
+                            int next_hop_width);
     
     /**
      * Dump a string representation of the route entry. Any endpoint
-     * ids that don't fit into the column width get put into the
-     * long_eids vector.
+     * ids or link names that don't fit into the column width get put
+     * into the long_strings vector.
      */
-    void dump(int dest_eid_limit, int source_eid_limit,
-              oasys::StringBuffer* buf, EndpointIDVector* long_eids) const;
+    void dump(oasys::StringBuffer* buf,
+              oasys::StringVector* long_strings,
+              int dest_eid_width,
+              int source_eid_width,
+              int next_hop_width) const;
 
     /**
      * Virtual from SerializableObject
@@ -94,17 +114,32 @@ public:
     virtual void serialize( oasys::SerializeAction *a );
 
     /// @{ Accessors
-    const EndpointIDPattern& dest()   const { return dest_pattern_; }
-    const EndpointIDPattern& source() const { return source_pattern_; }
-    
-    ForwardingInfo::action_t action() const{
-        return static_cast<ForwardingInfo::action_t>(action_);
+    const EndpointIDPattern& dest_pattern()   const { return dest_pattern_; }
+    const EndpointIDPattern& source_pattern() const { return source_pattern_; }
+    const LinkRef&           link()           const { return link_; }
+    const EndpointIDPattern& route_to()       const { return route_to_; }
+    u_int                    priority()       const { return priority_; }
+    RouteEntryInfo*          info()           const { return info_; }
+    const CustodyTimerSpec&  custody_spec()   const { return custody_spec_; }
+
+    action_t action() const { return static_cast<action_t>(action_); }
+
+    const std::string& next_hop_str() const {
+        return (link() != NULL) ? link()->name_str() : route_to().str();
     }
-    const CustodyTimerSpec& custody_timeout() const { return custody_timeout_; }
+    /// @}
+
+    /// @{ Setters
+    void set_action(action_t action)    { action_ = action; }
+    void set_info(RouteEntryInfo* info) { info_   = info; }
     /// @}
     
-    // XXX/demmer should move fields to be private and everyone should
-    // use accessors
+private:
+    /// Helper for dump()
+    static void append_long_string(oasys::StringBuffer* buf,
+                                   oasys::StringVector* long_strings,
+                                   int width, const std::string& str);
+
     
     /// The pattern that matches bundles' destination eid
     EndpointIDPattern dest_pattern_;
@@ -116,16 +151,19 @@ public:
     u_int bundle_cos_;
     
     /// Route priority
-    u_int route_priority_;
+    u_int priority_;
 
-    /// Next hop link (XXX/demmer should rename to link_)
-    LinkRef next_hop_;
+    /// Next hop link if known
+    LinkRef link_;
+        
+    /// Route destination for recursive lookups
+    EndpointIDPattern route_to_;
         
     /// Forwarding action code 
     u_int32_t action_;
 
     /// Custody timer specification
-    CustodyTimerSpec custody_timeout_;
+    CustodyTimerSpec custody_spec_;
 
     /// Abstract pointer to any algorithm-specific state that needs to
     /// be stored in the route entry
@@ -134,6 +172,30 @@ public:
     // XXX/demmer confidence? latency? capacity?
     // XXX/demmer bit to distinguish
     // XXX/demmer make this serializable?
+};
+
+/**
+ * Predicate to match the destination pattern for a route.
+ */
+class RouteEntry::DestMatches {
+public:
+    DestMatches(const EndpointIDPattern& dest) : dest_(dest) {}
+    bool operator()(RouteEntry* entry) {
+        return dest_.equals(entry->dest_pattern());
+    }
+    EndpointIDPattern dest_;
+};
+
+/**
+ * Predicate to match the destination pattern for a route.
+ */
+class RouteEntry::NextHopMatches {
+public:
+    NextHopMatches(const LinkRef& link) : link_(link) {}
+    bool operator()(RouteEntry* entry) {
+        return link_ == entry->link();
+    }
+    LinkRef link_;
 };
 
 /**
@@ -152,15 +214,14 @@ class RouteEntryVec : public std::vector<RouteEntry*> {};
 
 /**
  * Functor class to sort a vector of routes based on forwarding
- * priority, using the bytes queued to break ties.
+ * priority, using the bytes queued on the link to break ties.
  */
 struct RoutePrioritySort {
     bool operator() (RouteEntry* a, RouteEntry* b) {
-        if (a->route_priority_ < b->route_priority_) return false;
-        if (a->route_priority_ > b->route_priority_) return true;
-        
-        return (a->next_hop_->stats()->bytes_queued_ <
-                b->next_hop_->stats()->bytes_queued_);
+        if (a->priority() < b->priority()) return false;
+        if (a->priority() > b->priority()) return true;
+        return (a->link()->stats()->bytes_queued_ <
+                b->link()->stats()->bytes_queued_);
     }
 };
 

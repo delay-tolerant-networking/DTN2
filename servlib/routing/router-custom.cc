@@ -509,12 +509,12 @@ routeEntryType::routeEntryType (const routeEntryType& a,
 
 routeEntryType::routeEntryType (RouteEntry* e)
     : routeEntryType_base (
-        eidType(e->dest_pattern_.str()),
-        eidType(e->source_pattern_.str()),
-        e->route_priority_,
-        bundleForwardActionType(lowercase(
-            ForwardingInfo::action_to_str((ForwardingInfo::action_t)(e->action_)))),
-        e->next_hop_->name_str())
+        eidType(e->dest_pattern().str()),
+        eidType(e->source_pattern().str()),
+        e->priority(),
+        bundleForwardActionType(
+            lowercase(ForwardingInfo::action_to_str(e->action()))),
+        e->link()->name_str())
 {
 }
 

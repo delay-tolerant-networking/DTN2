@@ -314,7 +314,7 @@ TcaRouter::fwd_to_all(Bundle* bundle)
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
         log_debug("TcaRouter::fwd_to_all: %s",
-                  (*iter)->dest_pattern_.str().c_str());
+                  (*iter)->dest_pattern().str().c_str());
         fwd_to_nexthop(bundle, *iter);
         ++count;
     }
@@ -362,7 +362,7 @@ TcaRouter::fwd_to_matching_r(Bundle* bundle, const LinkRef& next_hop,
     RouteEntryVec   hard_matches;       // non-default matches
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
-        if ((*iter)->dest_pattern_.str() == "tca://*")
+        if ((*iter)->dest_pattern().str() == "tca://*")
         {
             default_route = *iter;
         }
@@ -397,7 +397,7 @@ TcaRouter::fwd_to_matching_r(Bundle* bundle, const LinkRef& next_hop,
     // handle hard matches...
     for (iter = hard_matches.begin(); iter != hard_matches.end(); ++iter)
     {
-        if (next_hop == NULL || (next_hop == (*iter)->next_hop_))
+        if (next_hop == NULL || (next_hop == (*iter)->link()))
         {
             fwd_to_nexthop(bundle, *iter);
             ++count;
@@ -405,9 +405,9 @@ TcaRouter::fwd_to_matching_r(Bundle* bundle, const LinkRef& next_hop,
         else
         {
             log_debug("fwd_to_matching_r dest='%s': "
-                "ignoring match %s since next_hop link %s set",
-                bundle->dest_.c_str(), (*iter)->next_hop_->name(),
-                next_hop->name());
+                      "ignoring match %s since next_hop link %s set",
+                      bundle->dest_.c_str(), (*iter)->link()->name(),
+                      next_hop->name());
         }
     }
 
@@ -670,7 +670,7 @@ TcaRouter::handle_get_routes(Bundle* b, const TcaControlBundle& cb)
     std::string response = "routes:";
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
-        response += (*iter)->dest_pattern_.str().c_str();
+        response += (*iter)->dest_pattern().str().c_str();
         response += "\t";
     }
 
@@ -886,7 +886,7 @@ TcaRouter::create_route(const std::string& pattern, const LinkRef& p_link)
             pattern.c_str(), p_link.object());
 
     RouteEntry* p_entry = new RouteEntry(pattern, p_link);
-    p_entry->action_ = ForwardingInfo::COPY_ACTION;
+    p_entry->set_action(ForwardingInfo::COPY_ACTION);
 
     route_table_->add_entry(p_entry);
 

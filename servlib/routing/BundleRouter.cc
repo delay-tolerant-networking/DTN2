@@ -42,6 +42,7 @@ BundleRouter::Config::Config()
     : type_("static"),
       add_nexthop_routes_(true),
       default_priority_(0),
+      max_route_to_chain_(10),
       storage_quota_(0) {}
 
 BundleRouter::Config BundleRouter::config_;

@@ -18,6 +18,7 @@
 #  include <config.h>
 #endif
 
+#include "BundleRouter.h"
 #include "RouteTable.h"
 
 namespace dtn {
@@ -56,7 +57,7 @@ RouteTable::del_entry(const EndpointIDPattern& dest, const LinkRef& next_hop)
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         entry = *iter;
 
-        if (entry->dest_pattern_.equals(dest) && entry->next_hop_ == next_hop) {
+        if (entry->dest_pattern().equals(dest) && entry->link() == next_hop) {
             log_debug("del_entry *%p", entry);
             
             route_table_.erase(iter);
@@ -74,85 +75,14 @@ RouteTable::del_entry(const EndpointIDPattern& dest, const LinkRef& next_hop)
 size_t
 RouteTable::del_entries(const EndpointIDPattern& dest)
 {
-    oasys::ScopeLock l(&lock_, "RouteTable");
-
-    RouteEntryVec::iterator iter;
-    RouteEntry* entry;
-
-    // since deleting from the middle of a vector invalidates
-    // iterators for that vector, we have to loop multiple times until
-    // we don't find any more entries that match
-    int num_found = 0;
-    bool found;
-    do {
-        found = false;
-        for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-            entry = *iter;
-            
-            if (dest.equals(entry->dest_pattern_)) {
-                log_debug("del_route *%p", entry);
-                
-                route_table_.erase(iter);
-                delete entry;
-                found = true;
-                ++num_found;
-                break;
-            }
-        }
-    } while (found);
-
-    if (num_found == 0) {
-        log_debug("del_entries %s: no matches!", dest.c_str());
-    } else {
-        log_debug("del_entries %s: removed %d routes", dest.c_str(), num_found);
-    }
-    
-    return num_found;
+    return del_matching_entries(RouteEntry::DestMatches(dest));
 }
 
 //----------------------------------------------------------------------
 size_t
 RouteTable::del_entries_for_nexthop(const LinkRef& next_hop)
 {
-    oasys::ScopeLock l(&lock_, "RouteTable");
-
-    RouteEntryVec::iterator iter;
-    RouteEntry* entry;
-
-    // since deleting from the middle of a vector invalidates
-    // iterators for that vector, we have to loop multiple times.
-    
-    // since deleting from the middle of a vector invalidates
-    // iterators for that vector, we have to loop multiple times until
-    // we don't find any more entries that match
-    int num_found = 0;
-    bool found;
-    do {
-        found = false;
-        for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-            entry = *iter;
-
-            if (entry->next_hop_ == next_hop) {
-                log_debug("del_route *%p", entry);
-
-                route_table_.erase(iter);
-                delete entry;
-                found = true;
-                ++num_found;
-                break;
-            }
-        }
-    } while (found);
-
-    if (num_found == 0) {
-        log_debug("del_entries_for_nexthop %s: no matches!",
-                  next_hop->name());
-    } else {
-        log_debug("del_entries_for_nexthop %s: removed %d routes",
-                  next_hop->name(), num_found);
-    }
-    
-    return num_found;
+    return del_matching_entries(RouteEntry::NextHopMatches(next_hop));
 }
 
 //----------------------------------------------------------------------
@@ -168,65 +98,118 @@ RouteTable::clear()
 
 //----------------------------------------------------------------------
 size_t
-RouteTable::get_matching(const EndpointID& eid, const LinkRef& next_hop,
+RouteTable::get_matching(const EndpointID& eid,
+                         const LinkRef& next_hop,
                          RouteEntryVec* entry_vec) const
 {
-    oasys::ScopeLock l(&lock_, "RouteTable");
+    bool loop = false;
+    log_debug("get_matching %s (link %s)...", eid.c_str(),
+              next_hop != NULL ? next_hop->name() : "NULL");
+    size_t ret = get_matching_helper(eid, next_hop, entry_vec, &loop, 0);
+    if (loop) {
+        log_warn("route destination %s caused route table lookup loop",
+                 eid.c_str());
+    }
+    return ret;
+}
+
+//----------------------------------------------------------------------
+size_t
+RouteTable::get_matching_helper(const EndpointID& eid,
+                                const LinkRef&    next_hop,
+                                RouteEntryVec*    entry_vec,
+                                bool*             loop,
+                                int               level) const
+{
+    oasys::ScopeLock l(&lock_, "RouteTable::get_matching");
 
     RouteEntryVec::const_iterator iter;
     RouteEntry* entry;
     size_t count = 0;
 
-    log_debug("get_matching %s", eid.c_str());
-    
-    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter)
+    {
         entry = *iter;
 
         log_debug("check entry *%p", entry);
+
+        if (! entry->dest_pattern().match(eid)) {
+            continue;
+        }
         
-        if ((next_hop == NULL || entry->next_hop_ == next_hop) &&
-            entry->dest_pattern_.match(eid))
+        if (entry->link() == NULL)
         {
-            ++count;
+            ASSERT(entry->route_to().length() != 0);
+
+            if (level >= BundleRouter::config_.max_route_to_chain_) {
+                *loop = true;
+                continue;
+            }
             
-            log_debug("match entry *%p", entry);
-            
-            entry_vec->push_back(entry);
+            count += get_matching_helper(entry->route_to(), next_hop,
+                                         entry_vec, loop, level + 1);
+        }
+        else if (next_hop == NULL || entry->link() == next_hop)
+        {
+            if (std::find(entry_vec->begin(), entry_vec->end(), entry) == entry_vec->end()) {
+                log_debug("match entry *%p", entry);
+                entry_vec->push_back(entry);
+                ++count;
+            } else {
+                log_debug("entry *%p already in matches... ignoring", entry);
+            }
         }
     }
 
-    log_debug("get_matching %s done, %zu match(es)", eid.c_str(), count);
+    log_debug("get_matching %s done (level %d), %zu match(es)", eid.c_str(), level, count);
     return count;
 }
 
 //----------------------------------------------------------------------
 void
-RouteTable::dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
+RouteTable::dump(oasys::StringBuffer* buf) const
 {
-    // calculate appropriate lengths for the long endpoint ids
-    int dest_eid_limit   = 10;
-    int source_eid_limit = 10;
+    oasys::StringVector long_strings;
+
+    // calculate appropriate lengths for the long strings
+    size_t dest_eid_width   = 10;
+    size_t source_eid_width = 6;
+    size_t next_hop_width   = 10;
 
     RouteEntryVec::const_iterator iter;
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-        dest_eid_limit = std::max(dest_eid_limit,
-                                  (int)(*iter)->dest_pattern_.length());
-        source_eid_limit = std::max(dest_eid_limit,
-                                    (int)(*iter)->source_pattern_.length());
+        RouteEntry* e = *iter;
+        dest_eid_width   = std::max(dest_eid_width,
+                                    e->dest_pattern().length());
+        source_eid_width = std::max(source_eid_width,
+                                    e->source_pattern().length());
+        next_hop_width   = std::max(next_hop_width,
+                                    (e->link() != NULL) ?
+                                    e->link()->name_str().length() :
+                                    e->route_to().length());
     }
 
-    if (dest_eid_limit > 25) {
-        dest_eid_limit = 25;
-    }
-
-    if (source_eid_limit > 15) {
-        source_eid_limit = 15;
+    dest_eid_width   = std::min(dest_eid_width, (size_t)25);
+    source_eid_width = std::min(source_eid_width, (size_t)15);
+    next_hop_width   = std::min(next_hop_width, (size_t)15);
+    
+    RouteEntry::dump_header(buf, dest_eid_width, source_eid_width, next_hop_width);
+    
+    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+        (*iter)->dump(buf, &long_strings,
+                      dest_eid_width, source_eid_width, next_hop_width);
     }
     
-    RouteEntry::dump_header(dest_eid_limit, source_eid_limit, buf);
-    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-        (*iter)->dump(dest_eid_limit, source_eid_limit, buf, long_eids);
+    if (long_strings.size() > 0) {
+        buf->appendf("\nLong EIDs/Links referenced above:\n");
+        for (u_int i = 0; i < long_strings.size(); ++i) {
+            buf->appendf("\t[%d]: %s\n", i, long_strings[i].c_str());
+        }
+        buf->appendf("\n");
     }
+    
+    buf->append("\nClass of Service (COS) bits:\n"
+                "\tB: Bulk  N: Normal  E: Expedited\n\n");
 }
 
 //----------------------------------------------------------------------

@@ -21,9 +21,10 @@
 #include "DTLSRConfig.h"
 
 #include "BundleRouter.h"
-#include "MultiGraph.h"
 #include "DuplicateCache.h"
+#include "MultiGraph.h"
 #include "TableBasedRouter.h"
+#include "RouteEntry.h"
 #include "reg/Registration.h"
 
 namespace dtn {
@@ -98,6 +99,13 @@ protected:
         std::string id_;	  ///< link name
         LinkParams  params_;	  ///< link params
         oasys::Time last_update_; ///< last time this edge was updated
+    };
+
+    //----------------------------------------------------------------------
+    /// Class used for router-specific state in the routing table.
+    struct RouteInfo : public RouteEntryInfo {
+        RouteInfo(RoutingGraph::Edge* e) : edge_(e) {}
+        RoutingGraph::Edge* edge_;
     };
 
     //----------------------------------------------------------------------

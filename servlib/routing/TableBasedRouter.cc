@@ -139,7 +139,7 @@ TableBasedRouter::add_nexthop_route(const LinkRef& link)
         RouteEntryVec ignored;
         if (route_table_->get_matching(eid_pattern, link, &ignored) == 0) {
             RouteEntry *entry = new RouteEntry(eid_pattern, link);
-            entry->action_ = ForwardingInfo::FORWARD_ACTION;
+            entry->set_action(ForwardingInfo::FORWARD_ACTION);
             add_route(entry);
         }
     }
@@ -152,8 +152,7 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
     if (route == NULL)
         return false;
 
-    return BundleRouter::should_fwd(bundle,route->next_hop_,
-            (ForwardingInfo::action_t) route->action_);
+    return BundleRouter::should_fwd(bundle, route->link(), route->action());
 }
 
 //----------------------------------------------------------------------
@@ -219,20 +218,8 @@ TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
 void
 TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 {
-    EndpointIDVector long_eids;
     buf->appendf("Route table for %s router:\n\n", name_.c_str());
-    route_table_->dump(buf, &long_eids);
-
-    if (long_eids.size() > 0) {
-        buf->appendf("\nLong Endpoint IDs referenced above:\n");
-        for (u_int i = 0; i < long_eids.size(); ++i) {
-            buf->appendf("\t[%d]: %s\n", i, long_eids[i].c_str());
-        }
-        buf->appendf("\n");
-    }
-    
-    buf->append("\nClass of Service (COS) bits:\n"
-                "\tB: Bulk  N: Normal  E: Expedited\n\n");
+    route_table_->dump(buf);
 }
 
 //----------------------------------------------------------------------
@@ -248,10 +235,10 @@ TableBasedRouter::tcl_dump_state(oasys::StringBuffer* buf)
     {
         const RouteEntry* e = *iter;
         buf->appendf(" {%s %s source_eid %s priority %d} ",
-                     e->dest_pattern_.c_str(),
-                     e->next_hop_->name(),
-                     e->source_pattern_.c_str(),
-                     e->route_priority_);
+                     e->dest_pattern().c_str(),
+                     e->link()->name(),
+                     e->source_pattern().c_str(),
+                     e->priority());
     }
 }
 
@@ -259,13 +246,13 @@ TableBasedRouter::tcl_dump_state(oasys::StringBuffer* buf)
 bool
 TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
 {
-    LinkRef link = route->next_hop_;
+    const LinkRef& link = route->link();
 
     // if the link is open and not busy, send the bundle to it
     if (link->isopen() && !link->isbusy()) {
         log_debug("sending *%p to *%p", bundle, link.object());
         actions_->send_bundle(bundle, link, route->action(),
-                              route->custody_timeout());
+                              route->custody_spec());
         return true;
     }
 
@@ -281,7 +268,7 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
                   bundle, link.object());
         bundle->fwdlog_.add_entry(link, route->action(),
                                   ForwardingInfo::TRANSMIT_PENDING,
-                                  route->custody_timeout());
+                                  route->custody_spec());
     }
     
     // if the link is available and not open, open it

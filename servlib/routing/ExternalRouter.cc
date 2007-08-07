@@ -114,20 +114,8 @@ ExternalRouter::shutdown()
 void
 ExternalRouter::get_routing_state(oasys::StringBuffer* buf)
 {
-    EndpointIDVector long_eids;
     buf->appendf("Static route table for %s router(s):\n", name_.c_str());
-    route_table_->dump(buf, &long_eids);
-
-    if (long_eids.size() > 0) {
-        buf->appendf("\nLong Endpoint IDs referenced above:\n");
-        for (u_int i = 0; i < long_eids.size(); ++i) {
-            buf->appendf("\t[%d]: %s\n", i, long_eids[i].c_str());
-        }
-        buf->appendf("\n");
-    }
-    
-    buf->append("\nClass of Service (COS) bits:\n"
-                "\tB: Bulk  N: Normal  E: Expedited\n\n");
+    route_table_->dump(buf);
 }
 
 // Serialize events and UDP multicast to external routers

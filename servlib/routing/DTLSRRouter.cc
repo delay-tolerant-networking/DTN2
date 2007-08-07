@@ -18,6 +18,7 @@
 #include <config.h>
 #endif
 
+#include <algorithm>
 #include <oasys/debug/DebugUtils.h>
 
 #include "DTLSRRouter.h"
@@ -418,6 +419,14 @@ DTLSRRouter::invalidate_routes()
 }
 
 //----------------------------------------------------------------------
+struct IsDTLSRRoute {
+    bool operator()(RouteEntry* entry) {
+        // XXX/demmer this could do a dynamic cast or some such...
+        return (entry->info() != NULL);
+    }
+};
+
+//----------------------------------------------------------------------
 void
 DTLSRRouter::recompute_routes()
 {
@@ -431,7 +440,8 @@ DTLSRRouter::recompute_routes()
 
     log_debug("recomputing all routes");
     last_update_.get_time();
-    route_table_->clear();
+
+    route_table_->del_matching_entries(IsDTLSRRoute());
 
     // loop through all the nodes in the graph, finding the right
     // route and re-adding it
@@ -476,7 +486,9 @@ DTLSRRouter::recompute_routes()
                   dest_eid.c_str(), link->name());
 
         // XXX/demmer shouldn't this call check_next_hop??
-        route_table_->add_entry(new RouteEntry(dest_eid, link));
+        RouteEntry* e = new RouteEntry(dest_eid, link);
+        e->set_info(new RouteInfo(edge));
+        route_table_->add_entry(e);
     }
 
     // go through all bundles and re-route them

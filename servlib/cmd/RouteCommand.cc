@@ -54,6 +54,11 @@ RouteCommand::RouteCommand()
                                "Default priority for new routes "
                                "(initially zero)"));
 
+    bind_var(new oasys::IntOpt("max_route_to_chain",
+                               &BundleRouter::config_.max_route_to_chain_,
+                               "length",
+                               "Maximum number of route_to links to follow"));
+
     bind_var(new oasys::StringOpt("dtlsr_area",
                                   &DTLSRConfig::instance()->area_,
                                   "area", "Administrative area for the local node"));
@@ -150,17 +155,24 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             resultf("invalid destination eid %s", dest_str);
             return TCL_ERROR;
         }
-        const char* name = argv[3];
 
-        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        const char* next_hop = argv[3];
 
-        if (link == NULL) {
-            resultf("no such link %s", name);
+        RouteEntry* entry;
+        LinkRef link;
+        EndpointIDPattern route_to;
+
+        link = BundleDaemon::instance()->contactmgr()->find_link(next_hop);
+        if (link != NULL) {
+            entry = new RouteEntry(dest, link);
+        } else if (route_to.assign(next_hop)) {
+            entry = new RouteEntry(dest, route_to);
+        } else {
+            resultf("next hop %s is not a valid link or endpoint id",
+                    next_hop);
             return TCL_ERROR;
         }
 
-        RouteEntry* entry = new RouteEntry(dest, link);
-        
         // skip over the consumed arguments and parse optional ones.
         // any invalid options are shifted into argv[0]
         argc -= 4;

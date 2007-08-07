@@ -34,13 +34,30 @@ RouteEntry::RouteEntry(const EndpointIDPattern& dest_pattern,
       bundle_cos_((1 << Bundle::COS_BULK) |
                   (1 << Bundle::COS_NORMAL) |
                   (1 << Bundle::COS_EXPEDITED)),
-      route_priority_(0),
-      next_hop_(link.object(), "RouteEntry"),
+      priority_(BundleRouter::config_.default_priority_),
+      link_(link.object(), "RouteEntry"),
+      route_to_(),
       action_(ForwardingInfo::FORWARD_ACTION),
-      custody_timeout_(), // XXX/demmer rename to custody_spec
+      custody_spec_(),
       info_(NULL)
 {
-    route_priority_ = BundleRouter::config_.default_priority_;
+}
+
+//----------------------------------------------------------------------
+RouteEntry::RouteEntry(const EndpointIDPattern& dest_pattern,
+                       const EndpointIDPattern& route_to)
+    : dest_pattern_(dest_pattern),
+      source_pattern_(EndpointIDPattern::WILDCARD_EID()),
+      bundle_cos_((1 << Bundle::COS_BULK) |
+                  (1 << Bundle::COS_NORMAL) |
+                  (1 << Bundle::COS_EXPEDITED)),
+      priority_(BundleRouter::config_.default_priority_),
+      link_("RouteEntry"),
+      route_to_(route_to),
+      action_(ForwardingInfo::FORWARD_ACTION),
+      custody_spec_(),
+      info_(NULL)
+{
 }
 
 //----------------------------------------------------------------------
@@ -54,7 +71,7 @@ RouteEntry::~RouteEntry()
 int
 RouteEntry::parse_options(int argc, const char** argv, const char** invalidp)
 {
-    int num = custody_timeout_.parse_options(argc, argv, invalidp);
+    int num = custody_spec_.parse_options(argc, argv, invalidp);
     if (num == -1) {
         return -1;
     }
@@ -64,7 +81,7 @@ RouteEntry::parse_options(int argc, const char** argv, const char** invalidp)
     oasys::OptParser p;
 
     p.addopt(new EndpointIDOpt("source_eid", &source_pattern_));
-    p.addopt(new oasys::UIntOpt("route_priority", &route_priority_));
+    p.addopt(new oasys::UIntOpt("route_priority", &priority_));
     p.addopt(new oasys::UIntOpt("cos_flags", &bundle_cos_));
     oasys::EnumOpt::Case fwdopts[] = {
         {"forward", ForwardingInfo::FORWARD_ACTION},
@@ -101,10 +118,9 @@ RouteEntry::format(char* bp, size_t sz) const
     // XXX/demmer when the route table is serialized, add an integer
     // id for the route entry and include it here.
     return snprintf(bp, sz, "%s -> %s (%s)",
-                    dest_pattern_.c_str(),
-                    next_hop_->nexthop(),
-                    ForwardingInfo::action_to_str(
-                        static_cast<ForwardingInfo::action_t>(action_)));
+                    dest_pattern().c_str(),
+                    next_hop_str().c_str(),
+                    ForwardingInfo::action_to_str(action()));
 }
 
 static const char* DASHES =
@@ -117,78 +133,91 @@ static const char* DASHES =
 
 //----------------------------------------------------------------------
 void
-RouteEntry::dump_header(int dest_eid_limit, int source_eid_limit,
-                        oasys::StringBuffer* buf)
+RouteEntry::dump_header(oasys::StringBuffer* buf,
+                        int dest_eid_width,
+                        int source_eid_width,
+                        int next_hop_width)
 {
     // though this is a less efficient way of appending this data, it
     // makes it much easier to copy the format string to the ::dump
     // method, and given that it's only used for diagnostics, the
     // performance impact is negligible
-    buf->appendf("%-*.*s %-*.*s %3s    %-13s %-7s %5s [%-15s]\n"
-                 "%-*.*s %-*.*s %3s    %-13s %-7s %5s [%-5s %-3s %-5s]\n"
+    buf->appendf("%-*.*s %-*.*s %3s    %-*.*s %-7s %5s [%-15s]\n"
+                 "%-*.*s %-*.*s %3s    %-*.*s %-7s %5s [%-5s %-3s %-5s]\n"
                  "%.*s\n",
-                 dest_eid_limit, dest_eid_limit, "destination",
-                 source_eid_limit, source_eid_limit, " source",
+                 dest_eid_width, dest_eid_width, "destination",
+                 source_eid_width, source_eid_width, "source",
                  "COS",
-                 "link",
+                 next_hop_width, next_hop_width, "next hop",
                  " fwd  ",
                  "route",
                  "custody timeout",
                  
-                 dest_eid_limit, dest_eid_limit, " endpoint",
-                 source_eid_limit, source_eid_limit, "endpoint",
+                 dest_eid_width, dest_eid_width, "endpoint id",
+                 source_eid_width, source_eid_width, " eid",
                  "BNE",
-                 "name",
+                 next_hop_width, next_hop_width, "link/eid",
                  "action",
                  "prio",
                  "min",
                  "pct",
                  "  max",
                  
-                 dest_eid_limit + source_eid_limit + 65,
+                 dest_eid_width + source_eid_width + next_hop_width + 51,
                  DASHES);
 }
 
 //----------------------------------------------------------------------
 void
-RouteEntry::dump(int dest_eid_limit, int source_eid_limit,
-                 oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
+RouteEntry::append_long_string(oasys::StringBuffer* buf,
+                               oasys::StringVector* long_strings,
+                               int width, const std::string& str)
 {
-    size_t len;
+    size_t tmplen;
     char tmp[64];
-    if (dest_pattern_.length() <= (size_t)dest_eid_limit) {
-        buf->appendf("%-*.*s ", dest_eid_limit, dest_eid_limit,
-                     dest_pattern_.c_str());
-    } else {
-        len = snprintf(tmp, sizeof(tmp), "[%zu] ", long_eids->size());
-        buf->appendf("%.*s... %s",
-                     dest_eid_limit - 3 - (int)len,
-                     dest_pattern_.c_str(), tmp);
-        long_eids->push_back(dest_pattern_);
-    }
     
-    if (source_pattern_.length() <= (size_t)source_eid_limit) {
-        buf->appendf("%-*.*s ", source_eid_limit, source_eid_limit,
-                     source_pattern_.c_str());
+    if (str.length() <= (size_t)width) {
+        buf->appendf("%-*.*s ", width, width, str.c_str());
     } else {
-        len = snprintf(tmp, sizeof(tmp), "[%zu] ", long_eids->size());
+        size_t index;
+        for (index = 0; index < long_strings->size(); ++index) {
+            if ((*long_strings)[index] == str) break;
+        }
+        if (index == long_strings->size()) {
+            long_strings->push_back(str);
+        }
+            
+        tmplen = snprintf(tmp, sizeof(tmp), "[%zu] ", index);
         buf->appendf("%.*s... %s",
-                     source_eid_limit - 3 - (int)len,
-                     source_pattern_.c_str(), tmp);
-        long_eids->push_back(source_pattern_);
+                     width - 3 - (int)tmplen, str.c_str(), tmp);
+
     }
-    
-    buf->appendf("%c%c%c -> %-13.13s %7s %5d [%-5d %3d %5d]\n",
+}
+
+//----------------------------------------------------------------------
+void
+RouteEntry::dump(oasys::StringBuffer* buf,
+                 oasys::StringVector* long_strings,
+                 int dest_eid_width,
+                 int source_eid_width,
+                 int next_hop_width) const
+{
+    append_long_string(buf, long_strings, dest_eid_width, dest_pattern().str());
+    append_long_string(buf, long_strings, source_eid_width, source_pattern().str());
+
+    buf->appendf("%c%c%c -> ",
                  (bundle_cos_ & (1 << Bundle::COS_BULK))      ? '1' : '0',
                  (bundle_cos_ & (1 << Bundle::COS_NORMAL))    ? '1' : '0',
-                 (bundle_cos_ & (1 << Bundle::COS_EXPEDITED)) ? '1' : '0',
-                 next_hop_->name(),
-                 ForwardingInfo::action_to_str(
-                    static_cast<ForwardingInfo::action_t>(action_)),
-                 route_priority_,
-                 custody_timeout_.min_,
-                 custody_timeout_.lifetime_pct_,
-                 custody_timeout_.max_);
+                 (bundle_cos_ & (1 << Bundle::COS_EXPEDITED)) ? '1' : '0');
+
+    append_long_string(buf, long_strings, next_hop_width, next_hop_str());
+    
+    buf->appendf("%7s %5d [%-5d %3d %5d]\n",
+                 ForwardingInfo::action_to_str(action()),
+                 priority(),
+                 custody_spec().min_,
+                 custody_spec().lifetime_pct_,
+                 custody_spec().max_);
 }
 
 //----------------------------------------------------------------------
@@ -197,9 +226,14 @@ RouteEntry::serialize(oasys::SerializeAction *a)
 {
     a->process("dest_pattern", &dest_pattern_);
     a->process("source_pattern", &source_pattern_);
-    a->process("route_priority", &route_priority_);
+    a->process("bundle_cos", &bundle_cos_);
+    a->process("priority", &priority_);
+    a->process("link", const_cast<std::string *>(&link_->name_str()));
+    a->process("route_to", &route_to_);
     a->process("action", &action_);
-    a->process("link", const_cast<std::string *>(&next_hop_->name_str()));
+    a->process("custody_spec", &custody_spec_);
+
+    // XXX/demmer handle serialization of info
 }
 
 } // namespace dtn

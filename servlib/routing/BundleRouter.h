@@ -82,6 +82,9 @@ public:
         /// Default priority for new routes
         int default_priority_;
 
+        /// Maximum number of route_to entries to follow for a lookup
+        int max_route_to_chain_;
+
         /// Storage quota for bundle payloads
         u_int64_t storage_quota_;
         

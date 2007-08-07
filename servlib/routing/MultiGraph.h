@@ -177,6 +177,9 @@ public:
         Edge(Node* s, Node* d, const _EdgeInfo info)
             : source_(s), dest_(d), info_(info) {}
 
+        /// Destructor clears contents for debugging purposes
+        ~Edge() { source_ = NULL; dest_ = NULL; }
+
         Node*       source()       { return source_; }
         Node*       dest()         { return dest_; }
         const Node* source() const { return source_; }

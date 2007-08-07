@@ -72,7 +72,7 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
               "link_created *%p", link.object());
 
     RouteEntry* entry = new RouteEntry(all_eids_, link);
-    entry->action_ = ForwardingInfo::COPY_ACTION;
+    entry->set_action(ForwardingInfo::COPY_ACTION);
 
     // adds the route to the table and checks for bundles that may
     // need to be sent to the new link
