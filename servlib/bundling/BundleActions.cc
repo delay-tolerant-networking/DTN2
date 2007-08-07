@@ -208,11 +208,13 @@ BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
               bundle, link->type_str(), link->name(), link->nexthop());
               
     // Remove the bundle from the link's delayed-send queue
+    bool dequeued = false;
     if (link->queue()->erase(bundle, false))
     {
         log_info("removed delayed-send bundle id:%d from link %s queue",
                  bundle->bundleid_,
                  link->name());
+        dequeued = true;
     }
 
     // If that bundle is in flight on the link on the link, cancel it
@@ -220,7 +222,17 @@ BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
     bool ok = bundle->fwdlog_.get_latest_entry(link, &fwdinfo);
     if (ok && (fwdinfo.state() == ForwardingInfo::IN_FLIGHT))
     {
+        // the cancel_bundle call should generate a cancelled event
         return link->clayer()->cancel_bundle(link, bundle);
+    }
+    else
+    {
+        // if the bundle was on the link queue but not yet sent to the
+        // convergence layer, we still need a send cancelled event to
+        // clean up the xmit blocks state
+        if (dequeued) {
+            BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
+        }
     }
     
     return false;
