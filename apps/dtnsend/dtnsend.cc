@@ -28,6 +28,16 @@
 #include <sys/time.h>
 #include <time.h>
 
+#ifdef __FreeBSD__
+/* Needed for PATH_MAX, Linux doesn't need it */
+#include <sys/syslimits.h>
+#endif
+
+#ifndef PATH_MAX
+/* A conservative fallback */
+#define PATH_MAX 1024
+#endif
+
 #include <vector>
 
 #include "dtn_api.h"
@@ -495,6 +505,26 @@ void parse_options(int argc, char**argv)
         fprintf(stderr, "dtnsend: type argument '%d' invalid\n", arg_type);
         print_usage();
         exit(1);
+    }
+
+    // dtnd needs full pathnames.
+    if ( arg_type == 'f' && data_source[0] != '/' )
+    {
+        char fullpath[PATH_MAX];
+
+        if ( getcwd(fullpath, PATH_MAX) == NULL )
+        {
+            perror("cwd");
+            exit(1);
+        }
+
+        strncat(fullpath, "/", PATH_MAX - strlen(fullpath) - 1 );
+        strncat(fullpath, data_source, PATH_MAX - strlen(fullpath) - 1);
+
+        free(data_source);
+
+        data_source = (char*)malloc(sizeof(char)*(strlen(fullpath) + 1));
+        memcpy(data_source, fullpath, sizeof(char)*(strlen(fullpath) + 1));
     }
 }
 
