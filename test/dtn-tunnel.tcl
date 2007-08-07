@@ -107,15 +107,17 @@ test::script {
         puts "ERROR: unexpected reply of $x (not pong)"
     }
 
-    puts "* Closing the socket"
+    puts "* Closing the socket and the client channel"
     close $sock
     after 1000
+    run::kill_pid 0 $client_pid TERM
+    run::wait_for_pid_exit 0 $client_pid 
+    after 1000
+    
     tell_dtnd 0 bundle reset_stats
     tell_dtnd 1 bundle reset_stats
     
-    puts "* Closing and restarting the client tunnel"
-    run::kill_pid 0 $client_pid TERM
-    run::wait_for_pid_exit 0 $client_pid 
+    puts "* Restarting the client tunnel"
     set client_pid [dtn::run_app 0 dtntunnel \
             "-T $client_addr:$client_port:$server_addr:$server_port \
             dtn://host-1/dtntunnel"]
