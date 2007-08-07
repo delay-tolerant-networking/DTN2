@@ -17,6 +17,7 @@
 #ifndef _CUSTODYTIMER_H_
 #define _CUSTODYTIMER_H_
 
+#include <oasys/serialize/Serialize.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Time.h>
 #include "bundling/BundleRef.h"
@@ -43,7 +44,7 @@ class Bundle;
  * the bundle's lifetime (lifetime_pct_), and a maximum bound (max_).
  * All values are in seconds.
  */
-class CustodyTimerSpec {
+class CustodyTimerSpec : public oasys::SerializableObject {
 public:
     /**
      * Custody timer defaults, values set in the static initializer.
@@ -80,6 +81,8 @@ public:
      */
     int parse_options(int argc, const char* argv[],
                       const char** invalidp = NULL);
+
+    void serialize(oasys::SerializeAction* a);
 
     u_int32_t min_;		///< min timer
     u_int32_t lifetime_pct_;	///< percentage of lifetime

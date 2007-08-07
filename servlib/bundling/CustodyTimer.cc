@@ -67,6 +67,15 @@ CustodyTimerSpec::parse_options(int argc, const char* argv[],
 }
 
 //----------------------------------------------------------------------
+void
+CustodyTimerSpec::serialize(oasys::SerializeAction* a)
+{
+    a->process("min", &min_);
+    a->process("lifetime_pct", &lifetime_pct_);
+    a->process("max", &max_);
+}
+
+//----------------------------------------------------------------------
 CustodyTimer::CustodyTimer(const oasys::Time& xmit_time,
                            const CustodyTimerSpec& spec,
                            Bundle* bundle, const LinkRef& link)
