@@ -25,9 +25,24 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "dtn_api.h"
 
 #define BUFSIZE 16
+#define BLOCKSIZE 8192
+#define COUNTER_MAX_DIGITS 9
+
+// Find the maximum commandline length
+#ifdef __FreeBSD__
+/* Needed for PATH_MAX, Linux doesn't need it */
+#include <sys/syslimits.h>
+#endif
+
+#ifndef PATH_MAX
+/* A conservative fallback */
+#define PATH_MAX 1024
+#endif
 
 const char *progname;
 
@@ -44,6 +59,8 @@ int   change		= 0;    	// change existing registration
 int   unregister	= 0;    	// remove existing registration 
 int   recv_timeout	= -1;    	// timeout to dtn_recv call
 int   no_find_reg	= 0;    	// omit call to dtn_find_registration
+char filename[PATH_MAX];		// Destination filename for file xfers
+dtn_bundle_payload_location_t bundletype = DTN_PAYLOAD_MEM;
 
 void
 usage()
@@ -65,6 +82,8 @@ usage()
     fprintf(stderr, " -u call dtn_unregister and immediately exit\n");
     fprintf(stderr, " -N don't try to find an existing registration\n");
     fprintf(stderr, " -t <timeout> timeout value for call to dtn_recv\n");
+    fprintf(stderr, " -o <template> Write out transfers to files using this template (# chars are\n"
+            "replaced with a counter). Example: f##.bin goes to f00.bin, f01.bin, etc...\n");
 }
 
 void
@@ -74,9 +93,11 @@ parse_options(int argc, char**argv)
 
     progname = argv[0];
 
+    memset(filename, 0, sizeof(char) * PATH_MAX);
+
     while (!done)
     {
-        c = getopt(argc, argv, "vqhHd:r:e:f:F:xn:cuNt:");
+        c = getopt(argc, argv, "vqhHd:r:e:f:F:xn:cuNt:o:");
         switch (c)
         {
         case 'v':
@@ -132,6 +153,9 @@ parse_options(int argc, char**argv)
         case 't':
             recv_timeout = atoi(optarg);
             break;
+        case 'o':
+            strncpy(filename, optarg, PATH_MAX);
+            break;
         case -1:
             done = 1;
             break;
@@ -162,6 +186,12 @@ parse_options(int argc, char**argv)
         usage();
         exit(1);
     }
+
+    // the default is to use memory transfer mode, but if someone specifies a
+    // filename then we need to tell the API to expect a file
+    if ( filename[0] != '\0' )
+        bundletype = DTN_PAYLOAD_FILE;
+
 }
 
 
@@ -209,6 +239,108 @@ print_data(char* buffer, u_int length)
                s_buffer);
     }
     printf("\n");
+}
+
+/* ----------------------------------------------------------------------- */
+/* Builds the temporary file based on the template given and an integer
+ * counter value
+ */
+int buildfilename(char* template, char* newfilename, int counter )
+{
+    char counterasstring[COUNTER_MAX_DIGITS];
+    char formatstring[10];
+    char* startloc;
+    char* endloc;
+    int templatelen;
+
+    strcpy(newfilename, template);
+
+    endloc = rindex(newfilename, '#');
+    /* No template in the filename, just copy it as is */
+    if ( endloc == NULL )
+        return 0;
+        
+    /* Search backwards for the start of the template */
+    for ( startloc = endloc; *startloc == '#' && startloc != template; 
+          startloc -= 1 );
+
+    startloc += 1;
+
+    templatelen = endloc - startloc + 1;
+    if ( templatelen > COUNTER_MAX_DIGITS )
+        templatelen = COUNTER_MAX_DIGITS;
+
+    sprintf(formatstring, "%%0%dd", templatelen);
+    sprintf(counterasstring, formatstring, counter);
+
+    if ( strlen(counterasstring) > (unsigned int)templatelen )
+        fprintf(stderr, "Warning: Filename template not large enough "
+                "to support counter value %d\n", counter);
+
+    memcpy(startloc, counterasstring, sizeof(char) * templatelen);
+
+    return 0;
+}
+
+/* ----------------------------------------------------------------------- */
+/* File transfers suffer considerably from the inability to safely send 
+ * metadata on the same channel as the file transfer in DTN.  Perhaps we 
+ * should work around this?
+ */
+int
+handle_file_transfer(dtn_bundle_spec_t spec, dtn_bundle_payload_t payload,
+                     int* total_bytes, int counter)
+{
+    int tempdes;
+    int destdes;
+    char block[BLOCKSIZE];
+    ssize_t bytesread;
+    struct stat fileinfo;
+    char currentfile[PATH_MAX];
+
+    // Copy the file into place
+    tempdes = open(payload.filename.filename_val, O_RDONLY);
+
+    if ( tempdes < 0 )
+    {
+        fprintf(stderr, "While opening the temporary file for reading '%s': %s\n",
+                payload.filename.filename_val, strerror(errno));
+        exit(1);
+    }
+
+    // Create the filename by searching for ### characters in the given
+    // filename and replacing that with an incrementing counter.  
+    buildfilename(filename, currentfile, counter);
+
+    destdes = creat(currentfile, 0644);
+
+    if ( destdes < 0 )
+    {
+        fprintf(stderr, "While opening output file for writing '%s': %s\n",
+                filename, strerror(errno));
+        exit(1);
+    }
+
+    // Duplicate the file
+    while ( (bytesread = read(tempdes, block, sizeof(block))) > 0 )
+        write(destdes, block, bytesread);
+
+    // Remove the temp file
+    unlink(payload.filename.filename_val);
+
+    if ( stat(currentfile, &fileinfo) == -1 )
+    {
+        fprintf(stderr, "Unable to stat destination file '%s': %s\n",
+                currentfile, strerror(errno));
+        return 1;
+    }
+
+    printf("%d byte file from [%s]: transit time=%d ms, written to '%s'\n",
+           (int)fileinfo.st_size, spec.source.uri, 0, currentfile);        
+
+    *total_bytes += fileinfo.st_size;
+
+    return 0;
 }
 
 int
@@ -357,12 +489,20 @@ main(int argc, char** argv)
             printf("dtn_recv [%s]...\n", local_eid.uri);
         }
     
-        if ((ret = dtn_recv(handle, &spec,
-                            DTN_PAYLOAD_MEM, &payload, recv_timeout)) < 0)
+        if ((ret = dtn_recv(handle, &spec, bundletype, &payload, 
+                                                        recv_timeout)) < 0)
         {
             fprintf(stderr, "error getting recv reply: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));
             goto err;
+        }
+
+        // Files need to be handled differently than memory transfers
+        if ( bundletype == DTN_PAYLOAD_FILE )
+        {
+                handle_file_transfer(spec, payload, &total_bytes, i);
+                dtn_free_payload(&payload);
+                continue;
         }
 
         total_bytes += payload.buf.buf_len;
