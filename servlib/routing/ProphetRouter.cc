@@ -297,7 +297,7 @@ ProphetRouter::handle_link_available(LinkAvailableEvent* e)
     ASSERT(next_hop != NULL);
     ASSERT(!next_hop->isdeleted());
 
-    // Prophet initiates its protocol based on handle_open_contact,
+    // Prophet initiates its protocol based on handle_contact_up,
     // which fires upon success link open ... so poke it and see 
     // what happens
     if (!next_hop->isopen())
