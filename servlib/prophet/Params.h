@@ -35,12 +35,12 @@ public:
     /**
      * Time between HELLO beacons (in 100ms units)
      */
-    static const u_int8_t HELLO_INTERVAL = 255; ///< 25.5 sec (arbitrary)
+    static const u_int8_t HELLO_INTERVAL = 20; ///< 2 sec (arbitrary)
 
     /**
      * Max units of HELLO_INTERVAL before peer is considered unreachable
      */
-    static const u_int HELLO_DEAD     = 20; ///< 8.5 min (arbitrary)
+    static const u_int HELLO_DEAD     = 20; ///< 40 sec (arbitrary)
 
     /**
      * Max times to forward a bundle for GTMX
@@ -55,7 +55,7 @@ public:
     /**
      * Seconds between aging of nodes and Prophet ACKs
      */
-    static const u_int AGE_PERIOD = 1800; ///< arbitrary
+    static const u_int AGE_PERIOD = 180; ///< 3 min (arbitrary)
 
     /**
      * Current version of the protocol
