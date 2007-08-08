@@ -1,6 +1,29 @@
 Release Notes for DTN2
 ----------------------
 
+2.4.1 (August 2007) 
+-------------------
+- Using SWIG, added bindings to export a version of the application
+  interface to different scripting languages, currently supporting
+  Tcl, Python, and Perl.
+
+- Fixed the compilation errors in 2.4.0 when trying to build the
+  external components. Changed the default configuration for these to
+  be enabled by default to avoid this oversight in the future.
+
+- Implemented a polling feature in the API so applications can use
+  select() to wait for bundle arrivals on the IPC handle.
+
+- Fixed the rpm specification file so the rpm builds work again.
+
+- Added a dtnhttpproxy application to route http requests over a DTN
+  network.
+
+- Add a feature to the routing table to allow routes to point to
+  alternate endpoint id instead of only a next hop link.
+
+- Minor miscelleneous other bug fixes and features.
+
 2.4.0 (July 2007) 
 -----------------
 
