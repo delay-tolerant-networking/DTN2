@@ -14,6 +14,10 @@
 #    limitations under the License.
 #
 
+#
+# SWIG exported dtn api example in tcl
+#
+
 load libdtntcl[info sharedlibextension] dtn
 
 set h [dtn_open]

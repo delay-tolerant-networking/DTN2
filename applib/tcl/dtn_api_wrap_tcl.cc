@@ -1617,8 +1617,8 @@ static swig_module_info swig_module = {swig_types, 30, 0, 0, 0, 0};
 
 /* -------- TYPES TABLE (END) -------- */
 
-#define SWIG_init    Dtn_Init
-#define SWIG_name    "dtn"
+#define SWIG_init    Dtnapi_Init
+#define SWIG_name    "dtnapi"
 #define SWIG_prefix  ""
 #define SWIG_version "0.0"
 
@@ -1656,9 +1656,9 @@ SWIGEXPORT int SWIG_init(Tcl_Interp *);
 /* Include files needed to build the wrapper code */
 using namespace std;
 
-#include "dtn_types.h"
-#include "dtn_api.h"
-#include "dtn_api_wrap.cc"
+#include "../dtn_types.h"
+#include "../dtn_api.h"
+#include "../dtn_api_wrap.cc"
 
 
 #include <limits.h>
@@ -7982,7 +7982,7 @@ SWIGEXPORT int SWIG_init(Tcl_Interp *interp) {
   SWIG_Tcl_SetConstantObj(interp, "DTN_ERRMAX", SWIG_From_int(static_cast< int >(255)));
   return TCL_OK;
 }
-SWIGEXPORT int Dtn_SafeInit(Tcl_Interp *interp) {
+SWIGEXPORT int Dtnapi_SafeInit(Tcl_Interp *interp) {
   return SWIG_init(interp);
 }
 

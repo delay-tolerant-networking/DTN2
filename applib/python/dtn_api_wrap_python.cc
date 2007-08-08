@@ -2510,11 +2510,11 @@ static swig_module_info swig_module = {swig_types, 30, 0, 0, 0, 0};
 #endif
 
 /*-----------------------------------------------
-              @(target):= _dtn.so
+              @(target):= _dtnapi.so
   ------------------------------------------------*/
-#define SWIG_init    init_dtn
+#define SWIG_init    init_dtnapi
 
-#define SWIG_name    "_dtn"
+#define SWIG_name    "_dtnapi"
 
 #define SWIGVERSION 0x010331 
 #define SWIG_VERSION SWIGVERSION
@@ -2593,9 +2593,9 @@ namespace swig {
 /* Include files needed to build the wrapper code */
 using namespace std;
 
-#include "dtn_types.h"
-#include "dtn_api.h"
-#include "dtn_api_wrap.cc"
+#include "../dtn_types.h"
+#include "../dtn_api.h"
+#include "../dtn_api_wrap.cc"
 
 
   #define SWIG_From_long   PyInt_FromLong 

@@ -58,6 +58,12 @@ ALLSRCS := $(CLIENTLIB_SRCS) $(CLIENT_EXTRA_SRCS) $(SERVERLIB_SRCS)
 all: libs
 
 #
+# Shorthand rule for versioned library extensions
+#
+VLIB   = $(DTN_VERSION).a
+VSHLIB = $(DTN_VERSION).$(SHLIB_EXT)
+
+#
 # rpcgen emits code that has unused variables, so we can't use our
 # normally stringent warnings
 #
@@ -76,6 +82,12 @@ endif
 #
 # Include the common rules and the version rules
 #
+CLEAN_OTHER := cleanother
+.PHONY: cleanother
+cleanother:
+	@echo "cleaning up miscellaneous generated files/directories... $(OTHER_FILES)" 
+	@rm -rf $(OTHER_FILES)
+
 include ../Rules.make
 include $(SRCDIR)/dtn-version.mk
 
@@ -90,43 +102,69 @@ xdrs:
 	rpcgen -c dtn_types.x -o dtn_types_xdr.c
 
 #
-# SWIG Rules
+# SWIG rules to generate the language-specific bindings
 #
 .PHONY: swig
 swig: 
-	swig -c++ -tcl    -w302          -o dtn_api_wrap_tcl.cc    dtn_api.i
-	swig -c++ -python -w302 -classic -o dtn_api_wrap_python.cc dtn_api.i
+	swig -c++ -tcl    -w302 -o tcl/dtn_api_wrap_tcl.cc    dtn_api.i
+	swig -c++ -perl   -w302 -shadow -o perl/dtn_api_wrap_perl.cc  dtn_api.i
+	swig -c++ -python -w302 -o python/dtn_api_wrap_python.cc -classic dtn_api.i
 
-libdtntcl-$(DTN_VERSION).$(SHLIB_EXT): dtn_api_wrap_tcl.o libdtnapi-$(DTN_VERSION).$(SHLIB_EXT)
+#
+# Swig rules for Tcl
+#
+.PHONY: tclapi
+tclapi: tcl/libdtntcl-$(VSHLIB)
+tcl/libdtntcl-$(VSHLIB): tcl/dtn_api_wrap_tcl.o libdtnapi-$(VSHLIB)
 	$(CXX) $(CXXFLAGS) $< $(LDFLAGS_SHLIB) $(LDFLAGS) \
 		-ldtnapi-$(DTN_VERSION) $(TCL_LDFLAGS) -o $@
 
-# Add rules for python, but don't build by default for now
-ifeq ($(BUILD_SYSTEM),Darwin)
-PYTHON_FLAGS := -I /Library/Frameworks/Python.framework/Headers -framework Python 
-endif
-libdtnpy-$(DTN_VERSION).$(SHLIB_EXT): dtn_api_wrap_python.o
-	$(CXX) $(CXXFLAGS) $(PYTHON_FLAGS) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) \
-		-ldtnapi$(DTN_VERSION) -o $@
+#
+# Swig rules for Python
+#
+.PHONY: pythonapi pythonapi_install
+pythonapi: python/dtnapi.pyc
+python/dtnapi.pyc: python/setup.py python/dtn_api_wrap_python.cc libdtnapi-$(VSHLIB)
+	cd python && python setup.py build
+
+pythonapi_install: pythonapi
+	cd python && python setup.py install
+
+OTHER_FILES += python/MANIFEST python/dtnapi.pyc python/build python/dist
+
+#
+# Swig rules for Perl
+#
+.PHONY: perlapi perlapi_install
+perlapi: perl/dtn_api_wrap_perl.o
+
+perl/dtn_api_wrap_perl.o: perl/dtn_api_wrap_perl.cc libdtnapi-$(VSHLIB)
+	cd perl && \
+	  perl Makefile.PL CC=$(CXX) LD=$(CXX) CCFLAGS=$(CFLAGS) VERSION=$(DTN_VERSION) && make
+
+perlapi_install: perlapi
+	cd perl && make install
+
+OTHER_FILES += perl/Makefile perl/Makefile.old perl/blib perl/dtnapi.bs perl/pm_to_blib
 
 #
 # Linking rules for the libraries.
 #
-libdtnapi-$(DTN_VERSION).a: $(CLIENTLIB_OBJS)
+libdtnapi-$(VLIB): $(CLIENTLIB_OBJS)
 	rm -f $@
 	$(AR) ruc $@ $^
 	$(RANLIB) $@ || true
 
-libdtnapi-$(DTN_VERSION).$(SHLIB_EXT): $(CLIENTLIB_OBJS)
+libdtnapi-$(VSHLIB): $(CLIENTLIB_OBJS)
 	rm -f $@
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) -o $@
 
-libdtnapi++-$(DTN_VERSION).a: $(CLIENT_EXTRA_OBJS)
+libdtnapi++-$(VLIB): $(CLIENT_EXTRA_OBJS)
 	rm -f $@
 	$(AR) ruc $@ $^
 	$(RANLIB) $@ || true
 
-libdtnapi++-$(DTN_VERSION).$(SHLIB_EXT): $(CLIENT_EXTRA_OBJS) libdtnapi.a
+libdtnapi++-$(VSHLIB): $(CLIENT_EXTRA_OBJS) libdtnapi.a
 	rm -f $@
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) -L../oasys -loasys libdtnapi.a $(LDFLAGS) -o $@
 
@@ -135,23 +173,27 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 	$(AR) ruc $@ $^
 	$(RANLIB) $@ || true
 
+#
 # Generate symbolic links to the versioned libraries
-lib%.a : lib%-$(DTN_VERSION).a
+#
+%.a : %-$(VLIB)
 	rm -f $@
-	ln -s $< $@
+	cd `dirname $@` && ln -s `basename $<` `basename $@`
 
-lib%.$(SHLIB_EXT) : lib%-$(DTN_VERSION).$(SHLIB_EXT)
+%.$(SHLIB_EXT) : %-$(VSHLIB)
 	rm -f $@
-	ln -s $< $@
+	cd `dirname $@` && ln -s `basename $<` `basename $@`
 
 #
 # Generate the list of files that is built by default
 #
-LIBFILES = libdtnapi.a libdtnapi-$(DTN_VERSION).a libdtnapi++.a libdtnapi++-$(DTN_VERSION).a libdtnapisrv.a 
+LIBFILES =  libdtnapi.a libdtnapi-$(VLIB) 
+LIBFILES += libdtnapi++.a libdtnapi++-$(VLIB) 
+LIBFILES += libdtnapisrv.a 
 ifeq ($(SHLIBS),yes)
-LIBFILES += libdtnapi.$(SHLIB_EXT) libdtnapi-$(DTN_VERSION).$(SHLIB_EXT) 
-LIBFILES += libdtnapi++.$(SHLIB_EXT) libdtnapi++-$(DTN_VERSION).$(SHLIB_EXT)
-LIBFILES += libdtntcl.$(SHLIB_EXT) libdtntcl-$(DTN_VERSION).$(SHLIB_EXT)
+LIBFILES += libdtnapi.$(SHLIB_EXT) libdtnapi-$(VSHLIB) 
+LIBFILES += libdtnapi++.$(SHLIB_EXT) libdtnapi++-$(VSHLIB)
+LIBFILES += tcl/libdtntcl.$(SHLIB_EXT) tcl/libdtntcl-$(VSHLIB)
 endif
 
 libs: $(LIBFILES)
