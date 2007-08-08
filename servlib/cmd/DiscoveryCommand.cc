@@ -32,7 +32,7 @@ DiscoveryCommand::DiscoveryCommand()
     add_to_help("add <discovery_name> <address_family> <port=N> "
                 "[<continue_on_error=true|false> "
                 "<addr=A.B.C.D> <local_addr=A.B.C.D> <multicast_ttl=N> "
-                "<channel=N> <unicast=true|false>]",
+                "<unicast=true|false>]",
                 "add discovery agent (address family can be ip or bt "
                 "[Bluetooth])");
     
