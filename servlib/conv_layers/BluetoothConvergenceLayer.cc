@@ -193,14 +193,11 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
     log_debug("adding interface %s", iface->name().c_str());
     bdaddr_t local_addr;
     u_int8_t channel = BTCL_DEFAULT_CHANNEL;
-    u_int neighbor_poll_interval = 0; // defaults to off
 
     memset(&local_addr,0,sizeof(bdaddr_t));
 
     oasys::OptParser p;
     p.addopt(new oasys::UInt8Opt("channel",&channel));
-    p.addopt(new oasys::UIntOpt("neighbor_poll_interval",
-                                &neighbor_poll_interval));
 
     const char* invalid = NULL;
     if (! p.parse(argc, argv, &invalid)) {
@@ -414,10 +411,6 @@ BluetoothConvergenceLayer::Connection::connect()
 
         sock_->set_nonblocking(true);
         initiate_contact();
-
-//    } else if (ret == -1 && errno == EINPROGRESS) {
-//        log_debug("connect: EINPROGRESS returned, waiting for write ready");
-//        sock_pollfd_->events |= POLLOUT;
 
     } else {
         log_info("failed to connect to %s: %s",bd2str(addr),strerror(errno));
