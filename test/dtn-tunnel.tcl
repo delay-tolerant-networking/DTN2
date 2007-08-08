@@ -53,13 +53,13 @@ test::script {
     dtn::tell_dtntest 1 proc pingpong {chan} { \
             set ping [gets $chan]; \
             if {[eof $chan]} { puts "$chan closed" ; close $chan ;} \
-            else { puts $chan "pong"; } }
+            else { puts $chan "pong"; flush $chan; } }
     
     dtn::tell_dtntest 1 proc init_pingpong {chan addr port} { \
             global initial_hello; \
             fileevent $chan readable "pingpong $chan"; \
-            fconfigure $chan -buffering none; \
-            if {[info exists initial_hello]} { puts $chan "hello" } ; }
+            fconfigure $chan -buffering full; \
+            if {[info exists initial_hello]} { puts $chan "hello"; flush $chan } ; }
     
     puts "* Setting up a server socket"
     dtn::tell_dtntest 1 socket -server init_pingpong -myaddr $server_addr $server_port
@@ -71,10 +71,12 @@ test::script {
     set client_pid [dtn::run_app 0 dtntunnel \
             "-T $client_addr:$client_port:$server_addr:$server_port \
             dtn://host-1/dtntunnel"]
-    
+
+    after 1000
+   
     puts "* Opening a connection to the tunnel"
     set sock [socket $client_addr $client_port]
-    fconfigure $sock -buffering none
+    fconfigure $sock -buffering full
     fconfigure $sock -blocking 0
 
     puts "* Checking bundle stats for connection establishment"
@@ -83,6 +85,7 @@ test::script {
 
     puts "* Doing a ping/pong"
     puts $sock ping
+    flush $sock
     dtn::wait_for_bundle_stats 1 {2 delivered}
     dtn::wait_for_bundle_stats 0 {2 delivered}
     set x [gets $sock]
@@ -93,6 +96,7 @@ test::script {
     puts "* Doing a ping/pong with an interrupted link"
     tell_dtnd 0 link close tcp-link:0-1
     puts $sock ping
+    flush $sock
     dtn::wait_for_bundle_stats 0 {1 pending}
     dtn::wait_for_bundle_stats 1 {2 delivered}
 
@@ -117,6 +121,9 @@ test::script {
     tell_dtnd 0 bundle reset_stats
     tell_dtnd 1 bundle reset_stats
     
+    dtn::check_bundle_stats 0 {0 pending}
+    dtn::check_bundle_stats 1 {0 pending}
+    
     puts "* Restarting the client tunnel"
     set client_pid [dtn::run_app 0 dtntunnel \
             "-T $client_addr:$client_port:$server_addr:$server_port \
@@ -124,15 +131,16 @@ test::script {
 
     puts "* Reopening the socket"
     set sock [socket $client_addr $client_port]
-    fconfigure $sock -buffering none
+    fconfigure $sock -buffering full
     fconfigure $sock -blocking 0
 
     puts "* Checking bundle stats for connection establishment"
-    dtn::wait_for_bundle_stats 1 {1 delivered}
-    dtn::wait_for_bundle_stats 0 {1 delivered}
+    dtn::wait_for_bundle_stats 1 {1 delivered 0 pending}
+    dtn::wait_for_bundle_stats 0 {1 delivered 0 pending}
 
     puts "* Doing a ping/pong"
     puts $sock ping
+    flush $sock
     dtn::wait_for_bundle_stats 1 {2 delivered}
     dtn::wait_for_bundle_stats 0 {2 delivered}
     set x [gets $sock]
@@ -153,7 +161,7 @@ test::script {
     
     puts "* Opening a new socket"
     set sock [socket $client_addr $client_port]
-    fconfigure $sock -buffering none
+    fconfigure $sock -buffering full
     fconfigure $sock -blocking 0
 
     puts "* Checking bundle stats for connection establishment"
@@ -162,6 +170,7 @@ test::script {
 
     puts "* Doing a ping/pong"
     puts $sock ping
+    flush $sock
     dtn::wait_for_bundle_stats 1 {2 delivered}
     dtn::wait_for_bundle_stats 0 {2 delivered}
     set x [gets $sock]
@@ -176,7 +185,7 @@ test::script {
     dtn::tell_dtntest 1 set initial_hello 1
 
     set sock2 [socket $client_addr $client_port]
-    fconfigure $sock2 -buffering none
+    fconfigure $sock2 -buffering full
     fconfigure $sock2 -blocking 0
 
     puts "* Checking bundle stats for connection establishment and initial hello"
@@ -191,6 +200,7 @@ test::script {
 
     puts "* Doing a ping/pong on second channel"
     puts $sock2 ping
+    flush $sock2
     dtn::wait_for_bundle_stats 1 {2 delivered}
     dtn::wait_for_bundle_stats 0 {3 delivered}
 
