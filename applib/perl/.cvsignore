@@ -1,5 +1,4 @@
 Makefile
 blib
 dtnapi.bs
-dtnapi.pm
 pm_to_blib
