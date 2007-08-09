@@ -1077,7 +1077,6 @@ StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
             {
                 log_err("protocol error: "
                         "got BUNDLE_START before bundle completed");
-                oasys::Breaker::break_here();
                 break_contact(ContactEvent::CL_ERROR);
                 return false;
             }
