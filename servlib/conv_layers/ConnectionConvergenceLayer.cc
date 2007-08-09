@@ -35,7 +35,9 @@ ConnectionConvergenceLayer::LinkParams::LinkParams(bool init_defaults)
       data_timeout_(30000), // msec
       test_read_delay_(0),
       test_write_delay_(0),
-      test_recv_delay_(0)
+      test_recv_delay_(0),
+      test_read_limit_(0),
+      test_write_limit_(0)
 {
     (void)init_defaults;
 }
@@ -69,6 +71,11 @@ ConnectionConvergenceLayer::parse_link_params(LinkParams* params,
                                 &params->test_write_delay_));
     p.addopt(new oasys::UIntOpt("test_recv_delay",
                                 &params->test_recv_delay_));
+    
+    p.addopt(new oasys::UIntOpt("test_read_limit",
+                                &params->test_read_limit_));
+    p.addopt(new oasys::UIntOpt("test_write_limit",
+                                &params->test_write_limit_));
     
     if (! p.parse(argc, argv, invalidp)) {
         return false;

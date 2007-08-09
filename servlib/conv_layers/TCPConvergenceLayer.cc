@@ -524,12 +524,17 @@ TCPConvergenceLayer::Connection::send_data()
     // chains where the contact is broken but we're still using the
     // socket
     ASSERT(! contact_broken_);
-    
-    log_debug("send_data: trying to drain %zu bytes from send buffer...",
-              sendbuf_.fullbytes());
-    ASSERT(sendbuf_.fullbytes() > 0);
 
-    int cc = sock_->write(sendbuf_.start(), sendbuf_.fullbytes());
+    u_int towrite = sendbuf_.fullbytes();
+    if (params_->test_write_limit_ != 0) {
+        towrite = std::min(towrite, params_->test_write_limit_);
+    }
+    
+    log_debug("send_data: trying to drain %u bytes from send buffer...",
+              towrite);
+    ASSERT(towrite > 0);
+
+    int cc = sock_->write(sendbuf_.start(), towrite);
     if (cc > 0) {
         log_debug("send_data: wrote %d/%zu bytes from send buffer",
                   cc, sendbuf_.fullbytes());
@@ -583,10 +588,14 @@ TCPConvergenceLayer::Connection::recv_data()
         
         usleep(params_->test_read_delay_ * 1000);
     }
-            
-    log_debug("recv_data: draining up to %zu bytes into recv buffer...",
-              recvbuf_.tailbytes());
-    int cc = sock_->read(recvbuf_.end(), recvbuf_.tailbytes());
+
+    u_int toread = recvbuf_.tailbytes();
+    if (params_->test_read_limit_ != 0) {
+        toread = std::min(toread, params_->test_read_limit_);
+    }
+
+    log_debug("recv_data: draining up to %u bytes into recv buffer...", toread);
+    int cc = sock_->read(recvbuf_.end(), toread);
     if (cc < 1) {
         log_info("remote connection unexpectedly closed");
         break_contact(ContactEvent::BROKEN);

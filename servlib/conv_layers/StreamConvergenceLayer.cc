@@ -1056,24 +1056,38 @@ StreamConvergenceLayer::Connection::note_data_sent()
 bool
 StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
 {
+    IncomingBundle* incoming = NULL;
     if (flags & BUNDLE_START)
     {
         // make sure we're done with the last bundle if we got a new
-        // BUNDLE_START flag
-        if (!incoming_.empty())
-        {
-            IncomingBundle* incoming = incoming_.back();
-            if (incoming->total_length_ == 0) {
+        // BUNDLE_START flag... note that we need to be careful in
+        // case there's not enough data to decode the length of the
+        // segment, since we'll be called again
+        bool create_new_incoming = true;
+        if (!incoming_.empty()) {
+            incoming = incoming_.back();
+
+            if (incoming->rcvd_data_.empty() &&
+                incoming->ack_data_.empty())
+            {
+                log_debug("found empty incoming bundle for BUNDLE_START");
+                create_new_incoming = false;
+            }
+            else if (incoming->total_length_ == 0)
+            {
                 log_err("protocol error: "
                         "got BUNDLE_START before bundle completed");
+                oasys::Breaker::break_here();
                 break_contact(ContactEvent::CL_ERROR);
                 return false;
             }
         }
-        
-        log_debug("got BUNDLE_START segment, creating new IncomingBundle");
-        IncomingBundle* incoming = new IncomingBundle(new Bundle());
-        incoming_.push_back(incoming);
+
+        if (create_new_incoming) {
+            log_debug("got BUNDLE_START segment, creating new IncomingBundle");
+            IncomingBundle* incoming = new IncomingBundle(new Bundle());
+            incoming_.push_back(incoming);
+        }
     }
     else if (incoming_.empty())
     {
@@ -1086,15 +1100,17 @@ StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
     // Note that there may be more than one incoming bundle on the
     // IncomingList, but it's the one at the back that we're reading
     // in data for. Others are waiting for acks to be sent.
-    IncomingBundle* incoming = incoming_.back();
+    incoming = incoming_.back();
     u_char* bp = (u_char*)recvbuf_.start();
 
     // Decode the segment length and then call handle_data_todo
     u_int32_t segment_len;
-    int sdnv_len = SDNV::decode(bp + 1, recvbuf_.fullbytes() - 1, &segment_len);
+    int sdnv_len = SDNV::decode(bp + 1, recvbuf_.fullbytes() - 1,
+                                &segment_len);
 
     if (sdnv_len < 0) {
-        log_debug("handle_data_segment: too few bytes in buffer for sdnv (%zu)",
+        log_debug("handle_data_segment: "
+                  "too few bytes in buffer for sdnv (%zu)",
                   recvbuf_.fullbytes());
         return false;
     }
@@ -1447,10 +1463,12 @@ StreamConvergenceLayer::Connection::handle_shutdown(u_int8_t flags)
         shutdown_len += 2;
     }
 
-    if (recvbuf_.tailbytes() < shutdown_len)
+    if (recvbuf_.fullbytes() < shutdown_len)
     {
         // rare case where there's not enough data in the buffer
         // to handle the shutdown message data
+        log_debug("got %zu/%zu bytes for shutdown data... waiting for more",
+                  recvbuf_.fullbytes(), shutdown_len);
         return false; 
     }
 

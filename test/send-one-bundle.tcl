@@ -21,21 +21,30 @@ dtn::config
 
 set clayer tcp
 set length 5000
-set segmentlen 0
-set prevhop_hdr 0
+
+set link_vars {hexdump prevhop_hdr segment_length  \
+        test_read_delay test_write_delay test_read_limit test_write_limit}
+array set link_opts {}
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set clayer $val
     } elseif {$var == "-length" || $var == "length"} {
-        set length $val	
-    } elseif {$var == "-segmentlen" || $var == "segmentlen"} {
-        set segmentlen $val	
-    } elseif {$var == "-prevhop_hdr" || $var == "prevhop_hdr"} {
-        set prevhop_hdr 1
+        set length $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
-	exit 1
+        set found 0
+        foreach link_var $link_vars {
+            if {$var == "-$link_var"} {
+                set link_opts($link_var) $val
+                set found 1
+                break
+            }
+        }
+
+        if {$found} { continue }
+        
+        puts "ERROR: unrecognized test option '$var'"
+        exit 1
     }
 }
 
@@ -43,12 +52,8 @@ puts "* Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
 
 set linkopts ""
-if {$segmentlen != 0} {
-    append linkopts "segment_length=$segmentlen "
-}
-
-if {$prevhop_hdr} {
-    append linkopts "prevhop_hdr=1 "
+foreach {var val} [array get link_opts] {
+    append linkopts "$var=$val "
 }
     
 dtn::config_linear_topology ALWAYSON $clayer true $linkopts
