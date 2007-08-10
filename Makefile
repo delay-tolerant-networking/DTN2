@@ -116,7 +116,7 @@ install:
 		   oasys/liboasyscompat.$(SHLIB_EXT) \
 		   applib/libdtnapi-$(DTN_VERSION).$(SHLIB_EXT) \
 	           applib/libdtnapi++-$(DTN_VERSION).$(SHLIB_EXT) \
-	           applib/libdtntcl-$(DTN_VERSION).$(SHLIB_EXT) ; do \
+	           applib/tcl/libdtntcl-$(DTN_VERSION).$(SHLIB_EXT) ; do \
 	    ($(INSTALL_PROGRAM) $$lib $(DESTDIR)$(libdir)) ; \
 	done
 
