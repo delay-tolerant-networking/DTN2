@@ -33,7 +33,7 @@ AlwaysOnLink::AlwaysOnLink(std::string name, ConvergenceLayer* cl,
 void
 AlwaysOnLink::set_initial_state()
 {
-    BundleDaemon::post(
+    BundleDaemon::post_at_head(
         new LinkStateChangeRequest(LinkRef(this, "AlwaysOnLink"),
                                    Link::OPEN, ContactEvent::USER));
 }
