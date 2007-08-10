@@ -1291,7 +1291,7 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
 void
 BundleDaemon::handle_registration_delete(RegistrationDeleteRequest* request)
 {
-    log_info("REGISTRAITON_DELETE %d", request->registration_->regid());
+    log_info("REGISTRATION_DELETE %d", request->registration_->regid());
     delete request->registration_;
 }
 
