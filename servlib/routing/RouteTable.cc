@@ -38,8 +38,10 @@ RouteTable::~RouteTable()
 bool
 RouteTable::add_entry(RouteEntry* entry)
 {
-    log_debug("add_route *%p", entry);
+    oasys::ScopeLock l(&lock_, "RouteTable::add_entry");
     
+    log_debug("add_route *%p", entry);
+
     route_table_.push_back(entry);
     
     return true;
@@ -49,7 +51,7 @@ RouteTable::add_entry(RouteEntry* entry)
 bool
 RouteTable::del_entry(const EndpointIDPattern& dest, const LinkRef& next_hop)
 {
-    oasys::ScopeLock l(&lock_, "RouteTable");
+    oasys::ScopeLock l(&lock_, "RouteTable::del_entry");
 
     RouteEntryVec::iterator iter;
     RouteEntry* entry;
@@ -75,6 +77,7 @@ RouteTable::del_entry(const EndpointIDPattern& dest, const LinkRef& next_hop)
 size_t
 RouteTable::del_entries(const EndpointIDPattern& dest)
 {
+    oasys::ScopeLock l(&lock_, "RouteTable::del_entries");
     return del_matching_entries(RouteEntry::DestMatches(dest));
 }
 
@@ -82,6 +85,7 @@ RouteTable::del_entries(const EndpointIDPattern& dest)
 size_t
 RouteTable::del_entries_for_nexthop(const LinkRef& next_hop)
 {
+    oasys::ScopeLock l(&lock_, "RouteTable::del_entries_for_nexthop");
     return del_matching_entries(RouteEntry::NextHopMatches(next_hop));
 }
 
@@ -89,6 +93,8 @@ RouteTable::del_entries_for_nexthop(const LinkRef& next_hop)
 void
 RouteTable::clear()
 {
+    oasys::ScopeLock l(&lock_, "RouteTable::clear");
+
     RouteEntryVec::iterator iter;
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         delete *iter;
@@ -102,6 +108,8 @@ RouteTable::get_matching(const EndpointID& eid,
                          const LinkRef& next_hop,
                          RouteEntryVec* entry_vec) const
 {
+    oasys::ScopeLock l(&lock_, "RouteTable::get_matching");
+
     bool loop = false;
     log_debug("get_matching %s (link %s)...", eid.c_str(),
               next_hop != NULL ? next_hop->name() : "NULL");
@@ -121,8 +129,6 @@ RouteTable::get_matching_helper(const EndpointID& eid,
                                 bool*             loop,
                                 int               level) const
 {
-    oasys::ScopeLock l(&lock_, "RouteTable::get_matching");
-
     RouteEntryVec::const_iterator iter;
     RouteEntry* entry;
     size_t count = 0;
@@ -169,6 +175,8 @@ RouteTable::get_matching_helper(const EndpointID& eid,
 void
 RouteTable::dump(oasys::StringBuffer* buf) const
 {
+    oasys::ScopeLock l(&lock_, "RouteTable::dump");
+    
     oasys::StringVector long_strings;
 
     // calculate appropriate lengths for the long strings
