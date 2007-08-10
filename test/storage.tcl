@@ -25,7 +25,7 @@ foreach {var val} $opt(opts) {
     if {$var == "-storage_type" || $var == "storage_type"} {
 	set storage_type $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
@@ -87,82 +87,82 @@ proc check {} {
 }
 
 test::script {
-    puts "* starting dtnd..."
+    testlog "starting dtnd..."
     dtn::run_dtnd 0
     
-    puts "* waiting for dtnd"
+    testlog "waiting for dtnd"
     dtn::wait_for_dtnd 0
 
-    puts "* setting up flamebox ignores"
+    testlog "setting up flamebox ignores"
     tell_dtnd 0 log /test always \
 	    "flamebox-ignore ign scheduling IMMEDIATE expiration"
 
-    puts "* injecting two bundles"
+    testlog "injecting two bundles"
     tell_dtnd 0 bundle inject $source_eid1 $dest_eid1 $payload expiration=30
     tell_dtnd 0 bundle inject $source_eid2 $dest_eid2 $payload expiration=10
 
-    puts "* running dtnrecv to create registrations"
+    testlog "running dtnrecv to create registrations"
     set pid1 [dtn::run_app 0 dtnrecv "-x -e 10 $reg_eid1"]
     set pid2 [dtn::run_app 0 dtnrecv "-x -e 30 -f drop $reg_eid2"]
 
     run::wait_for_pid_exit 0 $pid1
     run::wait_for_pid_exit 0 $pid2
 
-    puts "* checking the data before shutdown"
+    testlog "checking the data before shutdown"
     check
 
-    puts "* restarting dtnd without the tidy option"
+    testlog "restarting dtnd without the tidy option"
     dtn::stop_dtnd 0
     after 2000
     dtn::run_dtnd 0 {}
     dtn::wait_for_dtnd 0
 
-    puts "* checking the data after reloading the database"
+    testlog "checking the data after reloading the database"
     check
 
-    puts "* shutting down dtnd"
+    testlog "shutting down dtnd"
     dtn::stop_dtnd 0
 
-    puts "* waiting for expirations to elapse"
+    testlog "waiting for expirations to elapse"
     after 10000
 
-    puts "* restarting dtnd"
+    testlog "restarting dtnd"
     dtn::run_dtnd 0 {}
     after 2000
     dtn::wait_for_dtnd 0
 
-    puts "* checking that 1 bundle expired"
+    testlog "checking that 1 bundle expired"
     dtn::check_bundle_stats 0 1 pending
 
-    puts "* checking that 1 registration expired"
+    testlog "checking that 1 registration expired"
     dtn::check ! test_reg_exists 0 10
     dtn::check test_reg_exists 0 11
 
-    puts "* waiting for the others to expire"
+    testlog "waiting for the others to expire"
     after 20000
 
-    puts "* checking they're expired"
+    testlog "checking they're expired"
     dtn::check_bundle_stats 0 0 pending
     dtn::check ! test_reg_exists 0 10
     dtn::check ! test_reg_exists 0 11
 
-    puts "* restarting again"
+    testlog "restarting again"
     dtn::stop_dtnd 0
     after 5000
     dtn::run_dtnd 0 {}
     dtn::wait_for_dtnd 0
 
-    puts "making sure they're all really gone"
+    testlog "making sure they're all really gone"
     dtn::check_bundle_stats 0 0 pending
     dtn::check ! test_reg_exists 0 10
     dtn::check ! test_reg_exists 0 11
 
-    puts "* clearing flamebox ignores"
+    testlog "clearing flamebox ignores"
     tell_dtnd 0 log /test always \
 	    "flamebox-ignore ign scheduling IMMEDIATE expiration"
 }
 
 test::exit_script {
-    puts "* Shutting down dtnd"
+    testlog "Shutting down dtnd"
     dtn::stop_dtnd 0
 }

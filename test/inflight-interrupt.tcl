@@ -23,7 +23,7 @@ foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set cl $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
@@ -40,13 +40,13 @@ dtn::config_linear_topology ALWAYSON $cl true \
 	"test_write_delay=1000 sendbuf_len=1024"
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Waiting for link to open"
+    testlog "Waiting for link to open"
     dtn::wait_for_link_state 0 $cl-link:0-1 OPEN
 
     set source dtn://host-0/test
@@ -54,64 +54,64 @@ test::script {
     
     dtn::tell_dtnd 1 tcl_registration $dest
     
-    puts "* Sending bundle"
+    testlog "Sending bundle"
     dtn::tell_dtnd 0 sendbundle $source $dest length=5000
     
-    puts "* Waiting for bundle to be in flight"
+    testlog "Waiting for bundle to be in flight"
     dtn::wait_for_link_stats 0 $cl-link:0-1 {1 bundles_queued}
 
-    puts "* Closing the link"
+    testlog "Closing the link"
     tell_dtnd 0 link close $cl-link:0-1
     dtn::wait_for_link_state 0 $cl-link:0-1 UNAVAILABLE
     
-    puts "* Checking that bundle is still queued on the link"
+    testlog "Checking that bundle is still queued on the link"
     dtn::check_bundle_stats 0 {1 pending}
     dtn::check_bundle_stats 1 {0 received}
     dtn::check_link_stats 0 $cl-link:0-1 {1 bundles_queued}
 
-    puts "* Reopening the link"
+    testlog "Reopening the link"
     tell_dtnd 0 link open $cl-link:0-1
 
-    puts "* Waiting for it to be transmitted"
+    testlog "Waiting for it to be transmitted"
     dtn::wait_for_bundle_stats 0 {0 pending}
     dtn::wait_for_bundle_stats 1 {0 pending 1 received 1 delivered}
     
-    puts "* Checking the link stats"
+    testlog "Checking the link stats"
     dtn::check_link_stats 0 $cl-link:0-1 {0 bundles_queued 1 bundles_transmitted}
     
-    puts "* Repeating the test with two bundles in flight"
+    testlog "Repeating the test with two bundles in flight"
     tell_dtnd 0 bundle reset_stats
     tell_dtnd 1 bundle reset_stats
     
     dtn::tell_dtnd 0 sendbundle $source $dest length=5000
     dtn::tell_dtnd 0 sendbundle $source $dest length=5000
     
-    puts "* Waiting for bundles to be in flight"
+    testlog "Waiting for bundles to be in flight"
     dtn::wait_for_link_stats 0 $cl-link:0-1 {2 bundles_queued}
 
-    puts "* Closing the link"
+    testlog "Closing the link"
     tell_dtnd 0 link close $cl-link:0-1
     dtn::wait_for_link_state 0 $cl-link:0-1 UNAVAILABLE
     
-    puts "* Checking that bundles are still queued on the link"
+    testlog "Checking that bundles are still queued on the link"
     dtn::check_bundle_stats 0 {2 pending}
     dtn::check_bundle_stats 1 {0 received}
     dtn::check_link_stats 0 $cl-link:0-1 {2 bundles_queued}
 
-    puts "* Reopening the link"
+    testlog "Reopening the link"
     tell_dtnd 0 link open $cl-link:0-1
 
-    puts "* Waiting for them to be transmitted"
+    testlog "Waiting for them to be transmitted"
     dtn::wait_for_bundle_stats 0 {0 pending}
     dtn::wait_for_bundle_stats 1 {0 pending 2 received 2 delivered}
     
-    puts "* Checking the link stats"
+    testlog "Checking the link stats"
     dtn::check_link_stats 0 $cl-link:0-1 {0 bundles_queued 2 bundles_transmitted}
 
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

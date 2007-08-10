@@ -39,8 +39,8 @@ if {![file exists $conf_path]} {
 }
 
 test::script {
-    puts "* Running simulator"
+    testlog "Running simulator"
     exec sim/dtnsim -c $conf_path <@stdin >@stdout 2>@stderr
     
-    puts "* Test success!"
+    testlog "Test success!"
 }

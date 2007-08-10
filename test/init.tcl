@@ -39,15 +39,15 @@ foreach {var val} $opt(opts) {
     } elseif {$var == "-prevhop_hdr" || $var == "prevhop_hdr"} {
         set prevhop_hdr 1
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
 
-puts "* Initializing with $router router"
+testlog "Initializing with $router router"
 dtn::config -router_type $router
 
-puts "* Configuring $clayer interfaces / links"
+testlog "Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
 
 set linkopts ""
@@ -67,21 +67,21 @@ if {$router == "static"} {
 dtn::config_${topology}_topology $link_type $clayer $withroutes $linkopts
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Setting up registrations"
+    testlog "Setting up registrations"
     foreach node [net::nodelist] {
         dtn::tell_dtnd $node tcl_registration dtn://$node/test
     }
 
-    puts "* Test initialization complete"
+    testlog "Test initialization complete"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

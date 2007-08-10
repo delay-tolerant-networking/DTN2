@@ -25,133 +25,133 @@ foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set clayer $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
 
-puts "* Configuring $clayer interfaces / links"
+testlog "Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
 dtn::config_diamond_topology ALWAYSON $clayer true
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
     dtn::tell_dtnd 3 tcl_registration dtn://host-3/test
     
-    puts "* Waiting for links to open"
+    testlog "Waiting for links to open"
     dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
     dtn::wait_for_link_state 0 tcp-link:0-2 OPEN
 
-    puts "* adding write delay to node 0 links"
+    testlog "adding write delay to node 0 links"
     tell_dtnd 0 link reconfigure tcp-link:0-1 \
 	    test_write_delay=500 sendbuf_len=1024
     tell_dtnd 0 link reconfigure tcp-link:0-2 \
 	    test_write_delay=500 sendbuf_len=1024
 
-    puts "*"
-    puts "* Test 1: equal size bundles, equal priority routes"
-    puts "*"
+    testlog "*"
+    testlog "* Test 1: equal size bundles, equal priority routes"
+    testlog "*"
 
-    puts "* sending 20 bundles"
+    testlog "sending 20 bundles"
     for {set i 0} {$i < 20} {incr i} {
 	tell_dtnd 0 sendbundle dtn://host-0/test dtn://host-3/test length=2048
     }
 
-    puts "* waiting for all to be transmitted"
+    testlog "waiting for all to be transmitted"
     dtn::wait_for_bundle_stats 0 {0 pending 20 transmitted} 60000
     
-    puts "* checking they were load balanced"
+    testlog "checking they were load balanced"
     dtn::check_link_stats 0 tcp-link:0-1 10 bundles_transmitted
     dtn::check_link_stats 0 tcp-link:0-2 10 bundles_transmitted
 
-    puts "* waiting for delivery"
+    testlog "waiting for delivery"
     dtn::wait_for_bundle_stats 1 {0 pending 10 received 10 transmitted}
     dtn::wait_for_bundle_stats 2 {0 pending 10 received 10 transmitted}
     dtn::wait_for_bundle_stats 3 {0 pending 20 delivered 0 duplicate}
     
     dtn::tell_dtnd * bundle reset_stats
     
-    puts "*"
-    puts "* Test 2: equal size bundles, different priority routes"
-    puts "*"
+    testlog "*"
+    testlog "* Test 2: equal size bundles, different priority routes"
+    testlog "*"
 
-    puts "* swapping routes on node 0"
+    testlog "swapping routes on node 0"
     tell_dtnd 0 route del dtn://host-3/*
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-1 route_priority=100
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-2 route_priority=0
     
-    puts "* sending 20 bundles"
+    testlog "sending 20 bundles"
     for {set i 0} {$i < 20} {incr i} {
 	tell_dtnd 0 sendbundle dtn://host-0/test dtn://host-3/test length=2048
     }
 
-    puts "* waiting for all to be transmitted"
+    testlog "waiting for all to be transmitted"
     dtn::wait_for_bundle_stats 0 {0 pending 20 transmitted} 60000
     
-    puts "* checking they all went on one link"
+    testlog "checking they all went on one link"
     dtn::wait_for_link_stats 0 tcp-link:0-1 {20 bundles_transmitted}
     dtn::wait_for_link_stats 0 tcp-link:0-2 {0  bundles_transmitted}
 
-    puts "* waiting for delivery"
+    testlog "waiting for delivery"
     dtn::wait_for_bundle_stats 1 {0 pending 20 received 20 transmitted}
     dtn::wait_for_bundle_stats 2 {0 pending 0 received 0 transmitted}
     dtn::wait_for_bundle_stats 3 {0 pending 20 delivered 0 duplicate}
 
-    puts "* swapping back routes on node 0"
+    testlog "swapping back routes on node 0"
     tell_dtnd 0 route del dtn://host-3/*
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-1
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-2
     
     dtn::tell_dtnd * bundle reset_stats
     
-    puts "*"
-    puts "* Test 3: copy routes"
-    puts "*"
+    testlog "*"
+    testlog "* Test 3: copy routes"
+    testlog "*"
 
-    puts "* swapping routes on node 0"
+    testlog "swapping routes on node 0"
     tell_dtnd 0 route del dtn://host-3/*
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-1 route_priority=100 
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-2 \
 	    route_priority=0 action=copy
 
-    puts "* sending 20 bundles (to different destination)"
+    testlog "sending 20 bundles (to different destination)"
     for {set i 0} {$i < 20} {incr i} {
 	tell_dtnd 0 sendbundle dtn://host-0/test dtn://host-3/test2 length=2048
     }
 
-    puts "* waiting for all to be transmitted"
+    testlog "waiting for all to be transmitted"
     dtn::wait_for_bundle_stats 0 {0 pending 40 transmitted} 60000
     
-    puts "* checking they all went on both links"
+    testlog "checking they all went on both links"
     dtn::wait_for_link_stats 0 tcp-link:0-1 {20 bundles_transmitted}
     dtn::wait_for_link_stats 0 tcp-link:0-2 {20 bundles_transmitted}
 
-    puts "* waiting for arrival"
+    testlog "waiting for arrival"
     dtn::wait_for_bundle_stats 1 {0 pending 20 received 20 transmitted 0 duplicate}
     dtn::wait_for_bundle_stats 2 {0 pending 20 received 20 transmitted 0 duplicate}
     dtn::wait_for_bundle_stats 3 {20 pending 0 delivered 20 duplicate}
 
-    puts "* adding registration, waiting for delivery"
+    testlog "adding registration, waiting for delivery"
     dtn::tell_dtnd 3 tcl_registration dtn://host-3/test2
     dtn::wait_for_bundle_stats 3 {0 pending 20 delivered 20 duplicate}
     
     dtn::tell_dtnd * bundle reset_stats
     
-    puts "*"
-    puts "* Test 4: wildcard destination"
-    puts "*"
+    testlog "*"
+    testlog "* Test 4: wildcard destination"
+    testlog "*"
 
-    puts "* adding different priority routes on node 0"
+    testlog "adding different priority routes on node 0"
     tell_dtnd 0 route del dtn://host-3/*
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-1 route_priority=100 
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-2 route_priority=0
 
-    puts "* sending 20 bundles to dummy wildcard destination"
+    testlog "sending 20 bundles to dummy wildcard destination"
     for {set i 0} {$i < 20} {incr i} {
 	tell_dtnd 0 sendbundle dtn://host-0/test dtn://*/nowhere length=2048
     }
@@ -161,17 +161,17 @@ test::script {
     # duplicates in the core bundle daemon, so it's non-deterministic
     # how many will actually get delivered
 
-    puts "* waiting for all to be transmitted on both links"
+    testlog "waiting for all to be transmitted on both links"
     dtn::wait_for_bundle_stats 0 {0 pending 0 delivered 40 transmitted} 60000
     dtn::wait_for_link_stats 0 tcp-link:0-1 {20 bundles_transmitted}
     dtn::wait_for_link_stats 0 tcp-link:0-2 {20 bundles_transmitted}
 
     dtn::tell_dtnd * bundle reset_stats
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

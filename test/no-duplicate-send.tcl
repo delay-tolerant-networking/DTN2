@@ -33,16 +33,16 @@ foreach {var val} $opt(opts) {
     }
 }
 
-puts "* Configuring $clayer interfaces / links"
+testlog "Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
 dtn::config_linear_topology ALWAYSON $clayer true
 conf::add dtnd * "param set early_deletion false"
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
     set last_node [expr [net::num_nodes] - 1]
@@ -51,33 +51,33 @@ test::script {
     
     dtn::tell_dtnd 0 tcl_registration $dest
     
-    puts "* Sending bundle"
+    testlog "Sending bundle"
     set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest length=$length]
     
-    puts "* Waiting for bundle arrival"
+    testlog "Waiting for bundle arrival"
     dtn::wait_for_bundle 0 "$source,$timestamp" 30000
 
-    puts "* Checking bundle data"
+    testlog "Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
 	    is_admin 0 source $source dest $dest
     
-    puts "* Checking that bundle was received"
+    testlog "Checking that bundle was received"
     dtn::wait_for_bundle_stat 0 1 received
     dtn::wait_for_bundle_stat 1 1 transmitted
     dtn::wait_for_bundle_stat 2 1 transmitted
 
-    puts "* Checking that bundle still pending"
+    testlog "Checking that bundle still pending"
     dtn::wait_for_bundle_stat 0 1 pending
     dtn::wait_for_bundle_stat 1 1 pending
     dtn::wait_for_bundle_stat 2 1 pending
 
-    puts "* Stopping and restarting link"
+    testlog "Stopping and restarting link"
     dtn::tell_dtnd 2 link close tcp-link:2-1
     dtn::wait_for_link_state 2 tcp-link:2-1 UNAVAILABLE
     dtn::tell_dtnd 2 link open tcp-link:2-1
     dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
 
-    puts "* Checking that bundle was not retransmitted"
+    testlog "Checking that bundle was not retransmitted"
     dtn::wait_for_bundle_stat 0 1 received
     dtn::wait_for_bundle_stat 1 1 transmitted
     dtn::wait_for_bundle_stat 2 1 transmitted
@@ -86,10 +86,10 @@ test::script {
     dtn::wait_for_bundle_stat 1 1 pending
     dtn::wait_for_bundle_stat 2 1 pending
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

@@ -19,23 +19,23 @@ net::num_nodes 2
 
 dtn::config
 
-puts "* Configuring tcp interfaces / links"
+testlog "Configuring tcp interfaces / links"
 dtn::config_interface tcp
 dtn::config_linear_topology ALWAYSON tcp true \
 	"test_write_delay=1000 sendbuf_len=1024"
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Setting up flamebox-ignore"
+    testlog "Setting up flamebox-ignore"
     dtn::tell_dtnd 1 log /test always \
 	    "flamebox-ignore ign1 scheduling IMMEDIATE expiration"
 
-    puts "* Waiting for link to open"
+    testlog "Waiting for link to open"
     dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
 
     set source dtn://host-0/test
@@ -43,29 +43,29 @@ test::script {
     
     dtn::tell_dtnd 1 tcl_registration $dest
     
-    puts "* Sending bundle"
+    testlog "Sending bundle"
     set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest \
 	    length=5000 expiration=2]
     
-    puts "* Waiting for bundle expiration at source"
+    testlog "Waiting for bundle expiration at source"
     dtn::wait_for_bundle_stats 0 {1 expired}
     
-    puts "* Checking that bundle is still in flight"
+    testlog "Checking that bundle is still in flight"
     dtn::check_link_stats 0 tcp-link:0-1 {1 bundles_queued}
     
-    puts "* Checking that it was received but not delivered"
+    testlog "Checking that it was received but not delivered"
     dtn::wait_for_bundle_stats 1 {1 received 1 expired 0 delivered}
 
-    puts "* Checking that it was really deleted"
+    testlog "Checking that it was really deleted"
     dtn::wait_for_bundle_stats 0 {0 pending}
     dtn::wait_for_bundle_stats 1 {0 pending}
 
-    puts "* Verifying link stats"
+    testlog "Verifying link stats"
     dtn::wait_for_link_stats 0 tcp-link:0-1 {0 bundles_queued 0 bytes_queued}
     dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_transmitted}
     dtn::wait_for_link_stats 0 tcp-link:0-1 {0 bundles_cancelled}
     
-    puts "* Repeating the test, this time with two bundles in flight"
+    testlog "Repeating the test, this time with two bundles in flight"
     tell_dtnd 0 bundle reset_stats
     tell_dtnd 1 bundle reset_stats
     
@@ -74,34 +74,34 @@ test::script {
     set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest \
 	    length=5000 expiration=2]
     
-    puts "* Waiting for bundle expirations at source"
+    testlog "Waiting for bundle expirations at source"
     dtn::wait_for_bundle_stats 0 {2 expired}
 
-    puts "* Checking that only one bundle is still in flight"
+    testlog "Checking that only one bundle is still in flight"
     dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_queued}
     
-    puts "* Checking that one was received but not delivered"
+    testlog "Checking that one was received but not delivered"
     dtn::wait_for_bundle_stats 1 {1 received 1 expired 0 delivered}
 
-    puts "* Checking that they both were really deleted"
+    testlog "Checking that they both were really deleted"
     dtn::wait_for_bundle_stats 0 {0 pending}
     dtn::wait_for_bundle_stats 1 {0 pending}
 
-    puts "* Checking that only one was transmitted"
+    testlog "Checking that only one was transmitted"
     dtn::wait_for_bundle_stats 0 {1 transmitted}
     
-    puts "* Verifying link stats"
+    testlog "Verifying link stats"
     dtn::wait_for_link_stats 0 tcp-link:0-1 {0 bundles_queued 0 bytes_queued}
     dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_transmitted}
     dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_cancelled}
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* clearing flamebox ignores"
+    testlog "clearing flamebox ignores"
     tell_dtnd 1 log /test always "flamebox-ignore-cancel ign1"
     
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

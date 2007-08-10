@@ -25,34 +25,34 @@ foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set cl $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
 
-puts "* Configuring $cl interfaces / links"
+testlog "Configuring $cl interfaces / links"
 dtn::config_interface $cl
 dtn::config_mesh_topology ONDEMAND $cl false
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Adding registrations"
+    testlog "Adding registrations"
     foreach node [net::nodelist] {
         dtn::tell_dtnd $node tcl_registration dtn://$node/test
     }
 
-    puts "* Opening links in a tree"
+    testlog "Opening links in a tree"
     tell_dtnd 0 link open $cl-link:0-1
     tell_dtnd 0 link open $cl-link:0-3
     tell_dtnd 1 link open $cl-link:1-2
     tell_dtnd 3 link open $cl-link:3-4
 
-    puts "* Waiting for routes to settle"
+    testlog "Waiting for routes to settle"
     dtn::wait_for_route 0 dtn://host-1/* $cl-link:0-1 {}
     dtn::wait_for_route 0 dtn://host-2/* $cl-link:0-1 {}
     dtn::wait_for_route 0 dtn://host-3/* $cl-link:0-3 {}
@@ -78,7 +78,7 @@ test::script {
     dtn::wait_for_route 4 dtn://host-2/* $cl-link:4-3 {}
     dtn::wait_for_route 4 dtn://host-3/* $cl-link:4-3 {}
 
-    puts "* Closing links, making sure routes stay"
+    testlog "Closing links, making sure routes stay"
     tell_dtnd 0 link close $cl-link:0-1
     tell_dtnd 0 link close $cl-link:0-3
     tell_dtnd 1 link close $cl-link:1-2
@@ -111,10 +111,10 @@ test::script {
     dtn::wait_for_route 4 dtn://host-2/* $cl-link:4-3 {}
     dtn::wait_for_route 4 dtn://host-3/* $cl-link:4-3 {}
 
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

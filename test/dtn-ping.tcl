@@ -31,7 +31,7 @@ foreach {var val} $opt(opts) {
 	set num_pings $val
 	
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
@@ -39,10 +39,10 @@ foreach {var val} $opt(opts) {
 test::script {
     global num_pings
     
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
     set N [net::num_nodes]
@@ -50,7 +50,7 @@ test::script {
     set dest      dtn://host-0/
 
     for {set i $last_node} {$i >= 0} {incr i -1} {
-	puts "* Dtnping'ing from node $last_node to dtn://host-$i\
+	testlog "Dtnping'ing from node $last_node to dtn://host-$i\
 	    for $num_pings pings (one per second)"
 	set pid [dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i/ping"]
 	after [expr ($num_pings -1) * 1000]
@@ -58,7 +58,7 @@ test::script {
     }
     
     for {set i 0} {$i < $last_node} {incr i} {
-	puts "* Checking bundle stats on node $i"
+	testlog "Checking bundle stats on node $i"
 	dtn::wait_for_bundle_stats $i [list $num_pings "delivered" \
 		$num_pings "generated" \
 		[expr $num_pings + ($num_pings * 2 * $i)] "received"] 5000
@@ -66,16 +66,16 @@ test::script {
     
     # Last node is the ping source so it *also* has N * num_pings
     # locally delivered due to the delivery of the ping responses:
-    puts "* Checking bundle stats on node $last_node"
+    testlog "Checking bundle stats on node $last_node"
     dtn::wait_for_bundle_stats $last_node [list \
 	    [expr $num_pings * (1 + $N)]  "delivered" \
 	    $num_pings "generated" \
 	    [expr $num_pings + ($num_pings * 2 * $last_node) ] "received"] 5000
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

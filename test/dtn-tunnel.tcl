@@ -26,16 +26,16 @@ dtn::config_interface tcp
 dtn::config_linear_topology ALWAYSON tcp true
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Running dtntest on node 1"
+    testlog "Running dtntest on node 1"
     dtn::run_dtntest 1
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Setting up flamebox-ignores"
+    testlog "Setting up flamebox-ignores"
     dtn::tell_dtnd 0 log /test always \
 	    "flamebox-ignore ign1 client disconnected without calling dtn_close"
     dtn::tell_dtnd 1 log /test always \
@@ -49,7 +49,7 @@ test::script {
     if {$client_addr == "0.0.0.0"} { set client_addr 127.0.0.1 }
     if {$server_addr == "0.0.0.0"} { set server_addr 127.0.0.1 }
     
-    puts "* Setting up server callbacks"
+    testlog "Setting up server callbacks"
     dtn::tell_dtntest 1 proc pingpong {chan} { \
             set ping [gets $chan]; \
             if {[eof $chan]} { puts "$chan closed" ; close $chan ;} \
@@ -61,39 +61,39 @@ test::script {
             fconfigure $chan -buffering full; \
             if {[info exists initial_hello]} { puts $chan "hello"; flush $chan } ; }
     
-    puts "* Setting up a server socket"
+    testlog "Setting up a server socket"
     dtn::tell_dtntest 1 socket -server init_pingpong -myaddr $server_addr $server_port
     
-    puts "* Running tunnel listener on node 1"
+    testlog "Running tunnel listener on node 1"
     set server_pid [dtn::run_app 1 dtntunnel "-L"]
     
-    puts "* Running tunnel proxy on node 0"
+    testlog "Running tunnel proxy on node 0"
     set client_pid [dtn::run_app 0 dtntunnel \
             "-T $client_addr:$client_port:$server_addr:$server_port \
             dtn://host-1/dtntunnel"]
 
     after 1000
    
-    puts "* Opening a connection to the tunnel"
+    testlog "Opening a connection to the tunnel"
     set sock [socket $client_addr $client_port]
     fconfigure $sock -buffering full
     fconfigure $sock -blocking 0
 
-    puts "* Checking bundle stats for connection establishment"
+    testlog "Checking bundle stats for connection establishment"
     dtn::wait_for_bundle_stats 1 {1 delivered}
     dtn::wait_for_bundle_stats 0 {1 delivered}
 
-    puts "* Doing a ping/pong"
+    testlog "Doing a ping/pong"
     puts $sock ping
     flush $sock
     dtn::wait_for_bundle_stats 1 {2 delivered}
     dtn::wait_for_bundle_stats 0 {2 delivered}
     set x [gets $sock]
     if {$x != "pong"} {
-        puts "ERROR: unexpected reply of $x (not pong)"
+        testlog error "ERROR: unexpected reply of $x (not pong)"
     }
 
-    puts "* Doing a ping/pong with an interrupted link"
+    testlog "Doing a ping/pong with an interrupted link"
     tell_dtnd 0 link close tcp-link:0-1
     puts $sock ping
     flush $sock
@@ -108,10 +108,10 @@ test::script {
 
     set x [gets $sock]
     if {$x != "pong"} {
-        puts "ERROR: unexpected reply of $x (not pong)"
+        testlog error "ERROR: unexpected reply of $x (not pong)"
     }
 
-    puts "* Closing the socket and the client channel"
+    testlog "Closing the socket and the client channel"
     close $sock
     after 1000
     run::kill_pid 0 $client_pid TERM
@@ -124,31 +124,31 @@ test::script {
     dtn::check_bundle_stats 0 {0 pending}
     dtn::check_bundle_stats 1 {0 pending}
     
-    puts "* Restarting the client tunnel"
+    testlog "Restarting the client tunnel"
     set client_pid [dtn::run_app 0 dtntunnel \
             "-T $client_addr:$client_port:$server_addr:$server_port \
             dtn://host-1/dtntunnel"]
 
-    puts "* Reopening the socket"
+    testlog "Reopening the socket"
     set sock [socket $client_addr $client_port]
     fconfigure $sock -buffering full
     fconfigure $sock -blocking 0
 
-    puts "* Checking bundle stats for connection establishment"
+    testlog "Checking bundle stats for connection establishment"
     dtn::wait_for_bundle_stats 1 {1 delivered 0 pending}
     dtn::wait_for_bundle_stats 0 {1 delivered 0 pending}
 
-    puts "* Doing a ping/pong"
+    testlog "Doing a ping/pong"
     puts $sock ping
     flush $sock
     dtn::wait_for_bundle_stats 1 {2 delivered}
     dtn::wait_for_bundle_stats 0 {2 delivered}
     set x [gets $sock]
     if {$x != "pong"} {
-        puts "ERROR: unexpected reply of $x (not pong)"
+        testlog error "ERROR: unexpected reply of $x (not pong)"
     }
 
-    puts "* Killing the proxy tunnel without closing the socket"
+    testlog "Killing the proxy tunnel without closing the socket"
     run::kill_pid 0 $client_pid TERM
     run::wait_for_pid_exit 0 $client_pid 
     after 1000
@@ -159,26 +159,26 @@ test::script {
     tell_dtnd 0 bundle reset_stats
     tell_dtnd 1 bundle reset_stats
     
-    puts "* Opening a new socket"
+    testlog "Opening a new socket"
     set sock [socket $client_addr $client_port]
     fconfigure $sock -buffering full
     fconfigure $sock -blocking 0
 
-    puts "* Checking bundle stats for connection establishment"
+    testlog "Checking bundle stats for connection establishment"
     dtn::wait_for_bundle_stats 1 {1 delivered}
     dtn::wait_for_bundle_stats 0 {1 delivered}
 
-    puts "* Doing a ping/pong"
+    testlog "Doing a ping/pong"
     puts $sock ping
     flush $sock
     dtn::wait_for_bundle_stats 1 {2 delivered}
     dtn::wait_for_bundle_stats 0 {2 delivered}
     set x [gets $sock]
     if {$x != "pong"} {
-        puts "ERROR: unexpected reply of $x (not pong)"
+        testlog error "ERROR: unexpected reply of $x (not pong)"
     }
 
-    puts "* Opening a parallel channel with server-initiated traffic"
+    testlog "Opening a parallel channel with server-initiated traffic"
     dtn::tell_dtnd 0 bundle reset_stats
     dtn::tell_dtnd 1 bundle reset_stats
     
@@ -188,17 +188,17 @@ test::script {
     fconfigure $sock2 -buffering full
     fconfigure $sock2 -blocking 0
 
-    puts "* Checking bundle stats for connection establishment and initial hello"
+    testlog "Checking bundle stats for connection establishment and initial hello"
     dtn::wait_for_bundle_stats 1 {1 delivered}
     dtn::wait_for_bundle_stats 0 {2 delivered}
 
-    puts "* Getting initial hello"
+    testlog "Getting initial hello"
     set x [gets $sock2]
     if {$x != "hello"} {
-        puts "ERROR: unexpected reply of $x (not hello)"
+        testlog error "ERROR: unexpected reply of $x (not hello)"
     }
 
-    puts "* Doing a ping/pong on second channel"
+    testlog "Doing a ping/pong on second channel"
     puts $sock2 ping
     flush $sock2
     dtn::wait_for_bundle_stats 1 {2 delivered}
@@ -206,14 +206,14 @@ test::script {
 
     set x [gets $sock2]
     if {$x != "pong"} {
-        puts "ERROR: unexpected reply of $x (not pong)"
+        testlog error "ERROR: unexpected reply of $x (not pong)"
     }
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping apps"
+    testlog "Stopping apps"
     run::kill_pid 1 $server_pid TERM
     run::kill_pid 0 $client_pid TERM
     dtn::stop_dtntest 1
@@ -221,6 +221,6 @@ test::exit_script {
     dtn::tell_dtnd 0 log /test always "flamebox-ignore-cancel ign1"
     dtn::tell_dtnd 1 log /test always "flamebox-ignore-cancel ign2"
     
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

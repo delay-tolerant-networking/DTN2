@@ -28,12 +28,12 @@ foreach {var val} $opt(opts) {
     } elseif {$var == "-linktype" || $var == "linktype"} {
         set linktype $val	
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
 
-puts "* Configuring $cl interfaces / links"
+testlog "Configuring $cl interfaces / links"
 
 set dtn::router_type "flood"
 
@@ -41,29 +41,29 @@ dtn::config_interface $cl
 dtn::config_diamond_topology $linktype $cl false
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
     if {$linktype == "ALWAYSON"} {
-	puts "* Waiting for links to open"
+	testlog "Waiting for links to open"
 	dtn::wait_for_link_state 0 $cl-link:0-1 OPEN
 	dtn::wait_for_link_state 0 $cl-link:0-2 OPEN
     }
     
-    puts "* injecting a bundle"
+    testlog "injecting a bundle"
     tell_dtnd 0 sendbundle dtn://host-0/test dtn://host-3/test \
 	    length=4096 expiration=10
 
-    puts "* waiting for it to be flooded around"
+    testlog "waiting for it to be flooded around"
     dtn::wait_for_bundle_stats 0 {1 pending 2 transmitted}
     dtn::wait_for_bundle_stats 1 {1 pending 1 transmitted}
     dtn::wait_for_bundle_stats 2 {1 pending 1 transmitted}
     dtn::wait_for_bundle_stats 3 {1 pending 1 transmitted}
     
-    puts "* checking that duplicates were detected properly"
+    testlog "checking that duplicates were detected properly"
     dtn::check_bundle_stats 0 {0 duplicate}
     if {[dtn::test_bundle_stats 1 {0 duplicate}]} {
         dtn::check_bundle_stats 2 {1 duplicate}
@@ -73,7 +73,7 @@ test::script {
     }
     dtn::check_bundle_stats 3 {1 duplicate}
 
-    puts "* adding links from node 4 to/from nodes 2 and 3"
+    testlog "adding links from node 4 to/from nodes 2 and 3"
     tell_dtnd 4 link add $cl-link:4-2 \
 	    "$net::host(2):[dtn::get_port $cl 2]" $linktype $cl
     if {! [dtn::is_bidirectional $cl]} {
@@ -87,20 +87,20 @@ test::script {
 		"$net::host(4):[dtn::get_port $cl 4]" $linktype $cl
     }
     
-    puts "* checking the bundle is flooded to node 4 and back out"
+    testlog "checking the bundle is flooded to node 4 and back out"
     dtn::wait_for_bundle_stats 4 {1 pending 1 transmitted 1 duplicate}
     
-    puts "* waiting for bundle to expire everywhere "
+    testlog "waiting for bundle to expire everywhere "
     dtn::wait_for_bundle_stats 0 {0 pending 1 expired}
     dtn::wait_for_bundle_stats 1 {0 pending 1 expired}
     dtn::wait_for_bundle_stats 2 {0 pending 1 expired}
     dtn::wait_for_bundle_stats 3 {0 pending 1 expired}
     dtn::wait_for_bundle_stats 4 {0 pending 1 expired}
 
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

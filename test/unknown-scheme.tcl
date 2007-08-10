@@ -25,23 +25,23 @@ foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set clayer $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
 
-puts "* Configuring $clayer interfaces / links"
+testlog "Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
 dtn::config_linear_topology ALWAYSON $clayer true
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Adding routes for the unknown scheme"
+    testlog "Adding routes for the unknown scheme"
     dtn::tell_dtnd 0 route add unknown:node-1 $clayer-link:0-1
     dtn::tell_dtnd 0 route add unknown:node-2 $clayer-link:0-1
     dtn::tell_dtnd 1 route add unknown:node-0 $clayer-link:1-0
@@ -53,23 +53,23 @@ test::script {
     dtn::tell_dtnd 1 tcl_registration unknown:node-1
     dtn::tell_dtnd 2 tcl_registration unknown:node-2
 
-    puts "* Sending bundles without custody"
+    testlog "Sending bundles without custody"
     foreach n {0 1 2} {
         set source unknown:node-0
         set dest   unknown:node-$n
 
-        puts "* Sending bundle from $source to $dest"
+        testlog "Sending bundle from $source to $dest"
         set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest]
         
-        puts "* Waiting for bundle arrival"
+        testlog "Waiting for bundle arrival"
         dtn::wait_for_bundle $n "$source,$timestamp" 30000
 
-        puts "* Checking bundle data"
+        testlog "Checking bundle data"
         dtn::check_bundle_data $n "$source,$timestamp" \
                 is_admin 0 source $source dest $dest
     }
 
-    puts "* Doing sanity check on stats"
+    testlog "Doing sanity check on stats"
     for {set i 0} {$i <= 2} {incr i} {
 	dtn::wait_for_bundle_stats $i {0 pending}
 	dtn::wait_for_bundle_stats $i {0 expired}
@@ -77,32 +77,32 @@ test::script {
     }
 
     dtn::tell_dtnd * bundle reset_stats
-    puts "* Sending bundles with custody"
+    testlog "Sending bundles with custody"
     foreach n {0 1 2} {
         set source unknown:node-0
         set dest   unknown:node-$n
 
-        puts "* Sending bundle from $source to $dest"
+        testlog "Sending bundle from $source to $dest"
         set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest custody]
         
-        puts "* Waiting for bundle arrival"
+        testlog "Waiting for bundle arrival"
         dtn::wait_for_bundle $n "$source,$timestamp" 30000
 
-        puts "* Checking bundle data"
+        testlog "Checking bundle data"
         dtn::check_bundle_data $n "$source,$timestamp" \
                 is_admin 0 source $source dest $dest
     }
 
-    puts "* Doing sanity check on stats"
+    testlog "Doing sanity check on stats"
     for {set i 0} {$i <= 2} {incr i} {
 	dtn::wait_for_bundle_stats $i {0 pending}
 	dtn::wait_for_bundle_stats $i {0 expired}
     }
 
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

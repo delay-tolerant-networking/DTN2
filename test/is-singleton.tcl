@@ -21,13 +21,13 @@ dtn::config
 dtn::config_topology_common false
 
 test::script {
-    puts "* Running dtnd"
+    testlog "Running dtnd"
     dtn::run_dtnd 0
 
-    puts "* Waiting for dtnd to start up"
+    testlog "Waiting for dtnd to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Setting up flamebox ignores"
+    testlog "Setting up flamebox ignores"
     dtn::tell_dtnd 0 log /test always \
 	    "flamebox-ignore ign1 client disconnected without calling dtn_close"
     dtn::tell_dtnd 0 log /test always \
@@ -35,14 +35,14 @@ test::script {
     dtn::tell_dtnd 0 log /test always \
 	    "flamebox-ignore ign3 error sending bundle.*"
     
-    puts "* Adding some registrations"
+    testlog "Adding some registrations"
     dtn::tell_dtnd 0 tcl_registration dtn://host-0*/* 
     dtn::tell_dtnd 0 tcl_registration str:string
     dtn::tell_dtnd 0 tcl_registration str:string*
     dtn::tell_dtnd 0 tcl_registration unknown:something
 
     proc test {dest opts is_singleton} {
-        puts "* Testing $dest with opts \"$opts\""
+        testlog "Testing $dest with opts \"$opts\""
 
         set pid [dtn::run_app 0 dtnsend "-s dtn://host-0/source -t d -d $dest $opts"]
         run::wait_for_pid_exit 0 $pid
@@ -66,9 +66,9 @@ test::script {
         dtn::tell_dtnd 0 array unset bundle_info
     }
 
-    puts "* "
-    puts "* Testing known schemes..."
-    puts "* "
+    testlog ""
+    testlog "Testing known schemes..."
+    testlog ""
     test dtn://host-0/foo     "" 1
     test \"dtn://host-*/foo\" "" 0
     test dtn://host-0/foo     "-1" 1
@@ -84,31 +84,31 @@ test::script {
     test str:string*     "-N" 0
 
 
-    puts "* "
-    puts "* Testing unknown scheme..."
-    puts "* "
+    testlog ""
+    testlog "Testing unknown scheme..."
+    testlog ""
 
     test unknown:something "" 0
-    puts "* Setting is_singleton_default to singleton"
+    testlog "Setting is_singleton_default to singleton"
     tell_dtnd 0 param set is_singleton_default singleton
     test unknown:something "" 1
     
-    puts "* Setting is_singleton_default to unknown"
+    testlog "Setting is_singleton_default to unknown"
     tell_dtnd 0 param set is_singleton_default unknown
     test unknown:something "" fail
     test unknown:something "-1" 1
     test unknown:something "-N" 0
     
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Clearing flamebox ignores"
+    testlog "Clearing flamebox ignores"
     tell_dtnd 0 log /test always "flamebox-ignore-cancel ign1"
     tell_dtnd 0 log /test always "flamebox-ignore-cancel ign2"
     tell_dtnd 0 log /test always "flamebox-ignore-cancel ign3"
     
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

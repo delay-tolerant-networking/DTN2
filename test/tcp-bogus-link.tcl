@@ -24,75 +24,75 @@ dtn::config_interface tcp
 dtn::config_topology_common false
 
 test::script {
-    puts "* Running dtnd"
+    testlog "Running dtnd"
     dtn::run_dtnd 0
 
-    puts "* Waiting for dtnd to start up"
+    testlog "Waiting for dtnd to start up"
     dtn::wait_for_dtnd 0
 
-    puts "* Adding a bogus link"
+    testlog "Adding a bogus link"
     dtn::tell_dtnd 0 link add bogus 1.2.3.4:9999 ALWAYSON tcp
 
-    puts "* Checking link is OPENING or UNAVAILABLE"
+    testlog "Checking link is OPENING or UNAVAILABLE"
     dtn::wait_for_link_state 0 bogus {OPENING UNAVAILABLE}
 
-    puts "* Closing bogus link"
+    testlog "Closing bogus link"
     dtn::tell_dtnd 0 link close bogus
 
-    puts "* Checking link is UNAVAILABLE"
+    testlog "Checking link is UNAVAILABLE"
     dtn::wait_for_link_state 0 bogus UNAVAILABLE
 
-    puts "* Reopening link"
+    testlog "Reopening link"
     dtn::tell_dtnd 0 link open bogus
     
-    puts "* Checking link is OPENING or UNAVAILABLE"
+    testlog "Checking link is OPENING or UNAVAILABLE"
     dtn::wait_for_link_state 0 bogus {OPENING UNAVAILABLE}
     
-    puts "* Closing bogus link again"
+    testlog "Closing bogus link again"
     dtn::tell_dtnd 0 link close bogus
 
-    puts "* Checking link is UNAVAILABLE"
+    testlog "Checking link is UNAVAILABLE"
     dtn::wait_for_link_state 0 bogus UNAVAILABLE
 
-    puts "* Running dtntest"
+    testlog "Running dtntest"
     dtn::run_dtntest 0
 
-    puts "* Bumping down the link data timeout"
+    testlog "Bumping down the link data timeout"
     dtn::tell_dtnd 0 link set_cl_defaults tcp data_timeout=2000 
 
-    puts "* Connecting with a bogus socket"
+    testlog "Connecting with a bogus socket"
     set sock [dtn::tell_dtntest 0 socket $net::host(0) [dtn::get_port tcp 0]]
 
-    puts "* Waiting for data timeout"
+    testlog "Waiting for data timeout"
     after 5000
 
-    puts "* Closing the socket"
+    testlog "Closing the socket"
     dtn::tell_dtntest 0 close $sock
 
-    puts "* Running a bogus server socket"
+    testlog "Running a bogus server socket"
     dtn::tell_dtntest 0 proc connected {args} {}
     set sock [dtn::tell_dtntest 0 socket -server connected \
             -myaddr $net::host(0) [dtn::get_port misc 0]]
 
-    puts "* Creating a link to the new socket"
+    testlog "Creating a link to the new socket"
     dtn::tell_dtnd 0 link add l-test $net::host(0):[dtn::get_port misc 0] ALWAYSON tcp
     
-    puts "* Checking that link is in state OPENING"
+    testlog "Checking that link is in state OPENING"
     dtn::check_link_state 0 l-test OPENING
     
-    puts "* Waiting for contact header timeout"
+    testlog "Waiting for contact header timeout"
     after 5000
     
-    puts "* Checking that link is in state UNAVAILABLE"
+    testlog "Checking that link is in state UNAVAILABLE"
     dtn::check_link_state 0 l-test UNAVAILABLE
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 
-    puts "* Stopping dtntest"
+    testlog "Stopping dtntest"
     dtn::stop_dtntest *
 }

@@ -26,29 +26,29 @@ foreach var $opt(opts) {
     if {$var == "-clean"} {
 	set clean 1
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
 
 test::script {
-    puts "* Startstop test script executing..."
+    testlog "Startstop test script executing..."
     dtn::run_dtnd *
     
-    puts "* Waiting for dtnd"
+    testlog "Waiting for dtnd"
     dtn::wait_for_dtnd *
     dtn::tell_dtnd * {puts "startstop test"}
 
-    puts "* Shutting down dtnd"
+    testlog "Shutting down dtnd"
     dtn::stop_dtnd *
 
-    puts "* Waiting for dtnd to quit"
+    testlog "Waiting for dtnd to quit"
     run::wait_for_programs
 
     if {! $clean} {
-	puts "* Running new dtnds"
+	testlog "Running new dtnds"
 	dtn::run_dtnd *
 	
-	puts "* Leaving dtn daemons running for the test utils to kill them..."
+	testlog "Leaving dtn daemons running for the test utils to kill them..."
     }
 }

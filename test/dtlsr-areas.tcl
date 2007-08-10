@@ -25,12 +25,12 @@ foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set cl $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
 
-puts "* Configuring $cl interfaces / links"
+testlog "Configuring $cl interfaces / links"
 dtn::config_interface $cl
 dtn::config_linear_topology ALWAYSON $cl false
 
@@ -41,21 +41,21 @@ conf::add dtnd 3 { route set dtlsr_area bbb }
 conf::add dtnd 4 { route set dtlsr_area ccc }
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Adding registrations"
+    testlog "Adding registrations"
     foreach node [net::nodelist] {
         dtn::tell_dtnd $node tcl_registration dtn://$node/test
     }
 
-    puts "* Waiting for routes to settle"
+    testlog "Waiting for routes to settle"
     after 5000
     
-    puts "* Checking that routes only exist within each area"
+    testlog "Checking that routes only exist within each area"
     dtn::check_route    0 dtn://host-1/* $cl-link:0-1 {}
     dtn::check_route    0 dtn://host-2/* $cl-link:0-1 {}
     dtn::check_no_route 0 dtn://host-3/*
@@ -82,10 +82,10 @@ test::script {
     dtn::check_route    4 dtn://host-3/* $cl-link:4-3 {}
 
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

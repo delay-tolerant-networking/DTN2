@@ -29,7 +29,7 @@ foreach {var val} $opt(opts) {
     } elseif {$var == "-count" || $var == "count"} {
 	set count $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
@@ -53,63 +53,63 @@ test::script {
     set sleep 100
 
     # ----------------------------------------------------------------------
-    puts "* "
-    puts "* Test phase 1: continuous connectivity"
-    puts "* "
+    testlog " "
+    testlog " Test phase 1: continuous connectivity"
+    testlog " "
 
-    puts "* Running dtnds"
+    testlog " Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog " Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Running senders / receivers for $count bundles, sleep $sleep"
+    testlog " Running senders / receivers for $count bundles, sleep $sleep"
     set rcvpid1 [dtn::run_app 0     dtnrecv "-q -n $count $eid1"]
     set rcvpid2 [dtn::run_app $last dtnrecv "-q -n $count $eid2"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
-    puts "* Waiting for senders / receivers to complete (up to 5 mins)"
+    testlog " Waiting for senders / receivers to complete (up to 5 mins)"
     run::wait_for_pid_exit 0     $sndpid1 [expr 5 * 60 * 1000]
     run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60 * 1000]
     run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60 * 1000]
     run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60 * 1000]
 
-    puts "* Waiting for all events to be processed"
+    testlog " Waiting for all events to be processed"
     dtn::wait_for_daemon_stats 0 {0 pending_events}
     dtn::wait_for_daemon_stats 1 {0 pending_events}
     dtn::wait_for_daemon_stats 2 {0 pending_events}
     
     foreach node [list 0 $last] {
-	puts "* Checking bundle stats on node $node"
+	testlog " Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node \
 		$count "delivered" \
 		[expr $count * 2] "received"
     }
 
     for {set i 0} {$i < $N} {incr i} {
-	puts "Node $i: [dtn::tell_dtnd $i bundle stats]"
+	testlog "Node $i: [dtn::tell_dtnd $i bundle stats]"
     }
 
-    puts "* Checking link stats"
+    testlog " Checking link stats"
     dtn::check_link_stats 0 $cl-link:0-1 1 contacts $count bundles_transmitted
     dtn::check_link_stats 1 $cl-link:1-0 1 contacts
 
-    puts "* Stopping dtnds"
+    testlog " Stopping dtnds"
     dtn::stop_dtnd *
 
     # ----------------------------------------------------------------------
-    puts "* "
-    puts "* Test phase 2: interrupted links"
-    puts "* "
+    testlog " "
+    testlog " Test phase 2: interrupted links"
+    testlog " "
 
-    puts "* Running dtnds"
+    testlog " Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog " Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
-    puts "* Running senders / receivers for $count bundles, sleep $sleep"
+    testlog " Running senders / receivers for $count bundles, sleep $sleep"
     set rcvpid1 [dtn::run_app 0     dtnrecv "-q -n $count $eid1"]
     set rcvpid2 [dtn::run_app $last dtnrecv "-q -n $count $eid2"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
@@ -118,14 +118,14 @@ test::script {
     for {set i 0} {$i < 100} {incr i} {
 	after [expr int(10000 * rand())]
 
-	puts "* Closing links to/from node 1 ([test::elapsed] seconds elapsed)"
+	testlog " Closing links to/from node 1 ([test::elapsed] seconds elapsed)"
 	tell_dtnd 0 link close $cl-link:0-1
 	tell_dtnd 1 link close $cl-link:1-2
 
         dtn::dump_stats
         
 	after [expr int(5000 * rand())]
-	puts "* Opening links to/from node 1 ([test::elapsed] seconds elapsed)"
+	testlog " Opening links to/from node 1 ([test::elapsed] seconds elapsed)"
 	tell_dtnd 0 link open $cl-link:0-1
 	tell_dtnd 1 link open $cl-link:1-2
 
@@ -133,19 +133,19 @@ test::script {
         if {[dtn::get_bundle_stats 0 delivered] == $count} { break }
     }
 
-    puts "* Done will link closing loop, stats:"
+    testlog " Done will link closing loop, stats:"
     for {set i 0} {$i < $N} {incr i} {
-	puts "Node $i: [dtn::tell_dtnd $i bundle stats]"
+	testlog "Node $i: [dtn::tell_dtnd $i bundle stats]"
     }
 
-    puts "* Waiting for senders / receivers to complete (up to 5 mins)"
+    testlog " Waiting for senders / receivers to complete (up to 5 mins)"
     run::wait_for_pid_exit 0     $sndpid1 [expr 5 * 60 * 1000]
     run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60 * 1000]
     run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60 * 1000]
     run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60 * 1000]
      
     foreach node [list 0 $last] {
-	puts "* Checking bundle stats on node $node"
+	testlog " Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node \
 		[expr $count * 2] "pending" \
 		$count "transmitted" \
@@ -153,27 +153,27 @@ test::script {
     }
 
     for {set i 0} {$i < $N} {incr i} {
-	puts "Node $i: [dtn::tell_dtnd $i bundle stats]"
+	testlog "Node $i: [dtn::tell_dtnd $i bundle stats]"
     }
 
-    puts "* Stopping dtnds"
+    testlog " Stopping dtnds"
     dtn::stop_dtnd *
 
     # ----------------------------------------------------------------------
 
-    puts "* "
-    puts "* Test phase 3: killing node"
-    puts "* "
+    testlog " "
+    testlog " Test phase 3: killing node"
+    testlog " "
 
-    puts "* Running dtnds"
+    testlog " Running dtnds"
     for {set i 0} {$i < [net::num_nodes]} {incr i} {
 	set pids($i) [dtn::run_dtnd $i]
     }
 
-    puts "* Waiting for dtnds to start up"
+    testlog " Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
-    puts "* Running senders / receivers for $count bundles, sleep $sleep"
+    testlog " Running senders / receivers for $count bundles, sleep $sleep"
     set rcvpid1 [dtn::run_app 0     dtnrecv "-q $eid1"]
     set rcvpid2 [dtn::run_app $last dtnrecv "-q $eid2"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
@@ -187,32 +187,32 @@ test::script {
 	}
 
 	set sleep [expr int(5000 * rand())]
-	puts "* Sleeping for $sleep msecs"
+	testlog " Sleeping for $sleep msecs"
 	after $sleep
 	
-	puts "* Killing node 1"
+	testlog " Killing node 1"
 	run::kill_pid 1 $pids(1) KILL	
 	tell::wait_for_close $net::host(1) [dtn::get_port console 1]
 
 	set sleep [expr int(5000 * rand())]
-	puts "* Sleeping for $sleep msecs"
+	testlog " Sleeping for $sleep msecs"
 	after $sleep
 
-	puts "* Starting node 1"
+	testlog " Starting node 1"
 	set pids(1) [dtn::run_dtnd 1 ""]
 	dtn::wait_for_dtnd 1
     }
 
-    puts "* Done with killing loop.. stats:"
+    testlog " Done with killing loop.. stats:"
     for {set i 0} {$i < $N} {incr i} {
-	puts "Node $i: [tell_dtnd $i bundle stats]"
+	testlog "Node $i: [tell_dtnd $i bundle stats]"
     }
 
-    puts "* Waiting for senders to complete"
+    testlog " Waiting for senders to complete"
     run::wait_for_pid_exit 0     $sndpid1
     run::wait_for_pid_exit $last $sndpid2
 
-    puts "* Killing receivers"
+    testlog " Killing receivers"
     run::kill_pid 0     $rcvpid1 TERM
     run::kill_pid $last $rcvpid2 TERM
 
@@ -220,15 +220,15 @@ test::script {
     # since some might end up getting lost when the node gets killed,
     # but after the ack was sent
     foreach node [list 0 $last] {
-	puts "* Checking bundle stats on node $node"
+	testlog " Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node $count "transmitted"
     }
 
-    puts "* Test success!"
+    testlog " Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping all dtnds"
+    testlog " Stopping all dtnds"
     dtn::stop_dtnd *
 
 }

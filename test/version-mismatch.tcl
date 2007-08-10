@@ -25,7 +25,7 @@ for {set i 0} {$i < [llength $opt(opts)]} {incr i} {
 	set val [lindex $opt(opts) [incr i]]
 	set cl $val
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
@@ -35,33 +35,33 @@ dtn::config_interface $cl
 dtn::config_linear_topology OPPORTUNISTIC $cl true
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    puts "* Setting up flamebox ignore"
+    testlog "Setting up flamebox ignore"
     tell_dtnd 1 log /test always \
 	    "flamebox-ignore ign1 remote sent version .*, expected version 99"
 
-    puts "* Changing the CL version on one of the nodes"
+    testlog "Changing the CL version on one of the nodes"
     tell_dtnd 1 link reconfigure $cl-link:1-0 cl_version=99
 
-    puts "* Opening the link"
+    testlog "Opening the link"
     tell_dtnd 1 link open $cl-link:1-0
 
-    puts "* Checking that the links are still closed"
+    testlog "Checking that the links are still closed"
     dtn::wait_for_link_state 0 tcp-link:0-1 UNAVAILABLE
     dtn::wait_for_link_state 1 tcp-link:1-0 UNAVAILABLE
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
     tell_dtnd 1 log /test always \
 	    "flamebox-ignore-cancel ign1"
     
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

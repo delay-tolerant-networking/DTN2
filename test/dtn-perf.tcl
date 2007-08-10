@@ -49,7 +49,7 @@ for {set i 0} {$i < [llength $opt(opts)]} {incr i} {
 	set storage_type [lindex $opt(opts) [incr i]]
 
     } else {
-	puts "ERROR: unrecognized test option '$var'"
+	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
@@ -65,10 +65,10 @@ if {$mode == "memory"} {
 }
 
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
     set N [net::num_nodes]
@@ -86,7 +86,7 @@ test::script {
     set server_pid [dtn::run_app $last_node dtnperf-server $server_opts]
     after 1000
     
-    puts "* Running dtnperf-client for $perftime seconds"
+    testlog "Running dtnperf-client for $perftime seconds"
     set client_pid [dtn::run_app 0 dtnperf-client \
 			"-t $perftime $delivery_opts -d $dest" ]
 
@@ -96,29 +96,29 @@ test::script {
 
     for {set i 0} {$i < $perftime} {incr i} {
 	for {set id 0} {$id <= $last_node} {incr id} {
-	    puts "* Node $id: [dtn::tell_dtnd $id bundle stats]"
+	    testlog "Node $id: [dtn::tell_dtnd $id bundle stats]"
 	}
-	puts ""
+	testlog ""
 	after 1000
     }
 
-    puts "* waiting for dtnperf-client to exit"
+    testlog "waiting for dtnperf-client to exit"
     run::wait_for_pid_exit 0 $client_pid
 
-    puts "* Final stats:"
+    testlog "Final stats:"
     for {set id 0} {$id <= $last_node} {incr id} {
-	puts "* $id: [dtn::tell_dtnd $id bundle stats]"
+	testlog "$id: [dtn::tell_dtnd $id bundle stats]"
     }
-    puts ""
+    testlog ""
 
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping dtnperf-server"
+    testlog "Stopping dtnperf-server"
     run::kill_pid $last_node $server_pid 1
     run::wait_for_pid_exit $last_node $server_pid
     
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }

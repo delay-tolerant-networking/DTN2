@@ -25,13 +25,13 @@ dtn::config_linear_topology ALWAYSON tcp true
 manifest::file apps/dtntest/dtntest dtntest
 
 test::script {
-    puts "* running dtnds"
+    testlog "running dtnds"
     dtn::run_dtnd *
 
-    puts "* running dtntest"
+    testlog "running dtntest"
     dtn::run_dtntest 0
 
-    puts "* waiting for dtnds and dtntest to start up"
+    testlog "waiting for dtnds and dtntest to start up"
     dtn::wait_for_dtnd *
     dtn::wait_for_dtntest 0
 
@@ -49,12 +49,12 @@ test::script {
     set sr_dst dtn://host-0/sr
     dtn::tell_dtnd 0 tcl_registration $sr_dst
 
-    puts "* dtn_open"
+    testlog "dtn_open"
     set handle [dtn::tell_dtntest 0 dtn_open]
 
 
-    puts "*"
-    puts "* Test 1: Forward Unprocessed Block"
+    testlog "*"
+    testlog "Test 1: Forward Unprocessed Block"
 
     ## Node 1 sends a bundle that includes an extension block to node 3
     ## via the API. The intermediary node 2 classifies the block as unknown,
@@ -62,24 +62,24 @@ test::script {
     ## "forwarded unprocessed" flag prior to forwarding the bundle (block
     ## included) to node 3.
 
-    puts "* sending bundle"
+    testlog "sending bundle"
     set id [dtn::tell_dtntest 0 dtn_send $handle source=$src dest=$dst        \
                                                  replyto=$sr_dst              \
                                                  payload_data=this_is_a_test! \
                                                  block_type=16 block_flags=0  \
                                                  block_content=test_block]
 
-    puts "* waiting to receive bundle at destination"
+    testlog "waiting to receive bundle at destination"
     dtn::wait_for_bundle 2 $id
     dtn::check_bundle_data 2 $id recv_blocks 3 block,0x10,flags 0x20
 
-    puts "* checking that each node received/transmitted bundle"
+    testlog "checking that each node received/transmitted bundle"
     dtn::wait_for_bundle_stats 0 {1 received 1 transmitted}
     dtn::wait_for_bundle_stats 1 {1 received 1 transmitted}
     dtn::wait_for_bundle_stats 2 {1 received 0 transmitted}
 
-    puts "*"
-    puts "* Test 2: Report Unknown Block"
+    testlog "*"
+    testlog "Test 2: Report Unknown Block"
 
     ## Node 1 sends a bundle that includes an extension block to node 3
     ## via the API. The intermediary node 2 classifies the block as unknown,
@@ -89,19 +89,19 @@ test::script {
     ## to forwarding the bundle (block included) to node 3, which also
     ## sends a status report to the bundle's reply-to endpoint (.e., node 1).
 
-    puts "* sending bundle"
+    testlog "sending bundle"
     set id [dtn::tell_dtntest 0 dtn_send $handle source=$src dest=$dst        \
                                                  replyto=$sr_dst              \
                                                  payload_data=this_is_a_test! \
                                                  block_type=16 block_flags=2  \
                                                  block_content=test_block]
 
-    puts "* waiting to receive bundle at destination"
+    testlog "waiting to receive bundle at destination"
     dtn::wait_for_bundle 2 $id
     dtn::check_bundle_data 2 $id recv_blocks 3
     dtn::check_bundle_data 2 $id recv_blocks 3 block,0x10,flags 0x22
 
-    puts "* waiting for status reports"
+    testlog "waiting for status reports"
     set sr_guid "$id,$mid_eid"
     dtn::wait_for_sr 0 $sr_guid
     dtn::check_sr_fields 0 $sr_guid sr_received_time
@@ -109,13 +109,13 @@ test::script {
     dtn::wait_for_sr 0 $sr_guid
     dtn::check_sr_fields 0 $sr_guid sr_received_time
 
-    puts "* checking that each node received/transmitted bundle"
+    testlog "checking that each node received/transmitted bundle"
     dtn::wait_for_bundle_stats 0 {4 received 2 transmitted}
     dtn::wait_for_bundle_stats 1 {3 received 4 transmitted}
     dtn::wait_for_bundle_stats 2 {2 received 1 transmitted}
 
-    puts "*"
-    puts "* Test 3: Delete Bundle"
+    testlog "*"
+    testlog "Test 3: Delete Bundle"
 
     ## Node 1 sends a bundle that includes an extension block to node 3
     ## via the API. The intermediary node 2 classifies the block as unknown,
@@ -124,7 +124,7 @@ test::script {
     ## the bundle's reply-to endpoint (i.e. node 1) of the bundle deletion.
     ## because the bundle includes a request for such notifications.
 
-    puts "* sending bundle"
+    testlog "sending bundle"
     set id [dtn::tell_dtntest 0 dtn_send $handle source=$src dest=$dst        \
                                                  replyto=$sr_dst              \
                                                  payload_data=this_is_a_test! \
@@ -132,51 +132,51 @@ test::script {
                                                  block_type=16 block_flags=4  \
                                                  block_content=test_block]
 
-    puts "* waiting for status reports"
+    testlog "waiting for status reports"
     set sr_guid "$id,$mid_eid"
     dtn::wait_for_sr 0 $sr_guid
     dtn::check_sr_fields 0 $sr_guid sr_deleted_time
 
-    puts "* checking that each node received/transmitted bundle"
+    testlog "checking that each node received/transmitted bundle"
     dtn::wait_for_bundle_stats 0 {6 received 3 transmitted}
     dtn::wait_for_bundle_stats 1 {4 received 5 transmitted}
     dtn::wait_for_bundle_stats 2 {2 received 1 transmitted}
 
-    puts "*"
-    puts "* Test 4: Discard Block"
+    testlog "*"
+    testlog "Test 4: Discard Block"
 
     ## Node 1 sends a bundle that includes an extension block to node 3
     ## via the API. The intermediary node 2 classifies the block as unknown,
     ## and because the block contains the DISCARD_BLOCK_ONERROR block flag,
     ## forwards the bundle to node 3 after removing the block from the bundle.
 
-    puts "* sending bundle"
+    testlog "sending bundle"
     set id [dtn::tell_dtntest 0 dtn_send $handle source=$src dest=$dst        \
                                                  replyto=$sr_dst              \
                                                  payload_data=this_is_a_test! \
                                                  block_type=16 block_flags=16 \
                                                  block_content=test_block]
 
-    puts "* waiting to receive bundle at destination"
+    testlog "waiting to receive bundle at destination"
     dtn::wait_for_bundle 2 $id
     dtn::check_bundle_data 2 $id recv_blocks 2
 
-    puts "* checking that each node received/transmitted bundle"
+    testlog "checking that each node received/transmitted bundle"
     dtn::wait_for_bundle_stats 0 {7 received 4 transmitted}
     dtn::wait_for_bundle_stats 1 {5 received 6 transmitted}
     dtn::wait_for_bundle_stats 2 {3 received 1 transmitted}
 
 
-    puts "*"
-    puts "* test success!"
-    puts "*"
+    testlog "*"
+    testlog "test success!"
+    testlog "*"
 
-    puts "* dtn_close"
+    testlog "dtn_close"
     dtn::tell_dtntest 0 dtn_close $handle
 }
 
 test::exit_script {
-    puts "* stopping all dtnds and dtntest"
+    testlog "stopping all dtnds and dtntest"
     dtn::stop_dtntest 0
     dtn::stop_dtnd *
 }

@@ -32,7 +32,7 @@ test::script {
 	global dest
 	global dest_node
 	
-	puts "* Sending bundle to $dest with $sr_option set"
+	testlog "Sending bundle to $dest with $sr_option set"
 
 	# 3 second expiration for deleted SR's to be generated in time:
 	set timestamp [dtn::tell_dtnd $last_node \
@@ -42,32 +42,32 @@ test::script {
 	# If we selected deletion receipt we assume the bundle
 	# won't ever arrive at the destination
 	if {$sr_option != "deletion_rcpt"} {
-	    puts "* Waiting for bundle arrival at $dest"
+	    testlog "Waiting for bundle arrival at $dest"
 	    dtn::wait_for_bundle 0 "$source,$timestamp" 5000
 	}
     
 	set sr_guid "$source,$timestamp,$dest_node"
 
-	puts "* Testing for $sr_option SR(s):"
+	testlog "Testing for $sr_option SR(s):"
 	foreach node_name $node_list {
 	    set sr_guid "$source,$timestamp,$node_name"
 
-	    puts "  * Waiting for SR arrival from $node_name to $sr_dest"
+	    testlog "  Waiting for SR arrival from $node_name to $sr_dest"
 	    dtn::wait_for_sr $last_node $sr_guid 5000
 	    
-	    puts "  * Verifying received SR has field \"$sr_field\""
+	    testlog "  Verifying received SR has field \"$sr_field\""
 	    dtn::check_sr_fields $last_node $sr_guid $sr_field
 
 	}
     }
 
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
-    puts "* Waiting for all links to open"
+    testlog "Waiting for all links to open"
     dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
     dtn::wait_for_link_state 1 tcp-link:1-0 OPEN
     dtn::wait_for_link_state 1 tcp-link:1-2 OPEN
@@ -101,11 +101,11 @@ test::script {
     # XXX/todo: add Custody and App-Acknowledgement SR tests once the
     # ability to generate those types of SRs has been implemented
 
-    puts "* Success!"
+    testlog "Success!"
     
 }
 
 test::exit_script {
-    puts "* stopping all dtnds"
+    testlog "stopping all dtnds"
     dtn::stop_dtnd *
 }

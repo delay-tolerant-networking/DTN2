@@ -36,21 +36,21 @@ proc wait_for_file {id path {timeout 30000}} {
 }
     
 test::script {
-    puts "* Running dtnds"
+    testlog "Running dtnds"
     dtn::run_dtnd *
 
-    puts "* Waiting for dtnds to start up"
+    testlog "Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
     set N [net::num_nodes]
     set last_node [expr $N - 1]
     set dest      dtn://host-0/
 
-    puts "* Running dtncpd..."
+    testlog "Running dtncpd..."
     tell_dtnd $last_node file mkdir incoming
     set dtncpd_pid [dtn::run_app $last_node dtncpd incoming]
 
-    puts "* Creating and copying an empty file"
+    testlog "Creating and copying an empty file"
     tell_dtnd 0 file mkdir test
     tell_dtnd 0 {set fd [open test/empty w]; close $fd}
     dtn::check expr [tell_dtnd 0 file size test/empty] == 0
@@ -60,13 +60,13 @@ test::script {
 
     set dtnd_size [tell_dtnd 0 file size dtnd]
 
-    puts "* Copying the dtnd executable into dtnd.new ($dtnd_size bytes)"
+    testlog "Copying the dtnd executable into dtnd.new ($dtnd_size bytes)"
     dtn::run_app_and_wait 0 dtncp "dtnd dtn://host-2 dtnd.new"
 
-    puts "* Waiting for the file to be delivered"
+    testlog "Waiting for the file to be delivered"
     wait_for_file $last_node incoming/host-0/dtnd.new
     
-    puts "* Checking that size and md5sum matches"
+    testlog "Checking that size and md5sum matches"
     dtn::check expr [tell_dtnd $last_node file size \
             incoming/host-0/dtnd.new] == $dtnd_size
     set cksum1 [lindex [tell_dtnd 0 exec md5sum dtnd] 0]
@@ -75,13 +75,13 @@ test::script {
         error "md5sum mismatch: $cksum1 != $cksum2"
     }
     
-    puts "* Test success!"
+    testlog "Test success!"
 }
 
 test::exit_script {
-    puts "* Stopping dtncpd"
+    testlog "Stopping dtncpd"
     run::kill_pid $last_node $dtncpd_pid TERM
 
-    puts "* Stopping all dtnds"
+    testlog "Stopping all dtnds"
     dtn::stop_dtnd *
 }
