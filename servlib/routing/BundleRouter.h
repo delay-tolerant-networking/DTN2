@@ -78,6 +78,10 @@ public:
         /// Whether or not to add routes for nexthop links that know
         /// the remote endpoint id (default true)
         bool add_nexthop_routes_;
+
+        /// Whether or not to open discovered opportunistic links when
+        /// they become available (default true)
+        bool open_discovered_links_;
         
         /// Default priority for new routes
         int default_priority_;

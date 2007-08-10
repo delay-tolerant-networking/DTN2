@@ -48,6 +48,11 @@ RouteCommand::RouteCommand()
                                 "Whether or not to automatically add routes "
                                 "for next hop links"));
     
+    bind_var(new oasys::BoolOpt("open_discovered_links",
+                                &BundleRouter::config_.open_discovered_links_,
+                                "Whether or not to automatically open "
+                                "discovered opportunistic links"));
+    
     bind_var(new oasys::IntOpt("default_priority",
                                &BundleRouter::config_.default_priority_,
                                "priority",

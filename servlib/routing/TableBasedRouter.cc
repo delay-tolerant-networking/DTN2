@@ -175,7 +175,18 @@ TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
 
-    check_next_hop(link);
+    // if it is a discovered link, we typically open it
+    if (config_.open_discovered_links_ &&
+        !link->isopen() &&
+        link->type() == Link::OPPORTUNISTIC &&
+        event->reason_ == ContactEvent::DISCOVERY)
+    {
+        actions_->open_link(link);
+    }
+    else
+    {
+        check_next_hop(link);
+    }
 }
 
 //----------------------------------------------------------------------
