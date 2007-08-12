@@ -43,6 +43,7 @@ void doOptions(int argc, const char **argv);
 
 int interval = 1;
 int count = 0;
+int reply_count = 0;
 int expiration = 30;
 char dest_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char source_eid_str[DTN_MAX_ENDPOINT_ID] = "";
@@ -75,7 +76,7 @@ main(int argc, const char** argv)
     struct timeval now, recv_start, recv_end;
     u_int32_t nonce;
     u_int32_t seqno = 0;
-    int time_until_send;
+    int timeout;
 
     // force stdout to always be line buffered, even if output is
     // redirected to a pipe or file
@@ -188,12 +189,16 @@ main(int argc, const char** argv)
         memset(&reply_payload, 0, sizeof(reply_payload));
 
         // now loop waiting for replies / status reports until it's
-        // time to send again
-        time_until_send = interval * 1000;
+        // time to send again, adding twice the expiration time if we
+        // just sent the last ping
+        timeout = interval * 1000;
+        if (i == count - 1)
+            timeout += expiration * 2000;
+        
         do {
             gettimeofday(&recv_start, 0);
             if ((ret = dtn_recv(handle, &reply_spec,
-                                DTN_PAYLOAD_MEM, &reply_payload, time_until_send)) < 0)
+                                DTN_PAYLOAD_MEM, &reply_payload, timeout)) < 0)
             {
                 if (dtn_errno(handle) == DTN_ETIMEOUT) {
                     break; // time to send again
@@ -290,9 +295,16 @@ main(int argc, const char** argv)
             }
 next:
             dtn_free_payload(&reply_payload);
-            time_until_send -= TIMEVAL_DIFF_MSEC(recv_end, recv_start);
+            timeout -= TIMEVAL_DIFF_MSEC(recv_end, recv_start);
 
-        } while (time_until_send > 0);
+            // once we get status from all the pings we're supposed to
+            // send, we're done
+            reply_count++;
+            if (count != 0 && reply_count == count) {
+                break;
+            }
+
+        } while (timeout > 0);
         
         seqno++;
         seqno %= MAX_PINGS_IN_FLIGHT;
