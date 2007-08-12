@@ -78,7 +78,7 @@ test::script {
     dtn::tell_dtnd 0 link add l-test $net::host(0):[dtn::get_port misc 0] ALWAYSON tcp
     
     testlog "Checking that link is in state OPENING"
-    dtn::check_link_state 0 l-test OPENING
+    dtn::wait_for_link_state 0 l-test OPENING
     
     testlog "Waiting for contact header timeout"
     after 5000
