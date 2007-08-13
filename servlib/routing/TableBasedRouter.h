@@ -192,10 +192,6 @@ protected:
 
     /// The routing table
     RouteTable* route_table_;
-
-    /// List of bundles that need to be forwarded but are waiting for
-    /// a link to open
-    BundleList* forward_pending_;
 };
 
 } // namespace dtn
