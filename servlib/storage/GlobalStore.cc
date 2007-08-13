@@ -196,9 +196,9 @@ GlobalStore::next_regid()
 void
 GlobalStore::calc_digest(u_char* digest)
 {
-    // we create a dummy Bundle and a Registration (and in the future
-    // a link), then take their serialized form and MD5 it, such that
-    // adding or deleting a field will change the digest
+    // We create dummy objects for all serialized objects, then take
+    // their serialized form and MD5 it, so adding or deleting a
+    // serialized field will change the digest
     Bundle b(oasys::Builder::builder());
     APIRegistration r(oasys::Builder::builder());
     ProphetNode n(oasys::Builder::builder());
