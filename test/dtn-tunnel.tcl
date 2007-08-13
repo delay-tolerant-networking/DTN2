@@ -128,7 +128,8 @@ test::script {
     set client_pid [dtn::run_app 0 dtntunnel \
             "-T $client_addr:$client_port:$server_addr:$server_port \
             dtn://host-1/dtntunnel"]
-
+    after 2000
+    
     testlog "Reopening the socket"
     set sock [socket $client_addr $client_port]
     fconfigure $sock -buffering full
