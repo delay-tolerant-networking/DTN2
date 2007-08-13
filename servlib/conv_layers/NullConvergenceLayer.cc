@@ -18,14 +18,100 @@
 #  include <config.h>
 #endif
 
+#include <oasys/util/OptParser.h>
 #include "NullConvergenceLayer.h"
 #include "bundling/BundleDaemon.h"
 
 namespace dtn {
 
-/**
- * Open the given contact.
- */
+struct NullConvergenceLayer::Params NullConvergenceLayer::defaults_;
+
+//----------------------------------------------------------------------
+void
+NullConvergenceLayer::Params::serialize(oasys::SerializeAction* a)
+{
+    a->process("can_transmit", &can_transmit_);
+}
+
+//----------------------------------------------------------------------
+NullConvergenceLayer::NullConvergenceLayer()
+  : ConvergenceLayer("NullConvergenceLayer", "null")
+{
+    defaults_.can_transmit_ = true;
+}
+
+//----------------------------------------------------------------------
+bool
+NullConvergenceLayer::parse_link_params(Params* params,
+                                        int argc, const char** argv,
+                                        const char** invalidp)
+{
+    oasys::OptParser p;
+    p.addopt(new oasys::BoolOpt("can_transmit", &params->can_transmit_));
+    return p.parse(argc, argv, invalidp);
+}
+
+//----------------------------------------------------------------------
+bool
+NullConvergenceLayer::init_link(const LinkRef& link,
+                                int argc, const char* argv[])
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
+    
+    log_debug("adding %s link %s", link->type_str(), link->nexthop());
+
+    // Create a new parameters structure, parse the options, and store
+    // them in the link's cl info slot
+    Params* params = new Params(defaults_);
+
+    const char* invalid;
+    if (! parse_link_params(params, argc, argv, &invalid)) {
+        log_err("error parsing link options: invalid option '%s'", invalid);
+        delete params;
+        return false;
+    }
+    link->set_cl_info(params);
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+NullConvergenceLayer::reconfigure_link(const LinkRef& link,
+                                       int argc, const char* argv[])
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+    
+    Params* params = dynamic_cast<Params*>(link->cl_info());
+    ASSERT(params != NULL);
+    
+    const char* invalid;
+    if (! parse_link_params(params, argc, argv, &invalid)) {
+        log_err("reconfigure_link: invalid parameter %s", invalid);
+        return false;
+    }
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+void
+NullConvergenceLayer::delete_link(const LinkRef& link)
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
+    log_debug("deleting link %s", link->name());
+    
+    delete link->cl_info();
+    link->set_cl_info(NULL);
+}
+
+//----------------------------------------------------------------------
 bool
 NullConvergenceLayer::open_contact(const ContactRef& contact)
 {
@@ -37,6 +123,7 @@ NullConvergenceLayer::open_contact(const ContactRef& contact)
     return true;
 }
 
+//----------------------------------------------------------------------
 void
 NullConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
@@ -44,6 +131,12 @@ NullConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
 
+    Params* params = (Params*)link->cl_info();
+
+    if (! params->can_transmit_) {
+        return;
+    }
+    
     BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
     ASSERT(blocks != NULL);
     size_t total_len = BundleProtocol::total_length(blocks);
@@ -53,6 +146,34 @@ NullConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     
     BundleDaemon::post(
         new BundleTransmittedEvent(bundle, contact, link, total_len, 0));
+}
+
+//----------------------------------------------------------------------
+bool
+NullConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
+{
+    Params* params = (Params*)link->cl_info();
+    
+    // if configured to not sent bundles, and if the bundle in
+    // question is still on the link queue, then it can be cancelled
+
+    // XXX/demmer can't check that the bundle in the link queue since
+    // BundleActions::cancel_bundle removed it before calling into the
+    // CL.. this should be moved to the BundleDaemon
+    
+    if (! params->can_transmit_ /* && link->queue()->contains(bundle) */) {
+        log_debug("NullConvergenceLayer::cancel_bundle: "
+                  "cancelling bundle *%p on *%p", bundle, link.object());
+        BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
+        return true;
+    } else {
+        log_debug("NullConvergenceLayer::cancel_bundle: "
+                  "not cancelling bundle *%p on *%p since !is_queued()",
+                  bundle, link.object());
+    }
+
+    // XXX/demmer this return value is always bogus so get rid of it
+    return false;
 }
 
 } // namespace dtn

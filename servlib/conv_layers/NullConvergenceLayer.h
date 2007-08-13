@@ -27,11 +27,35 @@ namespace dtn {
  */
 class NullConvergenceLayer : public ConvergenceLayer {
 public:
-    NullConvergenceLayer()
-        : ConvergenceLayer("NullConvergenceLayer", "null") {}
+    NullConvergenceLayer();
 
+    /// Link parameters
+    class Params : public CLInfo {
+    public:
+        virtual ~Params() {}
+        virtual void serialize(oasys::SerializeAction* a);
+
+        /// Whether or not the link can actually send bundles (default true)
+        bool can_transmit_;
+    };
+
+    /// Default parameters
+    static Params defaults_;
+
+    /// @{ Virtual from ConvergenceLayer
+    bool init_link(const LinkRef& link, int argc, const char* argv[]);
+    bool reconfigure_link(const LinkRef& link, int argc, const char* argv[]);
+    void delete_link(const LinkRef& link);
     bool open_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);
+    bool cancel_bundle(const LinkRef& link, Bundle* bundle);
+    /// @}
+
+private:
+    /// Helper function to parse link parameters
+    bool parse_link_params(Params* params,
+                           int argc, const char** argv,
+                           const char** invalidp);
 };
 
 } // namespace dtn
