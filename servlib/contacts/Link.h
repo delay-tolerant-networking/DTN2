@@ -496,6 +496,15 @@ public:
         u_int idle_close_time_;
 
         /**
+         * Conservative estimate of the maximum amount of time that
+         * the link may be down during "normal" operation. Used by
+         * routing algorithms to determine how long to leave bundles
+         * queued on the down link before rerouting them. Fefault is
+         * 30 seconds.
+         */
+        u_int potential_downtime_;
+
+        /**
          * Whether or not to send the previous hop header on this
          * link. Default is false.
          */

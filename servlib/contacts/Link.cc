@@ -41,6 +41,7 @@ Link::Params::Params()
       min_retry_interval_(5),
       max_retry_interval_(10 * 60),
       idle_close_time_(0),
+      potential_downtime_(30),
       prevhop_hdr_(false),
       cost_(100) {}
 
@@ -219,6 +220,10 @@ Link::reconfigure_link(AttributeVector& params)
         } else if (iter->name() == "idle_close_time") {
             params_.idle_close_time_ = iter->u_int_val();
             iter = params.erase(iter);
+            
+        } else if (iter->name() == "potential_downtime") {
+            params_.potential_downtime_ = iter->u_int_val();
+            iter = params.erase(iter);
 
         } else {
             ++iter;
@@ -268,6 +273,7 @@ Link::serialize(oasys::SerializeAction* a)
     a->process("min_retry_interval", &params_.min_retry_interval_);
     a->process("max_retry_interval", &params_.max_retry_interval_);
     a->process("idle_close_time",    &params_.idle_close_time_);
+    a->process("potential_downtime", &params_.potential_downtime_);
     a->process("cost",               &params_.cost_);
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
@@ -291,6 +297,8 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
                                 &params_.max_retry_interval_));
     p.addopt(new oasys::UIntOpt("idle_close_time",
                                 &params_.idle_close_time_));
+    p.addopt(new oasys::UIntOpt("potential_downtime",
+                                &params_.potential_downtime_));
     p.addopt(new oasys::BoolOpt("prevhop_hdr", &params_.prevhop_hdr_));
     p.addopt(new oasys::UIntOpt("cost", &params_.cost_));
     
@@ -457,6 +465,8 @@ Link::dump(oasys::StringBuffer* buf)
                  "mtu: %u\n"
                  "min_retry_interval: %u\n"
                  "max_retry_interval: %u\n"
+                 "idle_close_time: %u\n"
+                 "potential_downtime: %u\n"
                  "prevhop_hdr: %s\n",
                  name(),
                  clayer_->name(),
@@ -468,6 +478,8 @@ Link::dump(oasys::StringBuffer* buf)
                  params_.mtu_,
                  params_.min_retry_interval_,
                  params_.max_retry_interval_,
+                 params_.idle_close_time_,
+                 params_.potential_downtime_,
                  params_.prevhop_hdr_ ? "true" : "false");
 
     ASSERT(clayer_ != NULL);
