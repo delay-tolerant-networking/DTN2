@@ -23,6 +23,7 @@
 #include "bundling/BundleActions.h"
 #include "bundling/BundleDaemon.h"
 #include "contacts/Contact.h"
+#include "contacts/ContactManager.h"
 #include "contacts/Link.h"
 
 namespace dtn {
@@ -103,6 +104,15 @@ TableBasedRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event
 
 //----------------------------------------------------------------------
 void
+TableBasedRouter::handle_bundle_cancelled(BundleSendCancelledEvent* event)
+{
+    Bundle* bundle = event->bundleref_.object();
+    log_debug("handle bundle cancelled: *%p", bundle);
+    fwd_to_matching(bundle);
+}
+
+//----------------------------------------------------------------------
+void
 TableBasedRouter::handle_route_add(RouteAddEvent* event)
 {
     add_route(event->entry_);
@@ -165,7 +175,88 @@ TableBasedRouter::handle_contact_up(ContactUpEvent* event)
 
     add_nexthop_route(link);
     check_next_hop(link);
+
+    // check if there's a pending reroute timer on the link, and if
+    // so, cancel it.
+    // 
+    // note that there's a possibility that a link just bounces
+    // between up and down states but can't ever really send a bundle
+    // (or part of one), which we don't handle here since we can't
+    // distinguish that case from one in which the CL is actually
+    // sending data, just taking a long time to do so.
+    RerouteTimerMap::iterator iter = reroute_timers_.find(link->name_str());
+    if (iter != reroute_timers_.end()) {
+        log_debug("link %s reopened, cancelling reroute timer", link->name());
+        RerouteTimer* t = iter->second;
+        reroute_timers_.erase(iter);
+        t->cancel();
+    }
 }
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::handle_contact_down(ContactDownEvent* event)
+{
+    LinkRef link = event->contact_->link();
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
+    // if there are any bundles queued on the link when it goes down,
+    // schedule a timer to cancel those transmissions and reroute the
+    // bundles in case the link takes too long to come back up
+    size_t num_queued = link->queue()->size();
+    if (num_queued != 0) {
+        RerouteTimerMap::iterator iter = reroute_timers_.find(link->name_str());
+        if (iter == reroute_timers_.end()) {
+            log_debug("link %s went down with %zu bundles queued, "
+                      "scheduling reroute timer in %u seconds",
+                      link->name(), num_queued,
+                      link->params().potential_downtime_);
+            RerouteTimer* t = new RerouteTimer(this, link);
+            t->schedule_in(link->params().potential_downtime_ * 1000);
+            
+            reroute_timers_[link->name_str()] = t;
+        }
+    }
+}
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::RerouteTimer::timeout(const struct timeval& now)
+{
+    (void)now;
+    router_->reroute_bundles(link_);
+}
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::reroute_bundles(const LinkRef& link)
+{
+    ASSERT(!link->isdeleted());
+
+    // if the reroute timer fires, the link should be down and there
+    // should be at least one bundle queued on it.
+    //
+    // here, we cancel the previous transmissions and just rely on the
+    // BundleSendCancelledEvent handler to actually reroute them
+    log_debug("reroute timer fired -- cancelling %zu bundles on link *%p",
+              link->queue()->size(), link.object());
+    
+    if (link->state() != Link::UNAVAILABLE) {
+        log_warn("reroute timer fired but link *%p state is %s",
+                 link.object(), Link::state_to_str(link->state()));
+    }
+    
+    oasys::ScopeLock l(link->queue()->lock(),
+                       "TableBasedRouter::reroute_bundles");
+    BundleList::iterator iter;
+    for (iter = link->queue()->begin();
+         iter != link->queue()->end();
+         ++iter)
+    {
+        actions_->cancel_bundle(*iter, link);
+    }
+}    
 
 //----------------------------------------------------------------------
 void
@@ -209,6 +300,14 @@ TableBasedRouter::handle_link_deleted(LinkDeletedEvent* event)
     ASSERT(link->isdeleted());
 
     route_table_->del_entries_for_nexthop(link);
+
+    RerouteTimerMap::iterator iter = reroute_timers_.find(link->name_str());
+    if (iter != reroute_timers_.end()) {
+        log_debug("link %s deleted, cancelling reroute timer", link->name());
+        RerouteTimer* t = iter->second;
+        reroute_timers_.erase(iter);
+        t->cancel();
+    }
 }
 
 //----------------------------------------------------------------------

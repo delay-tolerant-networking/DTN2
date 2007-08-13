@@ -17,6 +17,8 @@
 #ifndef _TABLE_BASED_ROUTER_H_
 #define _TABLE_BASED_ROUTER_H_
 
+#include <oasys/util/StringUtils.h>
+
 #include "BundleRouter.h"
 #include "DuplicateCache.h"
 
@@ -49,63 +51,21 @@ protected:
      * appropriate.
      */
     virtual void handle_event(BundleEvent* event);
-
-    /**
-     * Handler for new bundle arrivals simply forwards the newly arrived
-     * bundle to all matching entries in the table.
-     */
+    
+    /// @{ Event handlers
     virtual void handle_bundle_received(BundleReceivedEvent* event);
-    
-    /**
-     * Event handler when bundles are transmitted.
-     */
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
-    
-    /**
-     * Handler for transmission failures.
-     */
     //virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
-    
-    /**
-     * Default event handler when a new route is added by the command
-     * or management interface.
-     *
-     * Adds an entry to the route table, then walks the pending list
-     * to see if any bundles match the new route.
-     */
+    virtual void handle_bundle_cancelled(BundleSendCancelledEvent* event);
     virtual void handle_route_add(RouteAddEvent* event);
-
-    /**
-     * Default event handler when a route is deleted by the command
-     * or management interface.
-     */
     virtual void handle_route_del(RouteDelEvent* event);
-    
-    /**
-     * When a contact comes up, check to see if there are any matching
-     * bundles for it.
-     */
     virtual void handle_contact_up(ContactUpEvent* event);
-
-    /**
-     * Ditto if a link becomes available.
-     */
+    virtual void handle_contact_down(ContactDownEvent* event);
     virtual void handle_link_available(LinkAvailableEvent* event);
-
-    /**
-     * If a link gets created with a remote eid, add the route
-     */
     virtual void handle_link_created(LinkCreatedEvent* event);
-
-    /**
-     * Delete all routes that depend on the given link.
-     */
     virtual void handle_link_deleted(LinkDeletedEvent* event);
-
-    /**
-     * Handle a custody transfer timeout.
-     */
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
+    /// @}
     
     /**
      * Dump the routing state.
@@ -192,6 +152,30 @@ protected:
 
     /// The routing table
     RouteTable* route_table_;
+
+    /// Timer class used to cancel transmission on down links after
+    /// waiting for them to potentially reopen
+    class RerouteTimer : public oasys::Timer {
+    public:
+        RerouteTimer(TableBasedRouter* router, const LinkRef& link)
+            : router_(router), link_(link) {}
+        virtual ~RerouteTimer() {}
+        
+        void timeout(const struct timeval& now);
+
+    protected:
+        TableBasedRouter* router_;
+        LinkRef link_;
+    };
+
+    friend class RerouteTimer;
+
+    /// Helper function for rerouting
+    void reroute_bundles(const LinkRef& link);
+    
+    /// Table of reroute timers, indexed by the link name
+    typedef oasys::StringMap<RerouteTimer*> RerouteTimerMap;
+    RerouteTimerMap reroute_timers_;
 };
 
 } // namespace dtn
