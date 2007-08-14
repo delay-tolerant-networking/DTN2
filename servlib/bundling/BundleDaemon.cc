@@ -2175,7 +2175,7 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
 
     if (! bundle->is_queued_on(pending_bundles_))
     {
-        if (bundle->expiration_timer_ == NULL) {
+        if (bundle->expired()) {
             log_debug("try_delete_from_pending(*%p): bundle already expired",
                       bundle);
             return false;

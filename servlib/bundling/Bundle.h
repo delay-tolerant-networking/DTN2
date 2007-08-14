@@ -207,7 +207,8 @@ public:
     }
 
     /// @{ Accessors (should eventually be for all fields)
-    oasys::Lock* lock() const { return &lock_; }
+    oasys::Lock* lock()    const { return &lock_; }
+    bool         expired() const { return expiration_timer_ == NULL; }
     /// @}
     
     /*
