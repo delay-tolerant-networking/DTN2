@@ -156,12 +156,7 @@ NullConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
     
     // if configured to not sent bundles, and if the bundle in
     // question is still on the link queue, then it can be cancelled
-
-    // XXX/demmer can't check that the bundle in the link queue since
-    // BundleActions::cancel_bundle removed it before calling into the
-    // CL.. this should be moved to the BundleDaemon
-    
-    if (! params->can_transmit_ /* && link->queue()->contains(bundle) */) {
+    if (! params->can_transmit_&& link->queue()->contains(bundle)) {
         log_debug("NullConvergenceLayer::cancel_bundle: "
                   "cancelling bundle *%p on *%p", bundle, link.object());
         BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));

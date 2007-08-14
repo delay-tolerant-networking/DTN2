@@ -1057,6 +1057,15 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
                  link->nexthop());
         return;
     }
+
+    /*
+     * Remove the bundle from the link queue.
+     */
+    if (link->queue()->erase(bundle, false))
+    {
+        log_info("removed bundle id:%d from link %s queue",
+                 bundle->bundleid_, link->name());
+    }
         
     size_t total_len = BundleProtocol::total_length(blocks);
     
