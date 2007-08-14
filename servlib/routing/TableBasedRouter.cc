@@ -108,7 +108,12 @@ TableBasedRouter::handle_bundle_cancelled(BundleSendCancelledEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
     log_debug("handle bundle cancelled: *%p", bundle);
-    fwd_to_matching(bundle);
+
+    // if the bundle has expired, we don't want to reroute it.
+    // XXX/demmer this might warrant a more general handling instead?
+    if (!bundle->expired()) {
+        fwd_to_matching(bundle);
+    }
 }
 
 //----------------------------------------------------------------------
