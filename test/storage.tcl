@@ -17,8 +17,7 @@
 test::name storage
 net::default_num_nodes 1
 
-manifest::file apps/dtnsend/dtnsend dtnsend
-manifest::file apps/dtnrecv/dtnrecv dtnrecv
+manifest::file apps/dtntest/dtntest dtntest
 
 set storage_type berkeleydb
 foreach {var val} $opt(opts) {
@@ -101,13 +100,18 @@ test::script {
     tell_dtnd 0 bundle inject $source_eid1 $dest_eid1 $payload expiration=30
     tell_dtnd 0 bundle inject $source_eid2 $dest_eid2 $payload expiration=10
 
-    testlog "running dtnrecv to create registrations"
-    set pid1 [dtn::run_app 0 dtnrecv "-x -e 10 $reg_eid1"]
-    set pid2 [dtn::run_app 0 dtnrecv "-x -e 30 -f drop $reg_eid2"]
+    testlog "running dtntest"
+    dtn::run_dtntest 0
+    dtn::wait_for_dtntest 0
 
-    run::wait_for_pid_exit 0 $pid1
-    run::wait_for_pid_exit 0 $pid2
-
+    testlog "creating two registrations"
+    set h [dtn::tell_dtntest 0 dtn_open]
+    dtn::tell_dtntest 0 dtn_register $h endpoint=$reg_eid1 expiration=10 \
+            failure_action=defer
+    dtn::tell_dtntest 0 dtn_register $h endpoint=$reg_eid2 expiration=30 \
+            failure_action=drop
+    dtn::tell_dtntest 0 dtn_close $h
+    
     testlog "checking the data before shutdown"
     check
 
@@ -163,6 +167,7 @@ test::script {
 }
 
 test::exit_script {
-    testlog "Shutting down dtnd"
+    testlog "Shutting down dtnd and dtntest"
+    dtn::stop_dtntest 0
     dtn::stop_dtnd 0
 }
