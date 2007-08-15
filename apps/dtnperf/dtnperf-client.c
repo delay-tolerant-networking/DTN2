@@ -700,7 +700,7 @@ void print_usage(char* progname)
  * ---------------------------- */
 void parse_options(int argc, char**argv)
 {
-    char c, done = 0;
+    int c, done = 0;
 
     while (!done)
     {

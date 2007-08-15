@@ -378,7 +378,7 @@ void print_usage(char* progname)
  *  parse_options
  * --------------- */
 void parse_options (int argc, char** argv) {
-    char c, done = 0;
+    int c, done = 0;
 
     while (!done) {
         c = getopt(argc, argv, "hvDfmd:e:a:");

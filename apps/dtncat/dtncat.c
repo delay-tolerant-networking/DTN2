@@ -378,7 +378,7 @@ void print_usage()
 void
 parse_options(int argc, char**argv)
 {
-    char c, done = 0;
+    int c, done = 0;
     int lopts = 0, notlopts = 0;
 
     progname = argv[0];
