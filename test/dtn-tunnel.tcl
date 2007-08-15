@@ -59,7 +59,7 @@ test::script {
             global initial_hello; \
             fileevent $chan readable "pingpong $chan"; \
             fconfigure $chan -buffering full; \
-            if {[info exists initial_hello]} { puts $chan "hello"; flush $chan } ; }
+            if {[info exists initial_hello]} { after 1000; puts $chan "hello"; flush $chan } ; }
     
     testlog "Setting up a server socket"
     dtn::tell_dtntest 1 socket -server init_pingpong -myaddr $server_addr $server_port
