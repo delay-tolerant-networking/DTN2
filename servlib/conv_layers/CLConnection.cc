@@ -63,6 +63,10 @@ CLConnection::run()
     struct pollfd* cmdqueue_poll;
 
     initialize_pollfds();
+    if (contact_broken_) {
+        log_debug("contact_broken set during initialization");
+        return;
+    }
 
     cmdqueue_poll         = &pollfds_[num_pollfds_];
     cmdqueue_poll->fd     = cmdqueue_.read_fd();
