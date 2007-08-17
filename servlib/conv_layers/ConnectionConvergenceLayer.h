@@ -147,7 +147,8 @@ protected:
     /**
      * Create a new CL-specific connection object.
      */
-    virtual CLConnection* new_connection(LinkParams* params) = 0;
+    virtual CLConnection* new_connection(const LinkRef& link,
+                                         LinkParams* params) = 0;
 
 };
 

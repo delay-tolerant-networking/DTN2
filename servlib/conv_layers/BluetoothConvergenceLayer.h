@@ -103,7 +103,8 @@ protected:
                                    const char** argv,
                                    const char** invalidp);
     virtual bool parse_nexthop(const LinkRef& link, LinkParams* params);
-    virtual CLConnection* new_connection(LinkParams* params);
+    virtual CLConnection* new_connection(const LinkRef& link,
+                                         LinkParams* params);
     /// @}
 
     /**

@@ -178,8 +178,9 @@ BluetoothConvergenceLayer::parse_nexthop(const LinkRef& link,
 
 //----------------------------------------------------------------------
 CLConnection*
-BluetoothConvergenceLayer::new_connection(LinkParams* p) 
+BluetoothConvergenceLayer::new_connection(const LinkRef& link, LinkParams* p) 
 {
+    (void)link;
     BluetoothLinkParams *params = dynamic_cast<BluetoothLinkParams*>(p);
     ASSERT(params != NULL);
     return new Connection(this, params);

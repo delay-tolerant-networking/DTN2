@@ -148,8 +148,9 @@ TCPConvergenceLayer::parse_nexthop(const LinkRef& link, LinkParams* lparams)
 
 //----------------------------------------------------------------------
 CLConnection*
-TCPConvergenceLayer::new_connection(LinkParams* p)
+TCPConvergenceLayer::new_connection(const LinkRef& link, LinkParams* p)
 {
+    (void)link;
     TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(p);
     ASSERT(params != NULL);
     return new Connection(this, params);

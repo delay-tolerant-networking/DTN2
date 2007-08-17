@@ -253,7 +253,7 @@ ConnectionConvergenceLayer::open_contact(const ContactRef& contact)
     
     // create a new connection for the contact, set up to use the
     // link's configured parameters
-    CLConnection* conn = new_connection(params);
+    CLConnection* conn = new_connection(link, params);
     conn->set_contact(contact);
     contact->set_cl_info(conn);
     conn->start();
