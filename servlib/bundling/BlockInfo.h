@@ -17,6 +17,7 @@
 #ifndef _BUNDLEBLOCKINFO_H_
 #define _BUNDLEBLOCKINFO_H_
 
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/serialize/Serialize.h>
 #include <oasys/serialize/SerializableVector.h>
 #include <oasys/util/ScratchBuffer.h>
@@ -128,6 +129,8 @@ protected:
  */
 class BlockInfoVec : public oasys::SerializableVector<BlockInfo> {
 public:
+    BlockInfoVec() : oasys::SerializableVector<BlockInfo>() {}
+    
     /**
      * Append a block using the given processor and optional source
      * block.
@@ -160,6 +163,11 @@ protected:
      * Dictionary for this vector of BlockInfo structures
      */
     Dictionary   dict_;
+
+    /**
+     * Disable the copy constructor and assignment operator.
+     */
+    NO_ASSIGN_COPY(BlockInfoVec);
 };
 
 /**
@@ -212,6 +220,11 @@ protected:
     typedef std::vector<Entry>::iterator iterator;
     Vector entries_;
     oasys::Lock* lock_;
+
+    /**
+     * Disable the copy constructor and assignment operator.
+     */
+    NO_ASSIGN_COPY(LinkBlockSet);
 };
 
 } // namespace dtn
