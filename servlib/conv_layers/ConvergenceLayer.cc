@@ -19,12 +19,13 @@
 #endif
 
 #include "ConvergenceLayer.h"
+#include "BluetoothConvergenceLayer.h"
 #include "EthConvergenceLayer.h"
 #include "FileConvergenceLayer.h"
 #include "NullConvergenceLayer.h"
+#include "SerialConvergenceLayer.h"
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
-#include "BluetoothConvergenceLayer.h"
 
 #include "bundling/BundleDaemon.h"
 
@@ -50,6 +51,7 @@ void
 ConvergenceLayer::init_clayers()
 {
     add_clayer(new NullConvergenceLayer());
+    add_clayer(new SerialConvergenceLayer());
     add_clayer(new TCPConvergenceLayer());
     add_clayer(new UDPConvergenceLayer());
 #ifdef __linux__

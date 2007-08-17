@@ -73,6 +73,7 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/IPConvergenceLayer.cc	\
 	conv_layers/IPConvergenceLayerUtils.cc	\
 	conv_layers/NullConvergenceLayer.cc	\
+	conv_layers/SerialConvergenceLayer.cc   \
 	conv_layers/StreamConvergenceLayer.cc   \
 	conv_layers/TCPConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
