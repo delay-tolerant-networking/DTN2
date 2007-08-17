@@ -106,9 +106,12 @@ protected:
     virtual void connect() = 0;
 
     /**
-     * Accept a connection from the remote side.
+     * Accept a connection from the remote side. For variants that
+     * don't implement interfaces, but require a link to be configured
+     * on both ends (e.g. serial), this will never be called, so the
+     * base class simple asserts NOTREACHED.
      */
-    virtual void accept() = 0;
+    virtual void accept() { NOTREACHED; }
 
     /**
      * Shut down the connection
