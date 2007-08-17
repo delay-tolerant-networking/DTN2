@@ -214,15 +214,34 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     ASSERT(! contact_up_);
 
     /*
-     * First check that we have enough data for the contact header
+     * First check for valid magic number.
      */
-    size_t len_needed = sizeof(ContactHeader);
+    u_int32_t magic = 0;
+    size_t len_needed = sizeof(magic);
     if (recvbuf_.fullbytes() < len_needed) {
  tooshort:
         log_debug("handle_contact_initiation: not enough data received "
                   "(need > %zu, got %zu)",
                   len_needed, recvbuf_.fullbytes());
         return;
+    }
+
+    memcpy(&magic, recvbuf_.start(), sizeof(magic));
+    magic = ntohl(magic);
+   
+    if (magic != MAGIC) {
+        log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
+                 "-- disconnecting.", magic, MAGIC);
+        break_contact(ContactEvent::CL_ERROR);
+        return;
+    }
+
+    /*
+     * Now check that we got a full contact header
+     */
+    len_needed = sizeof(ContactHeader);
+    if (recvbuf_.fullbytes() < len_needed) {
+        goto tooshort;
     }
 
     /*
@@ -254,16 +273,6 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
 
     recvbuf_.consume(sizeof(ContactHeader));
     
-    /*
-     * Check for valid magic number and version.
-     */
-    if (contacthdr.magic != MAGIC) {
-        log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
-                 "-- disconnecting.", contacthdr.magic, MAGIC);
-        break_contact(ContactEvent::CL_ERROR);
-        return;
-    }
-
     /*
      * In this implementation, we can't handle other versions than our
      * own, but if the other side presents a higher version, we allow
@@ -858,7 +867,7 @@ StreamConvergenceLayer::Connection::handle_poll_timeout()
     //make sure the contact still exists
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
     oasys::ScopeLock l(cm->lock(),"StreamConvergenceLayer::Connection::handle_poll_timeout");
-    if(contact_ == NULL)
+    if (contact_ == NULL)
     {
         return;
     }
