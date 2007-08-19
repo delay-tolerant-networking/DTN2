@@ -1319,6 +1319,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-previous-options read config.status for configure options
   --with-cc=CC            name (or path) of the C compiler to use
+  --with-cxx=CXX          name (or path) of the C++ compiler to use
   --with-extra-cflags=?   additional options to pass to the compiler
   --with-extra-ldflags=?  additional options to pass to the linker
   --with-file-offset-bits=N
@@ -2850,12 +2851,27 @@ if test "${with_cc+set}" = set; then
 fi
 
 
+    ac_with_cxx=$CXX
+
+# Check whether --with-cxx was given.
+if test "${with_cxx+set}" = set; then
+  withval=$with_cxx; ac_with_cxx=$withval
+fi
+
+
     if test "x$ac_with_cc" = "x" ; then
         ac_try_cc="gcc gcc-4.0 gcc-3.4 gcc-3.3 gcc-3.2 gcc-2.96 gcc296 gcc-2.95 gcc295"
         ac_try_cxx="g++ g++-4.0 g++-3.4 g++-3.3 g++-3.2 g++-2.96 g++296 g++-2.95 g++295"
     else
         ac_try_cc=$ac_with_cc
-        ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
+
+	if test x"$ac_with_cxx" = x ; then
+            ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
+	    { echo "$as_me:$LINENO: inferring C++ compiler '$ac_try_cxx' from C compiler setting" >&5
+echo "$as_me: inferring C++ compiler '$ac_try_cxx' from C compiler setting" >&6;}
+	else
+	    ac_try_cxx=$ac_with_cxx
+	fi
 
 	CC=$ac_try_cc
 	CXX=$ac_try_cxx
