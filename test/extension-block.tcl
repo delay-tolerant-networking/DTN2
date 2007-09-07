@@ -24,6 +24,8 @@ dtn::config_linear_topology ALWAYSON tcp true
 
 manifest::file apps/dtntest/dtntest dtntest
 
+set block_content "some_long_text_thats_more_than_64_bytes_long_and_therefore_would_trigger_a_buffer_overflow_error_if_the_code_didnt_correctly_handle_the_fact_that_extension_blocks_might_be_more_than_64_bytes_long"
+
 test::script {
     testlog "running dtnds"
     dtn::run_dtnd *
@@ -52,7 +54,7 @@ test::script {
     testlog "dtn_open"
     set handle [dtn::tell_dtntest 0 dtn_open]
 
-
+    
     testlog "*"
     testlog "Test 1: Forward Unprocessed Block"
 
@@ -67,7 +69,7 @@ test::script {
                                                  replyto=$sr_dst              \
                                                  payload_data=this_is_a_test! \
                                                  block_type=16 block_flags=0  \
-                                                 block_content=test_block]
+                                                 block_content=$block_content]
 
     testlog "waiting to receive bundle at destination"
     dtn::wait_for_bundle 2 $id
@@ -94,7 +96,7 @@ test::script {
                                                  replyto=$sr_dst              \
                                                  payload_data=this_is_a_test! \
                                                  block_type=16 block_flags=2  \
-                                                 block_content=test_block]
+                                                 block_content=$block_content]
 
     testlog "waiting to receive bundle at destination"
     dtn::wait_for_bundle 2 $id
@@ -130,7 +132,7 @@ test::script {
                                                  payload_data=this_is_a_test! \
                                                  deletion_rcpt=true           \
                                                  block_type=16 block_flags=4  \
-                                                 block_content=test_block]
+                                                 block_content=$block_content]
 
     testlog "waiting for status reports"
     set sr_guid "$id,$mid_eid"
@@ -155,7 +157,7 @@ test::script {
                                                  replyto=$sr_dst              \
                                                  payload_data=this_is_a_test! \
                                                  block_type=16 block_flags=16 \
-                                                 block_content=test_block]
+                                                 block_content=$block_content]
 
     testlog "waiting to receive bundle at destination"
     dtn::wait_for_bundle 2 $id
