@@ -50,7 +50,7 @@ extern "C" {
 #define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
 #define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
 #define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_BLOCK_LEN 64 /* length of block data */
+#define DTN_MAX_BLOCK_LEN 1024 /* length of block data (currently 1K) */
 #define DTN_MAX_BLOCKS 256 /* number of blocks in bundle */
 
 /**
