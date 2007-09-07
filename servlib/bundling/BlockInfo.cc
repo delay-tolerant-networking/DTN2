@@ -158,8 +158,7 @@ BlockInfo::serialize(oasys::SerializeAction* a)
             owner_ = BundleProtocol::find_processor(owner_type_);
         }
     }
-    ASSERT(owner_type_ == owner_->block_type());
-    
+
     u_int32_t length = contents_.len();
     a->process("length", &length);
     
