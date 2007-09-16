@@ -134,6 +134,12 @@ Dictionary::extract_eid(EndpointID* eid,
 {
     static const char* log = "/dtn/bundle/protocol";
 
+    // If there's nothing in the dictionary, return
+    if (dict_length_ == 0) {
+        log_err_p(log, "cannot extract eid from zero-length dictionary");
+        return false;
+    }    
+
     if (scheme_offset >= (dict_length_ - 1)) {
 	log_err_p(log, "illegal offset for scheme dictionary offset: "
                   "offset %d, total length %u",
