@@ -18,6 +18,7 @@
 #  include <config.h>
 #endif
 
+#include <oasys/io/IO.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/util/Time.h>
 
@@ -43,6 +44,12 @@
 #include "routing/RouteTable.h"
 #include "storage/BundleStore.h"
 #include "storage/RegistrationStore.h"
+
+#ifdef BSP_ENABLED
+#  include "security/Ciphersuite.h"
+#  include "security/SPD.h"
+#  include "security/KeyDB.h"
+#endif
 
 namespace dtn {
 
@@ -113,6 +120,11 @@ BundleDaemon::do_init()
     eventq_ = new oasys::MsgQueue<BundleEvent*>(logpath_);
     eventq_->notify_when_empty();
     BundleProtocol::init_default_processors();
+#ifdef BSP_ENABLED
+    Ciphersuite::init_default_ciphersuites();
+    SPD::init();
+    KeyDB::init();
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -180,7 +192,8 @@ BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
                  "%u transmitted -- "
                  "%u expired -- "
                  "%u duplicate -- "
-                 "%u deleted",
+                 "%u deleted -- "
+                 "%u injected",
                  pending_bundles()->size(),
                  custody_bundles()->size(),
                  stats_.received_bundles_,
@@ -189,7 +202,8 @@ BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
                  stats_.transmitted_bundles_,
                  stats_.expired_bundles_,
                  stats_.duplicate_bundles_,
-                 stats_.deleted_bundles_);
+                 stats_.deleted_bundles_,
+                 stats_.injected_bundles_);
 }
 
 //----------------------------------------------------------------------
@@ -322,7 +336,8 @@ BundleDaemon::accept_custody(Bundle* bundle)
     // finally, if the bundle requested custody acknowledgements,
     // deliver them now
     if (bundle->custody_rcpt_) {
-        generate_status_report(bundle, BundleStatusReport::STATUS_CUSTODY_ACCEPTED);
+        generate_status_report(bundle, 
+                               BundleStatusReport::STATUS_CUSTODY_ACCEPTED);
     }
 }
 
@@ -1149,9 +1164,11 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
     else
         bundle->expiration_ = event->expiration_;
     
-
-    // set the payload
-    bundle->payload_.set_data(event->payload_, event->payload_length_);
+    // set the payload (by hard linking, then removing original)
+    bundle->payload_.replace_with_file(event->payload_file_.c_str());
+    log_debug("bundle payload size after replace_with_file(): %zd", 
+              bundle->payload_.length());
+    oasys::IO::unlink(event->payload_file_.c_str(), logpath_);
 
     /*
      * Deliver the bundle to any local registrations that it matches,
@@ -1176,6 +1193,8 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
     // If add_to_pending returns false, the bundle has already expired
     if (add_to_pending(bundle, 0))
         BundleDaemon::post(new BundleInjectedEvent(bundle, event->request_id_));
+    
+    ++stats_.injected_bundles_;
 }
 
 //----------------------------------------------------------------------
@@ -1327,7 +1346,6 @@ BundleDaemon::handle_link_deleted(LinkDeletedEvent* event)
 {
     LinkRef link = event->link_;
     ASSERT(link != NULL);
-    ASSERT(link->isdeleted());
 
     log_info("LINK_DELETED *%p", link.object());
 }
@@ -2144,7 +2162,15 @@ BundleDaemon::delete_from_pending(Bundle* bundle)
     // XXX/demmer the whole BundleDaemon core should be changed to use
     // BundleRefs instead of Bundle*, as should the BundleList API, as
     // should the whole system, really...
+    log_debug("pending_bundles size %zd", pending_bundles_->size());
+    
+    oasys::Time now;
+    now.get_time();
+    
     bool erased = pending_bundles_->erase(bundle);
+
+    int elapsed = now.elapsed_ms();
+    log_debug("BundleDaemon: pending_bundles erasure took %d ms", elapsed);
 
     if (!erased) {
         log_err("unexpected error removing bundle from pending list");
@@ -2173,6 +2199,7 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
      *    in the forwarding log.
      */
 
+    log_debug("pending_bundles size %zd", pending_bundles_->size());
     if (! bundle->is_queued_on(pending_bundles_))
     {
         if (bundle->expired()) {
@@ -2249,6 +2276,7 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     }
 
     // delete the bundle from the pending list
+    log_debug("pending_bundles size %zd", pending_bundles_->size());
     bool erased = true;
     if (bundle->is_queued_on(pending_bundles_)) {
         erased = delete_from_pending(bundle);
@@ -2265,6 +2293,9 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     //
     // XXX/demmer this is strange to me as we should be able to figure
     // out if is_queued() is true for the bundle/link
+    oasys::Time now;
+    now.get_time();
+    
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::delete_bundle");
     const LinkSet* links = contactmgr_->links();
     LinkSet::const_iterator iter;
@@ -2272,6 +2303,9 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
         actions_->cancel_bundle(bundle, (*iter));
     }
     
+    int elapsed = now.elapsed_ms();
+    log_debug("BundleDaemon: canceling deleted bundle on all links took %d ms",
+               elapsed);
 
     return erased;
 }
@@ -2282,6 +2316,8 @@ BundleDaemon::find_duplicate(Bundle* b)
 {
     oasys::ScopeLock l(pending_bundles_->lock(), 
                        "BundleDaemon::find_duplicate");
+    log_debug("pending_bundles size %zd", pending_bundles_->size());
+    Bundle *found = NULL;
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();

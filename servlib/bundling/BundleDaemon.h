@@ -488,6 +488,7 @@ protected:
         u_int32_t expired_bundles_;
         u_int32_t deleted_bundles_;
         u_int32_t duplicate_bundles_;
+        u_int32_t injected_bundles_;
         u_int32_t events_processed_;
     };
 
