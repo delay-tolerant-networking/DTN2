@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <oasys/debug/DebugUtils.h>
+#include <oasys/io/FileUtils.h>
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/ScratchBuffer.h>
 #include <oasys/util/StringBuffer.h>
@@ -292,7 +293,7 @@ BundlePayload::replace_with_file(const char* path)
         }
         
         file_.set_path(payload_path);
-        if (file_.reopen(O_RDWR | O_CREAT) < 0) {
+        if (file_.reopen(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR) < 0) {
             log_err("replace_with_file: error reopening file: %s",
                     strerror(err));
             return false;
@@ -301,6 +302,8 @@ BundlePayload::replace_with_file(const char* path)
         src.copy_contents(&file_);
         src.close();
     }
+
+    set_length(oasys::FileUtils::size(file_.path()));
 
     // now need to re-add the entry to the cache
     ASSERT(file_.fd() != -1);
