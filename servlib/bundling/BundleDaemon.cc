@@ -2317,7 +2317,6 @@ BundleDaemon::find_duplicate(Bundle* b)
     oasys::ScopeLock l(pending_bundles_->lock(), 
                        "BundleDaemon::find_duplicate");
     log_debug("pending_bundles size %zd", pending_bundles_->size());
-    Bundle *found = NULL;
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
