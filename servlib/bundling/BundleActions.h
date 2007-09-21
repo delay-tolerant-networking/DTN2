@@ -130,6 +130,10 @@ protected:
      * Remove the given bundle from the data store.
      */
     virtual void store_del(Bundle* bundle);
+    
+private:
+    void send_bundle_on(Bundle* bundle, const LinkRef& link);
+        
 };
 
 } // namespace dtn

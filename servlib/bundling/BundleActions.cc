@@ -100,8 +100,13 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
     // XXX/demmer this should be moved somewhere in the router
     // interface so it can select options for the outgoing bundle
     // blocks (e.g. security)
+    // XXX/ngoffee It's true the router should be able to select
+    // blocks for various purposes, but I'd like the security policy
+    // checks and subsequent block selection to remain inside the BPA,
+    // with the DP pushing (firewall-like) policies and keys down via
+    // a PF_KEY-like interface.
     log_debug("trying to create xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_,link->name());
+              bundle->bundleid_, link->name());
     BlockInfoVec* blocks = BundleProtocol::prepare_blocks(bundle, link);
     size_t total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
 
@@ -157,6 +162,15 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
     link->stats()->bundles_queued_++;
     link->stats()->bytes_queued_ += total_len;
 
+    send_bundle_on(bundle, link);
+        
+    return true;
+}
+
+void
+BundleActions::send_bundle_on(Bundle* bundle, const LinkRef& link)
+{
+
     // If the link is open, tell the convergence layer to send the
     // bundle. Otherwise, we either queue the bundle or kick the
     // convergence layer to tell it to send the bundle on the down
@@ -188,8 +202,6 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
             link->queue()->push_back(bundle);
         }
     }
-    
-    return true;
 }
 
 //----------------------------------------------------------------------
