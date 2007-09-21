@@ -253,6 +253,8 @@ public:
     bool local_custody_;	///< Local node has custody
     std::string owner_;         ///< Declared router that "owns" this
                                 ///  bundle, which could be empty
+    BundleTimestamp extended_id_; ///< Identifier for external routers to
+                                  ///  refer to duplicate bundles
     ForwardingLog fwdlog_;	///< Log of bundle forwarding records
     ExpirationTimer* expiration_timer_;	///< The expiration timer
     CustodyTimerVec custody_timers_; ///< Live custody timers for this bundle

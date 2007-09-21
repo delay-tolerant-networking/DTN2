@@ -61,6 +61,14 @@ Bundle::init(u_int32_t id)
     creation_ts_.seconds_ = BundleTimestamp::get_current_time();
     creation_ts_.seqno_   = bundleid_;
 
+    // This identifier provides information about when a local Bundle
+    // object was created so that bundles with the same GBOF-ID can be
+    // distinguished. We have to keep a copy separate from creation_ts_
+    // because that will be set to the actual BP creation time if this
+    // bundle was received from a peer, or is the result of
+    // fragmentation, etc.
+    extended_id_ = creation_ts_;
+
     log_debug_p("/dtn/bundle", "Bundle::init bundle id %d", id);
 }
 
@@ -218,9 +226,11 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("orig_length", &orig_length_);
     a->process("frag_offset", &frag_offset_);
     a->process("owner", &owner_);
+    a->process("extended_id_seconds", &extended_id_.seconds_);
+    a->process("extended_id_seqno", &extended_id_.seqno_);
     a->process("recv_blocks", &recv_blocks_);
     a->process("api_blocks", &api_blocks_);
-    
+
     // XXX/TODO serialize the forwarding log and make sure it's
     // updated on disk as it changes in memory
     //a->process("forwarding_log", &fwdlog_);
