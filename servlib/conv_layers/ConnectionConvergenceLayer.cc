@@ -323,8 +323,20 @@ ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
                                           Bundle* bundle)
 {
     if (!link->isopen()) {
+        /* 
+         * (Taken from jmmikkel checkin comment on BBN source tree)
+         *
+         * The dtn2 internal convergence layer complains and does
+         * nothing if you try to cancel a bundle after the link has
+         * closed instead of just considering the send cancelled. I
+         * believe that posting a BundleCancelledEvent before
+         * returning is the correct way to make the cancel actually
+         * happen in this situation, as the bundle is removed from the
+         * link queue in that event's handler.
+         */
         log_debug("cancel_bundle *%p but link *%p isn't open!!",
                   bundle, link.object());
+        BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
         return false;
     }
     
