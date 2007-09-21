@@ -501,7 +501,7 @@ ExternalRouter::handle_bundle_report(BundleReportEvent *event)
 
     (void) event;
 
-    log_debug("pending_bundles size %d", bd->pending_bundles()->size());
+    log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
     const BundleList *bundles = bd->pending_bundles();
     BundleList::const_iterator i = bundles->begin();
     BundleList::const_iterator end = bundles->end();
@@ -910,7 +910,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         gbof_id.frag_offset_ = id.frag_offset();
 
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %d", bd->pending_bundles()->size());
+        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
         BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
         if (br.object()) {
             BundleSendRequest *request = new BundleSendRequest(br, link, action);
@@ -1280,7 +1280,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         gbof_id.frag_offset_ = id.frag_offset();
 
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %d", bd->pending_bundles()->size());
+        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
         BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
         if (br.object()) {
             BundleCancelRequest *request = new BundleCancelRequest(br, link);
@@ -1312,7 +1312,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             instance->delete_bundle_request().get().local_id() & 0xffffffff;
 
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %d", bd->pending_bundles()->size());
+        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
         BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
         if (br.object()) {
             BundleDeleteRequest *request =
@@ -1382,7 +1382,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         local_id.seqno_ = query.local_id() & 0xffffffff;
 
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %d", bd->pending_bundles()->size());
+        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
         BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
 
         // XXX note, if we want to send a report even when the bundle does
@@ -1513,7 +1513,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         local_id.seqno_ = in_request.local_id() & 0xffffffff;
 
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %d", bd->pending_bundles()->size());
+        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
         BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
 
         if (br.object()) {
