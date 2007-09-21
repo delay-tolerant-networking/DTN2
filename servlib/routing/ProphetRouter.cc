@@ -180,6 +180,11 @@ ProphetRouter::handle_bundle_received(BundleReceivedEvent* e)
 
     if (e->source_ != EVENTSRC_APP)
     {
+	// The external CL does not set this field, which the Prophet
+	// implementation needs. We want to fail quickly if we're
+	// running with the ECL.
+	ASSERT(e->contact_ != NULL);
+
         Link* link = e->contact_->link().object();
         if (link == NULL) return;
 
