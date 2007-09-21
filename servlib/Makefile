@@ -107,6 +107,7 @@ CMD_SRCS :=					\
 	cmd/DiscoveryCommand.cc			\
 	cmd/ProphetCommand.cc			\
 	cmd/ECLACommand.cc			\
+	cmd/SecurityCommand.cc			\
 
 NAMING_SRCS :=					\
 	naming/EndpointID.cc			\
@@ -190,6 +191,22 @@ STORAGE_SRCS :=					\
 	storage/GlobalStore.cc			\
 	storage/RegistrationStore.cc		\
 
+SECURITY_SRCS :=					\
+	security/Ciphersuite.cc				\
+	security/BA_BlockProcessor.cc	\
+	security/PS_BlockProcessor.cc	\
+	security/C_BlockProcessor.cc	\
+	security/Ciphersuite_BA1.cc	\
+	security/Ciphersuite_PS2.cc	\
+	security/Ciphersuite_C3.cc	\
+	security/BP_Tag.cc				\
+	security/KeyDB.cc				\
+	security/SPD.cc					\
+	security/KeySteward.cc			\
+	gcm/gcm_aes.c					\
+	gcm/gcm.cc						\
+	gcm/gf128mul.cc					\
+
 SERVLIB_SRCS := 				\
 	DTNServer.cc				\
 	$(BUNDLING_SRCS) 			\
@@ -202,6 +219,7 @@ SERVLIB_SRCS := 				\
 	$(REGISTRATION_SRCS)			\
 	$(ROUTING_SRCS)				\
 	$(STORAGE_SRCS)				\
+	$(SECURITY_SRCS)			\
 
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)

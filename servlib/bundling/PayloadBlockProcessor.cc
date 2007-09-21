@@ -82,7 +82,7 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
     if (len == 0) {
         return consumed;
     }
-    
+
     // Otherwise, the buffer should always hold just the preamble
     // since we store the rest in the payload file
     ASSERT(block->contents().len() == block->data_offset());
@@ -116,14 +116,14 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
 
 //----------------------------------------------------------------------
 bool
-PayloadBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+PayloadBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
                      BundleProtocol::status_report_reason_t* reception_reason,
                      BundleProtocol::status_report_reason_t* deletion_reason)
 {
     static const char* log = "/dtn/bundle/protocol";
 
     // check for generic block errors
-    if (!BlockProcessor::validate(bundle, block,
+    if (!BlockProcessor::validate(bundle, block_list, block,
                                   reception_reason, deletion_reason)) {
         return false;
     }
@@ -150,11 +150,11 @@ PayloadBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
 }
 
 //----------------------------------------------------------------------
-void
+int
 PayloadBlockProcessor::generate(const Bundle*  bundle,
-                                const LinkRef& link,
                                 BlockInfoVec*  xmit_blocks,
                                 BlockInfo*     block,
+                                const LinkRef& link,
                                 bool           last)
 {
     (void)link;
@@ -167,6 +167,8 @@ PayloadBlockProcessor::generate(const Bundle*  bundle,
                       BundleProtocol::PAYLOAD_BLOCK,
                       last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0,
                       bundle->payload_.length());
+
+    return BP_SUCCESS;
 }
 
 //----------------------------------------------------------------------
@@ -194,6 +196,124 @@ PayloadBlockProcessor::produce(const Bundle*    bundle,
 
     size_t tocopy = std::min(len, bundle->payload_.length() - payload_offset);
     bundle->payload_.read_data(payload_offset, tocopy, buf);
+    
+    return;
 }
+
+//----------------------------------------------------------------------
+void
+PayloadBlockProcessor::process(const Bundle* bundle,  
+                                 const BlockInfo* caller_block,
+                                 const BlockInfo* target_block,
+                                 process_func_const* func, 
+                                 size_t offset, 
+                                 size_t& len,
+                                 OpaqueContext* r)
+{
+    const u_char* buf;
+    u_char  work[1024];         // XXX/pl TODO rework buffer usage
+                                      //    and look at type for the payload data
+    size_t  len_to_do = 0;
+    
+    // re-do these appropriately for the payload
+    //ASSERT(offset < target_block->contents().len());
+    //ASSERT(target_block->contents().len() >= offset + len);
+    
+    // First work on specified range of the preamble
+    if (offset < target_block->data_offset()) {
+        len_to_do = std::min(len, target_block->data_offset() - offset);
+        // convert the offset to a pointer in the target block
+        buf = target_block->contents().buf() + offset;
+        // call the processing function to do the work
+        (*func)(bundle, caller_block, target_block, buf, len_to_do, r);
+        buf    += len_to_do;
+        offset += len_to_do;
+        len    -= len_to_do;
+    }
+
+    if (len == 0)
+        return;
+
+    // Adjust offset to account for the preamble
+    size_t payload_offset = offset - target_block->data_offset();
+    size_t  remaining = std::min(len, bundle->payload_.length() - payload_offset);
+    size_t  outlen; 
+
+    buf = work;     // use local buffer
+
+    while ( remaining > 0 ) {        
+        outlen = 0; 
+        len_to_do = std::min(remaining, sizeof(work));   
+        buf = bundle->payload_.read_data(payload_offset, len_to_do, work);
+        
+        // call the processing function to do the work
+        (*func)(bundle, caller_block, target_block, buf, len_to_do, r);
+        
+        payload_offset  += len_to_do;
+        remaining       -= len_to_do;
+    }
+    
+}
+
+//----------------------------------------------------------------------
+void
+PayloadBlockProcessor::process(Bundle* bundle,  
+                                 const BlockInfo* caller_block,
+                                 BlockInfo* target_block,
+                                 process_func* func, 
+                                 size_t offset, 
+                                 size_t& len,
+                                 OpaqueContext* r,
+                                 bool& changed)
+{
+    u_char* buf;
+    u_char  work[1024];         // XXX/pl TODO rework buffer usage
+                                      //    and look at type for the payload data
+    size_t  len_to_do = 0;
+    
+    // re-do these appropriately for the payload
+    //ASSERT(offset < target_block->contents().len());
+    //ASSERT(target_block->contents().len() >= offset + len);
+    
+    // First work on specified range of the preamble
+    if (offset < target_block->data_offset()) {
+        len_to_do = std::min(len, target_block->data_offset() - offset);
+        // convert the offset to a pointer in the target block
+        buf = target_block->contents().buf() + offset;
+        // call the processing function to do the work
+        (*func)(bundle, caller_block, target_block, buf, len_to_do, r, changed);
+        buf    += len_to_do;
+        offset += len_to_do;
+        len    -= len_to_do;
+    }
+
+    if (len == 0)
+        return;
+
+    // Adjust offset to account for the preamble
+    size_t payload_offset = offset - target_block->data_offset();
+    size_t  remaining = std::min(len, bundle->payload_.length() - payload_offset);
+    size_t  outlen; 
+
+    buf = work;     // use local buffer
+
+    while ( remaining > 0 ) {        
+        outlen = 0; 
+        len_to_do = std::min(remaining, sizeof(work));   
+        bundle->payload_.read_data(payload_offset, len_to_do, buf);
+        
+        // call the processing function to do the work
+        (*func)(bundle, caller_block, target_block, buf, len_to_do, r, changed);
+        
+        // if we need to flush changed content back to disk, do it 
+        if ( changed )            
+            bundle->payload_.write_data(buf, payload_offset, len_to_do);
+            
+        payload_offset  += len_to_do;
+        remaining       -= len_to_do;
+    }
+    
+}
+
 
 } // namespace dtn

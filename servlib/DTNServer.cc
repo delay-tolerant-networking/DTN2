@@ -44,6 +44,7 @@
 #include "cmd/ShutdownCommand.h"
 #include "cmd/StorageCommand.h"
 #include "cmd/ECLACommand.h"
+#include "cmd/SecurityCommand.h"
 
 #include "conv_layers/ConvergenceLayer.h"
 #include "discovery/DiscoveryTable.h"
@@ -222,6 +223,10 @@ DTNServer::init_commands()
 
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
     interp->reg(new ECLACommand());
+#endif
+
+#ifdef BSP_ENABLED
+    interp->reg(new SecurityCommand());
 #endif
 
     log_debug("registered dtn commands");

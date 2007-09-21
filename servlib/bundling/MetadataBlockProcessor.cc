@@ -64,12 +64,11 @@ MetadataBlockProcessor::consume(Bundle*    bundle,
 
 //----------------------------------------------------------------------
 bool
-MetadataBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+MetadataBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
                   BundleProtocol::status_report_reason_t* reception_reason,
                   BundleProtocol::status_report_reason_t* deletion_reason)
 {
     static const char* log = "/dtn/bundle/protocol";
-    (void) log;
 
     ASSERT(bundle != NULL);
     ASSERT(block != NULL);
@@ -86,7 +85,7 @@ MetadataBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
     }
 
     // Check for generic block errors.
-    if (!BlockProcessor::validate(bundle, block,
+    if (!BlockProcessor::validate(bundle, block_list, block,
                                   reception_reason, deletion_reason)) {
         metablock->set_block_error();
         return false;
@@ -96,20 +95,21 @@ MetadataBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
 }
 
 //----------------------------------------------------------------------
-void
+int
 MetadataBlockProcessor::prepare(const Bundle*    bundle,
-                                const LinkRef&   link,
                                 BlockInfoVec*    xmit_blocks,
-                                BlockInfoVec*    blocks,
                                 const BlockInfo* source,
+                                const LinkRef&   link,
                                 BlockInfo::list_owner_t list)
 {
+    static const char* log = "/dtn/bundle/protocol";
+
     ASSERT(bundle != NULL);
     ASSERT(xmit_blocks != NULL);
 
     // Do not include metadata unless there is a received source block.
     if (source == NULL) {
-        return;
+        return BP_FAIL;
     }
     
     ASSERT(source != NULL);
@@ -119,30 +119,38 @@ MetadataBlockProcessor::prepare(const Bundle*    bundle,
     MetadataBlock* source_metadata =
         dynamic_cast<MetadataBlock*>(source->locals());
 
-    ASSERT(source_metadata != NULL);
-    
+    // if the source metadata locals is null just return 
+    // XXX this indicates a bug in the Ref class or a race elsewhere
+    if (source_metadata == NULL) {
+        log_debug_p(log, "MetadataBlockProcessor::prepare: "
+                         "invalid NULL source metadata");
+        return BP_FAIL;
+    }
+
     oasys::ScopeLock metadata_lock(source_metadata->lock(), 
                                    "MetadataBlockProcessor::prepare");
 
     // Do not include invalid metadata if block flags indicate as such.
     if (source_metadata->error() &&
        (source->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR)) {
-        return;
+        return BP_FAIL;
     }
 
     // Do not include metadata that has been marked for removal.
     if (source_metadata->metadata_removed(link)) {
-        return;
+        return BP_FAIL;
     }
 
-    BlockProcessor::prepare(bundle, link, xmit_blocks, blocks, source, list);
+    BlockProcessor::prepare(bundle, xmit_blocks, source, link, list);
+
+    return BP_SUCCESS;
 }
 
 //----------------------------------------------------------------------
 void
 MetadataBlockProcessor::prepare_generated_metadata(Bundle*        bundle,
-                                                   const LinkRef& link,
-                                                   BlockInfoVec*  blocks)
+                                                   BlockInfoVec*  blocks,
+                                                   const LinkRef& link)
 {
     ASSERT(bundle != NULL);
     ASSERT(blocks != NULL);
@@ -191,11 +199,11 @@ MetadataBlockProcessor::prepare_generated_metadata(Bundle*        bundle,
 }
 
 //----------------------------------------------------------------------
-void
+int
 MetadataBlockProcessor::generate(const Bundle*  bundle,
-                                 const LinkRef& link,
                                  BlockInfoVec*  xmit_blocks,
                                  BlockInfo*     block,
+                                 const LinkRef& link,
                                  bool           last)
 {
     (void)xmit_blocks;
@@ -206,7 +214,7 @@ MetadataBlockProcessor::generate(const Bundle*  bundle,
 
     // Determine if the outgoing metadata block was received in the
     // bundle or newly generated; however, both should not be true.
-    MetadataBlock* metadata = NULL;
+    MetadataBlock* metadata;
     bool received_block = false;
     bool generated_block = false;
     
@@ -289,7 +297,7 @@ MetadataBlockProcessor::generate(const Bundle*  bundle,
         memcpy(block->writable_contents()->buf() + block->data_offset(),
                block->source()->contents().buf() + block->data_offset(),
                block->data_length());
-        return;
+        return BP_SUCCESS;
     }
 
     // Write the metadata block to the outgoing buffer.
@@ -313,6 +321,8 @@ MetadataBlockProcessor::generate(const Bundle*  bundle,
     // Write the ontology data.
     ASSERT(block->contents().nfree() >= len);
     memcpy(outgoing_buf, buf, outgoing_len);
+
+    return BP_SUCCESS;
 }
 
 //----------------------------------------------------------------------

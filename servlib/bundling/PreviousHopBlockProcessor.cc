@@ -33,27 +33,26 @@ PreviousHopBlockProcessor::PreviousHopBlockProcessor()
 }
 
 //----------------------------------------------------------------------
-void
+int
 PreviousHopBlockProcessor::prepare(const Bundle*    bundle,
-                                   const LinkRef&   link,
                                    BlockInfoVec*    xmit_blocks,
-                                   BlockInfoVec*    blocks,
                                    const BlockInfo* source,
+                                   const LinkRef&   link,
                                    BlockInfo::list_owner_t list)
 {
     if (link == NULL || !link->params().prevhop_hdr_) {
-        return;
+        return BP_FAIL;
     }
     
-    BlockProcessor::prepare(bundle, link, xmit_blocks, blocks, source, list);
+    return BlockProcessor::prepare(bundle, xmit_blocks, source, link, list);
 }
 
 //----------------------------------------------------------------------
-void
+int
 PreviousHopBlockProcessor::generate(const Bundle*  bundle,
-                                    const LinkRef& link,
                                     BlockInfoVec*  xmit_blocks,
                                     BlockInfo*     block,
+                                    const LinkRef& link,
                                     bool           last)
 {
     (void)bundle;
@@ -82,6 +81,8 @@ PreviousHopBlockProcessor::generate(const Bundle*  bundle,
     contents->set_len(block->data_offset() + length);
     memcpy(contents->buf() + block->data_offset(),
            bd->local_eid().data(), length);
+
+    return BP_SUCCESS;
 }
 
 //----------------------------------------------------------------------

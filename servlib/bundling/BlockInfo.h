@@ -57,15 +57,28 @@ public:
     /// with this list and not deal with the references.
     typedef oasys::SerializableVector<EndpointID> EID_list;
     typedef oasys::SerializableVector<EndpointID>::iterator EID_list_iterator;
+    typedef oasys::SerializableVector<EndpointID>::const_iterator EID_list_const_iterator;
 
     /**
      * Virtual destructor.
      */
     virtual ~BlockInfo();
+
+    /**
+     * List owner indicator (not transmitted)
+     */
+    typedef enum {
+        LIST_NONE           = 0x00,
+        LIST_RECEIVED       = 0x01,
+        LIST_API            = 0x02,
+        LIST_EXT            = 0x03,
+        LIST_XMIT           = 0x04
+    } list_owner_t;
     
     /// @{ Accessors
     BlockProcessor*   owner()          const { return owner_; }
     const BlockInfo*  source()         const { return source_; }
+    const EID_list&   eid_list()       const { return eid_list_; }
     const DataBuffer& contents()       const { return contents_; }
     BP_Local*         locals()         const { return locals_.object(); }
     u_int32_t         data_length()    const { return data_length_; }
@@ -75,18 +88,20 @@ public:
     u_char*           data()           const { return (contents_.buf() +
                                                        data_offset_); }
     bool              complete()       const { return complete_; }
+    bool              reloaded()       const { return reloaded_; }
     bool              last_block()     const;
     ///@}
 
     /// @{ Mutating accessors
     void        set_owner(BlockProcessor* o) { owner_ = o; }
-    EID_list*   eid_list()                   { return &eid_list_; }
+    void        set_eid_list(const EID_list& l)    { eid_list_ = l; }
     void        set_complete(bool t)         { complete_ = t; }
     void        set_data_length(u_int32_t l) { data_length_ = l; }
     void        set_data_offset(u_int32_t o) { data_offset_ = o; }
     DataBuffer* writable_contents()          { return &contents_; }
     void        set_locals(BP_Local* l);
     void        add_eid(EndpointID e)        { return eid_list_.push_back(e); }
+    void        set_reloaded(bool t)         { reloaded_ = t; }
     /// @}
 
     /// @{ These accessors need special case processing since the
@@ -99,29 +114,18 @@ public:
     /// Virtual from SerializableObject
     virtual void serialize(oasys::SerializeAction* action);
 
-    /**
-     * List owner indicator (not transmitted)
-     */
-    typedef enum {
-        LIST_NONE           = 0x00,
-        LIST_RECEIVED       = 0x01,
-        LIST_API            = 0x02,
-        LIST_EXT            = 0x03,
-        LIST_XMIT           = 0x04
-    } list_owner_t;
-
 protected:
     BlockProcessor*  owner_;       ///< Owner of this block
     u_int16_t        owner_type_;  ///< Extracted from owner
     const BlockInfo* source_;      ///< Owner of this block
     EID_list         eid_list_;    ///< List of EIDs used in this block
-    list_owner_t     owner_list_;  ///< Which list this block instance is part of    
     DataBuffer       contents_;    ///< Block contents with length set to
                                    ///  the amount currently in the buffer
     BP_LocalRef      locals_;      ///< Local variable storage for block processor
     u_int32_t        data_length_; ///< Length of the block data (w/o preamble)
     u_int32_t        data_offset_; ///< Offset of first byte of the block data
     bool             complete_;    ///< Whether or not this block is complete
+    bool             reloaded_;    ///< Whether or not this block is reloaded from store
 };
 
 /**
@@ -129,7 +133,10 @@ protected:
  */
 class BlockInfoVec : public oasys::SerializableVector<BlockInfo> {
 public:
-    BlockInfoVec() : oasys::SerializableVector<BlockInfo>() {}
+    /**
+     * Default constructor.
+     */
+    BlockInfoVec();
     
     /**
      * Append a block using the given processor and optional source
@@ -158,7 +165,30 @@ public:
      */
     Dictionary* dict()  { return &dict_; }
 
+    /**
+     * Error values stored by processing routines
+     *   -- accessors
+     */
+    u_int32_t         error_major()     const { return error_major_; }
+    u_int32_t         error_minor()     const { return error_minor_; }
+    u_int32_t         error_debug()     const { return error_debug_; }
+
+    /**
+     * Error values stored by processing routines
+     *   -- mutating accessors
+     */
+    void        set_error_major(u_int32_t e)  { error_major_ = e; }
+    void        set_error_minor(u_int32_t e)  { error_minor_ = e; }
+    void        set_error_debug(u_int32_t e)  { error_debug_ = e; }
+
 protected:
+    /**
+     * Error values stored by processing routines
+     */
+    u_int32_t    error_major_;
+    u_int32_t    error_minor_;
+    u_int32_t    error_debug_;
+
     /**
      * Dictionary for this vector of BlockInfo structures
      */

@@ -50,11 +50,11 @@ APIBlockProcessor::consume(Bundle* bundle,
 }
 
 //----------------------------------------------------------------------
-void
+int
 APIBlockProcessor::generate(const Bundle*  bundle,
-                            const LinkRef& link,
                             BlockInfoVec*  xmit_blocks,
                             BlockInfo*     block,
+                            const LinkRef& link,
                             bool           last)
 {
     (void)bundle;
@@ -86,6 +86,8 @@ APIBlockProcessor::generate(const Bundle*  bundle,
            source->contents().buf() + block->data_offset(),
            block->data_length());
     contents->set_len(block->full_length());
+    
+    return BP_SUCCESS;
 }
 
 } // namespace dtn

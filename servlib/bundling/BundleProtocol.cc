@@ -36,6 +36,10 @@
 #include "UnknownBlockProcessor.h"
 #include "MetadataBlockProcessor.h"
 
+#ifdef BSP_ENABLED
+#  include "security/SPD.h"
+#endif
+
 namespace dtn {
 
 static const char* LOG = "/dtn/bundle/protocol";
@@ -104,15 +108,19 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
                 continue;
             }
             
-            iter->owner()->prepare(bundle, link, xmit_blocks, recv_blocks, &*iter, BlockInfo::LIST_RECEIVED);
+            // allow BlockProcessors [and Ciphersuites] a chance to re-do things 
+            // needed after a possible load-from-store
+            iter->owner()->reload_post_process(bundle, recv_blocks, &*iter);     
+            
+            iter->owner()->prepare(bundle, xmit_blocks, &*iter,link,  BlockInfo::LIST_RECEIVED);
         }
     }
     else {
         log_debug_p(LOG, "adding primary and payload block");
         BlockProcessor* bp = find_processor(PRIMARY_BLOCK);
-        bp->prepare(bundle, link, xmit_blocks, NULL, NULL, BlockInfo::LIST_NONE);
+        bp->prepare(bundle, xmit_blocks, NULL, link, BlockInfo::LIST_NONE);
         bp = find_processor(PAYLOAD_BLOCK);
-        bp->prepare(bundle, link, xmit_blocks, NULL, NULL, BlockInfo::LIST_NONE);
+        bp->prepare(bundle, xmit_blocks, NULL, link, BlockInfo::LIST_NONE);
     }
 
     // locally generated bundles need to include blocks specified at the API
@@ -121,8 +129,8 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
          ++iter)
     {
         log_debug_p(LOG, "adding api_block");
-        iter->owner()->prepare(bundle, link, xmit_blocks, api_blocks,
-                               &*iter, BlockInfo::LIST_API);
+        iter->owner()->prepare(bundle, xmit_blocks, 
+                               &*iter, link, BlockInfo::LIST_API);
     }
 
     // now we also make sure to prepare() on any registered processors
@@ -139,7 +147,7 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
         }
 
         if (! xmit_blocks->has_block(i)) {
-            bp->prepare(bundle, link, xmit_blocks, NULL, NULL, BlockInfo::LIST_NONE);
+            bp->prepare(bundle, xmit_blocks, NULL, link, BlockInfo::LIST_NONE);
         }
     }
 
@@ -148,7 +156,12 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
     ASSERT(metadata_processor != NULL);
     ASSERT(metadata_processor->block_type() == METADATA_BLOCK);
     ((MetadataBlockProcessor *)metadata_processor)->
-        prepare_generated_metadata(bundle, link, xmit_blocks);
+        prepare_generated_metadata(bundle, xmit_blocks, link);
+
+#ifdef BSP_ENABLED
+    // Finally add security blocks
+    SPD::prepare_out_blocks(bundle, link, xmit_blocks);
+#endif
 
     return xmit_blocks;
 }
@@ -172,7 +185,7 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
          ++iter)
     {
         bool last = (iter == last_block);
-        iter->owner()->generate(bundle, link, blocks, &*iter, last);
+        iter->owner()->generate(bundle, blocks, &*iter, link, last);
 
         log_debug_p(LOG, "generated block (owner 0x%x type 0x%x) "
                     "data_offset %u data_length %u contents length %zu",
@@ -204,7 +217,7 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
          iter != blocks->rend();
          ++iter)
     {
-        iter->owner()->finalize(bundle, link, blocks, &*iter);
+        iter->owner()->finalize(bundle, blocks, &*iter, link);
         total_len += iter->full_length();
     }
     
@@ -472,8 +485,8 @@ BundleProtocol::validate(Bundle* bundle,
             }
         }
 
-        if (!iter->owner()->validate(bundle, &*iter, reception_reason,
-                                                     deletion_reason)) {
+        if (!iter->owner()->validate(bundle, recv_blocks, &*iter, 
+                                reception_reason, deletion_reason)) {
             return false;
         }
 
@@ -515,6 +528,16 @@ BundleProtocol::validate(Bundle* bundle,
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
     }
+
+#ifdef BSP_ENABLED
+    // verify that bundle matches inbound security policy
+    // XXX also need to verify that block order is sane!
+    if (! SPD::verify_in_policy(bundle)) {
+        log_err_p(LOG, "bundle failed security policy verification");
+        *deletion_reason = BundleProtocol::REASON_SECURITY_FAILED;
+        return false;
+    }
+#endif
 
     return true;
 }

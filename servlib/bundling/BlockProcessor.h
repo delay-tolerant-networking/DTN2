@@ -28,6 +28,26 @@ namespace dtn {
 class BlockInfo;
 class BlockInfoVec;
 class Bundle;
+class Link;
+class OpaqueContext;
+
+typedef void (process_func)(const Bundle* bundle, 
+                             const BlockInfo* caller_block,
+                             BlockInfo* target_block,
+                             void* buf, 
+                             size_t len,
+                             OpaqueContext* r,
+                             bool& changed);
+
+typedef void (process_func_const)(const Bundle* bundle, 
+                             const BlockInfo* caller_block,
+                             const BlockInfo* target_block,
+                             const void* buf, 
+                             size_t len,
+                             OpaqueContext* r);
+
+#define     BP_SUCCESS  (int)(0)
+#define     BP_FAIL     (int)(-1)
 
 /**
  * Base class for the protocol handling of bundle blocks, including
@@ -72,13 +92,25 @@ public:
     virtual int consume(Bundle* bundle, BlockInfo* block,
                         u_char* buf, size_t len);
 
+//    virtual int ruminate(Bundle* bundle, BlockInfo* block,
+//                        u_char* buf, size_t len);
+
+    /**
+     * Perform any needed action in the case where a block/bundle
+     * has been reloaded from store
+     */
+    virtual int reload_post_process(const Bundle*    bundle,
+                                    BlockInfoVec*   block_list,
+                                    BlockInfo*      block);
+
+
     /**
      * Validate the block. This is called after all blocks in the
      * bundle have been fully received.
      *
      * @return true if the block passes validation
      */
-    virtual bool validate(const Bundle* bundle, BlockInfo* block,
+    virtual bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
                      BundleProtocol::status_report_reason_t* reception_reason,
                      BundleProtocol::status_report_reason_t* deletion_reason);
 
@@ -90,11 +122,10 @@ public:
      * The base class simply initializes an empty BlockInfo with the
      * appropriate owner_ pointer.
      */
-    virtual void prepare(const Bundle*    bundle,
-                         const LinkRef&   link,
+    virtual int prepare(const Bundle*    bundle,
                          BlockInfoVec*    xmit_blocks,
-                         BlockInfoVec*    source_blocks,
                          const BlockInfo* source,
+                         const LinkRef&   link,
                          BlockInfo::list_owner_t list);
     
     /**
@@ -105,10 +136,10 @@ public:
      * will add the EIDs to the primary block's dictionary and write
      * their offsets to this block's preamble.
      */
-    virtual void generate(const Bundle*  bundle,
-                          const LinkRef& link,
+    virtual int generate(const Bundle*  bundle,
                           BlockInfoVec*  xmit_blocks,
                           BlockInfo*     block,
+                          const LinkRef& link,
                           bool           last) = 0;
     
     /**
@@ -123,10 +154,10 @@ public:
      * Parameters such as length might also change due to padding
      * and encapsulation.
      */
-    virtual void finalize(const Bundle*  bundle, 
-                          const LinkRef& link, 
+    virtual int finalize(const Bundle*  bundle, 
                           BlockInfoVec*  xmit_blocks, 
-                          BlockInfo*     block);
+                          BlockInfo*     block, 
+                          const LinkRef& link);
 
     /**
      * Parse a block preamble consisting of type, flags(SDNV),
@@ -142,6 +173,42 @@ public:
                          size_t len,
                          u_int64_t* flagp = NULL);
      */
+    
+    /**
+     * Accessor to virtualize processing contents of the block in various
+     * ways. This is overloaded by the payload since the contents are
+     * not actually stored in the BlockInfo contents_ buffer but
+     * rather are on-disk.
+     *
+     * Processing can be anything the calling routine wishes, such as
+     * digest of the block, encryption, decryption etc. This routine is
+     * permitted to process the data in several calls to the target
+     * "func" routine as long as the data is processed in order and 
+     * exactly once. Contents of target_block may be changed and 
+     * "changed" will be set to true if change occurs.
+     *
+     * The signature for process_func is similar but not identical.
+     *
+     * Note that the supplied offset + length must be less than or
+     * equal to the total length of the block.
+     */
+    virtual void process(const Bundle* bundle,
+                             const BlockInfo* caller_block,
+                             const BlockInfo* target_block,
+                             process_func_const* func, 
+                             size_t offset, 
+                             size_t& len,
+                             OpaqueContext* r);
+
+     virtual void process( Bundle* bundle,
+                             const BlockInfo* caller_block,
+                             BlockInfo* target_block,
+                             process_func* func, 
+                             size_t offset, 
+                             size_t& len,
+                             OpaqueContext* r,
+                             bool& changed);
+
 
     /**
      * Accessor to virtualize copying contents out from the block
@@ -165,9 +232,11 @@ public:
     void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
                     const u_char* bp, size_t len);
     
+
 protected:
     friend class BundleProtocol;
     friend class BlockInfo;
+    friend class Ciphersuite;
     
     /**
      * Consume a block preamble consisting of type, flags(SDNV),

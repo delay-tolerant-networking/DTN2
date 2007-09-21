@@ -148,6 +148,7 @@ AC_OASYS_CONFIG_ATOMIC
 AC_CHECK_HEADERS([sys/file.h termios.h])
 AC_CHECK_FUNCS([select strpbrk])
 AC_FUNC_SELECT_ARGTYPES
+AC_C_BIGENDIAN
 
 # -------------------------------------------------------------------------
 # Dump the autoconf cache now to try to avoid redundant checks
@@ -174,6 +175,12 @@ AC_OASYS_CONFIG_STORAGE
 #--------------------------------------------------------------------------
 AC_CONFIG_EXTERNAL_CL
 AC_CONFIG_EXTERNAL_DP
+
+#--------------------------------------------------------------------------
+# Check if BSP should be enabled, and if so, look for OpenSSL
+#--------------------------------------------------------------------------
+AC_CONFIG_BSP
+AC_CONFIG_OPENSSL
 
 # -------------------------------------------------------------------------
 # Output

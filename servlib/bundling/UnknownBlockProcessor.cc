@@ -39,30 +39,35 @@ UnknownBlockProcessor::UnknownBlockProcessor()
 }
 
 //----------------------------------------------------------------------
-void
+int
 UnknownBlockProcessor::prepare(const Bundle*    bundle,
-                               const LinkRef&   link,
                                BlockInfoVec*    xmit_blocks,
-                               BlockInfoVec*    blocks,
                                const BlockInfo* source,
+                               const LinkRef&   link,
                                BlockInfo::list_owner_t list)
 {
     ASSERT(source != NULL);
     ASSERT(source->owner() == this);
 
     if (source->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR) {
-        return;
+        return BP_FAIL;
     }
 
-    BlockProcessor::prepare(bundle, link, xmit_blocks, blocks, source, list);
+    // If we're called for this type then security is not enabled
+    // and we should NEVER forward BAB
+    if (source->type() == BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK) {
+        return BP_FAIL;
+    }
+
+    return BlockProcessor::prepare(bundle, xmit_blocks, source, link, list);
 }
 
 //----------------------------------------------------------------------
-void
+int
 UnknownBlockProcessor::generate(const Bundle*  bundle,
-                                const LinkRef& link,
                                 BlockInfoVec*  xmit_blocks,
                                 BlockInfo*     block,
+                                const LinkRef& link,
                                 bool           last)
 {
     (void)bundle;
@@ -93,6 +98,8 @@ UnknownBlockProcessor::generate(const Bundle*  bundle,
         flags &= ~BundleProtocol::BLOCK_FLAG_LAST_BLOCK;
     }
     flags |= BundleProtocol::BLOCK_FLAG_FORWARDED_UNPROCESSED;
+    
+    block->set_eid_list(source->eid_list());
 
     generate_preamble(xmit_blocks, block, source->type(), flags,
                       source->data_length());
@@ -105,16 +112,18 @@ UnknownBlockProcessor::generate(const Bundle*  bundle,
            source->contents().buf() + block->data_offset(),
            block->data_length());
     contents->set_len(block->full_length());
+
+    return BP_SUCCESS;
 }
 
 //----------------------------------------------------------------------
 bool
-UnknownBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+UnknownBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
                  BundleProtocol::status_report_reason_t* reception_reason,
                  BundleProtocol::status_report_reason_t* deletion_reason)
 {
     // check for generic block errors
-    if (!BlockProcessor::validate(bundle, block,
+    if (!BlockProcessor::validate(bundle, block_list, block,
                                   reception_reason, deletion_reason)) {
         return false;
     }

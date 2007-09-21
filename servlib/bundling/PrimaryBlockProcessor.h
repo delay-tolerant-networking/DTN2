@@ -35,19 +35,18 @@ public:
     /// @{ Virtual from BlockProcessor
     int consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len);
 
-    bool validate(const Bundle* bundle, BlockInfo* block,
+    bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
                   BundleProtocol::status_report_reason_t* reception_reason,
                   BundleProtocol::status_report_reason_t* deletion_reason);
 
-    virtual void prepare(const Bundle*    bundle,
-                         const LinkRef&   link,
+    virtual int prepare(const Bundle*    bundle,
                          BlockInfoVec*    xmit_blocks,
-                         BlockInfoVec*    source_blocks,
                          const BlockInfo* source,
+                         const LinkRef&   link,
                          BlockInfo::list_owner_t list);
 
-    void generate(const Bundle* bundle, const LinkRef& link,
-                  BlockInfoVec* xmit_blocks, BlockInfo* block, bool last);
+    int generate(const Bundle* bundle, BlockInfoVec* xmit_blocks, 
+                  BlockInfo* block, const LinkRef& link, bool last);
 
     void generate_primary(const Bundle* bundle,
                           BlockInfoVec* xmit_blocks,

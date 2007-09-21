@@ -44,21 +44,21 @@ public:
                  size_t     len);
 
     bool validate(const Bundle* bundle,
+                  BlockInfoVec* block_list,
                   BlockInfo*    block,
                   BundleProtocol::status_report_reason_t* reception_reason,
                   BundleProtocol::status_report_reason_t* deletion_reason);
 
-    void prepare(const Bundle*    bundle,
-                 const LinkRef&   link,
+    int prepare(const Bundle*    bundle,
                  BlockInfoVec*    xmit_blocks,
-                 BlockInfoVec*    blocks,
                  const BlockInfo* source,
+                 const LinkRef&   link,
                  BlockInfo::list_owner_t list);
 
-    void generate(const Bundle*  bundle,
-                  const LinkRef& link,
+    int generate(const Bundle*  bundle,
                   BlockInfoVec*  xmit_blocks,
                   BlockInfo*     block,
+                  const LinkRef& link,
                   bool           last);
     /// @}
 
@@ -67,8 +67,8 @@ public:
      * handled by the prepare() method) to be included in an outgoing bundle.
      */
     void prepare_generated_metadata(Bundle*        bundle,
-                                    const LinkRef& link,
-                                    BlockInfoVec*  blocks);
+                                    BlockInfoVec*  blocks,
+                                    const LinkRef& link);
 
     /**
      * Deletes bundle state maintained for generated metadata.

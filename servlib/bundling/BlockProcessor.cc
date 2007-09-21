@@ -27,6 +27,8 @@
 
 namespace dtn {
 
+static const char* log = "/dtn/bundle/protocol";
+
 //----------------------------------------------------------------------
 BlockProcessor::BlockProcessor(int block_type)
     : block_type_(block_type)
@@ -114,7 +116,7 @@ BlockProcessor::consume_preamble(BlockInfoVec*  recv_blocks,
     // As with the flags, if we don't finish then we have a partial
     // preamble and will try again when we get more. 
     // We assert that the whole incoming buffer was consumed.
-    u_int64_t eid_ref_count;
+    u_int64_t eid_ref_count = 0LLU;
     u_int64_t scheme_offset;
     u_int64_t ssp_offset;
     
@@ -128,7 +130,7 @@ BlockProcessor::consume_preamble(BlockInfoVec*  recv_blocks,
         }
             
         buf_offset += sdnv_len;
-        ASSERT(block->eid_list()->empty());
+        ASSERT(block->eid_list().empty());
             
         for ( u_int32_t i = 0; i < eid_ref_count; ++i ) {
             // Now we try decoding the sdnv pair with the offsets
@@ -187,10 +189,10 @@ BlockProcessor::consume_preamble(BlockInfoVec*  recv_blocks,
 
     log_debug_p(log, "BlockProcessor type 0x%x "
                 "consumed preamble %zu/%u for block: "
-                "data_offset %u data_length %u",
+                "data_offset %u data_length %u eid_ref_count %llu",
                 block_type(), buf_offset + prev_consumed,
                 block->full_length(),
-                block->data_offset(), block->data_length());
+                block->data_offset(), block->data_length(), eid_ref_count);
     
     // Finally, be careful to return only the amount of the buffer
     // that we needed to complete the preamble.
@@ -206,8 +208,6 @@ BlockProcessor::generate_preamble(BlockInfoVec*  xmit_blocks,
                                   u_int64_t  flags,
                                   u_int64_t  data_length)
 {
-    static const char* log = "/dtn/bundle/protocol";
-    (void)log;
     
     char        work[1000];
     char*       ptr = work;
@@ -220,14 +220,14 @@ BlockProcessor::generate_preamble(BlockInfoVec*  xmit_blocks,
     Dictionary* dict = xmit_blocks->dict();
     
     // see if we have EIDs in the list, and process them
-    u_int32_t eid_count = block->eid_list()->size();
+    u_int32_t eid_count = block->eid_list().size();
     if ( eid_count > 0 ) {
         flags |= BundleProtocol::BLOCK_FLAG_EID_REFS;
         sdnv_len = SDNV::encode(eid_count, ptr, len);
         ptr += sdnv_len;
         len -= sdnv_len;
-        BlockInfo::EID_list_iterator iter = block->eid_list()->begin();
-        for ( ; iter < block->eid_list()->end(); ++iter ) {
+        BlockInfo::EID_list_const_iterator iter = block->eid_list().begin();
+        for ( ; iter < block->eid_list().end(); ++iter ) {
             dict->add_eid(*iter);
             dict->get_offsets(*iter, &scheme_offset, &ssp_offset);
             sdnv_len = SDNV::encode(scheme_offset, ptr, len);
@@ -274,9 +274,9 @@ BlockProcessor::generate_preamble(BlockInfoVec*  xmit_blocks,
 
     log_debug_p(log, "BlockProcessor type 0x%x "
                 "generated preamble for block type 0x%x flags 0x%llx: "
-                "data_offset %u data_length %u",
+                "data_offset %u data_length %u eid_count %u",
                 block_type(), block->type(), U64FMT(block->flags()),
-                block->data_offset(), block->data_length());
+                block->data_offset(), block->data_length(), eid_count);
 }
 
 //----------------------------------------------------------------------
@@ -359,12 +359,94 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
 }
 
 //----------------------------------------------------------------------
+#if 0
+int
+BlockProcessor::ruminate(Bundle* bundle, BlockInfo* block,
+                        u_char* buf, size_t len)
+{
+    (void)bundle;
+    
+    static const char* log = "/dtn/bundle/protocol";
+    (void)log;
+    
+    size_t consumed = 0;
+
+    ASSERT(! block->complete());
+    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
+
+    // Check if we still need to consume the preamble by checking if
+    // the data_offset_ field is initialized in the block info
+    // structure.
+    if (block->data_offset() == 0) {
+        int cc = consume_preamble(recv_blocks, block, buf, len);
+        if (cc == -1) {
+            return -1;
+        }
+
+        buf += cc;
+        len -= cc;
+
+        consumed += cc;
+    }
+
+    // If we still don't know the data offset, we must have consumed
+    // the whole buffer
+    if (block->data_offset() == 0) {
+        ASSERT(len == 0);
+    }
+
+    // If the preamble is complete (i.e., data offset is non-zero) and
+    // the block's data length is zero, then mark the block as complete
+    if (block->data_offset() != 0 && block->data_length() == 0) {
+        block->set_complete(true);
+    }
+    
+    // If there's nothing left to do, we can bail for now.
+    if (len == 0)
+        return consumed;
+
+    // Now make sure there's still something left to do for the block,
+    // otherwise it should have been marked as complete
+    ASSERT(block->data_length() == 0 ||
+           block->full_length() > block->contents().len());
+
+    // make sure the contents buffer has enough space
+    block->writable_contents()->reserve(block->full_length());
+
+    size_t rcvd      = block->contents().len();
+    size_t remainder = block->full_length() - rcvd;
+    size_t tocopy;
+
+    if (len >= remainder) {
+        block->set_complete(true);
+        tocopy = remainder;
+    } else {
+        tocopy = len;
+    }
+    
+    // copy in the data
+    memcpy(block->writable_contents()->end(), buf, tocopy);
+    block->writable_contents()->set_len(rcvd + tocopy);
+    len -= tocopy;
+    consumed += tocopy;
+
+    log_debug_p(log, "BlockProcessor type 0x%x "
+                "consumed %zu/%u for block type 0x%x (%s)",
+                block_type(), consumed, block->full_length(), block->type(),
+                block->complete() ? "complete" : "not complete");
+    
+    return consumed;
+}
+#endif
+
+//----------------------------------------------------------------------
 bool
-BlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+BlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
                          BundleProtocol::status_report_reason_t* reception_reason,
                          BundleProtocol::status_report_reason_t* deletion_reason)
 {
     static const char * log = "/dtn/bundle/protocol";
+    (void)block_list;
     (void)reception_reason;
 
     // An administrative bundle MUST NOT contain an extension block
@@ -383,17 +465,30 @@ BlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
 }
 
 //----------------------------------------------------------------------
-void
+int
+BlockProcessor::reload_post_process(const Bundle*    bundle,
+                                    BlockInfoVec*   block_list,
+                                    BlockInfo*      block)
+{
+    (void)bundle;
+    (void)block_list;
+    (void)block;
+    
+    block->set_reloaded(false);
+    return 0;
+    
+}
+
+//----------------------------------------------------------------------
+int
 BlockProcessor::prepare(const Bundle*    bundle,
-                        const LinkRef&   link,
                         BlockInfoVec*    xmit_blocks,
-                        BlockInfoVec*    blocks,
                         const BlockInfo* source,
+                        const LinkRef&   link,
                         BlockInfo::list_owner_t list)
 {
     (void)bundle;
     (void)link;
-    (void)blocks;
     (void)list;
     
     // Received blocks are added to the end of the list (which
@@ -408,14 +503,15 @@ BlockProcessor::prepare(const Bundle*    bundle,
         ASSERT((*xmit_blocks)[0].type() == BundleProtocol::PRIMARY_BLOCK);
         xmit_blocks->insert(xmit_blocks->begin() + 1, BlockInfo(this, source));
     }
+    return BP_SUCCESS;
 }
 
 //----------------------------------------------------------------------
-void
+int
 BlockProcessor::finalize(const Bundle*  bundle,
-                         const LinkRef& link,
                          BlockInfoVec*  xmit_blocks,
-                         BlockInfo*     block)
+                         BlockInfo*     block,
+                         const LinkRef& link)
 {
     (void)xmit_blocks;
     (void)link;
@@ -424,6 +520,54 @@ BlockProcessor::finalize(const Bundle*  bundle,
         ASSERT((block->flags() &
                 BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) == 0);
     }
+    return BP_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+void
+BlockProcessor::process(Bundle* bundle,  const BlockInfo* caller_block,
+                                 BlockInfo* target_block,
+                                 process_func* func, 
+                                 size_t offset, 
+                                 size_t& len,
+                                 OpaqueContext* r,
+                                 bool& changed)
+{
+    u_char* buf;
+    
+    ASSERT(offset < target_block->contents().len());
+    ASSERT(target_block->contents().len() >= offset + len);
+    
+    // convert the offset to a pointer in the target block
+    buf = target_block->contents().buf() + offset;
+    
+    // call the processing function to do the work
+    (*func)(bundle, caller_block, target_block, buf, len, r, changed);
+    
+    // if we need to flush changed content back to disk, do it here
+
+}
+
+//----------------------------------------------------------------------
+void
+BlockProcessor::process(const Bundle* bundle,  const BlockInfo* caller_block,
+                                 const BlockInfo* target_block,
+                                 process_func_const* func, 
+                                 size_t offset, 
+                                 size_t& len,
+                                 OpaqueContext* r)
+{
+    u_char* buf;
+    
+    ASSERT(offset < target_block->contents().len());
+    ASSERT(target_block->contents().len() >= offset + len);
+    
+    // convert the offset to a pointer in the target block
+    buf = target_block->contents().buf() + offset;
+    
+    // call the processing function to do the work
+    (*func)(bundle, caller_block, target_block, buf, len, r);
+
 }
 
 //----------------------------------------------------------------------

@@ -270,17 +270,15 @@ PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
 }
 
 //----------------------------------------------------------------------
-void
+int
 PrimaryBlockProcessor::prepare(const Bundle*   bundle,
-                              const LinkRef&   link,
                               BlockInfoVec*    xmit_blocks,
-                              BlockInfoVec*    blocks,
                               const BlockInfo* source,
+                              const LinkRef&   link,
                               BlockInfo::list_owner_t list)
 {
     (void)bundle;
     (void)link;
-    (void)blocks;
     (void)list;
 
     // There shouldn't already be anything in the xmit_blocks
@@ -294,6 +292,8 @@ PrimaryBlockProcessor::prepare(const Bundle*   bundle,
 
     // make sure to add the primary to the front
     xmit_blocks->insert(xmit_blocks->begin(), BlockInfo(this, source));
+
+    return BP_SUCCESS;
 }
 
 //----------------------------------------------------------------------
@@ -486,10 +486,11 @@ tooshort:
 
 //----------------------------------------------------------------------
 bool
-PrimaryBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+PrimaryBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
                      BundleProtocol::status_report_reason_t* reception_reason,
                      BundleProtocol::status_report_reason_t* deletion_reason)
 {
+    (void)block_list;
     (void)block;
     (void)reception_reason;
     static const char* log = "/dtn/bundle/protocol";
@@ -558,11 +559,11 @@ PrimaryBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
 }
 
 //----------------------------------------------------------------------
-void
+int
 PrimaryBlockProcessor::generate(const Bundle*  bundle,
-                                const LinkRef& link,
                                 BlockInfoVec*  xmit_blocks,
                                 BlockInfo*     block,
+                                const LinkRef& link,
                                 bool           last)
 {
     (void)bundle;
@@ -574,6 +575,8 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
      * The primary can't be last since there must be a payload block
      */
     ASSERT(!last);
+
+    return BP_SUCCESS;
 }
 
 //----------------------------------------------------------------------

@@ -3,6 +3,9 @@
 /* configured version of berkeley db */
 #undef BERKELEY_DB_VERSION
 
+/* whether Bundle Security Protocol support is enabled */
+#undef BSP_ENABLED
+
 /* whether external convergence layer support is enabled */
 #undef EXTERNAL_CL_ENABLED
 
@@ -59,6 +62,9 @@
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `crypto' library (-lcrypto). */
+#undef HAVE_LIBCRYPTO
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -209,6 +215,10 @@
 
 /* whether tclreadline is enabled */
 #undef TCLREADLINE_ENABLED
+
+/* Define to 1 if your processor stores words with the most significant byte
+   first (like Motorola and SPARC, unlike Intel and VAX). */
+#undef WORDS_BIGENDIAN
 
 /* whether xerces support is enabled */
 #undef XERCES_C_ENABLED

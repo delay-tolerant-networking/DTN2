@@ -26,6 +26,8 @@
 #include "SDNV.h"
 
 namespace dtn {
+// commented out to shut complier up -- not currently used.
+// static const char * log = "/dtn/bundle/ciphersuite";
 
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
@@ -33,12 +35,15 @@ BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
       owner_(owner),
       owner_type_(owner->block_type()),
       source_(source),
+      eid_list_(),
       contents_(),
       locals_("BlockInfo constructor"),
       data_length_(0),
       data_offset_(0),
-      complete_(false)
+      complete_(false),
+      reloaded_(false)
 {
+      eid_list_.clear();
 }
 
 //----------------------------------------------------------------------
@@ -47,11 +52,13 @@ BlockInfo::BlockInfo(oasys::Builder& builder)
       owner_(NULL),
       owner_type_(0),
       source_(NULL),
+      eid_list_(),
       contents_(),
       locals_("BlockInfo constructor"),
       data_length_(0),
       data_offset_(0),
-      complete_(false)
+      complete_(false),
+      reloaded_(true)
 {
     (void)builder;
 }
@@ -63,12 +70,12 @@ BlockInfo::BlockInfo(const BlockInfo &bi)
       owner_type_(bi.owner_type_),
       source_(bi.source_),
       eid_list_(bi.eid_list_),
-      owner_list_(bi.owner_list_),
       contents_(bi.contents_),
       locals_(bi.locals_.object(), "BlockInfo copy constructor"),
       data_length_(bi.data_length_),
       data_offset_(bi.data_offset_),
-      complete_(bi.complete_)
+      complete_(bi.complete_),
+      reloaded_(bi.reloaded_)
 {
 }
 
@@ -173,6 +180,16 @@ BlockInfo::serialize(oasys::SerializeAction* a)
     a->process("data_length", &data_length_);
     a->process("data_offset", &data_offset_);
     a->process("complete", &complete_);
+    a->process("eid_list", &eid_list_);
+}
+
+//----------------------------------------------------------------------
+BlockInfoVec::BlockInfoVec()
+    : oasys::SerializableVector<BlockInfo>(),
+      error_major_(0),
+      error_minor_(0),
+      error_debug_(0)
+{
 }
 
 //----------------------------------------------------------------------

@@ -34,8 +34,8 @@ public:
     
     /// @{ Virtual from BlockProcessor
     int consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len);
-    void generate(const Bundle* bundle, const LinkRef& link,
-                  BlockInfoVec* xmit_blocks, BlockInfo* block, bool last);
+    int generate(const Bundle* bundle, BlockInfoVec* xmit_blocks,
+                  BlockInfo* block, const LinkRef& link, bool last);
     /// @}
 };
 

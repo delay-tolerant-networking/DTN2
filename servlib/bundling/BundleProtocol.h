@@ -124,6 +124,7 @@ public:
         REASON_NO_ROUTE_TO_DEST           = 0x06,
         REASON_NO_TIMELY_CONTACT          = 0x07,
         REASON_BLOCK_UNINTELLIGIBLE       = 0x08,
+	    REASON_SECURITY_FAILED            = 0x09,
     } status_report_reason_t;
 
     /**
