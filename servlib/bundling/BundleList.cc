@@ -377,6 +377,29 @@ BundleList::find(GbofId& gbof_id)
 }
 
 //----------------------------------------------------------------------
+BundleRef
+BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id)
+{
+    oasys::ScopeLock l(lock_, "BundleList::find");
+    BundleRef ret("BundleList::find() temporary");
+    
+    for (iterator iter = begin(); iter != end(); ++iter) {
+        if (gbof_id.equals( (*iter)->source_,
+                            (*iter)->creation_ts_,
+                            (*iter)->is_fragment_,
+                            (*iter)->payload_.length(),
+                            (*iter)->frag_offset_ )
+            && extended_id == (*iter)->extended_id_)
+        {
+            ret = *iter;
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+//----------------------------------------------------------------------
 void
 BundleList::move_contents(BundleList* other)
 {

@@ -212,6 +212,15 @@ public:
     BundleRef find(GbofId& gbof_id);
     
     /**
+     * Search the list for a bundle with the given GBOF ID and extended
+     * (local) ID
+     *
+     * @return the bundle or NULL if not found.
+     */
+    BundleRef find(const GbofId& gbof_id,
+                   const BundleTimestamp& extended_id);
+
+    /**
      * Move all bundles from this list to another.
      */
     void move_contents(BundleList* other);
