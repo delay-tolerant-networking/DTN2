@@ -202,8 +202,17 @@ ECLModule::handle(const cla_add_request& message)
     
     // Delete the module's incoming and outgoing bundle directories just in
     // case the already exist and contain stale bundle files.
-    ::remove( bundle_in_path_.c_str() );
-    ::remove( bundle_out_path_.c_str() );
+    if (oasys::FileUtils::rm_all_from_dir(bundle_in_path_.c_str(), true) != 0) {
+        log_warn( "Unable to clean incoming bundle directory %s: %s", 
+                  bundle_in_path_.c_str(), strerror(errno) );
+    }
+    ::rmdir( bundle_in_path_.c_str() );
+    
+    if (oasys::FileUtils::rm_all_from_dir(bundle_out_path_.c_str(), true) != 0) {
+        log_warn( "Unable to clean outgoing bundle directory %s: %s", 
+                  bundle_out_path_.c_str(), strerror(errno) );
+    }
+    ::rmdir( bundle_out_path_.c_str() );
     
     // Create the incoming bundle directory.
     if (oasys::IO::mkdir(in_dir.c_str(), 0777) < 0) {
@@ -357,7 +366,7 @@ void
 ECLModule::handle(const link_created_event& message)
 {
     ECLLinkResource* resource;
-    LinkRef link;
+    LinkRef link("handle(link_created_event) temporary");
     
     resource = get_link( message.link_name() );
     if (!resource) {
@@ -499,6 +508,12 @@ ECLModule::handle(const link_deleted_event& message)
         return;
     }
     
+    // Lock the resource and clear its module field so that the BundleDaemon
+    // thread can't do anything with it.
+    resource->lock_.lock("handle(link_deleted_event)");
+    resource->module_ = NULL;
+    resource->lock_.unlock();
+    
     // We need to actually lock the list to erase an element (normally, neither
     // thread will lock on this just to read it).
     sem_wait(&link_list_sem_);
@@ -510,23 +525,17 @@ ECLModule::handle(const link_deleted_event& message)
     sem_post(&link_list_sem_);
     sem_post(&link_list_sem_);
     
-    // Lock the resource and clear its module field so that the BundleDaemon
-    // thread can't do anything with it.
-    resource->lock_.lock("handle(link_deleted_event)");
-    resource->module_ = NULL;
-    // TODO: Clean up any in-transit bundles for this link.
-    
     // If the link's cl_info is still set, then the deletion originated at the
     // CLA, not the BPA, and we need remove the link from the contact manager
     // and then delete the resource. Setting the module field NULL (above) will
     // cause ExternalConvergenceLayer::delete_link (called through 
     // ContactManager::del_link) to just return without sending a request back
     // down here.
-    if (resource->link_->cl_info() != NULL)
-        BundleDaemon::instance()->contactmgr()->del_link(resource->link_);
+    if (resource->link_->cl_info() != NULL) {
+        //resource->link_->set_cl_info(NULL);
+        BundleDaemon::instance()->contactmgr()->del_link(resource->link_, true);
+    }
     
-    // Unlock BEFORE deleting the resource, since the lock will be destroyed.
-    resource->lock_.unlock();
     cl_.delete_resource(resource);
     
     // NOTE: The ContactManager posts a LinkDeletedEvent, so we do not need
@@ -1068,7 +1077,7 @@ ECLModule::prepare_bundle_to_send(cl_message* message)
     if (!link_resource) {
         log_err( "Got bundle_send_request for unknown link %s",
                  request.link_name().c_str() );
-        return -1;
+        return 0;
     }
     
     // Find the bundle on the outgoing bundle list.
@@ -1166,7 +1175,7 @@ ECLModule::bundle_send_failed(ECLLinkResource* link_resource,
 ECLInterfaceResource*
 ECLModule::get_interface(const std::string& name) const
 {
-    oasys::ScopeLock(&iface_list_lock_, "get_interface");
+    oasys::ScopeLock l(&iface_list_lock_, "get_interface");
     std::list<ECLInterfaceResource*>::const_iterator iface_i;
 
     for (iface_i = iface_list_.begin(); iface_i != iface_list_.end();
@@ -1234,7 +1243,7 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
     }
     
     LinkRef new_link(link.object(),
-                     "ContactManager::new_opportunistic_link: return value");
+                     "ECLModule::create_discovered_link: the new link");
     
     new_link->set_remote_eid(peer_eid);
 
@@ -1251,8 +1260,6 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
         return NULL;
     }
     
-    l.unlock();
-    
     // Create the resource holder for this link.
     ECLLinkResource* resource =
             new ECLLinkResource(name_, NULL, new_link, true);
@@ -1261,6 +1268,9 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
     new_link->set_state(Link::AVAILABLE);
     resource->module_ = this;
     resource->should_delete_ = false;
+
+    // The link object must be fully created before releasing this lock.
+    l.unlock();
     
     // Wait twice on the semaphore to actually lock it.
     sem_wait(&link_list_sem_);
@@ -1275,7 +1285,7 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
 
     // Notify the system that the new link is available for use.
     new_link->set_create_pending(false);
-    BundleDaemon::post(new LinkCreatedEvent(new_link));
+    //BundleDaemon::post(new LinkCreatedEvent(new_link));
     
     return resource;
 }

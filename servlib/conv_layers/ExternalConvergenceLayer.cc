@@ -449,15 +449,26 @@ void
 ExternalConvergenceLayer::delete_link(const LinkRef& link)
 {
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
-    ASSERT(link->cl_info() != NULL);
 
     log_debug("ExternalConvergenceLayer::delete_link: "
               "deleting link %s", link->name());
+    
+    oasys::ScopeLock link_lock(link->lock(), 
+                               "ExternalConvergenceLayer::delete_link");
+
+    ASSERT(!link->isdeleted());
 
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
-    ASSERT(resource);
+    
+    // This is the case if the link deletion originated in the CLA. In that
+    // case, ECLModule already deleted the resource and there is nothing else
+    // to do.
+    /*if (resource == NULL) {
+        log_debug("ExternalConvergenceLayer::delete_link: link %s was deleted "
+                  "by the CLA", link->name());
+        return;
+    }*/
     
     oasys::ScopeLock lock(&resource->lock_, "delete_link");
     
@@ -465,10 +476,6 @@ ExternalConvergenceLayer::delete_link(const LinkRef& link)
     link->set_cl_info(NULL);
     
     // If the link is unclaimed, just remove it from the resource list.
-    // This also handles the case of a LinkDeletedEvent coming from the CLA
-    // without a corresponding LinkDeleteRequest from the user, though in
-    // such a case, ECLModule will delete the resource after this method
-    // returns, so we shouldn't try to delete it here.
     if (resource->module_ == NULL) {
         lock.unlock();
         if (resource->should_delete_)
@@ -490,8 +497,22 @@ ExternalConvergenceLayer::dump_link(const LinkRef& link,
                                     oasys::StringBuffer* buf)
 {
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
-    ASSERT(link->cl_info() != NULL);
+    
+    oasys::ScopeLock link_lock(link->lock(), 
+                               "ExternalConvergenceLayer::reconfigure_link");
+    
+    // 7/13/07 - jward - this had been an assert, but it was happening
+    // frequently on the testbed. If the link is deleted, we will
+    // ignore the command.
+    if ( link->isdeleted() ) {
+        log_err( "Cannot dump deleted link %s", link->name() );
+        return;
+    }
+    
+    if (link->cl_info() == NULL) {
+        log_err( "Cannot dump deleted link %s", link->name() );
+        return;
+    }
 
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
@@ -526,10 +547,24 @@ bool ExternalConvergenceLayer::reconfigure_link(const LinkRef& link, int argc,
     // exists.
     if (argc == 0 && argv == NULL)
         return true;
-
+    
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
-    ASSERT(link->cl_info() != NULL);
+    
+    oasys::ScopeLock link_lock(link->lock(), 
+                               "ExternalConvergenceLayer::reconfigure_link");
+    
+    // 7/13/07 - jward - this had been an assert, but it was happening
+    // frequently on the testbed. If the link is deleted, we will
+    // ignore the command.
+    if ( link->isdeleted() ) {
+        log_err( "Cannot reconfigure deleted link %s", link->name() );
+        return false;
+    }
+    
+    if (link->cl_info() == NULL) {
+        log_err( "Cannot reconfigure deleted link %s", link->name() );
+        return false;
+    }
 
     // Find the protocol and fixed arguments.
     parser.addopt(new oasys::BoolOpt("is_usable", &is_usable, "", &is_usable_set));
@@ -633,8 +668,22 @@ ExternalConvergenceLayer::reconfigure_link(const LinkRef& link,
                                            AttributeVector& params)
 {
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
-    ASSERT(link->cl_info() != NULL);
+    
+    oasys::ScopeLock link_lock(link->lock(), 
+                               "ExternalConvergenceLayer::reconfigure_link");
+    
+    // 7/13/07 - jward - this had been an assert, but it was happening
+    // frequently on the testbed. If the link is deleted, we will
+    // ignore the command.
+    if ( link->isdeleted() ) {
+        log_err( "Cannot reconfigure deleted link %s", link->name() );
+        return;
+    }
+    
+    if (link->cl_info() == NULL) {
+        log_err( "Cannot reconfigure deleted link %s", link->name() );
+        return;
+    }
         
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
@@ -673,11 +722,22 @@ ExternalConvergenceLayer::reconfigure_link(const LinkRef& link,
 bool
 ExternalConvergenceLayer::open_contact(const ContactRef& contact)
 {
-    oasys::ScopeLock(&global_resource_lock_, "open_contact");
-    
+    oasys::ScopeLock grl(&global_resource_lock_, "open_contact");
     LinkRef link = contact->link();
+    
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
+
+    oasys::ScopeLock link_lock(link->lock(), 
+                               "ExternalConvergenceLayer::open_contact");
+    
+    // 7/13/07 - jward - this had been an assert, but it was happening
+    // frequently on the testbed. If the link is deleted, we will
+    // ignore the command.
+    if ( link->isdeleted() ) {
+        log_err( "Cannot open contact on deleted link %s", link->name() );
+        return false;
+    }
+
     ASSERT(link->cl_info() != NULL);
     
     ECLLinkResource* resource =
@@ -714,16 +774,20 @@ ExternalConvergenceLayer::open_contact(const ContactRef& contact)
 bool
 ExternalConvergenceLayer::close_contact(const ContactRef& contact)
 {
-    oasys::ScopeLock(&global_resource_lock_, "open_contact");
-    
+    oasys::ScopeLock grl(&global_resource_lock_, "open_contact");
     LinkRef link = contact->link();
+
+    ASSERT(link != NULL);
+
+    oasys::ScopeLock link_lock(link->lock(), 
+                               "ExternalConvergenceLayer::close_contact");
     
     // Ignore destroyed links
-        if (link->cl_info() == NULL) {
-                log_warn( "Ignoring close contact request for destroyed link %s",
+    if (link->cl_info() == NULL) {
+        log_warn( "Ignoring close contact request for destroyed link %s",
                   link->name() );
-                return true; 
-        }
+        return true; 
+    }
     
     ECLLinkResource* resource =
                      dynamic_cast<ECLLinkResource*>( link->cl_info() );
@@ -758,11 +822,22 @@ ExternalConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 }
     
 void
-ExternalConvergenceLayer::send_bundle_on_down_link(const LinkRef& link, Bundle* bundle)   
+ExternalConvergenceLayer::send_bundle_on_down_link(const LinkRef& link, 
+                                                   Bundle* bundle)   
 {
-        oasys::ScopeLock(&global_resource_lock_, "send_bundle");
+    oasys::ScopeLock grl(&global_resource_lock_, "send_bundle");
+    
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
+
+    oasys::ScopeLock link_lock(link->lock(), 
+                               "ExternalConvergenceLayer::send_bundle");
+
+    // 7/13/07 - jward - this had been an assert, but it was happening
+    // frequently on the testbed. If the link is deleted, we will silently
+    // ignore the command.
+    if ( link->isdeleted() )
+        return;
+
     ASSERT(link->cl_info() != NULL);
     
     ECLLinkResource* resource =
@@ -814,11 +889,20 @@ ExternalConvergenceLayer::send_bundle_on_down_link(const LinkRef& link, Bundle* 
 bool
 ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
 {
-    oasys::ScopeLock(&global_resource_lock_, "cancel_bundle");
-
+    oasys::ScopeLock grl(&global_resource_lock_, "cancel_bundle");
+    
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
-    ASSERT(link->cl_info() != NULL);
+    oasys::ScopeLock link_lock(link->lock(), 
+                               "ExternalConvergenceLayer::cancel_bundle");
+    
+    // 7/13/07 - jward - this had been an assert, but it was happening
+    // frequently on the testbed. If the link is deleted, we will silently
+    // ignore the command.
+    if ( link->isdeleted() )
+        return false;
+    
+    if ( link->cl_info() == NULL)
+        return false;
 
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
@@ -852,9 +936,9 @@ ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
 bool 
 ExternalConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
 {
-    oasys::ScopeLock(&global_resource_lock_, "is_queued");
+    oasys::ScopeLock grl(&global_resource_lock_, "is_queued");
 
-    ASSERT(link != NULL) 
+    ASSERT(link != NULL);
     oasys::ScopeLock link_lock(link->lock(),
                                "ExternalConvergenceLayer::is_queued");
     if (link->isdeleted()) {
@@ -862,7 +946,9 @@ ExternalConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
                   "cannot check bundle queue on deleted link %s", link->name());
         return false;
     }
-    ASSERT(link->cl_info() != NULL);
+    
+    if (link->cl_info() == NULL)
+        return false;
 
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
@@ -906,6 +992,10 @@ ExternalConvergenceLayer::query_link_attributes(const std::string& query_id,
                                                 const AttributeNameVector& attributes)
 {
     ASSERT(link != NULL);
+    
+    oasys::ScopeLock link_lock(link->lock(),
+                               "ExternalConvergenceLayer::query_link_attributes");
+
     if (link->isdeleted()) {
         log_debug("ConvergenceLayer::query_link_attributes: "
                   "link %s already deleted", link->name());
