@@ -377,7 +377,7 @@ gbofIdType::gbofIdType (const gbofIdType& a,
 gbofIdType::gbofIdType (dtn::Bundle* b)
     : gbofIdType_base (
         eidType(b->source_.str()),
-        ((::xml_schema::long_ ) b->creation_ts_.seconds_ << 32) | b->creation_ts_.seqno_,
+        bundle_ts_to_long(b->creation_ts_),
         b->is_fragment_,
         b->is_fragment_ ? b->payload_.length() : 0,
         b->is_fragment_ ? b->frag_offset_ : 0)
@@ -387,7 +387,7 @@ gbofIdType::gbofIdType (dtn::Bundle* b)
 gbofIdType::gbofIdType (dtn::CustodySignal::data_t d)
     : gbofIdType_base (
         eidType(d.orig_source_eid_.str()),
-        ((::xml_schema::long_ ) d.orig_creation_tv_.seconds_ << 32) | d.orig_creation_tv_.seqno_,
+        bundle_ts_to_long(d.orig_creation_tv_),
         d.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT,
         d.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT ? d.orig_frag_length_ : 0,
         d.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT ? d.orig_frag_offset_ : 0)

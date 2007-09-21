@@ -266,6 +266,7 @@ namespace dtn
     class route_delete_event;
     class custody_signal_event;
     class custody_timeout_event;
+    class intentional_name_resolved_event;
     class registration_added_event;
     class registration_removed_event;
     class registration_expired_event;
@@ -280,6 +281,7 @@ namespace dtn
     class inject_bundle_request;
     class delete_bundle_request;
     class set_cl_params_request;
+    class intentional_name_resolution_request;
     class deliver_bundle_to_app_request;
     class link_report;
     class link_attributes_query;
@@ -1230,30 +1232,30 @@ namespace dtn
       void
       location (::std::auto_ptr< location::type >);
 
-      // payload
+      // payload_file
       // 
       public:
-      struct payload
+      struct payload_file
       {
-        typedef ::xml_schema::base64_binary type;
+        typedef ::xml_schema::string type;
         typedef ::xsd::cxx::tree::traits< type, char > traits;
         typedef ::xsd::cxx::tree::optional< type > container;
       };
 
-      const payload::container&
-      payload () const;
+      const payload_file::container&
+      payload_file () const;
 
-      payload::container&
-      payload ();
-
-      void
-      payload (const payload::type&);
+      payload_file::container&
+      payload_file ();
 
       void
-      payload (const payload::container&);
+      payload_file (const payload_file::type&);
 
       void
-      payload (::std::auto_ptr< payload::type >);
+      payload_file (const payload_file::container&);
+
+      void
+      payload_file (::std::auto_ptr< payload_file::type >);
 
       // bundleid
       // 
@@ -1679,7 +1681,7 @@ namespace dtn
       ::xsd::cxx::tree::one< prevhop::type > _xsd_prevhop_;
       ::xsd::cxx::tree::one< length::type > _xsd_length_;
       ::xsd::cxx::tree::one< location::type > _xsd_location_;
-      ::xsd::cxx::tree::optional< payload::type > _xsd_payload_;
+      ::xsd::cxx::tree::optional< payload_file::type > _xsd_payload_file_;
       ::xsd::cxx::tree::one< bundleid::type > _xsd_bundleid_;
       ::xsd::cxx::tree::one< is_fragment::type > _xsd_is_fragment_;
       ::xsd::cxx::tree::one< is_admin::type > _xsd_is_admin_;
@@ -3521,7 +3523,7 @@ namespace dtn
         replyto,
         prevhop,
         location,
-        payload,
+        payload_file,
         meta_block_list
       };
 
@@ -4377,30 +4379,30 @@ namespace dtn
       void
       location (::std::auto_ptr< location::type >);
 
-      // payload
+      // payload_file
       // 
       public:
-      struct payload
+      struct payload_file
       {
-        typedef ::xml_schema::base64_binary type;
+        typedef ::xml_schema::string type;
         typedef ::xsd::cxx::tree::traits< type, char > traits;
         typedef ::xsd::cxx::tree::optional< type > container;
       };
 
-      const payload::container&
-      payload () const;
+      const payload_file::container&
+      payload_file () const;
 
-      payload::container&
-      payload ();
-
-      void
-      payload (const payload::type&);
+      payload_file::container&
+      payload_file ();
 
       void
-      payload (const payload::container&);
+      payload_file (const payload_file::type&);
 
       void
-      payload (::std::auto_ptr< payload::type >);
+      payload_file (const payload_file::container&);
+
+      void
+      payload_file (::std::auto_ptr< payload_file::type >);
 
       // Constructors.
       //
@@ -4447,7 +4449,7 @@ namespace dtn
       ::xsd::cxx::tree::optional< orig_length::type > _xsd_orig_length_;
       ::xsd::cxx::tree::optional< owner::type > _xsd_owner_;
       ::xsd::cxx::tree::optional< location::type > _xsd_location_;
-      ::xsd::cxx::tree::optional< payload::type > _xsd_payload_;
+      ::xsd::cxx::tree::optional< payload_file::type > _xsd_payload_file_;
     };
 
     class bundle_received_event: public ::xml_schema::type
@@ -4568,6 +4570,24 @@ namespace dtn
       void
       prevhop (::std::auto_ptr< prevhop::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // expiration
       // 
       public:
@@ -4635,6 +4655,7 @@ namespace dtn
                              const dest::type&,
                              const custodian::type&,
                              const replyto::type&,
+                             const local_id::type&,
                              const expiration::type&,
                              const bytes_received::type&);
 
@@ -4661,6 +4682,7 @@ namespace dtn
       ::xsd::cxx::tree::one< custodian::type > _xsd_custodian_;
       ::xsd::cxx::tree::one< replyto::type > _xsd_replyto_;
       ::xsd::cxx::tree::optional< prevhop::type > _xsd_prevhop_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
       ::xsd::cxx::tree::one< expiration::type > _xsd_expiration_;
       ::xsd::cxx::tree::one< bytes_received::type > _xsd_bytes_received_;
       ::xsd::cxx::tree::optional< num_meta_blocks::type > _xsd_num_meta_blocks_;
@@ -4695,6 +4717,24 @@ namespace dtn
 
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
+
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
 
       // link_id
       // 
@@ -4759,6 +4799,7 @@ namespace dtn
       data_transmitted_event ();
 
       data_transmitted_event (const gbof_id::type&,
+                              const local_id::type&,
                               const link_id::type&,
                               const bytes_sent::type&,
                               const reliably_sent::type&);
@@ -4782,6 +4823,7 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
       ::xsd::cxx::tree::one< link_id::type > _xsd_link_id_;
       ::xsd::cxx::tree::one< bytes_sent::type > _xsd_bytes_sent_;
       ::xsd::cxx::tree::one< reliably_sent::type > _xsd_reliably_sent_;
@@ -4817,12 +4859,31 @@ namespace dtn
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       bundle_delivered_event ();
 
-      bundle_delivered_event (const gbof_id::type&);
+      bundle_delivered_event (const gbof_id::type&,
+                              const local_id::type&);
 
       bundle_delivered_event (const ::xercesc::DOMElement&,
                               ::xml_schema::flags = 0,
@@ -4843,6 +4904,7 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class bundle_delivery_event: public ::xml_schema::type
@@ -4853,6 +4915,27 @@ namespace dtn
       {
         typedef ::xml_schema::type base_;
       };
+
+      // gbof_id
+      // 
+      public:
+      struct gbof_id
+      {
+        typedef ::dtn::rtrmessage::gbofIdType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const gbof_id::type&
+      gbof_id () const;
+
+      gbof_id::type&
+      gbof_id ();
+
+      void
+      gbof_id (const gbof_id::type&);
+
+      void
+      gbof_id (::std::auto_ptr< gbof_id::type >);
 
       // bundle
       // 
@@ -4875,12 +4958,32 @@ namespace dtn
       void
       bundle (::std::auto_ptr< bundle::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       bundle_delivery_event ();
 
-      bundle_delivery_event (const bundle::type&);
+      bundle_delivery_event (const gbof_id::type&,
+                             const bundle::type&,
+                             const local_id::type&);
 
       bundle_delivery_event (const ::xercesc::DOMElement&,
                              ::xml_schema::flags = 0,
@@ -4900,7 +5003,9 @@ namespace dtn
       void
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
+      ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
       ::xsd::cxx::tree::one< bundle::type > _xsd_bundle_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class bundle_send_cancelled_event: public ::xml_schema::type
@@ -4954,13 +5059,32 @@ namespace dtn
       void
       link_id (::std::auto_ptr< link_id::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       bundle_send_cancelled_event ();
 
       bundle_send_cancelled_event (const gbof_id::type&,
-                                   const link_id::type&);
+                                   const link_id::type&,
+                                   const local_id::type&);
 
       bundle_send_cancelled_event (const ::xercesc::DOMElement&,
                                    ::xml_schema::flags = 0,
@@ -4982,6 +5106,7 @@ namespace dtn
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
       ::xsd::cxx::tree::one< link_id::type > _xsd_link_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class bundle_expired_event: public ::xml_schema::type
@@ -5014,12 +5139,31 @@ namespace dtn
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       bundle_expired_event ();
 
-      bundle_expired_event (const gbof_id::type&);
+      bundle_expired_event (const gbof_id::type&,
+                            const local_id::type&);
 
       bundle_expired_event (const ::xercesc::DOMElement&,
                             ::xml_schema::flags = 0,
@@ -5040,6 +5184,7 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class bundle_injected_event: public ::xml_schema::type
@@ -5093,13 +5238,32 @@ namespace dtn
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       bundle_injected_event ();
 
       bundle_injected_event (const request_id::type&,
-                             const gbof_id::type&);
+                             const gbof_id::type&,
+                             const local_id::type&);
 
       bundle_injected_event (const ::xercesc::DOMElement&,
                              ::xml_schema::flags = 0,
@@ -5121,6 +5285,7 @@ namespace dtn
 
       ::xsd::cxx::tree::one< request_id::type > _xsd_request_id_;
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class link_opened_event: public ::xml_schema::type
@@ -6169,13 +6334,32 @@ namespace dtn
       void
       custody_signal_attr (::std::auto_ptr< custody_signal_attr::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       custody_signal_event ();
 
       custody_signal_event (const gbof_id::type&,
-                            const custody_signal_attr::type&);
+                            const custody_signal_attr::type&,
+                            const local_id::type&);
 
       custody_signal_event (const ::xercesc::DOMElement&,
                             ::xml_schema::flags = 0,
@@ -6197,6 +6381,7 @@ namespace dtn
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
       ::xsd::cxx::tree::one< custody_signal_attr::type > _xsd_custody_signal_attr_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class custody_timeout_event: public ::xml_schema::type
@@ -6229,12 +6414,31 @@ namespace dtn
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       custody_timeout_event ();
 
-      custody_timeout_event (const gbof_id::type&);
+      custody_timeout_event (const gbof_id::type&,
+                             const local_id::type&);
 
       custody_timeout_event (const ::xercesc::DOMElement&,
                              ::xml_schema::flags = 0,
@@ -6255,6 +6459,227 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
+    };
+
+    class intentional_name_resolved_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_intentional_name_resolved_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // request_id
+      // 
+      public:
+      struct request_id
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const request_id::type&
+      request_id () const;
+
+      request_id::type&
+      request_id ();
+
+      void
+      request_id (const request_id::type&);
+
+      void
+      request_id (::std::auto_ptr< request_id::type >);
+
+      // response_id
+      // 
+      public:
+      struct response_id
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const response_id::type&
+      response_id () const;
+
+      response_id::type&
+      response_id ();
+
+      void
+      response_id (const response_id::type&);
+
+      void
+      response_id (::std::auto_ptr< response_id::type >);
+
+      // router_eid
+      // 
+      public:
+      struct router_eid
+      {
+        typedef ::dtn::rtrmessage::eidType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const router_eid::type&
+      router_eid () const;
+
+      router_eid::type&
+      router_eid ();
+
+      void
+      router_eid (const router_eid::type&);
+
+      void
+      router_eid (::std::auto_ptr< router_eid::type >);
+
+      // lb_dp_eid
+      // 
+      public:
+      struct lb_dp_eid
+      {
+        typedef ::dtn::rtrmessage::eidType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const lb_dp_eid::container&
+      lb_dp_eid () const;
+
+      lb_dp_eid::container&
+      lb_dp_eid ();
+
+      void
+      lb_dp_eid (const lb_dp_eid::type&);
+
+      void
+      lb_dp_eid (const lb_dp_eid::container&);
+
+      void
+      lb_dp_eid (::std::auto_ptr< lb_dp_eid::type >);
+
+      // intentional_name
+      // 
+      public:
+      struct intentional_name
+      {
+        typedef ::dtn::rtrmessage::eidType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const intentional_name::type&
+      intentional_name () const;
+
+      intentional_name::type&
+      intentional_name ();
+
+      void
+      intentional_name (const intentional_name::type&);
+
+      void
+      intentional_name (::std::auto_ptr< intentional_name::type >);
+
+      // grain_state
+      // 
+      public:
+      struct grain_state
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const grain_state::type&
+      grain_state () const;
+
+      grain_state::type&
+      grain_state ();
+
+      void
+      grain_state (const grain_state::type&);
+
+      void
+      grain_state (::std::auto_ptr< grain_state::type >);
+
+      // canonical_eids
+      // 
+      public:
+      struct canonical_eids
+      {
+        typedef ::dtn::rtrmessage::eidType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const canonical_eids::container&
+      canonical_eids () const;
+
+      canonical_eids::container&
+      canonical_eids ();
+
+      void
+      canonical_eids (const canonical_eids::container&);
+
+      // app_eids
+      // 
+      public:
+      struct app_eids
+      {
+        typedef ::dtn::rtrmessage::eidType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const app_eids::container&
+      app_eids () const;
+
+      app_eids::container&
+      app_eids ();
+
+      void
+      app_eids (const app_eids::container&);
+
+      // Constructors.
+      //
+      public:
+      intentional_name_resolved_event ();
+
+      intentional_name_resolved_event (const request_id::type&,
+                                       const response_id::type&,
+                                       const router_eid::type&,
+                                       const intentional_name::type&,
+                                       const grain_state::type&);
+
+      intentional_name_resolved_event (const ::xercesc::DOMElement&,
+                                       ::xml_schema::flags = 0,
+                                       ::xml_schema::type* = 0);
+
+      intentional_name_resolved_event (const intentional_name_resolved_event&,
+                                       ::xml_schema::flags = 0,
+                                       ::xml_schema::type* = 0);
+
+      virtual intentional_name_resolved_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< request_id::type > _xsd_request_id_;
+      ::xsd::cxx::tree::one< response_id::type > _xsd_response_id_;
+      ::xsd::cxx::tree::one< router_eid::type > _xsd_router_eid_;
+      ::xsd::cxx::tree::optional< lb_dp_eid::type > _xsd_lb_dp_eid_;
+      ::xsd::cxx::tree::one< intentional_name::type > _xsd_intentional_name_;
+      ::xsd::cxx::tree::one< grain_state::type > _xsd_grain_state_;
+      ::xsd::cxx::tree::sequence< canonical_eids::type > _xsd_canonical_eids_;
+      ::xsd::cxx::tree::sequence< app_eids::type > _xsd_app_eids_;
     };
 
     class registration_added_event: public ::xml_schema::type
@@ -6910,6 +7335,24 @@ namespace dtn
       void
       metadata_block (const metadata_block::container&);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // link_id
       // 
       public:
@@ -7002,6 +7445,7 @@ namespace dtn
       send_bundle_request ();
 
       send_bundle_request (const gbof_id::type&,
+                           const local_id::type&,
                            const link_id::type&,
                            const fwd_action::type&);
 
@@ -7025,6 +7469,7 @@ namespace dtn
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
       ::xsd::cxx::tree::sequence< metadata_block::type > _xsd_metadata_block_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
       ::xsd::cxx::tree::one< link_id::type > _xsd_link_id_;
       ::xsd::cxx::tree::one< fwd_action::type > _xsd_fwd_action_;
       ::xsd::cxx::tree::optional< frag_size::type > _xsd_frag_size_;
@@ -7081,6 +7526,24 @@ namespace dtn
 
       void
       metadata_block (const metadata_block::container&);
+
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
 
       // fwd_action
       // 
@@ -7153,6 +7616,7 @@ namespace dtn
       send_bundle_broadcast_request ();
 
       send_bundle_broadcast_request (const gbof_id::type&,
+                                     const local_id::type&,
                                      const fwd_action::type&);
 
       send_bundle_broadcast_request (const ::xercesc::DOMElement&,
@@ -7175,6 +7639,7 @@ namespace dtn
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
       ::xsd::cxx::tree::sequence< metadata_block::type > _xsd_metadata_block_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
       ::xsd::cxx::tree::one< fwd_action::type > _xsd_fwd_action_;
       ::xsd::cxx::tree::optional< frag_size::type > _xsd_frag_size_;
       ::xsd::cxx::tree::optional< frag_offset::type > _xsd_frag_offset_;
@@ -7210,6 +7675,24 @@ namespace dtn
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // link_id
       // 
       public:
@@ -7237,6 +7720,7 @@ namespace dtn
       cancel_bundle_request ();
 
       cancel_bundle_request (const gbof_id::type&,
+                             const local_id::type&,
                              const link_id::type&);
 
       cancel_bundle_request (const ::xercesc::DOMElement&,
@@ -7258,6 +7742,7 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
       ::xsd::cxx::tree::one< link_id::type > _xsd_link_id_;
     };
 
@@ -7476,26 +7961,26 @@ namespace dtn
       void
       expiration (const expiration::container&);
 
-      // payload
+      // payload_file
       // 
       public:
-      struct payload
+      struct payload_file
       {
-        typedef ::xml_schema::base64_binary type;
+        typedef ::xml_schema::string type;
         typedef ::xsd::cxx::tree::traits< type, char > traits;
       };
 
-      const payload::type&
-      payload () const;
+      const payload_file::type&
+      payload_file () const;
 
-      payload::type&
-      payload ();
-
-      void
-      payload (const payload::type&);
+      payload_file::type&
+      payload_file ();
 
       void
-      payload (::std::auto_ptr< payload::type >);
+      payload_file (const payload_file::type&);
+
+      void
+      payload_file (::std::auto_ptr< payload_file::type >);
 
       // Constructors.
       //
@@ -7506,7 +7991,7 @@ namespace dtn
                              const dest::type&,
                              const request_id::type&,
                              const link_id::type&,
-                             const payload::type&);
+                             const payload_file::type&);
 
       inject_bundle_request (const ::xercesc::DOMElement&,
                              ::xml_schema::flags = 0,
@@ -7535,7 +8020,7 @@ namespace dtn
       ::xsd::cxx::tree::optional< fwd_action::type > _xsd_fwd_action_;
       ::xsd::cxx::tree::optional< priority::type > _xsd_priority_;
       ::xsd::cxx::tree::optional< expiration::type > _xsd_expiration_;
-      ::xsd::cxx::tree::one< payload::type > _xsd_payload_;
+      ::xsd::cxx::tree::one< payload_file::type > _xsd_payload_file_;
     };
 
     class delete_bundle_request: public ::xml_schema::type
@@ -7568,12 +8053,31 @@ namespace dtn
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       delete_bundle_request ();
 
-      delete_bundle_request (const gbof_id::type&);
+      delete_bundle_request (const gbof_id::type&,
+                             const local_id::type&);
 
       delete_bundle_request (const ::xercesc::DOMElement&,
                              ::xml_schema::flags = 0,
@@ -7594,6 +8098,7 @@ namespace dtn
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class set_cl_params_request: public ::xml_schema::type
@@ -7676,6 +8181,133 @@ namespace dtn
       ::xsd::cxx::tree::one< clayer::type > _xsd_clayer_;
     };
 
+    class intentional_name_resolution_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_intentional_name_resolution_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // request_id
+      // 
+      public:
+      struct request_id
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const request_id::type&
+      request_id () const;
+
+      request_id::type&
+      request_id ();
+
+      void
+      request_id (const request_id::type&);
+
+      void
+      request_id (::std::auto_ptr< request_id::type >);
+
+      // router_eid
+      // 
+      public:
+      struct router_eid
+      {
+        typedef ::dtn::rtrmessage::eidType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const router_eid::type&
+      router_eid () const;
+
+      router_eid::type&
+      router_eid ();
+
+      void
+      router_eid (const router_eid::type&);
+
+      void
+      router_eid (::std::auto_ptr< router_eid::type >);
+
+      // intentional_name
+      // 
+      public:
+      struct intentional_name
+      {
+        typedef ::dtn::rtrmessage::eidType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const intentional_name::type&
+      intentional_name () const;
+
+      intentional_name::type&
+      intentional_name ();
+
+      void
+      intentional_name (const intentional_name::type&);
+
+      void
+      intentional_name (::std::auto_ptr< intentional_name::type >);
+
+      // grain_state
+      // 
+      public:
+      struct grain_state
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const grain_state::type&
+      grain_state () const;
+
+      grain_state::type&
+      grain_state ();
+
+      void
+      grain_state (const grain_state::type&);
+
+      void
+      grain_state (::std::auto_ptr< grain_state::type >);
+
+      // Constructors.
+      //
+      public:
+      intentional_name_resolution_request ();
+
+      intentional_name_resolution_request (const request_id::type&,
+                                           const router_eid::type&,
+                                           const intentional_name::type&,
+                                           const grain_state::type&);
+
+      intentional_name_resolution_request (const ::xercesc::DOMElement&,
+                                           ::xml_schema::flags = 0,
+                                           ::xml_schema::type* = 0);
+
+      intentional_name_resolution_request (const intentional_name_resolution_request&,
+                                           ::xml_schema::flags = 0,
+                                           ::xml_schema::type* = 0);
+
+      virtual intentional_name_resolution_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< request_id::type > _xsd_request_id_;
+      ::xsd::cxx::tree::one< router_eid::type > _xsd_router_eid_;
+      ::xsd::cxx::tree::one< intentional_name::type > _xsd_intentional_name_;
+      ::xsd::cxx::tree::one< grain_state::type > _xsd_grain_state_;
+    };
+
     class deliver_bundle_to_app_request: public ::xml_schema::type
     {
       public:
@@ -7727,13 +8359,32 @@ namespace dtn
       void
       gbof_id (::std::auto_ptr< gbof_id::type >);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       deliver_bundle_to_app_request ();
 
       deliver_bundle_to_app_request (const endpoint::type&,
-                                     const gbof_id::type&);
+                                     const gbof_id::type&,
+                                     const local_id::type&);
 
       deliver_bundle_to_app_request (const ::xercesc::DOMElement&,
                                      ::xml_schema::flags = 0,
@@ -7755,6 +8406,7 @@ namespace dtn
 
       ::xsd::cxx::tree::one< endpoint::type > _xsd_endpoint_;
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class link_report: public ::xml_schema::type
@@ -8236,13 +8888,32 @@ namespace dtn
       void
       query_params (const query_params::container&);
 
+      // local_id
+      // 
+      public:
+      struct local_id
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const local_id::type&
+      local_id () const;
+
+      local_id::type&
+      local_id ();
+
+      void
+      local_id (const local_id::type&);
+
       // Constructors.
       //
       public:
       bundle_attributes_query ();
 
       bundle_attributes_query (const query_id::type&,
-                               const gbof_id::type&);
+                               const gbof_id::type&,
+                               const local_id::type&);
 
       bundle_attributes_query (const ::xercesc::DOMElement&,
                                ::xml_schema::flags = 0,
@@ -8265,6 +8936,7 @@ namespace dtn
       ::xsd::cxx::tree::one< query_id::type > _xsd_query_id_;
       ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
       ::xsd::cxx::tree::sequence< query_params::type > _xsd_query_params_;
+      ::xsd::cxx::tree::one< local_id::type > _xsd_local_id_;
     };
 
     class bundle_attributes_report: public ::xml_schema::type
@@ -8882,6 +9554,31 @@ namespace dtn
       void
       custody_timeout_event (::std::auto_ptr< custody_timeout_event::type >);
 
+      // intentional_name_resolved_event
+      // 
+      public:
+      struct intentional_name_resolved_event
+      {
+        typedef ::dtn::rtrmessage::intentional_name_resolved_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const intentional_name_resolved_event::container&
+      intentional_name_resolved_event () const;
+
+      intentional_name_resolved_event::container&
+      intentional_name_resolved_event ();
+
+      void
+      intentional_name_resolved_event (const intentional_name_resolved_event::type&);
+
+      void
+      intentional_name_resolved_event (const intentional_name_resolved_event::container&);
+
+      void
+      intentional_name_resolved_event (::std::auto_ptr< intentional_name_resolved_event::type >);
+
       // registration_added_event
       // 
       public:
@@ -9231,6 +9928,31 @@ namespace dtn
 
       void
       set_cl_params_request (::std::auto_ptr< set_cl_params_request::type >);
+
+      // intentional_name_resolution_request
+      // 
+      public:
+      struct intentional_name_resolution_request
+      {
+        typedef ::dtn::rtrmessage::intentional_name_resolution_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const intentional_name_resolution_request::container&
+      intentional_name_resolution_request () const;
+
+      intentional_name_resolution_request::container&
+      intentional_name_resolution_request ();
+
+      void
+      intentional_name_resolution_request (const intentional_name_resolution_request::type&);
+
+      void
+      intentional_name_resolution_request (const intentional_name_resolution_request::container&);
+
+      void
+      intentional_name_resolution_request (::std::auto_ptr< intentional_name_resolution_request::type >);
 
       // deliver_bundle_to_app_request
       // 
@@ -9673,6 +10395,7 @@ namespace dtn
       ::xsd::cxx::tree::optional< route_delete_event::type > _xsd_route_delete_event_;
       ::xsd::cxx::tree::optional< custody_signal_event::type > _xsd_custody_signal_event_;
       ::xsd::cxx::tree::optional< custody_timeout_event::type > _xsd_custody_timeout_event_;
+      ::xsd::cxx::tree::optional< intentional_name_resolved_event::type > _xsd_intentional_name_resolved_event_;
       ::xsd::cxx::tree::optional< registration_added_event::type > _xsd_registration_added_event_;
       ::xsd::cxx::tree::optional< registration_removed_event::type > _xsd_registration_removed_event_;
       ::xsd::cxx::tree::optional< registration_expired_event::type > _xsd_registration_expired_event_;
@@ -9687,6 +10410,7 @@ namespace dtn
       ::xsd::cxx::tree::optional< inject_bundle_request::type > _xsd_inject_bundle_request_;
       ::xsd::cxx::tree::optional< delete_bundle_request::type > _xsd_delete_bundle_request_;
       ::xsd::cxx::tree::optional< set_cl_params_request::type > _xsd_set_cl_params_request_;
+      ::xsd::cxx::tree::optional< intentional_name_resolution_request::type > _xsd_intentional_name_resolution_request_;
       ::xsd::cxx::tree::optional< deliver_bundle_to_app_request::type > _xsd_deliver_bundle_to_app_request_;
       ::xsd::cxx::tree::optional< link_query::type > _xsd_link_query_;
       ::xsd::cxx::tree::optional< link_report::type > _xsd_link_report_;
@@ -10183,6 +10907,10 @@ namespace dtn
 
     void
     operator<< (::xercesc::DOMElement&,
+                const intentional_name_resolved_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
                 const registration_added_event&);
 
     void
@@ -10236,6 +10964,10 @@ namespace dtn
     void
     operator<< (::xercesc::DOMElement&,
                 const set_cl_params_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const intentional_name_resolution_request&);
 
     void
     operator<< (::xercesc::DOMElement&,

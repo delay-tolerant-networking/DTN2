@@ -283,6 +283,8 @@ public:
 
 std::string lowercase(const char *c_str);
 
+#define bundle_ts_to_long(ts) (((::xml_schema::long_ ) (ts).seconds_ << 32) | (ts).seqno_)
+
 } // namespace rtrmessage
 } // namespace dtn
 

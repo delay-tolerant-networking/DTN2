@@ -718,34 +718,34 @@ namespace dtn
       this->_xsd_location_.set (location);
     }
 
-    const bundleType_base::payload::container& bundleType_base::
-    payload () const
+    const bundleType_base::payload_file::container& bundleType_base::
+    payload_file () const
     {
-      return this->_xsd_payload_;
+      return this->_xsd_payload_file_;
     }
 
-    bundleType_base::payload::container& bundleType_base::
-    payload ()
+    bundleType_base::payload_file::container& bundleType_base::
+    payload_file ()
     {
-      return this->_xsd_payload_;
-    }
-
-    void bundleType_base::
-    payload (const payload::type& payload)
-    {
-      this->_xsd_payload_.set (payload);
+      return this->_xsd_payload_file_;
     }
 
     void bundleType_base::
-    payload (const payload::container& payload)
+    payload_file (const payload_file::type& payload_file)
     {
-      this->_xsd_payload_ = payload;
+      this->_xsd_payload_file_.set (payload_file);
     }
 
     void bundleType_base::
-    payload (::std::auto_ptr< payload::type > payload)
+    payload_file (const payload_file::container& payload_file)
     {
-      this->_xsd_payload_.set (payload);
+      this->_xsd_payload_file_ = payload_file;
+    }
+
+    void bundleType_base::
+    payload_file (::std::auto_ptr< payload_file::type > payload_file)
+    {
+      this->_xsd_payload_file_.set (payload_file);
     }
 
     const bundleType_base::bundleid::type& bundleType_base::
@@ -3475,34 +3475,34 @@ namespace dtn
       this->_xsd_location_.set (location);
     }
 
-    const bundleAttributesReportType::payload::container& bundleAttributesReportType::
-    payload () const
+    const bundleAttributesReportType::payload_file::container& bundleAttributesReportType::
+    payload_file () const
     {
-      return this->_xsd_payload_;
+      return this->_xsd_payload_file_;
     }
 
-    bundleAttributesReportType::payload::container& bundleAttributesReportType::
-    payload ()
+    bundleAttributesReportType::payload_file::container& bundleAttributesReportType::
+    payload_file ()
     {
-      return this->_xsd_payload_;
-    }
-
-    void bundleAttributesReportType::
-    payload (const payload::type& payload)
-    {
-      this->_xsd_payload_.set (payload);
+      return this->_xsd_payload_file_;
     }
 
     void bundleAttributesReportType::
-    payload (const payload::container& payload)
+    payload_file (const payload_file::type& payload_file)
     {
-      this->_xsd_payload_ = payload;
+      this->_xsd_payload_file_.set (payload_file);
     }
 
     void bundleAttributesReportType::
-    payload (::std::auto_ptr< payload::type > payload)
+    payload_file (const payload_file::container& payload_file)
     {
-      this->_xsd_payload_.set (payload);
+      this->_xsd_payload_file_ = payload_file;
+    }
+
+    void bundleAttributesReportType::
+    payload_file (::std::auto_ptr< payload_file::type > payload_file)
+    {
+      this->_xsd_payload_file_.set (payload_file);
     }
 
 
@@ -3635,6 +3635,24 @@ namespace dtn
       this->_xsd_prevhop_.set (prevhop);
     }
 
+    const bundle_received_event::local_id::type& bundle_received_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    bundle_received_event::local_id::type& bundle_received_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void bundle_received_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
+    }
+
     const bundle_received_event::expiration::type& bundle_received_event::
     expiration () const
     {
@@ -3721,6 +3739,24 @@ namespace dtn
     gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
     {
       this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    const data_transmitted_event::local_id::type& data_transmitted_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    data_transmitted_event::local_id::type& data_transmitted_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void data_transmitted_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
     }
 
     const data_transmitted_event::link_id::type& data_transmitted_event::
@@ -3811,9 +3847,51 @@ namespace dtn
       this->_xsd_gbof_id_.set (gbof_id);
     }
 
+    const bundle_delivered_event::local_id::type& bundle_delivered_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    bundle_delivered_event::local_id::type& bundle_delivered_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void bundle_delivered_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
+    }
+
 
     // bundle_delivery_event
     // 
+
+    const bundle_delivery_event::gbof_id::type& bundle_delivery_event::
+    gbof_id () const
+    {
+      return this->_xsd_gbof_id_.get ();
+    }
+
+    bundle_delivery_event::gbof_id::type& bundle_delivery_event::
+    gbof_id ()
+    {
+      return this->_xsd_gbof_id_.get ();
+    }
+
+    void bundle_delivery_event::
+    gbof_id (const gbof_id::type& gbof_id)
+    {
+      this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    void bundle_delivery_event::
+    gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
+    {
+      this->_xsd_gbof_id_.set (gbof_id);
+    }
 
     const bundle_delivery_event::bundle::type& bundle_delivery_event::
     bundle () const
@@ -3837,6 +3915,24 @@ namespace dtn
     bundle (::std::auto_ptr< bundle::type > bundle)
     {
       this->_xsd_bundle_.set (bundle);
+    }
+
+    const bundle_delivery_event::local_id::type& bundle_delivery_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    bundle_delivery_event::local_id::type& bundle_delivery_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void bundle_delivery_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
     }
 
 
@@ -3891,6 +3987,24 @@ namespace dtn
       this->_xsd_link_id_.set (link_id);
     }
 
+    const bundle_send_cancelled_event::local_id::type& bundle_send_cancelled_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    bundle_send_cancelled_event::local_id::type& bundle_send_cancelled_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void bundle_send_cancelled_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
+    }
+
 
     // bundle_expired_event
     // 
@@ -3917,6 +4031,24 @@ namespace dtn
     gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
     {
       this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    const bundle_expired_event::local_id::type& bundle_expired_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    bundle_expired_event::local_id::type& bundle_expired_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void bundle_expired_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
     }
 
 
@@ -3969,6 +4101,24 @@ namespace dtn
     gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
     {
       this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    const bundle_injected_event::local_id::type& bundle_injected_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    bundle_injected_event::local_id::type& bundle_injected_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void bundle_injected_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
     }
 
 
@@ -4671,6 +4821,24 @@ namespace dtn
       this->_xsd_custody_signal_attr_.set (custody_signal_attr);
     }
 
+    const custody_signal_event::local_id::type& custody_signal_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    custody_signal_event::local_id::type& custody_signal_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void custody_signal_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
+    }
+
 
     // custody_timeout_event
     // 
@@ -4697,6 +4865,214 @@ namespace dtn
     gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
     {
       this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    const custody_timeout_event::local_id::type& custody_timeout_event::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    custody_timeout_event::local_id::type& custody_timeout_event::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void custody_timeout_event::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
+    }
+
+
+    // intentional_name_resolved_event
+    // 
+
+    const intentional_name_resolved_event::request_id::type& intentional_name_resolved_event::
+    request_id () const
+    {
+      return this->_xsd_request_id_.get ();
+    }
+
+    intentional_name_resolved_event::request_id::type& intentional_name_resolved_event::
+    request_id ()
+    {
+      return this->_xsd_request_id_.get ();
+    }
+
+    void intentional_name_resolved_event::
+    request_id (const request_id::type& request_id)
+    {
+      this->_xsd_request_id_.set (request_id);
+    }
+
+    void intentional_name_resolved_event::
+    request_id (::std::auto_ptr< request_id::type > request_id)
+    {
+      this->_xsd_request_id_.set (request_id);
+    }
+
+    const intentional_name_resolved_event::response_id::type& intentional_name_resolved_event::
+    response_id () const
+    {
+      return this->_xsd_response_id_.get ();
+    }
+
+    intentional_name_resolved_event::response_id::type& intentional_name_resolved_event::
+    response_id ()
+    {
+      return this->_xsd_response_id_.get ();
+    }
+
+    void intentional_name_resolved_event::
+    response_id (const response_id::type& response_id)
+    {
+      this->_xsd_response_id_.set (response_id);
+    }
+
+    void intentional_name_resolved_event::
+    response_id (::std::auto_ptr< response_id::type > response_id)
+    {
+      this->_xsd_response_id_.set (response_id);
+    }
+
+    const intentional_name_resolved_event::router_eid::type& intentional_name_resolved_event::
+    router_eid () const
+    {
+      return this->_xsd_router_eid_.get ();
+    }
+
+    intentional_name_resolved_event::router_eid::type& intentional_name_resolved_event::
+    router_eid ()
+    {
+      return this->_xsd_router_eid_.get ();
+    }
+
+    void intentional_name_resolved_event::
+    router_eid (const router_eid::type& router_eid)
+    {
+      this->_xsd_router_eid_.set (router_eid);
+    }
+
+    void intentional_name_resolved_event::
+    router_eid (::std::auto_ptr< router_eid::type > router_eid)
+    {
+      this->_xsd_router_eid_.set (router_eid);
+    }
+
+    const intentional_name_resolved_event::lb_dp_eid::container& intentional_name_resolved_event::
+    lb_dp_eid () const
+    {
+      return this->_xsd_lb_dp_eid_;
+    }
+
+    intentional_name_resolved_event::lb_dp_eid::container& intentional_name_resolved_event::
+    lb_dp_eid ()
+    {
+      return this->_xsd_lb_dp_eid_;
+    }
+
+    void intentional_name_resolved_event::
+    lb_dp_eid (const lb_dp_eid::type& lb_dp_eid)
+    {
+      this->_xsd_lb_dp_eid_.set (lb_dp_eid);
+    }
+
+    void intentional_name_resolved_event::
+    lb_dp_eid (const lb_dp_eid::container& lb_dp_eid)
+    {
+      this->_xsd_lb_dp_eid_ = lb_dp_eid;
+    }
+
+    void intentional_name_resolved_event::
+    lb_dp_eid (::std::auto_ptr< lb_dp_eid::type > lb_dp_eid)
+    {
+      this->_xsd_lb_dp_eid_.set (lb_dp_eid);
+    }
+
+    const intentional_name_resolved_event::intentional_name::type& intentional_name_resolved_event::
+    intentional_name () const
+    {
+      return this->_xsd_intentional_name_.get ();
+    }
+
+    intentional_name_resolved_event::intentional_name::type& intentional_name_resolved_event::
+    intentional_name ()
+    {
+      return this->_xsd_intentional_name_.get ();
+    }
+
+    void intentional_name_resolved_event::
+    intentional_name (const intentional_name::type& intentional_name)
+    {
+      this->_xsd_intentional_name_.set (intentional_name);
+    }
+
+    void intentional_name_resolved_event::
+    intentional_name (::std::auto_ptr< intentional_name::type > intentional_name)
+    {
+      this->_xsd_intentional_name_.set (intentional_name);
+    }
+
+    const intentional_name_resolved_event::grain_state::type& intentional_name_resolved_event::
+    grain_state () const
+    {
+      return this->_xsd_grain_state_.get ();
+    }
+
+    intentional_name_resolved_event::grain_state::type& intentional_name_resolved_event::
+    grain_state ()
+    {
+      return this->_xsd_grain_state_.get ();
+    }
+
+    void intentional_name_resolved_event::
+    grain_state (const grain_state::type& grain_state)
+    {
+      this->_xsd_grain_state_.set (grain_state);
+    }
+
+    void intentional_name_resolved_event::
+    grain_state (::std::auto_ptr< grain_state::type > grain_state)
+    {
+      this->_xsd_grain_state_.set (grain_state);
+    }
+
+    const intentional_name_resolved_event::canonical_eids::container& intentional_name_resolved_event::
+    canonical_eids () const
+    {
+      return this->_xsd_canonical_eids_;
+    }
+
+    intentional_name_resolved_event::canonical_eids::container& intentional_name_resolved_event::
+    canonical_eids ()
+    {
+      return this->_xsd_canonical_eids_;
+    }
+
+    void intentional_name_resolved_event::
+    canonical_eids (const canonical_eids::container& canonical_eids)
+    {
+      this->_xsd_canonical_eids_ = canonical_eids;
+    }
+
+    const intentional_name_resolved_event::app_eids::container& intentional_name_resolved_event::
+    app_eids () const
+    {
+      return this->_xsd_app_eids_;
+    }
+
+    intentional_name_resolved_event::app_eids::container& intentional_name_resolved_event::
+    app_eids ()
+    {
+      return this->_xsd_app_eids_;
+    }
+
+    void intentional_name_resolved_event::
+    app_eids (const app_eids::container& app_eids)
+    {
+      this->_xsd_app_eids_ = app_eids;
     }
 
 
@@ -5113,6 +5489,24 @@ namespace dtn
       this->_xsd_metadata_block_ = metadata_block;
     }
 
+    const send_bundle_request::local_id::type& send_bundle_request::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    send_bundle_request::local_id::type& send_bundle_request::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void send_bundle_request::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
+    }
+
     const send_bundle_request::link_id::type& send_bundle_request::
     link_id () const
     {
@@ -5255,6 +5649,24 @@ namespace dtn
       this->_xsd_metadata_block_ = metadata_block;
     }
 
+    const send_bundle_broadcast_request::local_id::type& send_bundle_broadcast_request::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    send_bundle_broadcast_request::local_id::type& send_bundle_broadcast_request::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void send_bundle_broadcast_request::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
+    }
+
     const send_bundle_broadcast_request::fwd_action::type& send_bundle_broadcast_request::
     fwd_action () const
     {
@@ -5353,6 +5765,24 @@ namespace dtn
     gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
     {
       this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    const cancel_bundle_request::local_id::type& cancel_bundle_request::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    cancel_bundle_request::local_id::type& cancel_bundle_request::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void cancel_bundle_request::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
     }
 
     const cancel_bundle_request::link_id::type& cancel_bundle_request::
@@ -5623,28 +6053,28 @@ namespace dtn
       this->_xsd_expiration_ = expiration;
     }
 
-    const inject_bundle_request::payload::type& inject_bundle_request::
-    payload () const
+    const inject_bundle_request::payload_file::type& inject_bundle_request::
+    payload_file () const
     {
-      return this->_xsd_payload_.get ();
+      return this->_xsd_payload_file_.get ();
     }
 
-    inject_bundle_request::payload::type& inject_bundle_request::
-    payload ()
+    inject_bundle_request::payload_file::type& inject_bundle_request::
+    payload_file ()
     {
-      return this->_xsd_payload_.get ();
-    }
-
-    void inject_bundle_request::
-    payload (const payload::type& payload)
-    {
-      this->_xsd_payload_.set (payload);
+      return this->_xsd_payload_file_.get ();
     }
 
     void inject_bundle_request::
-    payload (::std::auto_ptr< payload::type > payload)
+    payload_file (const payload_file::type& payload_file)
     {
-      this->_xsd_payload_.set (payload);
+      this->_xsd_payload_file_.set (payload_file);
+    }
+
+    void inject_bundle_request::
+    payload_file (::std::auto_ptr< payload_file::type > payload_file)
+    {
+      this->_xsd_payload_file_.set (payload_file);
     }
 
 
@@ -5673,6 +6103,24 @@ namespace dtn
     gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
     {
       this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    const delete_bundle_request::local_id::type& delete_bundle_request::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    delete_bundle_request::local_id::type& delete_bundle_request::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void delete_bundle_request::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
     }
 
 
@@ -5719,6 +6167,106 @@ namespace dtn
     clayer (::std::auto_ptr< clayer::type > clayer)
     {
       this->_xsd_clayer_.set (clayer);
+    }
+
+
+    // intentional_name_resolution_request
+    // 
+
+    const intentional_name_resolution_request::request_id::type& intentional_name_resolution_request::
+    request_id () const
+    {
+      return this->_xsd_request_id_.get ();
+    }
+
+    intentional_name_resolution_request::request_id::type& intentional_name_resolution_request::
+    request_id ()
+    {
+      return this->_xsd_request_id_.get ();
+    }
+
+    void intentional_name_resolution_request::
+    request_id (const request_id::type& request_id)
+    {
+      this->_xsd_request_id_.set (request_id);
+    }
+
+    void intentional_name_resolution_request::
+    request_id (::std::auto_ptr< request_id::type > request_id)
+    {
+      this->_xsd_request_id_.set (request_id);
+    }
+
+    const intentional_name_resolution_request::router_eid::type& intentional_name_resolution_request::
+    router_eid () const
+    {
+      return this->_xsd_router_eid_.get ();
+    }
+
+    intentional_name_resolution_request::router_eid::type& intentional_name_resolution_request::
+    router_eid ()
+    {
+      return this->_xsd_router_eid_.get ();
+    }
+
+    void intentional_name_resolution_request::
+    router_eid (const router_eid::type& router_eid)
+    {
+      this->_xsd_router_eid_.set (router_eid);
+    }
+
+    void intentional_name_resolution_request::
+    router_eid (::std::auto_ptr< router_eid::type > router_eid)
+    {
+      this->_xsd_router_eid_.set (router_eid);
+    }
+
+    const intentional_name_resolution_request::intentional_name::type& intentional_name_resolution_request::
+    intentional_name () const
+    {
+      return this->_xsd_intentional_name_.get ();
+    }
+
+    intentional_name_resolution_request::intentional_name::type& intentional_name_resolution_request::
+    intentional_name ()
+    {
+      return this->_xsd_intentional_name_.get ();
+    }
+
+    void intentional_name_resolution_request::
+    intentional_name (const intentional_name::type& intentional_name)
+    {
+      this->_xsd_intentional_name_.set (intentional_name);
+    }
+
+    void intentional_name_resolution_request::
+    intentional_name (::std::auto_ptr< intentional_name::type > intentional_name)
+    {
+      this->_xsd_intentional_name_.set (intentional_name);
+    }
+
+    const intentional_name_resolution_request::grain_state::type& intentional_name_resolution_request::
+    grain_state () const
+    {
+      return this->_xsd_grain_state_.get ();
+    }
+
+    intentional_name_resolution_request::grain_state::type& intentional_name_resolution_request::
+    grain_state ()
+    {
+      return this->_xsd_grain_state_.get ();
+    }
+
+    void intentional_name_resolution_request::
+    grain_state (const grain_state::type& grain_state)
+    {
+      this->_xsd_grain_state_.set (grain_state);
+    }
+
+    void intentional_name_resolution_request::
+    grain_state (::std::auto_ptr< grain_state::type > grain_state)
+    {
+      this->_xsd_grain_state_.set (grain_state);
     }
 
 
@@ -5771,6 +6319,24 @@ namespace dtn
     gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
     {
       this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    const deliver_bundle_to_app_request::local_id::type& deliver_bundle_to_app_request::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    deliver_bundle_to_app_request::local_id::type& deliver_bundle_to_app_request::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void deliver_bundle_to_app_request::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
     }
 
 
@@ -6045,6 +6611,24 @@ namespace dtn
     query_params (const query_params::container& query_params)
     {
       this->_xsd_query_params_ = query_params;
+    }
+
+    const bundle_attributes_query::local_id::type& bundle_attributes_query::
+    local_id () const
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    bundle_attributes_query::local_id::type& bundle_attributes_query::
+    local_id ()
+    {
+      return this->_xsd_local_id_.get ();
+    }
+
+    void bundle_attributes_query::
+    local_id (const local_id::type& local_id)
+    {
+      this->_xsd_local_id_.set (local_id);
     }
 
 
@@ -6733,6 +7317,36 @@ namespace dtn
       this->_xsd_custody_timeout_event_.set (custody_timeout_event);
     }
 
+    const bpa::intentional_name_resolved_event::container& bpa::
+    intentional_name_resolved_event () const
+    {
+      return this->_xsd_intentional_name_resolved_event_;
+    }
+
+    bpa::intentional_name_resolved_event::container& bpa::
+    intentional_name_resolved_event ()
+    {
+      return this->_xsd_intentional_name_resolved_event_;
+    }
+
+    void bpa::
+    intentional_name_resolved_event (const intentional_name_resolved_event::type& intentional_name_resolved_event)
+    {
+      this->_xsd_intentional_name_resolved_event_.set (intentional_name_resolved_event);
+    }
+
+    void bpa::
+    intentional_name_resolved_event (const intentional_name_resolved_event::container& intentional_name_resolved_event)
+    {
+      this->_xsd_intentional_name_resolved_event_ = intentional_name_resolved_event;
+    }
+
+    void bpa::
+    intentional_name_resolved_event (::std::auto_ptr< intentional_name_resolved_event::type > intentional_name_resolved_event)
+    {
+      this->_xsd_intentional_name_resolved_event_.set (intentional_name_resolved_event);
+    }
+
     const bpa::registration_added_event::container& bpa::
     registration_added_event () const
     {
@@ -7151,6 +7765,36 @@ namespace dtn
     set_cl_params_request (::std::auto_ptr< set_cl_params_request::type > set_cl_params_request)
     {
       this->_xsd_set_cl_params_request_.set (set_cl_params_request);
+    }
+
+    const bpa::intentional_name_resolution_request::container& bpa::
+    intentional_name_resolution_request () const
+    {
+      return this->_xsd_intentional_name_resolution_request_;
+    }
+
+    bpa::intentional_name_resolution_request::container& bpa::
+    intentional_name_resolution_request ()
+    {
+      return this->_xsd_intentional_name_resolution_request_;
+    }
+
+    void bpa::
+    intentional_name_resolution_request (const intentional_name_resolution_request::type& intentional_name_resolution_request)
+    {
+      this->_xsd_intentional_name_resolution_request_.set (intentional_name_resolution_request);
+    }
+
+    void bpa::
+    intentional_name_resolution_request (const intentional_name_resolution_request::container& intentional_name_resolution_request)
+    {
+      this->_xsd_intentional_name_resolution_request_ = intentional_name_resolution_request;
+    }
+
+    void bpa::
+    intentional_name_resolution_request (::std::auto_ptr< intentional_name_resolution_request::type > intentional_name_resolution_request)
+    {
+      this->_xsd_intentional_name_resolution_request_.set (intentional_name_resolution_request);
     }
 
     const bpa::deliver_bundle_to_app_request::container& bpa::
@@ -8680,7 +9324,7 @@ namespace dtn
     _xsd_prevhop_ (::xml_schema::flags (), this),
     _xsd_length_ (::xml_schema::flags (), this),
     _xsd_location_ (::xml_schema::flags (), this),
-    _xsd_payload_ (::xml_schema::flags (), this),
+    _xsd_payload_file_ (::xml_schema::flags (), this),
     _xsd_bundleid_ (::xml_schema::flags (), this),
     _xsd_is_fragment_ (::xml_schema::flags (), this),
     _xsd_is_admin_ (::xml_schema::flags (), this),
@@ -8754,7 +9398,7 @@ namespace dtn
     _xsd_location_ (_xsd_location,
                     ::xml_schema::flags (),
                     this),
-    _xsd_payload_ (::xml_schema::flags (), this),
+    _xsd_payload_file_ (::xml_schema::flags (), this),
     _xsd_bundleid_ (_xsd_bundleid,
                     ::xml_schema::flags (),
                     this),
@@ -8844,9 +9488,9 @@ namespace dtn
     _xsd_location_ (_xsd_bundleType_base._xsd_location_,
                     f | ::xml_schema::flags::not_root,
                     this),
-    _xsd_payload_ (_xsd_bundleType_base._xsd_payload_,
-                   f | ::xml_schema::flags::not_root,
-                   this),
+    _xsd_payload_file_ (_xsd_bundleType_base._xsd_payload_file_,
+                        f | ::xml_schema::flags::not_root,
+                        this),
     _xsd_bundleid_ (_xsd_bundleType_base._xsd_bundleid_,
                     f | ::xml_schema::flags::not_root,
                     this),
@@ -8922,7 +9566,7 @@ namespace dtn
     _xsd_prevhop_ (f | ::xml_schema::flags::not_root, this),
     _xsd_length_ (f | ::xml_schema::flags::not_root, this),
     _xsd_location_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_payload_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_payload_file_ (f | ::xml_schema::flags::not_root, this),
     _xsd_bundleid_ (f | ::xml_schema::flags::not_root, this),
     _xsd_is_fragment_ (f | ::xml_schema::flags::not_root, this),
     _xsd_is_admin_ (f | ::xml_schema::flags::not_root, this),
@@ -9080,20 +9724,20 @@ namespace dtn
           }
         }
 
-        // payload
+        // payload_file
         //
         {
-          if (e.name () == "payload" && e.namespace_ ().empty ())
+          if (e.name () == "payload_file" && e.namespace_ ().empty ())
           {
-            ::std::auto_ptr< payload::type > r (
-              payload::traits::create (
+            ::std::auto_ptr< payload_file::type > r (
+              payload_file::traits::create (
                 e.dom_element (),
                 f | ::xml_schema::flags::not_root,
                 this));
 
-            if (this->payload ())
+            if (this->payload_file ())
               continue;
-            this->payload (r);
+            this->payload_file (r);
             continue;
           }
         }
@@ -11574,7 +12218,7 @@ namespace dtn
       "replyto",
       "prevhop",
       "location",
-      "payload",
+      "payload_file",
       "meta_block_list"
     };
 
@@ -11598,7 +12242,7 @@ namespace dtn
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::meta_block_list,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::orig_length,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::owner,
-      ::dtn::rtrmessage::bundleAttributesSimpleQueryType::payload,
+      ::dtn::rtrmessage::bundleAttributesSimpleQueryType::payload_file,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::prevhop,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::priority,
       ::dtn::rtrmessage::bundleAttributesSimpleQueryType::receive_rcpt,
@@ -11966,7 +12610,7 @@ namespace dtn
     _xsd_orig_length_ (::xml_schema::flags (), this),
     _xsd_owner_ (::xml_schema::flags (), this),
     _xsd_location_ (::xml_schema::flags (), this),
-    _xsd_payload_ (::xml_schema::flags (), this)
+    _xsd_payload_file_ (::xml_schema::flags (), this)
     {
     }
 
@@ -12041,9 +12685,9 @@ namespace dtn
     _xsd_location_ (_xsd_bundleAttributesReportType._xsd_location_,
                     f | ::xml_schema::flags::not_root,
                     this),
-    _xsd_payload_ (_xsd_bundleAttributesReportType._xsd_payload_,
-                   f | ::xml_schema::flags::not_root,
-                   this)
+    _xsd_payload_file_ (_xsd_bundleAttributesReportType._xsd_payload_file_,
+                        f | ::xml_schema::flags::not_root,
+                        this)
     {
     }
 
@@ -12074,7 +12718,7 @@ namespace dtn
     _xsd_orig_length_ (f | ::xml_schema::flags::not_root, this),
     _xsd_owner_ (f | ::xml_schema::flags::not_root, this),
     _xsd_location_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_payload_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_payload_file_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -12357,15 +13001,15 @@ namespace dtn
           continue;
         }
 
-        if (a.name () == "payload" && a.namespace_ ().empty ())
+        if (a.name () == "payload_file" && a.namespace_ ().empty ())
         {
-          ::std::auto_ptr< payload::type > r (
-            payload::traits::create (
+          ::std::auto_ptr< payload_file::type > r (
+            payload_file::traits::create (
               a.dom_attribute (),
               f | ::xml_schema::flags::not_root,
               this));
 
-          this->payload (r);
+          this->payload_file (r);
           continue;
         }
       }
@@ -12389,6 +13033,7 @@ namespace dtn
     _xsd_custodian_ (::xml_schema::flags (), this),
     _xsd_replyto_ (::xml_schema::flags (), this),
     _xsd_prevhop_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this),
     _xsd_expiration_ (::xml_schema::flags (), this),
     _xsd_bytes_received_ (::xml_schema::flags (), this),
     _xsd_num_meta_blocks_ (::xml_schema::flags (), this)
@@ -12400,6 +13045,7 @@ namespace dtn
                            const dest::type& _xsd_dest,
                            const custodian::type& _xsd_custodian,
                            const replyto::type& _xsd_replyto,
+                           const local_id::type& _xsd_local_id,
                            const expiration::type& _xsd_expiration,
                            const bytes_received::type& _xsd_bytes_received)
     : ::xml_schema::type (),
@@ -12416,6 +13062,9 @@ namespace dtn
                    ::xml_schema::flags (),
                    this),
     _xsd_prevhop_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this),
     _xsd_expiration_ (_xsd_expiration,
                       ::xml_schema::flags (),
                       this),
@@ -12446,6 +13095,9 @@ namespace dtn
     _xsd_prevhop_ (_xsd_bundle_received_event._xsd_prevhop_,
                    f | ::xml_schema::flags::not_root,
                    this),
+    _xsd_local_id_ (_xsd_bundle_received_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this),
     _xsd_expiration_ (_xsd_bundle_received_event._xsd_expiration_,
                       f | ::xml_schema::flags::not_root,
                       this),
@@ -12468,6 +13120,7 @@ namespace dtn
     _xsd_custodian_ (f | ::xml_schema::flags::not_root, this),
     _xsd_replyto_ (f | ::xml_schema::flags::not_root, this),
     _xsd_prevhop_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_expiration_ (f | ::xml_schema::flags::not_root, this),
     _xsd_bytes_received_ (f | ::xml_schema::flags::not_root, this),
     _xsd_num_meta_blocks_ (f | ::xml_schema::flags::not_root, this)
@@ -12607,6 +13260,16 @@ namespace dtn
       {
         const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
 
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
         if (a.name () == "expiration" && a.namespace_ ().empty ())
         {
           this->expiration (
@@ -12638,6 +13301,13 @@ namespace dtn
         }
       }
 
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
+      }
+
       if (!_xsd_expiration_.present ())
       {
         throw ::xsd::cxx::tree::expected_attribute< char > (
@@ -12667,6 +13337,7 @@ namespace dtn
     data_transmitted_event ()
     : ::xml_schema::type (),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this),
     _xsd_link_id_ (::xml_schema::flags (), this),
     _xsd_bytes_sent_ (::xml_schema::flags (), this),
     _xsd_reliably_sent_ (::xml_schema::flags (), this)
@@ -12675,6 +13346,7 @@ namespace dtn
 
     data_transmitted_event::
     data_transmitted_event (const gbof_id::type& _xsd_gbof_id,
+                            const local_id::type& _xsd_local_id,
                             const link_id::type& _xsd_link_id,
                             const bytes_sent::type& _xsd_bytes_sent,
                             const reliably_sent::type& _xsd_reliably_sent)
@@ -12682,6 +13354,9 @@ namespace dtn
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
                    this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this),
     _xsd_link_id_ (_xsd_link_id,
                    ::xml_schema::flags (),
                    this),
@@ -12702,6 +13377,9 @@ namespace dtn
     _xsd_gbof_id_ (_xsd_data_transmitted_event._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
                    this),
+    _xsd_local_id_ (_xsd_data_transmitted_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this),
     _xsd_link_id_ (_xsd_data_transmitted_event._xsd_link_id_,
                    f | ::xml_schema::flags::not_root,
                    this),
@@ -12720,6 +13398,7 @@ namespace dtn
                             ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_bytes_sent_ (f | ::xml_schema::flags::not_root, this),
     _xsd_reliably_sent_ (f | ::xml_schema::flags::not_root, this)
@@ -12766,6 +13445,16 @@ namespace dtn
       {
         const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
 
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
         if (a.name () == "link_id" && a.namespace_ ().empty ())
         {
           ::std::auto_ptr< link_id::type > r (
@@ -12797,6 +13486,13 @@ namespace dtn
               this));
           continue;
         }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
       }
 
       if (!_xsd_link_id_.present ())
@@ -12834,16 +13530,21 @@ namespace dtn
     bundle_delivered_event::
     bundle_delivered_event ()
     : ::xml_schema::type (),
-    _xsd_gbof_id_ (::xml_schema::flags (), this)
+    _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     bundle_delivered_event::
-    bundle_delivered_event (const gbof_id::type& _xsd_gbof_id)
+    bundle_delivered_event (const gbof_id::type& _xsd_gbof_id,
+                            const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -12854,7 +13555,10 @@ namespace dtn
     : ::xml_schema::type (_xsd_bundle_delivered_event, f, c),
     _xsd_gbof_id_ (_xsd_bundle_delivered_event._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_bundle_delivered_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -12863,7 +13567,8 @@ namespace dtn
                             ::xml_schema::flags f,
                             ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
-    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -12902,6 +13607,28 @@ namespace dtn
           "gbof_id",
           "");
       }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
+      }
     }
 
     bundle_delivered_event* bundle_delivered_event::
@@ -12917,16 +13644,26 @@ namespace dtn
     bundle_delivery_event::
     bundle_delivery_event ()
     : ::xml_schema::type (),
-    _xsd_bundle_ (::xml_schema::flags (), this)
+    _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_bundle_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     bundle_delivery_event::
-    bundle_delivery_event (const bundle::type& _xsd_bundle)
+    bundle_delivery_event (const gbof_id::type& _xsd_gbof_id,
+                           const bundle::type& _xsd_bundle,
+                           const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
+    _xsd_gbof_id_ (_xsd_gbof_id,
+                   ::xml_schema::flags (),
+                   this),
     _xsd_bundle_ (_xsd_bundle,
                   ::xml_schema::flags (),
-                  this)
+                  this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -12935,9 +13672,15 @@ namespace dtn
                            ::xml_schema::flags f,
                            ::xml_schema::type* c)
     : ::xml_schema::type (_xsd_bundle_delivery_event, f, c),
+    _xsd_gbof_id_ (_xsd_bundle_delivery_event._xsd_gbof_id_,
+                   f | ::xml_schema::flags::not_root,
+                   this),
     _xsd_bundle_ (_xsd_bundle_delivery_event._xsd_bundle_,
                   f | ::xml_schema::flags::not_root,
-                  this)
+                  this),
+    _xsd_local_id_ (_xsd_bundle_delivery_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -12946,7 +13689,9 @@ namespace dtn
                            ::xml_schema::flags f,
                            ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
-    _xsd_bundle_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_bundle_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -12959,6 +13704,24 @@ namespace dtn
       while (p.more_elements ())
       {
         const ::xsd::cxx::xml::dom::element< char > e (p.next_element ());
+
+        // gbof_id
+        //
+        {
+          if (e.name () == "gbof_id" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< gbof_id::type > r (
+              gbof_id::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_gbof_id_.present ())
+              continue;
+            this->gbof_id (r);
+            continue;
+          }
+        }
 
         // bundle
         //
@@ -12979,10 +13742,39 @@ namespace dtn
         }
       }
 
+      if (!_xsd_gbof_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "gbof_id",
+          "");
+      }
+
       if (!_xsd_bundle_.present ())
       {
         throw ::xsd::cxx::tree::expected_element< char > (
           "bundle",
+          "");
+      }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
           "");
       }
     }
@@ -13001,20 +13793,25 @@ namespace dtn
     bundle_send_cancelled_event ()
     : ::xml_schema::type (),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
-    _xsd_link_id_ (::xml_schema::flags (), this)
+    _xsd_link_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     bundle_send_cancelled_event::
     bundle_send_cancelled_event (const gbof_id::type& _xsd_gbof_id,
-                                 const link_id::type& _xsd_link_id)
+                                 const link_id::type& _xsd_link_id,
+                                 const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
                    this),
     _xsd_link_id_ (_xsd_link_id,
                    ::xml_schema::flags (),
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -13028,7 +13825,10 @@ namespace dtn
                    this),
     _xsd_link_id_ (_xsd_bundle_send_cancelled_event._xsd_link_id_,
                    f | ::xml_schema::flags::not_root,
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_bundle_send_cancelled_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -13038,7 +13838,8 @@ namespace dtn
                                  ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_link_id_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_link_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -13102,6 +13903,28 @@ namespace dtn
           "link_id",
           "");
       }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
+      }
     }
 
     bundle_send_cancelled_event* bundle_send_cancelled_event::
@@ -13117,16 +13940,21 @@ namespace dtn
     bundle_expired_event::
     bundle_expired_event ()
     : ::xml_schema::type (),
-    _xsd_gbof_id_ (::xml_schema::flags (), this)
+    _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     bundle_expired_event::
-    bundle_expired_event (const gbof_id::type& _xsd_gbof_id)
+    bundle_expired_event (const gbof_id::type& _xsd_gbof_id,
+                          const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -13137,7 +13965,10 @@ namespace dtn
     : ::xml_schema::type (_xsd_bundle_expired_event, f, c),
     _xsd_gbof_id_ (_xsd_bundle_expired_event._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_bundle_expired_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -13146,7 +13977,8 @@ namespace dtn
                           ::xml_schema::flags f,
                           ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
-    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -13185,6 +14017,28 @@ namespace dtn
           "gbof_id",
           "");
       }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
+      }
     }
 
     bundle_expired_event* bundle_expired_event::
@@ -13201,20 +14055,25 @@ namespace dtn
     bundle_injected_event ()
     : ::xml_schema::type (),
     _xsd_request_id_ (::xml_schema::flags (), this),
-    _xsd_gbof_id_ (::xml_schema::flags (), this)
+    _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     bundle_injected_event::
     bundle_injected_event (const request_id::type& _xsd_request_id,
-                           const gbof_id::type& _xsd_gbof_id)
+                           const gbof_id::type& _xsd_gbof_id,
+                           const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_request_id_ (_xsd_request_id,
                       ::xml_schema::flags (),
                       this),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -13228,7 +14087,10 @@ namespace dtn
                       this),
     _xsd_gbof_id_ (_xsd_bundle_injected_event._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_bundle_injected_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -13238,7 +14100,8 @@ namespace dtn
                            ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_request_id_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -13300,6 +14163,28 @@ namespace dtn
       {
         throw ::xsd::cxx::tree::expected_element< char > (
           "gbof_id",
+          "");
+      }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
           "");
       }
     }
@@ -14696,20 +15581,25 @@ namespace dtn
     custody_signal_event ()
     : ::xml_schema::type (),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
-    _xsd_custody_signal_attr_ (::xml_schema::flags (), this)
+    _xsd_custody_signal_attr_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     custody_signal_event::
     custody_signal_event (const gbof_id::type& _xsd_gbof_id,
-                          const custody_signal_attr::type& _xsd_custody_signal_attr)
+                          const custody_signal_attr::type& _xsd_custody_signal_attr,
+                          const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
                    this),
     _xsd_custody_signal_attr_ (_xsd_custody_signal_attr,
                                ::xml_schema::flags (),
-                               this)
+                               this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -14723,7 +15613,10 @@ namespace dtn
                    this),
     _xsd_custody_signal_attr_ (_xsd_custody_signal_event._xsd_custody_signal_attr_,
                                f | ::xml_schema::flags::not_root,
-                               this)
+                               this),
+    _xsd_local_id_ (_xsd_custody_signal_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -14733,7 +15626,8 @@ namespace dtn
                           ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_custody_signal_attr_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_custody_signal_attr_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -14797,6 +15691,28 @@ namespace dtn
           "custody_signal_attr",
           "");
       }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
+      }
     }
 
     custody_signal_event* custody_signal_event::
@@ -14812,16 +15728,21 @@ namespace dtn
     custody_timeout_event::
     custody_timeout_event ()
     : ::xml_schema::type (),
-    _xsd_gbof_id_ (::xml_schema::flags (), this)
+    _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     custody_timeout_event::
-    custody_timeout_event (const gbof_id::type& _xsd_gbof_id)
+    custody_timeout_event (const gbof_id::type& _xsd_gbof_id,
+                           const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -14832,7 +15753,10 @@ namespace dtn
     : ::xml_schema::type (_xsd_custody_timeout_event, f, c),
     _xsd_gbof_id_ (_xsd_custody_timeout_event._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_custody_timeout_event._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -14841,7 +15765,8 @@ namespace dtn
                            ::xml_schema::flags f,
                            ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
-    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -14880,6 +15805,28 @@ namespace dtn
           "gbof_id",
           "");
       }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
+      }
     }
 
     custody_timeout_event* custody_timeout_event::
@@ -14887,6 +15834,293 @@ namespace dtn
             ::xml_schema::type* c) const
     {
       return new custody_timeout_event (*this, f, c);
+    }
+
+    // intentional_name_resolved_event
+    //
+
+    intentional_name_resolved_event::
+    intentional_name_resolved_event ()
+    : ::xml_schema::type (),
+    _xsd_request_id_ (::xml_schema::flags (), this),
+    _xsd_response_id_ (::xml_schema::flags (), this),
+    _xsd_router_eid_ (::xml_schema::flags (), this),
+    _xsd_lb_dp_eid_ (::xml_schema::flags (), this),
+    _xsd_intentional_name_ (::xml_schema::flags (), this),
+    _xsd_grain_state_ (::xml_schema::flags (), this),
+    _xsd_canonical_eids_ (::xml_schema::flags (), this),
+    _xsd_app_eids_ (::xml_schema::flags (), this)
+    {
+    }
+
+    intentional_name_resolved_event::
+    intentional_name_resolved_event (const request_id::type& _xsd_request_id,
+                                     const response_id::type& _xsd_response_id,
+                                     const router_eid::type& _xsd_router_eid,
+                                     const intentional_name::type& _xsd_intentional_name,
+                                     const grain_state::type& _xsd_grain_state)
+    : ::xml_schema::type (),
+    _xsd_request_id_ (_xsd_request_id,
+                      ::xml_schema::flags (),
+                      this),
+    _xsd_response_id_ (_xsd_response_id,
+                       ::xml_schema::flags (),
+                       this),
+    _xsd_router_eid_ (_xsd_router_eid,
+                      ::xml_schema::flags (),
+                      this),
+    _xsd_lb_dp_eid_ (::xml_schema::flags (), this),
+    _xsd_intentional_name_ (_xsd_intentional_name,
+                            ::xml_schema::flags (),
+                            this),
+    _xsd_grain_state_ (_xsd_grain_state,
+                       ::xml_schema::flags (),
+                       this),
+    _xsd_canonical_eids_ (::xml_schema::flags (), this),
+    _xsd_app_eids_ (::xml_schema::flags (), this)
+    {
+    }
+
+    intentional_name_resolved_event::
+    intentional_name_resolved_event (const intentional_name_resolved_event& _xsd_intentional_name_resolved_event,
+                                     ::xml_schema::flags f,
+                                     ::xml_schema::type* c)
+    : ::xml_schema::type (_xsd_intentional_name_resolved_event, f, c),
+    _xsd_request_id_ (_xsd_intentional_name_resolved_event._xsd_request_id_,
+                      f | ::xml_schema::flags::not_root,
+                      this),
+    _xsd_response_id_ (_xsd_intentional_name_resolved_event._xsd_response_id_,
+                       f | ::xml_schema::flags::not_root,
+                       this),
+    _xsd_router_eid_ (_xsd_intentional_name_resolved_event._xsd_router_eid_,
+                      f | ::xml_schema::flags::not_root,
+                      this),
+    _xsd_lb_dp_eid_ (_xsd_intentional_name_resolved_event._xsd_lb_dp_eid_,
+                     f | ::xml_schema::flags::not_root,
+                     this),
+    _xsd_intentional_name_ (_xsd_intentional_name_resolved_event._xsd_intentional_name_,
+                            f | ::xml_schema::flags::not_root,
+                            this),
+    _xsd_grain_state_ (_xsd_intentional_name_resolved_event._xsd_grain_state_,
+                       f | ::xml_schema::flags::not_root,
+                       this),
+    _xsd_canonical_eids_ (_xsd_intentional_name_resolved_event._xsd_canonical_eids_,
+                          f | ::xml_schema::flags::not_root,
+                          this),
+    _xsd_app_eids_ (_xsd_intentional_name_resolved_event._xsd_app_eids_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
+    {
+    }
+
+    intentional_name_resolved_event::
+    intentional_name_resolved_event (const ::xercesc::DOMElement& e,
+                                     ::xml_schema::flags f,
+                                     ::xml_schema::type* c)
+    : ::xml_schema::type (e, f, c),
+    _xsd_request_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_response_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_router_eid_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_lb_dp_eid_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_intentional_name_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_grain_state_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_canonical_eids_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_app_eids_ (f | ::xml_schema::flags::not_root, this)
+    {
+      parse (e, f);
+    }
+
+    void intentional_name_resolved_event::
+    parse (const ::xercesc::DOMElement& e, ::xml_schema::flags f)
+    {
+      ::xsd::cxx::xml::dom::parser< char > p (e);
+
+      while (p.more_elements ())
+      {
+        const ::xsd::cxx::xml::dom::element< char > e (p.next_element ());
+
+        // request_id
+        //
+        {
+          if (e.name () == "request_id" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< request_id::type > r (
+              request_id::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_request_id_.present ())
+              continue;
+            this->request_id (r);
+            continue;
+          }
+        }
+
+        // response_id
+        //
+        {
+          if (e.name () == "response_id" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< response_id::type > r (
+              response_id::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_response_id_.present ())
+              continue;
+            this->response_id (r);
+            continue;
+          }
+        }
+
+        // router_eid
+        //
+        {
+          if (e.name () == "router_eid" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< router_eid::type > r (
+              router_eid::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_router_eid_.present ())
+              continue;
+            this->router_eid (r);
+            continue;
+          }
+        }
+
+        // lb_dp_eid
+        //
+        {
+          if (e.name () == "lb_dp_eid" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< lb_dp_eid::type > r (
+              lb_dp_eid::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (this->lb_dp_eid ())
+              continue;
+            this->lb_dp_eid (r);
+            continue;
+          }
+        }
+
+        // intentional_name
+        //
+        {
+          if (e.name () == "intentional_name" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< intentional_name::type > r (
+              intentional_name::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_intentional_name_.present ())
+              continue;
+            this->intentional_name (r);
+            continue;
+          }
+        }
+
+        // grain_state
+        //
+        {
+          if (e.name () == "grain_state" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< grain_state::type > r (
+              grain_state::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_grain_state_.present ())
+              continue;
+            this->grain_state (r);
+            continue;
+          }
+        }
+
+        // canonical_eids
+        //
+        {
+          if (e.name () == "canonical_eids" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< canonical_eids::type > r (
+              canonical_eids::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            this->canonical_eids ().push_back (r);
+            continue;
+          }
+        }
+
+        // app_eids
+        //
+        {
+          if (e.name () == "app_eids" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< app_eids::type > r (
+              app_eids::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            this->app_eids ().push_back (r);
+            continue;
+          }
+        }
+      }
+
+      if (!_xsd_request_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "request_id",
+          "");
+      }
+
+      if (!_xsd_response_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "response_id",
+          "");
+      }
+
+      if (!_xsd_router_eid_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "router_eid",
+          "");
+      }
+
+      if (!_xsd_intentional_name_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "intentional_name",
+          "");
+      }
+
+      if (!_xsd_grain_state_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "grain_state",
+          "");
+      }
+    }
+
+    intentional_name_resolved_event* intentional_name_resolved_event::
+    _clone (::xml_schema::flags f,
+            ::xml_schema::type* c) const
+    {
+      return new intentional_name_resolved_event (*this, f, c);
     }
 
     // registration_added_event
@@ -15714,6 +16948,7 @@ namespace dtn
     : ::xml_schema::type (),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
     _xsd_metadata_block_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this),
     _xsd_link_id_ (::xml_schema::flags (), this),
     _xsd_fwd_action_ (::xml_schema::flags (), this),
     _xsd_frag_size_ (::xml_schema::flags (), this),
@@ -15723,6 +16958,7 @@ namespace dtn
 
     send_bundle_request::
     send_bundle_request (const gbof_id::type& _xsd_gbof_id,
+                         const local_id::type& _xsd_local_id,
                          const link_id::type& _xsd_link_id,
                          const fwd_action::type& _xsd_fwd_action)
     : ::xml_schema::type (),
@@ -15730,6 +16966,9 @@ namespace dtn
                    ::xml_schema::flags (),
                    this),
     _xsd_metadata_block_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this),
     _xsd_link_id_ (_xsd_link_id,
                    ::xml_schema::flags (),
                    this),
@@ -15752,6 +16991,9 @@ namespace dtn
     _xsd_metadata_block_ (_xsd_send_bundle_request._xsd_metadata_block_,
                           f | ::xml_schema::flags::not_root,
                           this),
+    _xsd_local_id_ (_xsd_send_bundle_request._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this),
     _xsd_link_id_ (_xsd_send_bundle_request._xsd_link_id_,
                    f | ::xml_schema::flags::not_root,
                    this),
@@ -15774,6 +17016,7 @@ namespace dtn
     : ::xml_schema::type (e, f, c),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_metadata_block_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_fwd_action_ (f | ::xml_schema::flags::not_root, this),
     _xsd_frag_size_ (f | ::xml_schema::flags::not_root, this),
@@ -15837,6 +17080,16 @@ namespace dtn
       {
         const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
 
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
         if (a.name () == "link_id" && a.namespace_ ().empty ())
         {
           ::std::auto_ptr< link_id::type > r (
@@ -15882,6 +17135,13 @@ namespace dtn
         }
       }
 
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
+      }
+
       if (!_xsd_link_id_.present ())
       {
         throw ::xsd::cxx::tree::expected_attribute< char > (
@@ -15912,6 +17172,7 @@ namespace dtn
     : ::xml_schema::type (),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
     _xsd_metadata_block_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this),
     _xsd_fwd_action_ (::xml_schema::flags (), this),
     _xsd_frag_size_ (::xml_schema::flags (), this),
     _xsd_frag_offset_ (::xml_schema::flags (), this)
@@ -15920,12 +17181,16 @@ namespace dtn
 
     send_bundle_broadcast_request::
     send_bundle_broadcast_request (const gbof_id::type& _xsd_gbof_id,
+                                   const local_id::type& _xsd_local_id,
                                    const fwd_action::type& _xsd_fwd_action)
     : ::xml_schema::type (),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
                    this),
     _xsd_metadata_block_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this),
     _xsd_fwd_action_ (_xsd_fwd_action,
                       ::xml_schema::flags (),
                       this),
@@ -15945,6 +17210,9 @@ namespace dtn
     _xsd_metadata_block_ (_xsd_send_bundle_broadcast_request._xsd_metadata_block_,
                           f | ::xml_schema::flags::not_root,
                           this),
+    _xsd_local_id_ (_xsd_send_bundle_broadcast_request._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this),
     _xsd_fwd_action_ (_xsd_send_bundle_broadcast_request._xsd_fwd_action_,
                       f | ::xml_schema::flags::not_root,
                       this),
@@ -15964,6 +17232,7 @@ namespace dtn
     : ::xml_schema::type (e, f, c),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_metadata_block_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_fwd_action_ (f | ::xml_schema::flags::not_root, this),
     _xsd_frag_size_ (f | ::xml_schema::flags::not_root, this),
     _xsd_frag_offset_ (f | ::xml_schema::flags::not_root, this)
@@ -16026,6 +17295,16 @@ namespace dtn
       {
         const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
 
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
         if (a.name () == "fwd_action" && a.namespace_ ().empty ())
         {
           ::std::auto_ptr< fwd_action::type > r (
@@ -16059,6 +17338,13 @@ namespace dtn
         }
       }
 
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
+      }
+
       if (!_xsd_fwd_action_.present ())
       {
         throw ::xsd::cxx::tree::expected_attribute< char > (
@@ -16081,17 +17367,22 @@ namespace dtn
     cancel_bundle_request ()
     : ::xml_schema::type (),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this),
     _xsd_link_id_ (::xml_schema::flags (), this)
     {
     }
 
     cancel_bundle_request::
     cancel_bundle_request (const gbof_id::type& _xsd_gbof_id,
+                           const local_id::type& _xsd_local_id,
                            const link_id::type& _xsd_link_id)
     : ::xml_schema::type (),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
                    this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this),
     _xsd_link_id_ (_xsd_link_id,
                    ::xml_schema::flags (),
                    this)
@@ -16106,6 +17397,9 @@ namespace dtn
     _xsd_gbof_id_ (_xsd_cancel_bundle_request._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
                    this),
+    _xsd_local_id_ (_xsd_cancel_bundle_request._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this),
     _xsd_link_id_ (_xsd_cancel_bundle_request._xsd_link_id_,
                    f | ::xml_schema::flags::not_root,
                    this)
@@ -16118,6 +17412,7 @@ namespace dtn
                            ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
@@ -16162,6 +17457,16 @@ namespace dtn
       {
         const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
 
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+
         if (a.name () == "link_id" && a.namespace_ ().empty ())
         {
           ::std::auto_ptr< link_id::type > r (
@@ -16173,6 +17478,13 @@ namespace dtn
           this->link_id (r);
           continue;
         }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
+          "");
       }
 
       if (!_xsd_link_id_.present ())
@@ -16205,7 +17517,7 @@ namespace dtn
     _xsd_fwd_action_ (::xml_schema::flags (), this),
     _xsd_priority_ (::xml_schema::flags (), this),
     _xsd_expiration_ (::xml_schema::flags (), this),
-    _xsd_payload_ (::xml_schema::flags (), this)
+    _xsd_payload_file_ (::xml_schema::flags (), this)
     {
     }
 
@@ -16214,7 +17526,7 @@ namespace dtn
                            const dest::type& _xsd_dest,
                            const request_id::type& _xsd_request_id,
                            const link_id::type& _xsd_link_id,
-                           const payload::type& _xsd_payload)
+                           const payload_file::type& _xsd_payload_file)
     : ::xml_schema::type (),
     _xsd_source_ (_xsd_source,
                   ::xml_schema::flags (),
@@ -16233,9 +17545,9 @@ namespace dtn
     _xsd_fwd_action_ (::xml_schema::flags (), this),
     _xsd_priority_ (::xml_schema::flags (), this),
     _xsd_expiration_ (::xml_schema::flags (), this),
-    _xsd_payload_ (_xsd_payload,
-                   ::xml_schema::flags (),
-                   this)
+    _xsd_payload_file_ (_xsd_payload_file,
+                        ::xml_schema::flags (),
+                        this)
     {
     }
 
@@ -16271,9 +17583,9 @@ namespace dtn
     _xsd_expiration_ (_xsd_inject_bundle_request._xsd_expiration_,
                       f | ::xml_schema::flags::not_root,
                       this),
-    _xsd_payload_ (_xsd_inject_bundle_request._xsd_payload_,
-                   f | ::xml_schema::flags::not_root,
-                   this)
+    _xsd_payload_file_ (_xsd_inject_bundle_request._xsd_payload_file_,
+                        f | ::xml_schema::flags::not_root,
+                        this)
     {
     }
 
@@ -16291,7 +17603,7 @@ namespace dtn
     _xsd_fwd_action_ (f | ::xml_schema::flags::not_root, this),
     _xsd_priority_ (f | ::xml_schema::flags::not_root, this),
     _xsd_expiration_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_payload_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_payload_file_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -16454,15 +17766,15 @@ namespace dtn
           continue;
         }
 
-        if (a.name () == "payload" && a.namespace_ ().empty ())
+        if (a.name () == "payload_file" && a.namespace_ ().empty ())
         {
-          ::std::auto_ptr< payload::type > r (
-            payload::traits::create (
+          ::std::auto_ptr< payload_file::type > r (
+            payload_file::traits::create (
               a.dom_attribute (),
               f | ::xml_schema::flags::not_root,
               this));
 
-          this->payload (r);
+          this->payload_file (r);
           continue;
         }
       }
@@ -16481,10 +17793,10 @@ namespace dtn
           "");
       }
 
-      if (!_xsd_payload_.present ())
+      if (!_xsd_payload_file_.present ())
       {
         throw ::xsd::cxx::tree::expected_attribute< char > (
-          "payload",
+          "payload_file",
           "");
       }
     }
@@ -16502,16 +17814,21 @@ namespace dtn
     delete_bundle_request::
     delete_bundle_request ()
     : ::xml_schema::type (),
-    _xsd_gbof_id_ (::xml_schema::flags (), this)
+    _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     delete_bundle_request::
-    delete_bundle_request (const gbof_id::type& _xsd_gbof_id)
+    delete_bundle_request (const gbof_id::type& _xsd_gbof_id,
+                           const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -16522,7 +17839,10 @@ namespace dtn
     : ::xml_schema::type (_xsd_delete_bundle_request, f, c),
     _xsd_gbof_id_ (_xsd_delete_bundle_request._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_delete_bundle_request._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -16531,7 +17851,8 @@ namespace dtn
                            ::xml_schema::flags f,
                            ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
-    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -16568,6 +17889,28 @@ namespace dtn
       {
         throw ::xsd::cxx::tree::expected_element< char > (
           "gbof_id",
+          "");
+      }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
           "");
       }
     }
@@ -16683,6 +18026,191 @@ namespace dtn
       return new set_cl_params_request (*this, f, c);
     }
 
+    // intentional_name_resolution_request
+    //
+
+    intentional_name_resolution_request::
+    intentional_name_resolution_request ()
+    : ::xml_schema::type (),
+    _xsd_request_id_ (::xml_schema::flags (), this),
+    _xsd_router_eid_ (::xml_schema::flags (), this),
+    _xsd_intentional_name_ (::xml_schema::flags (), this),
+    _xsd_grain_state_ (::xml_schema::flags (), this)
+    {
+    }
+
+    intentional_name_resolution_request::
+    intentional_name_resolution_request (const request_id::type& _xsd_request_id,
+                                         const router_eid::type& _xsd_router_eid,
+                                         const intentional_name::type& _xsd_intentional_name,
+                                         const grain_state::type& _xsd_grain_state)
+    : ::xml_schema::type (),
+    _xsd_request_id_ (_xsd_request_id,
+                      ::xml_schema::flags (),
+                      this),
+    _xsd_router_eid_ (_xsd_router_eid,
+                      ::xml_schema::flags (),
+                      this),
+    _xsd_intentional_name_ (_xsd_intentional_name,
+                            ::xml_schema::flags (),
+                            this),
+    _xsd_grain_state_ (_xsd_grain_state,
+                       ::xml_schema::flags (),
+                       this)
+    {
+    }
+
+    intentional_name_resolution_request::
+    intentional_name_resolution_request (const intentional_name_resolution_request& _xsd_intentional_name_resolution_request,
+                                         ::xml_schema::flags f,
+                                         ::xml_schema::type* c)
+    : ::xml_schema::type (_xsd_intentional_name_resolution_request, f, c),
+    _xsd_request_id_ (_xsd_intentional_name_resolution_request._xsd_request_id_,
+                      f | ::xml_schema::flags::not_root,
+                      this),
+    _xsd_router_eid_ (_xsd_intentional_name_resolution_request._xsd_router_eid_,
+                      f | ::xml_schema::flags::not_root,
+                      this),
+    _xsd_intentional_name_ (_xsd_intentional_name_resolution_request._xsd_intentional_name_,
+                            f | ::xml_schema::flags::not_root,
+                            this),
+    _xsd_grain_state_ (_xsd_intentional_name_resolution_request._xsd_grain_state_,
+                       f | ::xml_schema::flags::not_root,
+                       this)
+    {
+    }
+
+    intentional_name_resolution_request::
+    intentional_name_resolution_request (const ::xercesc::DOMElement& e,
+                                         ::xml_schema::flags f,
+                                         ::xml_schema::type* c)
+    : ::xml_schema::type (e, f, c),
+    _xsd_request_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_router_eid_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_intentional_name_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_grain_state_ (f | ::xml_schema::flags::not_root, this)
+    {
+      parse (e, f);
+    }
+
+    void intentional_name_resolution_request::
+    parse (const ::xercesc::DOMElement& e, ::xml_schema::flags f)
+    {
+      ::xsd::cxx::xml::dom::parser< char > p (e);
+
+      while (p.more_elements ())
+      {
+        const ::xsd::cxx::xml::dom::element< char > e (p.next_element ());
+
+        // request_id
+        //
+        {
+          if (e.name () == "request_id" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< request_id::type > r (
+              request_id::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_request_id_.present ())
+              continue;
+            this->request_id (r);
+            continue;
+          }
+        }
+
+        // router_eid
+        //
+        {
+          if (e.name () == "router_eid" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< router_eid::type > r (
+              router_eid::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_router_eid_.present ())
+              continue;
+            this->router_eid (r);
+            continue;
+          }
+        }
+
+        // intentional_name
+        //
+        {
+          if (e.name () == "intentional_name" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< intentional_name::type > r (
+              intentional_name::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_intentional_name_.present ())
+              continue;
+            this->intentional_name (r);
+            continue;
+          }
+        }
+
+        // grain_state
+        //
+        {
+          if (e.name () == "grain_state" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< grain_state::type > r (
+              grain_state::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_grain_state_.present ())
+              continue;
+            this->grain_state (r);
+            continue;
+          }
+        }
+      }
+
+      if (!_xsd_request_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "request_id",
+          "");
+      }
+
+      if (!_xsd_router_eid_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "router_eid",
+          "");
+      }
+
+      if (!_xsd_intentional_name_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "intentional_name",
+          "");
+      }
+
+      if (!_xsd_grain_state_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "grain_state",
+          "");
+      }
+    }
+
+    intentional_name_resolution_request* intentional_name_resolution_request::
+    _clone (::xml_schema::flags f,
+            ::xml_schema::type* c) const
+    {
+      return new intentional_name_resolution_request (*this, f, c);
+    }
+
     // deliver_bundle_to_app_request
     //
 
@@ -16690,20 +18218,25 @@ namespace dtn
     deliver_bundle_to_app_request ()
     : ::xml_schema::type (),
     _xsd_endpoint_ (::xml_schema::flags (), this),
-    _xsd_gbof_id_ (::xml_schema::flags (), this)
+    _xsd_gbof_id_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     deliver_bundle_to_app_request::
     deliver_bundle_to_app_request (const endpoint::type& _xsd_endpoint,
-                                   const gbof_id::type& _xsd_gbof_id)
+                                   const gbof_id::type& _xsd_gbof_id,
+                                   const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_endpoint_ (_xsd_endpoint,
                     ::xml_schema::flags (),
                     this),
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -16717,7 +18250,10 @@ namespace dtn
                     this),
     _xsd_gbof_id_ (_xsd_deliver_bundle_to_app_request._xsd_gbof_id_,
                    f | ::xml_schema::flags::not_root,
-                   this)
+                   this),
+    _xsd_local_id_ (_xsd_deliver_bundle_to_app_request._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -16727,7 +18263,8 @@ namespace dtn
                                    ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
     _xsd_endpoint_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -16789,6 +18326,28 @@ namespace dtn
       {
         throw ::xsd::cxx::tree::expected_element< char > (
           "gbof_id",
+          "");
+      }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
           "");
       }
     }
@@ -17312,13 +18871,15 @@ namespace dtn
     : ::xml_schema::type (),
     _xsd_query_id_ (::xml_schema::flags (), this),
     _xsd_gbof_id_ (::xml_schema::flags (), this),
-    _xsd_query_params_ (::xml_schema::flags (), this)
+    _xsd_query_params_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (::xml_schema::flags (), this)
     {
     }
 
     bundle_attributes_query::
     bundle_attributes_query (const query_id::type& _xsd_query_id,
-                             const gbof_id::type& _xsd_gbof_id)
+                             const gbof_id::type& _xsd_gbof_id,
+                             const local_id::type& _xsd_local_id)
     : ::xml_schema::type (),
     _xsd_query_id_ (_xsd_query_id,
                     ::xml_schema::flags (),
@@ -17326,7 +18887,10 @@ namespace dtn
     _xsd_gbof_id_ (_xsd_gbof_id,
                    ::xml_schema::flags (),
                    this),
-    _xsd_query_params_ (::xml_schema::flags (), this)
+    _xsd_query_params_ (::xml_schema::flags (), this),
+    _xsd_local_id_ (_xsd_local_id,
+                    ::xml_schema::flags (),
+                    this)
     {
     }
 
@@ -17343,7 +18907,10 @@ namespace dtn
                    this),
     _xsd_query_params_ (_xsd_bundle_attributes_query._xsd_query_params_,
                         f | ::xml_schema::flags::not_root,
-                        this)
+                        this),
+    _xsd_local_id_ (_xsd_bundle_attributes_query._xsd_local_id_,
+                    f | ::xml_schema::flags::not_root,
+                    this)
     {
     }
 
@@ -17354,7 +18921,8 @@ namespace dtn
     : ::xml_schema::type (e, f, c),
     _xsd_query_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
-    _xsd_query_params_ (f | ::xml_schema::flags::not_root, this)
+    _xsd_query_params_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_local_id_ (f | ::xml_schema::flags::not_root, this)
     {
       parse (e, f);
     }
@@ -17432,6 +19000,28 @@ namespace dtn
       {
         throw ::xsd::cxx::tree::expected_element< char > (
           "gbof_id",
+          "");
+      }
+
+      while (p.more_attributes ())
+      {
+        const ::xsd::cxx::xml::dom::attribute< char > a (p.next_attribute ());
+
+        if (a.name () == "local_id" && a.namespace_ ().empty ())
+        {
+          this->local_id (
+            local_id::traits::create (
+              a.dom_attribute (),
+              f | ::xml_schema::flags::not_root,
+              this));
+          continue;
+        }
+      }
+
+      if (!_xsd_local_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_attribute< char > (
+          "local_id",
           "");
       }
     }
@@ -17587,6 +19177,7 @@ namespace dtn
     _xsd_route_delete_event_ (::xml_schema::flags (), this),
     _xsd_custody_signal_event_ (::xml_schema::flags (), this),
     _xsd_custody_timeout_event_ (::xml_schema::flags (), this),
+    _xsd_intentional_name_resolved_event_ (::xml_schema::flags (), this),
     _xsd_registration_added_event_ (::xml_schema::flags (), this),
     _xsd_registration_removed_event_ (::xml_schema::flags (), this),
     _xsd_registration_expired_event_ (::xml_schema::flags (), this),
@@ -17601,6 +19192,7 @@ namespace dtn
     _xsd_inject_bundle_request_ (::xml_schema::flags (), this),
     _xsd_delete_bundle_request_ (::xml_schema::flags (), this),
     _xsd_set_cl_params_request_ (::xml_schema::flags (), this),
+    _xsd_intentional_name_resolution_request_ (::xml_schema::flags (), this),
     _xsd_deliver_bundle_to_app_request_ (::xml_schema::flags (), this),
     _xsd_link_query_ (::xml_schema::flags (), this),
     _xsd_link_report_ (::xml_schema::flags (), this),
@@ -17688,6 +19280,9 @@ namespace dtn
     _xsd_custody_timeout_event_ (_xsd_bpa._xsd_custody_timeout_event_,
                                  f | ::xml_schema::flags::not_root,
                                  this),
+    _xsd_intentional_name_resolved_event_ (_xsd_bpa._xsd_intentional_name_resolved_event_,
+                                           f | ::xml_schema::flags::not_root,
+                                           this),
     _xsd_registration_added_event_ (_xsd_bpa._xsd_registration_added_event_,
                                     f | ::xml_schema::flags::not_root,
                                     this),
@@ -17730,6 +19325,9 @@ namespace dtn
     _xsd_set_cl_params_request_ (_xsd_bpa._xsd_set_cl_params_request_,
                                  f | ::xml_schema::flags::not_root,
                                  this),
+    _xsd_intentional_name_resolution_request_ (_xsd_bpa._xsd_intentional_name_resolution_request_,
+                                               f | ::xml_schema::flags::not_root,
+                                               this),
     _xsd_deliver_bundle_to_app_request_ (_xsd_bpa._xsd_deliver_bundle_to_app_request_,
                                          f | ::xml_schema::flags::not_root,
                                          this),
@@ -17807,6 +19405,7 @@ namespace dtn
     _xsd_route_delete_event_ (f | ::xml_schema::flags::not_root, this),
     _xsd_custody_signal_event_ (f | ::xml_schema::flags::not_root, this),
     _xsd_custody_timeout_event_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_intentional_name_resolved_event_ (f | ::xml_schema::flags::not_root, this),
     _xsd_registration_added_event_ (f | ::xml_schema::flags::not_root, this),
     _xsd_registration_removed_event_ (f | ::xml_schema::flags::not_root, this),
     _xsd_registration_expired_event_ (f | ::xml_schema::flags::not_root, this),
@@ -17821,6 +19420,7 @@ namespace dtn
     _xsd_inject_bundle_request_ (f | ::xml_schema::flags::not_root, this),
     _xsd_delete_bundle_request_ (f | ::xml_schema::flags::not_root, this),
     _xsd_set_cl_params_request_ (f | ::xml_schema::flags::not_root, this),
+    _xsd_intentional_name_resolution_request_ (f | ::xml_schema::flags::not_root, this),
     _xsd_deliver_bundle_to_app_request_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_query_ (f | ::xml_schema::flags::not_root, this),
     _xsd_link_report_ (f | ::xml_schema::flags::not_root, this),
@@ -18228,6 +19828,24 @@ namespace dtn
           }
         }
 
+        // intentional_name_resolved_event
+        //
+        {
+          if (e.name () == "intentional_name_resolved_event" && e.namespace_ () == "")
+          {
+            ::std::auto_ptr< intentional_name_resolved_event::type > r (
+              intentional_name_resolved_event::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (this->intentional_name_resolved_event ())
+              continue;
+            this->intentional_name_resolved_event (r);
+            continue;
+          }
+        }
+
         // registration_added_event
         //
         {
@@ -18476,6 +20094,24 @@ namespace dtn
             if (this->set_cl_params_request ())
               continue;
             this->set_cl_params_request (r);
+            continue;
+          }
+        }
+
+        // intentional_name_resolution_request
+        //
+        {
+          if (e.name () == "intentional_name_resolution_request" && e.namespace_ () == "")
+          {
+            ::std::auto_ptr< intentional_name_resolution_request::type > r (
+              intentional_name_resolution_request::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (this->intentional_name_resolution_request ())
+              continue;
+            this->intentional_name_resolution_request (r);
             continue;
           }
         }
@@ -19362,12 +20998,12 @@ namespace dtn
       }
 
       {
-        if (i.payload ())
+        if (i.payload_file ())
         {
           ::xsd::cxx::xml::dom::element< char > s (
-            "payload",
+            "payload_file",
             e);
-          s.dom_element () << *i.payload ();
+          s.dom_element () << *i.payload_file ();
         }
       }
 
@@ -20499,13 +22135,13 @@ namespace dtn
         a.dom_attribute () << *i.location ();
       }
 
-      if (i.payload ())
+      if (i.payload_file ())
       {
         ::xsd::cxx::xml::dom::attribute< char > a (
-          "payload",
+          "payload_file",
           e);
 
-        a.dom_attribute () << *i.payload ();
+        a.dom_attribute () << *i.payload_file ();
       }
     }
 
@@ -20713,6 +22349,14 @@ namespace dtn
 
       {
         ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
           "expiration",
           e);
 
@@ -20753,6 +22397,14 @@ namespace dtn
 
       {
         ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
           "link_id",
           e);
 
@@ -20789,6 +22441,14 @@ namespace dtn
           e);
         s.dom_element () << i.gbof_id ();
       }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
+      }
     }
 
     void
@@ -20800,9 +22460,24 @@ namespace dtn
 
       {
         ::xsd::cxx::xml::dom::element< char > s (
+          "gbof_id",
+          e);
+        s.dom_element () << i.gbof_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
           "bundle",
           e);
         s.dom_element () << i.bundle ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
       }
     }
 
@@ -20826,6 +22501,14 @@ namespace dtn
           e);
         s.dom_element () << i.link_id ();
       }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
+      }
     }
 
     void
@@ -20840,6 +22523,14 @@ namespace dtn
           "gbof_id",
           e);
         s.dom_element () << i.gbof_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
       }
     }
 
@@ -20862,6 +22553,14 @@ namespace dtn
           "gbof_id",
           e);
         s.dom_element () << i.gbof_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
       }
     }
 
@@ -21171,6 +22870,14 @@ namespace dtn
           e);
         s.dom_element () << i.custody_signal_attr ();
       }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
+      }
     }
 
     void
@@ -21185,6 +22892,91 @@ namespace dtn
           "gbof_id",
           e);
         s.dom_element () << i.gbof_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
+      }
+    }
+
+    void
+    operator<< (::xercesc::DOMElement& e,
+                const intentional_name_resolved_event& i)
+    {
+      while (::xercesc::DOMNode* n = e.getFirstChild ())
+        e.removeChild (n);
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "request_id",
+          e);
+        s.dom_element () << i.request_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "response_id",
+          e);
+        s.dom_element () << i.response_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "router_eid",
+          e);
+        s.dom_element () << i.router_eid ();
+      }
+
+      {
+        if (i.lb_dp_eid ())
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "lb_dp_eid",
+            e);
+          s.dom_element () << *i.lb_dp_eid ();
+        }
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "intentional_name",
+          e);
+        s.dom_element () << i.intentional_name ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "grain_state",
+          e);
+        s.dom_element () << i.grain_state ();
+      }
+
+      {
+        for (intentional_name_resolved_event::canonical_eids::const_iterator
+             b (i.canonical_eids ().begin ()), n (i.canonical_eids ().end ());
+             b != n; ++b)
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "canonical_eids",
+            e);
+          s.dom_element () << *b;
+        }
+      }
+
+      {
+        for (intentional_name_resolved_event::app_eids::const_iterator
+             b (i.app_eids ().begin ()), n (i.app_eids ().end ());
+             b != n; ++b)
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "app_eids",
+            e);
+          s.dom_element () << *b;
+        }
       }
     }
 
@@ -21390,6 +23182,14 @@ namespace dtn
 
       {
         ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
           "link_id",
           e);
 
@@ -21451,6 +23251,14 @@ namespace dtn
 
       {
         ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
           "fwd_action",
           e);
 
@@ -21488,6 +23296,14 @@ namespace dtn
           "gbof_id",
           e);
         s.dom_element () << i.gbof_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
       }
 
       {
@@ -21585,10 +23401,10 @@ namespace dtn
 
       {
         ::xsd::cxx::xml::dom::attribute< char > a (
-          "payload",
+          "payload_file",
           e);
 
-        a.dom_attribute () << i.payload ();
+        a.dom_attribute () << i.payload_file ();
       }
     }
 
@@ -21604,6 +23420,14 @@ namespace dtn
           "gbof_id",
           e);
         s.dom_element () << i.gbof_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
       }
     }
 
@@ -21637,6 +23461,42 @@ namespace dtn
 
     void
     operator<< (::xercesc::DOMElement& e,
+                const intentional_name_resolution_request& i)
+    {
+      while (::xercesc::DOMNode* n = e.getFirstChild ())
+        e.removeChild (n);
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "request_id",
+          e);
+        s.dom_element () << i.request_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "router_eid",
+          e);
+        s.dom_element () << i.router_eid ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "intentional_name",
+          e);
+        s.dom_element () << i.intentional_name ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "grain_state",
+          e);
+        s.dom_element () << i.grain_state ();
+      }
+    }
+
+    void
+    operator<< (::xercesc::DOMElement& e,
                 const deliver_bundle_to_app_request& i)
     {
       while (::xercesc::DOMNode* n = e.getFirstChild ())
@@ -21654,6 +23514,14 @@ namespace dtn
           "gbof_id",
           e);
         s.dom_element () << i.gbof_id ();
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
       }
     }
 
@@ -21829,6 +23697,14 @@ namespace dtn
             e);
           s.dom_element () << *b;
         }
+      }
+
+      {
+        ::xsd::cxx::xml::dom::attribute< char > a (
+          "local_id",
+          e);
+
+        a.dom_attribute () << i.local_id ();
       }
     }
 
@@ -22072,6 +23948,16 @@ namespace dtn
       }
 
       {
+        if (i.intentional_name_resolved_event ())
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "intentional_name_resolved_event",
+            e);
+          s.dom_element () << *i.intentional_name_resolved_event ();
+        }
+      }
+
+      {
         if (i.registration_added_event ())
         {
           ::xsd::cxx::xml::dom::element< char > s (
@@ -22208,6 +24094,16 @@ namespace dtn
             "set_cl_params_request",
             e);
           s.dom_element () << *i.set_cl_params_request ();
+        }
+      }
+
+      {
+        if (i.intentional_name_resolution_request ())
+        {
+          ::xsd::cxx::xml::dom::element< char > s (
+            "intentional_name_resolution_request",
+            e);
+          s.dom_element () << *i.intentional_name_resolution_request ();
         }
       }
 
