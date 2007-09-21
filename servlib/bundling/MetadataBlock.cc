@@ -36,8 +36,7 @@ unsigned int MetadataBlock::index_ = 0;
 MetadataBlock::MetadataBlock(u_int64_t type, u_char* buf, u_int32_t len):
     lock_("MetadataBlock"), id_(MetadataBlock::get_next_index()),
     block_(NULL), generated_(true), error_(false),
-    source_id_(0), source_(false),
-    flags_(BundleProtocol::BLOCK_FLAG_REPORT_ONERROR),
+    source_id_(0), source_(false), flags_(0),
     ontology_(type), metadata_(NULL), metadata_len_(0)
 {
     if (len > 0) {
@@ -53,8 +52,7 @@ MetadataBlock::MetadataBlock(unsigned int source_id, u_int64_t type,
                              u_char* buf, u_int32_t len):
     lock_("MetadataBlock"), id_(MetadataBlock::get_next_index()),
     block_(NULL), generated_(true), error_(false),
-    source_id_(source_id), source_(true),
-    flags_(BundleProtocol::BLOCK_FLAG_REPORT_ONERROR),
+    source_id_(source_id), source_(true), flags_(0),
     ontology_(type), metadata_(NULL), metadata_len_(0)
 {
     if (len > 0) {
