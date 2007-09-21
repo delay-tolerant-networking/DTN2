@@ -147,6 +147,8 @@ event_to_str(event_type_t event)
     case BUNDLE_DELETE:         return "BUNDLE_DELETE";
     case BUNDLE_QUERY:          return "BUNDLE_QUERY";
     case BUNDLE_REPORT:         return "BUNDLE_REPORT";
+    case BUNDLE_ATTRIB_QUERY:   return "BUNDLE_ATTRIB_QUERY";
+    case BUNDLE_ATTRIB_REPORT:  return "BUNDLE_ATTRIB_REPORT";
 
     case CONTACT_UP:            return "CONTACT_UP";
     case CONTACT_DOWN:          return "CONTACT_DOWN";
@@ -957,14 +959,8 @@ public:
     {
         // should be processed only by the daemon
         daemon_only_ = true;
-        payload_ = NULL;
     }
     
-    ~BundleInjectRequest() 
-    {
-        delete[] payload_;
-    }
-
     // Bundle properties
     std::string src_;
     std::string dest_;
@@ -972,8 +968,7 @@ public:
     std::string custodian_;
     u_int8_t    priority_;
     u_int32_t   expiration_;
-    u_char*     payload_;
-    size_t      payload_length_;
+    std::string payload_file_;
 
     // Outgoing link
     std::string link_;
