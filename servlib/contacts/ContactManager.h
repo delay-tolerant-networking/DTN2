@@ -63,7 +63,7 @@ public:
     /**
      * Delete a link
      */
-    void del_link(const LinkRef& link,
+    void del_link(const LinkRef& link, bool wait = false,
                   ContactEvent::reason_t reason = ContactEvent::NO_INFO);
 
     /**

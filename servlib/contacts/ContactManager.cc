@@ -68,7 +68,8 @@ ContactManager::add_new_link(const LinkRef& link)
 
 //----------------------------------------------------------------------
 void
-ContactManager::del_link(const LinkRef& link, ContactEvent::reason_t reason)
+ContactManager::del_link(const LinkRef& link, bool wait,
+                         ContactEvent::reason_t reason)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::del_link");
     ASSERT(link != NULL);
@@ -82,7 +83,8 @@ ContactManager::del_link(const LinkRef& link, ContactEvent::reason_t reason)
 
     log_debug("ContactManager::del_link: deleting link %s", link->name());
 
-    link->delete_link();
+    if (!wait)
+        link->delete_link();
 
     // Close the link if it is open or in the process of being opened.
     if (link->isopen() || link->isopening()) {
@@ -107,7 +109,19 @@ ContactManager::del_link(const LinkRef& link, ContactEvent::reason_t reason)
     }
 
     links_->erase(link);
-    BundleDaemon::post(new LinkDeletedEvent(link));
+    
+    if (wait) {
+        l.unlock();
+        // If some parent calling del_link already locked the Contact Manager,
+        // the lock will remain locked, and an event ahead of the
+        // LinkDeletedEvent may wait for the lock, causing deadlock
+        ASSERT(!lock()->is_locked_by_me());
+        oasys::Notifier notifier("ContactManager::del_link");
+        BundleDaemon::post_and_wait(new LinkDeletedEvent(link), &notifier);
+        link->delete_link();
+    } else {
+        BundleDaemon::post(new LinkDeletedEvent(link));
+    }
 }
 
 //----------------------------------------------------------------------
@@ -212,7 +226,13 @@ ContactManager::handle_link_created(LinkCreatedEvent* event)
 
     LinkRef link = event->link_;
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
+    
+    if(link->isdeleted())
+    {
+        log_warn("ContactManager::handle_link_created: "
+                "link %s is being deleted", link->name());
+        return;
+    }
         
     if (!has_link(link)) {
         log_err("ContactManager::handle_link_created: "
@@ -232,7 +252,13 @@ ContactManager::handle_link_available(LinkAvailableEvent* event)
 
     LinkRef link = event->link_;
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
+    
+    if(link->isdeleted())
+    {
+        log_warn("ContactManager::handle_link_available: "
+                "link %s is being deleted", link->name());
+        return;
+    }
 
     if (!has_link(link)) {
         log_warn("ContactManager::handle_link_available: "
@@ -273,7 +299,13 @@ ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
                  "link %s does not exist", link->name());
         return;
     }
-    ASSERT(!link->isdeleted());
+    
+    if(link->isdeleted())
+    {
+        log_warn("ContactManager::handle_link_unavailable: "
+                "link %s is being deleted", link->name());
+        return;
+    }
 
     // don't do anything for links that aren't ondemand or alwayson
     if (link->type() != Link::ONDEMAND && link->type() != Link::ALWAYSON) {
