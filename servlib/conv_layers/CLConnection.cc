@@ -234,10 +234,12 @@ CLConnection::cancel_bundle(Bundle* bundle)
 {
     ASSERT(contact_->link() != NULL);
     ASSERT(contact_->link()->cl_info() != NULL);
-    ASSERT(is_queued(bundle));
-    
-    cmdqueue_.push_back(
-        CLConnection::CLMsg(CLConnection::CLMSG_CANCEL_BUNDLE, bundle));
+    if (is_queued(bundle)) {
+        cmdqueue_.push_back(
+            CLConnection::CLMsg(CLConnection::CLMSG_CANCEL_BUNDLE, bundle));
+    } else {
+        log_debug("request to cancel bundle %p that is not queued\n", bundle);
+    }
 }
 
 //----------------------------------------------------------------------
