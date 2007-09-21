@@ -192,7 +192,8 @@ BlockProcessor::consume_preamble(BlockInfoVec*  recv_blocks,
                 "data_offset %u data_length %u eid_ref_count %llu",
                 block_type(), buf_offset + prev_consumed,
                 block->full_length(),
-                block->data_offset(), block->data_length(), eid_ref_count);
+                block->data_offset(), block->data_length(),
+                U64FMT(eid_ref_count));
     
     // Finally, be careful to return only the amount of the buffer
     // that we needed to complete the preamble.
