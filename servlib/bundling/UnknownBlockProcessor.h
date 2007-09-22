@@ -33,14 +33,23 @@ public:
     UnknownBlockProcessor();
     
     /// @{ Virtual from BlockProcessor
-    int prepare(const Bundle* bundle, BlockInfoVec* xmit_blocks,
-                 const BlockInfo* source,
-                 const LinkRef& link, BlockInfo::list_owner_t list);
-    int generate(const Bundle* bundle, BlockInfoVec*  xmit_blocks,
-                  BlockInfo* block, const LinkRef& link, bool last);
-    bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                  BundleProtocol::status_report_reason_t* reception_reason,
-                  BundleProtocol::status_report_reason_t* deletion_reason);
+    int prepare(const Bundle*    bundle,
+                BlockInfoVec*    xmit_blocks,
+                const BlockInfo* source,
+                const LinkRef&   link,
+                list_owner_t     list);
+    
+    int generate(const Bundle*  bundle,
+                 BlockInfoVec*  xmit_blocks,
+                 BlockInfo*     block,
+                 const LinkRef& link,
+                 bool           last);
+
+    bool validate(const Bundle*           bundle,
+                  BlockInfoVec*           block_list,
+                  BlockInfo*              block,
+                  status_report_reason_t* reception_reason,
+                  status_report_reason_t* deletion_reason);
     /// @}
 };
 

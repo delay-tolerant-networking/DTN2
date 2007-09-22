@@ -26,26 +26,26 @@
 
 namespace dtn {
 
-enum {
-	op_invalid		= 0,
-	op_encrypt		= 1,
-	op_decrypt		= 2
-};
-
-typedef struct {
-	u_int8_t	operation;
-	gcm_ctx		c;
-} gcm_ctx_ex;
-
 /**
  * Block processor implementation for the bundle authentication block.
  */
 class Ciphersuite_C3 : public Ciphersuite {
 public:
+    enum {
+        op_invalid = 0,
+        op_encrypt = 1,
+        op_decrypt = 2
+    };
+
+    typedef struct {
+        u_int8_t operation;
+        gcm_ctx  c;
+    } gcm_ctx_ex;
+
     /// Constructor
     Ciphersuite_C3();
     
-    virtual u_int16_t   cs_num();
+    virtual u_int16_t cs_num();
     
     /// @{ Virtual from BlockProcessor
     /**
@@ -73,9 +73,11 @@ public:
      *
      * @return true if the block passes validation
      */
-    virtual bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                     BundleProtocol::status_report_reason_t* reception_reason,
-                     BundleProtocol::status_report_reason_t* deletion_reason);
+    virtual bool validate(const Bundle*           bundle,
+                          BlockInfoVec*           block_list,
+                          BlockInfo*              block,
+                          status_report_reason_t* reception_reason,
+                          status_report_reason_t* deletion_reason);
 
     /**
      * First callback to generate blocks for the output pass. The
@@ -86,21 +88,21 @@ public:
      * appropriate owner_ pointer.
      */
     virtual int prepare(const Bundle*    bundle,
-                         BlockInfoVec*    xmit_blocks,
-                         const BlockInfo* source,
-                         const LinkRef&   link,
-                         BlockInfo::list_owner_t list);
+                        BlockInfoVec*    xmit_blocks,
+                        const BlockInfo* source,
+                        const LinkRef&   link,
+                        list_owner_t     list);
     
     /**
      * Second callback for transmitting a bundle. This pass should
      * generate any data for the block that does not depend on other
      * blocks' contents.
      */
-    virtual int generate(const Bundle* 	bundle,
-                          BlockInfoVec*     xmit_blocks,
-                          BlockInfo*    	block,
-                          const LinkRef&    link,
-                          bool          	last);
+    virtual int generate(const Bundle*  bundle,
+                         BlockInfoVec*  xmit_blocks,
+                         BlockInfo*     block,
+                         const LinkRef& link,
+                         bool           last);
     
     /**
      * Third callback for transmitting a bundle. This pass should
@@ -110,40 +112,32 @@ public:
      * The base class implementation does nothing. 
      */
     virtual int finalize(const Bundle*  bundle, 
-                          BlockInfoVec*  xmit_blocks, 
-                          BlockInfo*     block, 
-                          const LinkRef& link);
+                         BlockInfoVec*  xmit_blocks, 
+                         BlockInfo*     block, 
+                         const LinkRef& link);
 
     /**
      * Callback for encrypt/decrypt a block. This is normally
      * used for handling the payload contents.
      */
-    static void do_crypt(const Bundle* bundle, 
-                             const BlockInfo* caller_block,
-                             BlockInfo* target_block,
-                             void* buf, 
-                             size_t len,
-                             OpaqueContext* r,
-                             bool& changed);
-    
-    
-    /**
-     * General hook to set up a block with the given contents. Used
-     * for testing generic extension blocks.
-     */
-    void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                    u_char* bp, size_t len);
+    static bool do_crypt(const Bundle*    bundle,
+                         const BlockInfo* caller_block,
+                         BlockInfo*       target_block,
+                         void*            buf,
+                         size_t           len,
+                         OpaqueContext*   r);
     
     /**
      * Ciphersuite number
      *   iv_len is only 8 for GCM, which also uses 4-byte nonce
      */
-    enum { CSNUM_C3 		= 3, 
-           key_len 			= 128/8, 
-           nonce_len 		= 12,
-           salt_len 		= 4, 
-           iv_len 			= nonce_len - salt_len, 
-           tag_len 			= 128/8 };      
+    enum { CSNUM_C3  = 3, 
+           key_len   = 128/8, 
+           nonce_len = 12,
+           salt_len  = 4, 
+           iv_len    = nonce_len - salt_len, 
+           tag_len   = 128/8
+    };
     
     /// @}
 };

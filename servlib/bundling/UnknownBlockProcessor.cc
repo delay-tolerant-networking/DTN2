@@ -31,7 +31,8 @@ oasys::Singleton<UnknownBlockProcessor>::instance_ = NULL;
 
 //----------------------------------------------------------------------
 UnknownBlockProcessor::UnknownBlockProcessor()
-    : BlockProcessor(BundleProtocol::UNKNOWN_BLOCK) // typecode is ignored for this processor
+    : BlockProcessor(BundleProtocol::UNKNOWN_BLOCK)
+      // typecode is ignored for this processor
       // pl -- this raises the interesting situation where
       // source->type()                  returns the actual type, and
       // source->owner_->block_type()    will return UNKNOWN_BLOCK
@@ -44,7 +45,7 @@ UnknownBlockProcessor::prepare(const Bundle*    bundle,
                                BlockInfoVec*    xmit_blocks,
                                const BlockInfo* source,
                                const LinkRef&   link,
-                               BlockInfo::list_owner_t list)
+                               list_owner_t     list)
 {
     ASSERT(source != NULL);
     ASSERT(source->owner() == this);
@@ -118,9 +119,11 @@ UnknownBlockProcessor::generate(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 bool
-UnknownBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                 BundleProtocol::status_report_reason_t* reception_reason,
-                 BundleProtocol::status_report_reason_t* deletion_reason)
+UnknownBlockProcessor::validate(const Bundle*           bundle,
+                                BlockInfoVec*           block_list,
+                                BlockInfo*              block,
+                                status_report_reason_t* reception_reason,
+                                status_report_reason_t* deletion_reason)
 {
     // check for generic block errors
     if (!BlockProcessor::validate(bundle, block_list, block,

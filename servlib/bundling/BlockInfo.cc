@@ -26,8 +26,6 @@
 #include "SDNV.h"
 
 namespace dtn {
-// commented out to shut complier up -- not currently used.
-// static const char * log = "/dtn/bundle/ciphersuite";
 
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
@@ -43,7 +41,7 @@ BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
       complete_(false),
       reloaded_(false)
 {
-      eid_list_.clear();
+    eid_list_.clear();
 }
 
 //----------------------------------------------------------------------
@@ -145,7 +143,7 @@ BlockInfo::last_block() const
 {
     //check if it's too small to be flagged as last
     if (contents_.len() < 2) {
-            return false;
+        return false;
     }
     
     u_int64_t flag = flags();

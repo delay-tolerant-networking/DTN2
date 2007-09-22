@@ -31,23 +31,8 @@ class Bundle;
 class Link;
 class OpaqueContext;
 
-typedef void (process_func)(const Bundle* bundle, 
-                             const BlockInfo* caller_block,
-                             BlockInfo* target_block,
-                             void* buf, 
-                             size_t len,
-                             OpaqueContext* r,
-                             bool& changed);
-
-typedef void (process_func_const)(const Bundle* bundle, 
-                             const BlockInfo* caller_block,
-                             const BlockInfo* target_block,
-                             const void* buf, 
-                             size_t len,
-                             OpaqueContext* r);
-
-#define     BP_SUCCESS  (int)(0)
-#define     BP_FAIL     (int)(-1)
+#define BP_SUCCESS (int)(0)
+#define BP_FAIL    (int)(-1)
 
 /**
  * Base class for the protocol handling of bundle blocks, including
@@ -56,6 +41,30 @@ typedef void (process_func_const)(const Bundle* bundle,
  */
 class BlockProcessor {
 public:
+    /**
+     * Typedef for a process function pointer.
+     */
+    typedef void (process_func)(const Bundle*    bundle,
+                                const BlockInfo* caller_block,
+                                const BlockInfo* target_block,
+                                const void*      buf,
+                                size_t           len,
+                                OpaqueContext*   r);
+    /**
+     * Typedef for a mutate function pointer.
+     */
+    typedef bool (mutate_func)(const Bundle*    bundle,
+                               const BlockInfo* caller_block,
+                               BlockInfo*       target_block,
+                               void*            buf,
+                               size_t           len,
+                               OpaqueContext*   context);
+
+    /// @{ Import some typedefs from other classes
+    typedef BlockInfo::list_owner_t list_owner_t;
+    typedef BundleProtocol::status_report_reason_t status_report_reason_t;
+    /// @}
+    
     /**
      * Constructor that takes the block typecode. Generally, typecodes
      * should be defined in BundleProtocol::bundle_block_type_t, but
@@ -89,19 +98,18 @@ public:
      *
      * @return the amount of data consumed or -1 on error
      */
-    virtual int consume(Bundle* bundle, BlockInfo* block,
-                        u_char* buf, size_t len);
-
-//    virtual int ruminate(Bundle* bundle, BlockInfo* block,
-//                        u_char* buf, size_t len);
+    virtual int consume(Bundle*    bundle,
+                        BlockInfo* block,
+                        u_char*    buf,
+                        size_t     len);
 
     /**
      * Perform any needed action in the case where a block/bundle
      * has been reloaded from store
      */
-    virtual int reload_post_process(const Bundle*    bundle,
-                                    BlockInfoVec*   block_list,
-                                    BlockInfo*      block);
+    virtual int reload_post_process(const Bundle* bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block);
 
 
     /**
@@ -110,9 +118,11 @@ public:
      *
      * @return true if the block passes validation
      */
-    virtual bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                     BundleProtocol::status_report_reason_t* reception_reason,
-                     BundleProtocol::status_report_reason_t* deletion_reason);
+    virtual bool validate(const Bundle*           bundle,
+                          BlockInfoVec*           block_list,
+                          BlockInfo*              block,
+                          status_report_reason_t* reception_reason,
+                          status_report_reason_t* deletion_reason);
 
     /**
      * First callback to generate blocks for the output pass. The
@@ -123,10 +133,10 @@ public:
      * appropriate owner_ pointer.
      */
     virtual int prepare(const Bundle*    bundle,
-                         BlockInfoVec*    xmit_blocks,
-                         const BlockInfo* source,
-                         const LinkRef&   link,
-                         BlockInfo::list_owner_t list);
+                        BlockInfoVec*    xmit_blocks,
+                        const BlockInfo* source,
+                        const LinkRef&   link,
+                        list_owner_t     list);
     
     /**
      * Second callback for transmitting a bundle. This pass should
@@ -137,10 +147,10 @@ public:
      * their offsets to this block's preamble.
      */
     virtual int generate(const Bundle*  bundle,
-                          BlockInfoVec*  xmit_blocks,
-                          BlockInfo*     block,
-                          const LinkRef& link,
-                          bool           last) = 0;
+                         BlockInfoVec*  xmit_blocks,
+                         BlockInfo*     block,
+                         const LinkRef& link,
+                         bool           last) = 0;
     
     /**
      * Third callback for transmitting a bundle. This pass should
@@ -155,60 +165,46 @@ public:
      * and encapsulation.
      */
     virtual int finalize(const Bundle*  bundle, 
-                          BlockInfoVec*  xmit_blocks, 
-                          BlockInfo*     block, 
-                          const LinkRef& link);
+                         BlockInfoVec*  xmit_blocks, 
+                         BlockInfo*     block, 
+                         const LinkRef& link);
 
     /**
-     * Parse a block preamble consisting of type, flags(SDNV),
-     * EID-list (composite field of SDNVs) and length(SDNV).
-     * This method does not apply to the primary block, but is
-     * suitable for payload and all extensions.
-     * The parse does NOT modify the BlockInfo fields, as 
-     * consume_preamble() does. This is a convenience routine
-     * for extension code, such as bundle security,  which must
-     * process blocks owned by other extensions.
-    int parse_preamble(BlockInfo* block,
-                         u_char* buf,
-                         size_t len,
-                         u_int64_t* flagp = NULL);
-     */
-    
-    /**
-     * Accessor to virtualize processing contents of the block in various
-     * ways. This is overloaded by the payload since the contents are
-     * not actually stored in the BlockInfo contents_ buffer but
-     * rather are on-disk.
+     * Accessor to virtualize read-only processing contents of the
+     * block in various ways. This is overloaded by the payload since
+     * the contents are not actually stored in the BlockInfo contents_
+     * buffer but rather are on-disk.
      *
      * Processing can be anything the calling routine wishes, such as
-     * digest of the block, encryption, decryption etc. This routine is
-     * permitted to process the data in several calls to the target
-     * "func" routine as long as the data is processed in order and 
-     * exactly once. Contents of target_block may be changed and 
-     * "changed" will be set to true if change occurs.
-     *
-     * The signature for process_func is similar but not identical.
+     * digest of the block, encryption, decryption etc. This routine
+     * is permitted to process the data in several calls to the target
+     * "func" routine as long as the data is processed in order and
+     * exactly once.
      *
      * Note that the supplied offset + length must be less than or
      * equal to the total length of the block.
      */
-    virtual void process(const Bundle* bundle,
-                             const BlockInfo* caller_block,
-                             const BlockInfo* target_block,
-                             process_func_const* func, 
-                             size_t offset, 
-                             size_t& len,
-                             OpaqueContext* r);
-
-     virtual void process( Bundle* bundle,
-                             const BlockInfo* caller_block,
-                             BlockInfo* target_block,
-                             process_func* func, 
-                             size_t offset, 
-                             size_t& len,
-                             OpaqueContext* r,
-                             bool& changed);
-
+    virtual void process(process_func*    func,
+                         const Bundle*    bundle,
+                         const BlockInfo* caller_block,
+                         const BlockInfo* target_block,
+                         size_t           offset,            
+                         size_t           len,
+                         OpaqueContext*   context);
+    
+    /**
+     * Similar to process() but for potentially mutating processing
+     * functions.
+     *
+     * The function returns true iff it modified the target_block.
+     */
+    virtual bool mutate(mutate_func*     func,
+                        Bundle*          bundle,
+                        const BlockInfo* caller_block,
+                        BlockInfo*       target_block,
+                        size_t           offset,
+                        size_t           len,
+                        OpaqueContext*   context);
 
     /**
      * Accessor to virtualize copying contents out from the block
@@ -222,15 +218,21 @@ public:
      * Note that the supplied offset + length must be less than or
      * equal to the total length of the block.
      */
-    virtual void produce(const Bundle* bundle, const BlockInfo* block,
-                         u_char* buf, size_t offset, size_t len);
+    virtual void produce(const Bundle*    bundle,
+                         const BlockInfo* block,
+                         u_char*          buf,
+                         size_t           offset,
+                         size_t           len);
 
     /**
      * General hook to set up a block with the given contents. Used
      * for testing generic extension blocks.
      */
-    void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                    const u_char* bp, size_t len);
+    void init_block(BlockInfo*    block,
+                    u_int8_t      type,
+                    u_int8_t      flags,
+                    const u_char* bp,
+                    size_t        len);
     
 
 protected:
@@ -244,21 +246,21 @@ protected:
      * This method does not apply to the primary block, but is
      * suitable for payload and all extensions.
      */
-    int consume_preamble(BlockInfoVec*  recv_blocks, 
-                         BlockInfo* block,
-                         u_char* buf,
-                         size_t len,
-                         u_int64_t* flagp = NULL);
+    int consume_preamble(BlockInfoVec* recv_blocks,
+                         BlockInfo*    block,
+                         u_char*       buf,
+                         size_t        len,
+                         u_int64_t*    flagp = NULL);
     
     /**
      * Generate the standard preamble for the given block type, flags,
      * EID-list and content length.
      */
-    void generate_preamble(BlockInfoVec*  xmit_blocks, 
-                           BlockInfo* block,
-                           u_int8_t type,
-                           u_int64_t flags,
-                           u_int64_t data_length);
+    void generate_preamble(BlockInfoVec* xmit_blocks,
+                           BlockInfo*    block,
+                           u_int8_t      type,
+                           u_int64_t     flags,
+                           u_int64_t     data_length);
     
 private:
     /// The block typecode for this handler

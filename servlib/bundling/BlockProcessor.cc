@@ -33,6 +33,8 @@ static const char* log = "/dtn/bundle/protocol";
 BlockProcessor::BlockProcessor(int block_type)
     : block_type_(block_type)
 {
+    // quiet down non-debugging build
+    (void)log;
 }
 
 //----------------------------------------------------------------------
@@ -42,25 +44,17 @@ BlockProcessor::~BlockProcessor()
 
 //----------------------------------------------------------------------
 int
-BlockProcessor::consume_preamble(BlockInfoVec*  recv_blocks, 
-                                 BlockInfo* block,
-                                 u_char*    buf,
-                                 size_t     len,
-                                 u_int64_t* flagp)
+BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
+                                 BlockInfo*    block,
+                                 u_char*       buf,
+                                 size_t        len,
+                                 u_int64_t*    flagp)
 {
     static const char* log = "/dtn/bundle/protocol";
     int sdnv_len;
     ASSERT(! block->complete());
     ASSERT(block->data_offset() == 0);
 
-    // Since we need to be able to handle a preamble that's split
-    // across multiple calls, we proactively copy up to the maximum
-    // length of the preamble into the contents buffer, then adjust
-    // the length of the buffer accordingly.
-//    size_t max_preamble  = BundleProtocol::PREAMBLE_FIXED_LENGTH +
-//            SDNV::MAX_LENGTH * 2;
-    
-    
     // The block info buffer usually will already contain enough space
     // for the preamble in the static part of the scratch buffer, but the 
     // presence of an EID-ref-list might cause it to be bigger.
@@ -70,8 +64,7 @@ BlockProcessor::consume_preamble(BlockInfoVec*  recv_blocks,
     // would mean that there were about fifteen EID refs in the preamble.
     if ( block->contents().nfree() == 0 ) {
         block->writable_contents()->reserve(block->contents().len() + 64);
-    }
-    
+    }    
     
     size_t max_preamble  = block->contents().buf_len();
     size_t prev_consumed = block->contents().len();
@@ -203,19 +196,18 @@ BlockProcessor::consume_preamble(BlockInfoVec*  recv_blocks,
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::generate_preamble(BlockInfoVec*  xmit_blocks, 
-                                  BlockInfo* block,
-                                  u_int8_t   type,
-                                  u_int64_t  flags,
-                                  u_int64_t  data_length)
+BlockProcessor::generate_preamble(BlockInfoVec* xmit_blocks,
+                                  BlockInfo*    block,
+                                  u_int8_t      type,
+                                  u_int64_t     flags,
+                                  u_int64_t     data_length)
 {
-    
-    char        work[1000];
-    char*       ptr = work;
-    size_t      len = sizeof(work);
-    int32_t     sdnv_len;             // must be signed
-    u_int32_t   scheme_offset;
-    u_int32_t   ssp_offset;
+    char      work[1000];
+    char*     ptr = work;
+    size_t    len = sizeof(work);
+    int32_t   sdnv_len;             // must be signed
+    u_int32_t scheme_offset;
+    u_int32_t ssp_offset;
     
     // point at the local dictionary
     Dictionary* dict = xmit_blocks->dict();
@@ -282,8 +274,10 @@ BlockProcessor::generate_preamble(BlockInfoVec*  xmit_blocks,
 
 //----------------------------------------------------------------------
 int
-BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
-                        u_char* buf, size_t len)
+BlockProcessor::consume(Bundle*    bundle,
+                        BlockInfo* block,
+                        u_char*    buf,
+                        size_t     len)
 {
     (void)bundle;
     
@@ -358,93 +352,14 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
     
     return consumed;
 }
-
-//----------------------------------------------------------------------
-#if 0
-int
-BlockProcessor::ruminate(Bundle* bundle, BlockInfo* block,
-                        u_char* buf, size_t len)
-{
-    (void)bundle;
-    
-    static const char* log = "/dtn/bundle/protocol";
-    (void)log;
-    
-    size_t consumed = 0;
-
-    ASSERT(! block->complete());
-    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
-
-    // Check if we still need to consume the preamble by checking if
-    // the data_offset_ field is initialized in the block info
-    // structure.
-    if (block->data_offset() == 0) {
-        int cc = consume_preamble(recv_blocks, block, buf, len);
-        if (cc == -1) {
-            return -1;
-        }
-
-        buf += cc;
-        len -= cc;
-
-        consumed += cc;
-    }
-
-    // If we still don't know the data offset, we must have consumed
-    // the whole buffer
-    if (block->data_offset() == 0) {
-        ASSERT(len == 0);
-    }
-
-    // If the preamble is complete (i.e., data offset is non-zero) and
-    // the block's data length is zero, then mark the block as complete
-    if (block->data_offset() != 0 && block->data_length() == 0) {
-        block->set_complete(true);
-    }
-    
-    // If there's nothing left to do, we can bail for now.
-    if (len == 0)
-        return consumed;
-
-    // Now make sure there's still something left to do for the block,
-    // otherwise it should have been marked as complete
-    ASSERT(block->data_length() == 0 ||
-           block->full_length() > block->contents().len());
-
-    // make sure the contents buffer has enough space
-    block->writable_contents()->reserve(block->full_length());
-
-    size_t rcvd      = block->contents().len();
-    size_t remainder = block->full_length() - rcvd;
-    size_t tocopy;
-
-    if (len >= remainder) {
-        block->set_complete(true);
-        tocopy = remainder;
-    } else {
-        tocopy = len;
-    }
-    
-    // copy in the data
-    memcpy(block->writable_contents()->end(), buf, tocopy);
-    block->writable_contents()->set_len(rcvd + tocopy);
-    len -= tocopy;
-    consumed += tocopy;
-
-    log_debug_p(log, "BlockProcessor type 0x%x "
-                "consumed %zu/%u for block type 0x%x (%s)",
-                block_type(), consumed, block->full_length(), block->type(),
-                block->complete() ? "complete" : "not complete");
-    
-    return consumed;
-}
-#endif
 
 //----------------------------------------------------------------------
 bool
-BlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                         BundleProtocol::status_report_reason_t* reception_reason,
-                         BundleProtocol::status_report_reason_t* deletion_reason)
+BlockProcessor::validate(const Bundle*           bundle,
+                         BlockInfoVec*           block_list,
+                         BlockInfo*              block,
+                         status_report_reason_t* reception_reason,
+                         status_report_reason_t* deletion_reason)
 {
     static const char * log = "/dtn/bundle/protocol";
     (void)block_list;
@@ -467,9 +382,9 @@ BlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockI
 
 //----------------------------------------------------------------------
 int
-BlockProcessor::reload_post_process(const Bundle*    bundle,
-                                    BlockInfoVec*   block_list,
-                                    BlockInfo*      block)
+BlockProcessor::reload_post_process(const Bundle* bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block)
 {
     (void)bundle;
     (void)block_list;
@@ -477,7 +392,6 @@ BlockProcessor::reload_post_process(const Bundle*    bundle,
     
     block->set_reloaded(false);
     return 0;
-    
 }
 
 //----------------------------------------------------------------------
@@ -486,7 +400,7 @@ BlockProcessor::prepare(const Bundle*    bundle,
                         BlockInfoVec*    xmit_blocks,
                         const BlockInfo* source,
                         const LinkRef&   link,
-                        BlockInfo::list_owner_t list)
+                        list_owner_t     list)
 {
     (void)bundle;
     (void)link;
@@ -526,13 +440,13 @@ BlockProcessor::finalize(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::process(Bundle* bundle,  const BlockInfo* caller_block,
-                                 BlockInfo* target_block,
-                                 process_func* func, 
-                                 size_t offset, 
-                                 size_t& len,
-                                 OpaqueContext* r,
-                                 bool& changed)
+BlockProcessor::process(process_func*    func,
+                        const Bundle*    bundle,
+                        const BlockInfo* caller_block,
+                        const BlockInfo* target_block,
+                        size_t           offset,
+                        size_t           len,
+                        OpaqueContext*   context)
 {
     u_char* buf;
     
@@ -543,38 +457,40 @@ BlockProcessor::process(Bundle* bundle,  const BlockInfo* caller_block,
     buf = target_block->contents().buf() + offset;
     
     // call the processing function to do the work
-    (*func)(bundle, caller_block, target_block, buf, len, r, changed);
+    (*func)(bundle, caller_block, target_block, buf, len, context);
+}
+
+//----------------------------------------------------------------------
+bool
+BlockProcessor::mutate(mutate_func*     func,
+                       Bundle*          bundle,
+                       const BlockInfo* caller_block,
+                       BlockInfo*       target_block,
+                       size_t           offset,   
+                       size_t           len,
+                       OpaqueContext*   context)
+{
+    u_char* buf;
+    
+    ASSERT(offset < target_block->contents().len());
+    ASSERT(target_block->contents().len() >= offset + len);
+    
+    // convert the offset to a pointer in the target block
+    buf = target_block->contents().buf() + offset;
+    
+    // call the processing function to do the work
+    return (*func)(bundle, caller_block, target_block, buf, len, context);
     
     // if we need to flush changed content back to disk, do it here
-
 }
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::process(const Bundle* bundle,  const BlockInfo* caller_block,
-                                 const BlockInfo* target_block,
-                                 process_func_const* func, 
-                                 size_t offset, 
-                                 size_t& len,
-                                 OpaqueContext* r)
-{
-    u_char* buf;
-    
-    ASSERT(offset < target_block->contents().len());
-    ASSERT(target_block->contents().len() >= offset + len);
-    
-    // convert the offset to a pointer in the target block
-    buf = target_block->contents().buf() + offset;
-    
-    // call the processing function to do the work
-    (*func)(bundle, caller_block, target_block, buf, len, r);
-
-}
-
-//----------------------------------------------------------------------
-void
-BlockProcessor::produce(const Bundle* bundle, const BlockInfo* block,
-                        u_char* buf, size_t offset, size_t len)
+BlockProcessor::produce(const Bundle*    bundle,
+                        const BlockInfo* block,
+                        u_char*          buf,
+                        size_t           offset,
+                        size_t           len)
 {
     (void)bundle;
     ASSERT(offset < block->contents().len());
@@ -584,8 +500,11 @@ BlockProcessor::produce(const Bundle* bundle, const BlockInfo* block,
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                           const u_char* bp, size_t len)
+BlockProcessor::init_block(BlockInfo*    block,
+                           u_int8_t      type,
+                           u_int8_t      flags,
+                           const u_char* bp,
+                           size_t        len)
 {
     ASSERT(block->owner() != NULL);
     generate_preamble(NULL, block, type, flags, len);

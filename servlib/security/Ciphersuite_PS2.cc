@@ -36,31 +36,29 @@ namespace dtn {
 
 static const char * log = "/dtn/bundle/ciphersuite";
 
-    /**
-     * Local definition borrowed from PrimaryBlockProcessor.h
-     * and with frag_offest and orig_length added
-     */
-    struct PrimaryBlock_ex {
-        u_int8_t version;
-        u_int64_t processing_flags;
-        u_int64_t block_length;
-        u_int64_t dest_scheme_offset;
-        u_int64_t dest_ssp_offset;
-        u_int64_t source_scheme_offset;
-        u_int64_t source_ssp_offset;
-        u_int64_t replyto_scheme_offset;
-        u_int64_t replyto_ssp_offset;
-        u_int64_t custodian_scheme_offset;
-        u_int64_t custodian_ssp_offset;
-        u_int64_t creation_time;
-        u_int64_t creation_sequence;
-        u_int64_t lifetime;
-        u_int64_t dictionary_length;
-        u_int64_t fragment_offset;
-        u_int64_t original_length;
-    };
-
-
+/**
+ * Local definition borrowed from PrimaryBlockProcessor.h
+ * and with frag_offest and orig_length added
+ */
+struct PrimaryBlock_ex {
+    u_int8_t version;
+    u_int64_t processing_flags;
+    u_int64_t block_length;
+    u_int64_t dest_scheme_offset;
+    u_int64_t dest_ssp_offset;
+    u_int64_t source_scheme_offset;
+    u_int64_t source_ssp_offset;
+    u_int64_t replyto_scheme_offset;
+    u_int64_t replyto_ssp_offset;
+    u_int64_t custodian_scheme_offset;
+    u_int64_t custodian_ssp_offset;
+    u_int64_t creation_time;
+    u_int64_t creation_sequence;
+    u_int64_t lifetime;
+    u_int64_t dictionary_length;
+    u_int64_t fragment_offset;
+    u_int64_t original_length;
+};
 
 // Need quad versions of hton for manipulating full-length (unpacked) SDNV values
 
@@ -95,8 +93,6 @@ inline u_int64_t ntohq( u_int64_t x )
 #endif
 
 
-
-
 //----------------------------------------------------------------------
 Ciphersuite_PS2::Ciphersuite_PS2()
 {
@@ -111,8 +107,10 @@ Ciphersuite_PS2::cs_num(void)
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::consume(Bundle* bundle, BlockInfo* block,
-                        u_char* buf, size_t len)
+Ciphersuite_PS2::consume(Bundle*    bundle,
+                         BlockInfo* block,
+                         u_char*    buf,
+                         size_t     len)
 {
     int cc = block->owner()->consume(bundle, block, buf, len);
 
@@ -137,9 +135,11 @@ Ciphersuite_PS2::consume(Bundle* bundle, BlockInfo* block,
 
 //----------------------------------------------------------------------
 bool
-Ciphersuite_PS2::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                          BundleProtocol::status_report_reason_t* reception_reason ,
-                          BundleProtocol::status_report_reason_t*  deletion_reason )
+Ciphersuite_PS2::validate(const Bundle*           bundle,
+                          BlockInfoVec*           block_list,
+                          BlockInfo*              block,
+                          status_report_reason_t* reception_reason,
+                          status_report_reason_t* deletion_reason)
 {
     (void)reception_reason;
 
@@ -177,8 +177,8 @@ Ciphersuite_PS2::validate(const Bundle* bundle, BlockInfoVec*  block_list, Block
         memcpy(ps_digest, db.buf(), digest_len);     
 
         log_debug_p(log, "Ciphersuite_PS2::validate() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
-            ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
-            ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
+                    ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
+                    ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
 
         // get pieces from results -- should be just the signature
         buf = locals->security_result().buf();
@@ -193,24 +193,24 @@ Ciphersuite_PS2::validate(const Bundle* bundle, BlockInfoVec*  block_list, Block
             len -= sdnv_len;
             
             switch ( item_type ) {
-                case CS_signature_field:
-                    {
-                        log_debug_p(log, "Ciphersuite_PS2::validate() CS_signature_field item, len %llu", field_length);
+            case CS_signature_field:
+            {
+                log_debug_p(log, "Ciphersuite_PS2::validate() CS_signature_field item, len %llu", U64FMT(field_length));
                         
-                        err = KeySteward::verify(bundle, buf, field_length, ps_digest, rlen);
-                        if ( err == 0 ) {
-                            locals->set_proc_flag(CS_BLOCK_PASSED_VALIDATION | CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
-                        } else {
-                            log_err_p(log, "Ciphersuite_PS2::validate: CS_signature_field validation failed");                      
-                            goto fail;
-                        }
-                        
-                    }
-                    break;
-                    
-                default:    // deal with improper items
-                    log_err_p(log, "Ciphersuite_PS2::validate: unexpected item type %d in security_result", item_type);
+                err = KeySteward::verify(bundle, buf, field_length, ps_digest, rlen);
+                if ( err == 0 ) {
+                    locals->set_proc_flag(CS_BLOCK_PASSED_VALIDATION | CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
+                } else {
+                    log_err_p(log, "Ciphersuite_PS2::validate: CS_signature_field validation failed");                      
                     goto fail;
+                }
+                        
+            }
+            break;
+                    
+            default:    // deal with improper items
+                log_err_p(log, "Ciphersuite_PS2::validate: unexpected item type %d in security_result", item_type);
+                goto fail;
             }
             buf += field_length;
             len -= field_length;
@@ -224,7 +224,7 @@ Ciphersuite_PS2::validate(const Bundle* bundle, BlockInfoVec*  block_list, Block
     
     
     
-fail:    
+ fail:    
     locals->set_proc_flag(CS_BLOCK_FAILED_VALIDATION | CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
     *deletion_reason = BundleProtocol::REASON_SECURITY_FAILED;
     return false;
@@ -232,11 +232,11 @@ fail:
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::prepare(const Bundle*  bundle,
-                        BlockInfoVec*   xmit_blocks,
-                        const BlockInfo* source,
-                        const LinkRef&  link,
-                        BlockInfo::list_owner_t list)
+Ciphersuite_PS2::prepare(const Bundle*    bundle,
+                         BlockInfoVec*    xmit_blocks,
+                         const BlockInfo* source,
+                         const LinkRef&   link,
+                         list_owner_t     list)
 {
     (void)bundle;
     (void)link;
@@ -272,9 +272,9 @@ Ciphersuite_PS2::prepare(const Bundle*  bundle,
         CS_FAIL_IF_NULL(bp);
         bp->set_eid_list(source->eid_list());
         log_debug_p(log, "Ciphersuite_PS2::prepare() - forward received block len %u eid_list_count %zu new count %zu",
-            source->full_length(), source->eid_list().size(), bp->eid_list().size());
+                    source->full_length(), source->eid_list().size(), bp->eid_list().size());
         
-	    CS_FAIL_IF_NULL( source->locals() );      // broken
+        CS_FAIL_IF_NULL( source->locals() );      // broken
 
         source_locals = dynamic_cast<BP_Local_CS*>(source->locals());
         CS_FAIL_IF_NULL(source_locals);           // also broken
@@ -304,7 +304,7 @@ Ciphersuite_PS2::prepare(const Bundle*  bundle,
         }
         locals->set_cs_flags(cs_flags);
         log_debug_p(log, "Ciphersuite_PS2::prepare() - inserted block eid_list_count %zu",
-            bp->eid_list().size());
+                    bp->eid_list().size());
         result = BP_SUCCESS;
         return result;
     } else {
@@ -352,13 +352,13 @@ Ciphersuite_PS2::prepare(const Bundle*  bundle,
             
             while ( iter != xmit_blocks->end()) {
                 switch (iter->type()) {
-                    case BundleProtocol::PRIMARY_BLOCK:
-                    case BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK:
-                        ++iter;
-                        continue;
+                case BundleProtocol::PRIMARY_BLOCK:
+                case BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK:
+                    ++iter;
+                    continue;
                     
-                    default:
-                        break;
+                default:
+                    break;
                 }
                 xmit_blocks->insert(iter, bi);
                 break;
@@ -372,7 +372,7 @@ Ciphersuite_PS2::prepare(const Bundle*  bundle,
     result = BP_SUCCESS;
     return result;
     
-fail:
+ fail:
     if ( locals !=  NULL )
         locals->set_proc_flag(CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
     return BP_FAIL;
@@ -380,11 +380,11 @@ fail:
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::generate(const Bundle*             bundle,
-                                    BlockInfoVec*   xmit_blocks,
-                                    BlockInfo*      block,
-                                    const LinkRef&  link,
-                                    bool            last)
+Ciphersuite_PS2::generate(const Bundle*  bundle,
+                          BlockInfoVec*  xmit_blocks,
+                          BlockInfo*     block,
+                          const LinkRef& link,
+                          bool           last)
 {
     (void)bundle;
     (void)link;
@@ -411,7 +411,6 @@ Ciphersuite_PS2::generate(const Bundle*             bundle,
     int             len = 0;
     BlockInfo::DataBuffer* contents = NULL;
     LocalBuffer*    params = NULL;
-    //u_int16_t       num;
         
     log_debug_p(log, "Ciphersuite_PS2::generate() %p", block);
     CS_FAIL_IF_NULL(locals);
@@ -426,7 +425,7 @@ Ciphersuite_PS2::generate(const Bundle*             bundle,
                           block,
                           BundleProtocol::PAYLOAD_SECURITY_BLOCK,
                           BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
-                            (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
+                          (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                           length);
 
         BlockInfo::DataBuffer* contents = block->writable_contents();
@@ -440,7 +439,7 @@ Ciphersuite_PS2::generate(const Bundle*             bundle,
     
     
     /* params field will contain
-        - fragment offset and length, if a fragment-bundle, plus type and length
+       - fragment offset and length, if a fragment-bundle, plus type and length
     */
 
     params = locals->writable_security_params();
@@ -477,7 +476,7 @@ Ciphersuite_PS2::generate(const Bundle*             bundle,
     // and the total length of the combined field
     
     /*   result field will contain
-        - signed hash, plus type and length
+         - signed hash, plus type and length
     */
     EVP_MD_CTX_init(&ctx);
     err = EVP_DigestInit_ex(&ctx, EVP_sha1(), NULL);
@@ -507,7 +506,7 @@ Ciphersuite_PS2::generate(const Bundle*             bundle,
                       block,
                       BundleProtocol::PAYLOAD_SECURITY_BLOCK,
                       BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
-                        (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
+                      (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                       length);
     
 
@@ -555,7 +554,7 @@ Ciphersuite_PS2::generate(const Bundle*             bundle,
     result = BP_SUCCESS;
     return result;
 
-fail:
+ fail:
     if ( locals !=  NULL )
         locals->set_proc_flag(CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
     return BP_FAIL;
@@ -570,7 +569,6 @@ Ciphersuite_PS2::finalize(const Bundle*  bundle,
 {
     (void)link;
     int             result = BP_FAIL;
-//    size_t          offset;
     size_t          len;
     size_t          sdnv_len;
     size_t          res_len;
@@ -639,7 +637,7 @@ Ciphersuite_PS2::finalize(const Bundle*  bundle,
     result = BP_SUCCESS;
     return result;
 
-fail:
+ fail:
     if ( locals !=  NULL )
         locals->set_proc_flag(CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
     return BP_FAIL;
@@ -647,12 +645,12 @@ fail:
 
 //----------------------------------------------------------------------
 void
-Ciphersuite_PS2::digest(const Bundle* bundle, 
-                             const BlockInfo* caller_block,
-                             const BlockInfo* target_block,
-                             const void* buf, 
-                             size_t len,
-                             OpaqueContext* r)
+Ciphersuite_PS2::digest(const Bundle*    bundle,
+                        const BlockInfo* caller_block,
+                        const BlockInfo* target_block,
+                        const void*      buf,
+                        size_t           len,
+                        OpaqueContext*   r)
 {
     (void)bundle;
     (void)caller_block;
@@ -666,24 +664,10 @@ Ciphersuite_PS2::digest(const Bundle* bundle,
 
 //----------------------------------------------------------------------
 void
-Ciphersuite_PS2::init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                           u_char* bp, size_t len)
-{
-    ASSERT(block->owner() != NULL);
-    generate_preamble(NULL, block, type, flags, len);
-    ASSERT(block->data_offset() != 0);
-    block->writable_contents()->reserve(block->full_length());
-    block->writable_contents()->set_len(block->full_length());
-    memcpy(block->writable_contents()->buf() + block->data_offset(),
-           bp, len);
-}
-
-//----------------------------------------------------------------------
-void
 Ciphersuite_PS2::create_digest(const Bundle*  bundle, 
-                          BlockInfoVec*  block_list,
-                          BlockInfo*     block,
-                          DataBuffer&    db)
+                               BlockInfoVec*  block_list,
+                               BlockInfo*     block,
+                               DataBuffer&    db)
 {
     size_t          len;
     size_t          sdnv_len;
@@ -712,8 +696,6 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     u_int64_t       suite_num;
     std::vector<u_int64_t>              correlator_list;
     std::vector<u_int64_t>::iterator    cl_iter;
-//    int               sdnv_len = 0;       // use an int to handle -1 return values
-//    u_int16_t       num;
     EndpointID      local_eid = BundleDaemon::instance()->local_eid();
     BlockInfoVec::iterator iter;
     int             err = 0;
@@ -742,18 +724,18 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     // That has its own drawbacks unfortunately
     
     header_len =        1       //version
-                    +   8       //flags SDNV
-                    +   4       //header length itself
-                    +   4       //destination eid length
-                    +   4       //source eid length
-                    +   4       //report-to eid length
-                    +   8       //creation SDNV #1
-                    +   8       //creation SDNV #2
-                    +   8;      //lifetime SDNV
+                        +   8       //flags SDNV
+                        +   4       //header length itself
+                        +   4       //destination eid length
+                        +   4       //source eid length
+                        +   4       //report-to eid length
+                        +   8       //creation SDNV #1
+                        +   8       //creation SDNV #2
+                        +   8;      //lifetime SDNV
     
     if ( bundle->is_fragment_ ) 
         header_len +=   8       //fragment offset SDNV
-                    +   8;      //total-length SDNV
+                        +   8;      //total-length SDNV
     
     // do stuff for primary, and ignore it during the walk
     
@@ -818,8 +800,8 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     
     log_debug_p(log, "Ciphersuite_PS2::create_digest() walk block list");
     for ( ;
-         iter != block_list->end();
-         ++iter)
+          iter != block_list->end();
+          ++iter)
     {
         // Advance the iterator to our current position.
         // While we do it, we also remember the correlator values
@@ -830,8 +812,8 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
         target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
         if ( (&*iter) <= block ) {
             if (  iter->type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK ||
-                 (iter->type() == BundleProtocol::CONFIDENTIALITY_BLOCK  &&
-                  target_locals->owner_cs_num() == Ciphersuite_C3::CSNUM_C3  )  ) {
+                  (iter->type() == BundleProtocol::CONFIDENTIALITY_BLOCK  &&
+                   target_locals->owner_cs_num() == Ciphersuite_C3::CSNUM_C3  )  ) {
                 if ( target_locals->cs_flags() & CS_BLOCK_HAS_CORRELATOR) {
                     //add correlator to exclude-list
                     correlator_list.push_back(target_locals->correlator());
@@ -842,224 +824,224 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
         
         
         switch ( iter->type() ) {
-            case BundleProtocol::PAYLOAD_SECURITY_BLOCK:
-            case BundleProtocol::CONFIDENTIALITY_BLOCK:
-                {
+        case BundleProtocol::PAYLOAD_SECURITY_BLOCK:
+        case BundleProtocol::CONFIDENTIALITY_BLOCK:
+        {
                     
-                    log_debug_p(log, "Ciphersuite_PS2::create_digest() PS or C block type %d cs_num %d",
+            log_debug_p(log, "Ciphersuite_PS2::create_digest() PS or C block type %d cs_num %d",
                         iter->type(), target_locals->owner_cs_num());
-                    if (  iter->type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK  &&
-                          target_locals->owner_cs_num() != Ciphersuite_C3::CSNUM_C3 )  
-                            continue;       // only digest C3
+            if (  iter->type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK  &&
+                  target_locals->owner_cs_num() != Ciphersuite_C3::CSNUM_C3 )  
+                continue;       // only digest C3
                     
                     
-                    // see if there's a correlator and, if there is,
-                    // if this is a secondary block. Only process a secondary
-                    // if we also did its primary
-                    bool    skip_target = false;
-                    target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
-log_debug_p(log, "Ciphersuite_PS2::create_digest() target_locals->cs_flags 0x%hx", target_locals->cs_flags());
-log_debug_p(log, "Ciphersuite_PS2::create_digest() target_locals->correlator() 0x%llx", target_locals->correlator());
-                    if ( target_locals->cs_flags() & CS_BLOCK_HAS_CORRELATOR) {
-                        correlator = target_locals->correlator();
-                        for ( cl_iter = correlator_list.begin();
-                              cl_iter < correlator_list.end();
-                              ++cl_iter) {
-                            if ( correlator == *cl_iter) {                              
-                                skip_target = true;
-                                break;      //break from for-loop
-                            }
-                        }
-                        if ( skip_target )
-                            break;  //break from switch, continue for "for" loop
-                        
+            // see if there's a correlator and, if there is,
+            // if this is a secondary block. Only process a secondary
+            // if we also did its primary
+            bool    skip_target = false;
+            target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
+            log_debug_p(log, "Ciphersuite_PS2::create_digest() target_locals->cs_flags 0x%hx", target_locals->cs_flags());
+            log_debug_p(log, "Ciphersuite_PS2::create_digest() target_locals->correlator() 0x%llx", U64FMT(target_locals->correlator()));
+            if ( target_locals->cs_flags() & CS_BLOCK_HAS_CORRELATOR) {
+                correlator = target_locals->correlator();
+                for ( cl_iter = correlator_list.begin();
+                      cl_iter < correlator_list.end();
+                      ++cl_iter) {
+                    if ( correlator == *cl_iter) {                              
+                        skip_target = true;
+                        break;      //break from for-loop
                     }
+                }
+                if ( skip_target )
+                    break;  //break from switch, continue for "for" loop
+                        
+            }
                     
-                    log_debug_p(log, "Ciphersuite_PS2::create_digest() digest this block, len %u eid_list().size() %zu", 
+            log_debug_p(log, "Ciphersuite_PS2::create_digest() digest this block, len %u eid_list().size() %zu", 
                         iter->full_length(), iter->eid_list().size());
-                    // Either it has no correlator, or it wasn't in the list.
-                    // So we will process it in the digest
+            // Either it has no correlator, or it wasn't in the list.
+            // So we will process it in the digest
                     
-                    /**********  start preamble processing  **********/
-                    buf = iter->contents().buf();
-                    len = iter->full_length();
+            /**********  start preamble processing  **********/
+            buf = iter->contents().buf();
+            len = iter->full_length();
                     
                     
-                    // Process block type
-                    c = *buf++;
-                    len--;
-                    digest( bundle, block, &*iter, &c, 1, r);
+            // Process block type
+            c = *buf++;
+            len--;
+            digest( bundle, block, &*iter, &c, 1, r);
                     
-                    // Process flags
-                    sdnv_len = SDNV::decode( buf, len, &target_flags);
-                    buf += sdnv_len;
-                    len -= sdnv_len;
+            // Process flags
+            sdnv_len = SDNV::decode( buf, len, &target_flags);
+            buf += sdnv_len;
+            len -= sdnv_len;
                     
-                    flags_save = target_flags;
-                    target_flags &= mask;
-                    target_flags = htonq(target_flags);
-                    digest( bundle, block, &*iter, &target_flags, sizeof(target_flags), r);
+            flags_save = target_flags;
+            target_flags &= mask;
+            target_flags = htonq(target_flags);
+            digest( bundle, block, &*iter, &target_flags, sizeof(target_flags), r);
                     
-                    // EID list is next, starting with the count although we don't digest it
-                    if ( flags_save & BundleProtocol::BLOCK_FLAG_EID_REFS ) {                    
-                        sdnv_len = SDNV::decode(buf, len, &eid_ref_count);
-                        buf += sdnv_len;
-                        len -= sdnv_len;
-                        log_debug_p(log, "Ciphersuite_PS2::create_digest() eid_ref_count %llu", eid_ref_count);
+            // EID list is next, starting with the count although we don't digest it
+            if ( flags_save & BundleProtocol::BLOCK_FLAG_EID_REFS ) {                    
+                sdnv_len = SDNV::decode(buf, len, &eid_ref_count);
+                buf += sdnv_len;
+                len -= sdnv_len;
+                log_debug_p(log, "Ciphersuite_PS2::create_digest() eid_ref_count %llu", U64FMT(eid_ref_count));
                                                 
-                        // each ref is a pair of SDNVs, so process 2 * eid_ref_count text pieces
-                        if ( eid_ref_count > 0 ) {
-                            for ( u_int32_t i = 0; i < (2 * eid_ref_count); i++ ) {
-                                sdnv_len = SDNV::decode(buf, len, &offset);
-                                buf += sdnv_len;
-                                len -= sdnv_len;
+                // each ref is a pair of SDNVs, so process 2 * eid_ref_count text pieces
+                if ( eid_ref_count > 0 ) {
+                    for ( u_int32_t i = 0; i < (2 * eid_ref_count); i++ ) {
+                        sdnv_len = SDNV::decode(buf, len, &offset);
+                        buf += sdnv_len;
+                        len -= sdnv_len;
                                 
-                                ptr = dict + offset;    //point at item in dictionary
-                                plen = strlen(ptr);     // length *without* NULL-terminator
-                                digest( bundle, block, &*iter, ptr, plen, r);
-                            }
-                        }       
+                        ptr = dict + offset;    //point at item in dictionary
+                        plen = strlen(ptr);     // length *without* NULL-terminator
+                        digest( bundle, block, &*iter, ptr, plen, r);
                     }
+                }       
+            }
 
-                    // Process data length
-                    sdnv_len = SDNV::decode(buf, len, &target_content_length);
-                    buf += sdnv_len;
-                    len -= sdnv_len;
+            // Process data length
+            sdnv_len = SDNV::decode(buf, len, &target_content_length);
+            buf += sdnv_len;
+            len -= sdnv_len;
                     
-                    target_content_length = htonq(target_content_length);
-                    digest( bundle, block, &*iter, &target_content_length, sizeof(target_content_length), r);
+            target_content_length = htonq(target_content_length);
+            digest( bundle, block, &*iter, &target_content_length, sizeof(target_content_length), r);
                     
-                    // start of data is where to start main digest
-                    offset = buf - iter->contents().buf();
-                    ASSERT(offset == iter->data_offset());
-                    /**********  end of preamble processing  **********/
+            // start of data is where to start main digest
+            offset = buf - iter->contents().buf();
+            ASSERT(offset == iter->data_offset());
+            /**********  end of preamble processing  **********/
                     
                     
-                    /**********  start content processing  **********/
+            /**********  start content processing  **********/
                     
-                    // if it's the current block, we have to exclude security-result data.
-                    // Note that security-result-length *is* included
-                    if ( (&*iter) == block ) {
+            // if it's the current block, we have to exclude security-result data.
+            // Note that security-result-length *is* included
+            if ( (&*iter) == block ) {
 
-                        // ciphersuite number and flags
-                        sdnv_len = SDNV::decode(buf,
-                                                len,
-                                                &suite_num);
-                        buf += sdnv_len;
-                        len -= sdnv_len;
+                // ciphersuite number and flags
+                sdnv_len = SDNV::decode(buf,
+                                        len,
+                                        &suite_num);
+                buf += sdnv_len;
+                len -= sdnv_len;
 
-                        sdnv_len = SDNV::decode(buf,
-                                                len,
-                                                &cs_flags);
-                        buf += sdnv_len;
-                        len -= sdnv_len;
+                sdnv_len = SDNV::decode(buf,
+                                        len,
+                                        &cs_flags);
+                buf += sdnv_len;
+                len -= sdnv_len;
                         
-                        if ( cs_flags & CS_BLOCK_HAS_RESULT ) {
-                            // if there's a security-result we have to ease up to it
-                            if ( cs_flags & CS_BLOCK_HAS_CORRELATOR )
-                                buf += SDNV::len(buf);      //step over correlator
+                if ( cs_flags & CS_BLOCK_HAS_RESULT ) {
+                    // if there's a security-result we have to ease up to it
+                    if ( cs_flags & CS_BLOCK_HAS_CORRELATOR )
+                        buf += SDNV::len(buf);      //step over correlator
                             
-                            if ( cs_flags & CS_BLOCK_HAS_PARAMS )
-                                buf += SDNV::len(buf);      //step over params
+                    if ( cs_flags & CS_BLOCK_HAS_PARAMS )
+                        buf += SDNV::len(buf);      //step over params
                             
-                            if ( cs_flags & CS_BLOCK_HAS_RESULT ) {
-                                sdnv_len = SDNV::decode(buf, len, &target_content_length);
-                                buf += sdnv_len;
-                                len -= sdnv_len;
-                                buf += SDNV::len(buf);      //step over security-result-length field
-                            }
-                            
-                            len = buf - iter->contents().buf();  //this is the length to use
-                        }
-                        // now set buf back to the start of the content
-                        buf = iter->contents().buf();
-                    }
-                    
-                    iter->owner()->process( bundle,
-                                          block,
-                                          &*iter,
-                                          Ciphersuite_PS2::digest,
-                                          offset,
-                                          len,
-                                          r);
-                    /**********  end of content processing  **********/
-                    log_debug_p(log, "Ciphersuite_PS2::create_digest() digest done %p", &*iter);
-
-                }
-                break;  //break from switch, continue for "for" loop
-            
-            case BundleProtocol::PAYLOAD_BLOCK:
-                {
-                    
-                    /**********  start preamble processing  **********/
-                    buf = iter->contents().buf();
-                    len = iter->full_length();
-                    
-                    
-                    // Process block type
-                    c = *buf++;
-                    len--;
-                    digest( bundle, block, &*iter, &c, 1, r);
-                    
-                    // Process flags
-                    sdnv_len = SDNV::decode( buf, len, &target_flags);
-                    buf += sdnv_len;
-                    len -= sdnv_len;
-                                        
-                    flags_save = target_flags;
-                    target_flags &= mask;
-                    target_flags = htonq(target_flags);
-                    digest( bundle, block, &*iter, &target_flags, sizeof(target_flags), r);
-                    
-                    // EID list is next, starting with the count although we don't digest it
-                    if ( flags_save & BundleProtocol::BLOCK_FLAG_EID_REFS ) {                    
-                        sdnv_len = SDNV::decode(buf, len, &eid_ref_count);
+                    if ( cs_flags & CS_BLOCK_HAS_RESULT ) {
+                        sdnv_len = SDNV::decode(buf, len, &target_content_length);
                         buf += sdnv_len;
                         len -= sdnv_len;
-                                                
-                        // each ref is a pair of SDNVs, so process 2 * eid_ref_count text pieces
-                        if ( eid_ref_count > 0 ) {
-                            for ( u_int32_t i = 0; i < (2 * eid_ref_count); i++ ) {
-                                sdnv_len = SDNV::decode(buf, len, &offset);
-                                buf += sdnv_len;
-                                len -= sdnv_len;
-                                
-                                ptr = dict + offset;    //point at item in dictionary
-                                plen = strlen(ptr);     // length *without* NULL-terminator
-                                digest( bundle, block, &*iter, ptr, plen, r);
-                            }
-                        }       
+                        buf += SDNV::len(buf);      //step over security-result-length field
                     }
-
-                    // Process data length
-                    sdnv_len = SDNV::decode(buf, len, &target_content_length);
-                    buf += sdnv_len;
-                    len -= sdnv_len;
-                    
-                    target_content_length = htonq(target_content_length);
-                    digest( bundle, block, &*iter, &target_content_length, sizeof(target_content_length), r);
-                    
-                    // start of data is where to start main digest
-                    offset = buf - iter->contents().buf();
-                    ASSERT(offset == iter->data_offset());
-                    /**********  end of preamble processing  **********/
-                    
-                    /**********  start content processing  **********/
-                                        
-                    iter->owner()->process( bundle,
-                                          block,
-                                          &*iter,
-                                          Ciphersuite_PS2::digest,
-                                          offset,
-                                          len,
-                                          r);
-                    /**********  end of content processing  **********/
-                    log_debug_p(log, "Ciphersuite_PS2::create_digest() PAYLOAD_BLOCK done");
+                            
+                    len = buf - iter->contents().buf();  //this is the length to use
                 }
-                break;  //break from switch, continue for "for" loop
+                // now set buf back to the start of the content
+                buf = iter->contents().buf();
+            }
+                    
+            iter->owner()->process( Ciphersuite_PS2::digest,
+                                    bundle,
+                                    block,
+                                    &*iter,
+                                    offset,
+                                    len,
+                                    r);
+            /**********  end of content processing  **********/
+            log_debug_p(log, "Ciphersuite_PS2::create_digest() digest done %p", &*iter);
+
+        }
+        break;  //break from switch, continue for "for" loop
+            
+        case BundleProtocol::PAYLOAD_BLOCK:
+        {
+                    
+            /**********  start preamble processing  **********/
+            buf = iter->contents().buf();
+            len = iter->full_length();
+                    
+                    
+            // Process block type
+            c = *buf++;
+            len--;
+            digest( bundle, block, &*iter, &c, 1, r);
+                    
+            // Process flags
+            sdnv_len = SDNV::decode( buf, len, &target_flags);
+            buf += sdnv_len;
+            len -= sdnv_len;
+                                        
+            flags_save = target_flags;
+            target_flags &= mask;
+            target_flags = htonq(target_flags);
+            digest( bundle, block, &*iter, &target_flags, sizeof(target_flags), r);
+                    
+            // EID list is next, starting with the count although we don't digest it
+            if ( flags_save & BundleProtocol::BLOCK_FLAG_EID_REFS ) {                    
+                sdnv_len = SDNV::decode(buf, len, &eid_ref_count);
+                buf += sdnv_len;
+                len -= sdnv_len;
+                                                
+                // each ref is a pair of SDNVs, so process 2 * eid_ref_count text pieces
+                if ( eid_ref_count > 0 ) {
+                    for ( u_int32_t i = 0; i < (2 * eid_ref_count); i++ ) {
+                        sdnv_len = SDNV::decode(buf, len, &offset);
+                        buf += sdnv_len;
+                        len -= sdnv_len;
+                                
+                        ptr = dict + offset;    //point at item in dictionary
+                        plen = strlen(ptr);     // length *without* NULL-terminator
+                        digest( bundle, block, &*iter, ptr, plen, r);
+                    }
+                }       
+            }
+
+            // Process data length
+            sdnv_len = SDNV::decode(buf, len, &target_content_length);
+            buf += sdnv_len;
+            len -= sdnv_len;
+                    
+            target_content_length = htonq(target_content_length);
+            digest( bundle, block, &*iter, &target_content_length, sizeof(target_content_length), r);
+                    
+            // start of data is where to start main digest
+            offset = buf - iter->contents().buf();
+            ASSERT(offset == iter->data_offset());
+            /**********  end of preamble processing  **********/
+                    
+            /**********  start content processing  **********/
+                                        
+            iter->owner()->process( Ciphersuite_PS2::digest,
+                                    bundle,
+                                    block,
+                                    &*iter,
+                                    offset,
+                                    len,
+                                    r);
+            /**********  end of content processing  **********/
+            log_debug_p(log, "Ciphersuite_PS2::create_digest() PAYLOAD_BLOCK done");
+        }
+        break;  //break from switch, continue for "for" loop
                 
-            default:
-                continue;
+        default:
+            continue;
         
         }   // end of switch  
     }       // end of loop-through-all-the-blocks
@@ -1069,8 +1051,8 @@ log_debug_p(log, "Ciphersuite_PS2::create_digest() target_locals->correlator() 0
     // XXX-pl  check error -- zero is failure
     
     log_debug_p(log, "Ciphersuite_PS2::create_digest() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
-        ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
-        ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
+                ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
+                ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
 
     EVP_MD_CTX_cleanup(&ctx);
     
@@ -1085,10 +1067,10 @@ log_debug_p(log, "Ciphersuite_PS2::create_digest() target_locals->correlator() 0
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::read_primary(const Bundle*     bundle, 
-                                BlockInfo*      block,
-                                PrimaryBlock_ex&   primary,
-                                char**          dict)
+Ciphersuite_PS2::read_primary(const Bundle*    bundle, 
+                              BlockInfo*       block,
+                              PrimaryBlock_ex& primary,
+                              char**           dict)
 {
     u_char*         buf;
     size_t          len;
@@ -1128,11 +1110,11 @@ Ciphersuite_PS2::read_primary(const Bundle*     bundle,
  * it may be that the ASSERT which follows is not appropriate because we're doing this
  * on the outbound side and it seems that data_length() is the same as full_length().
  * But what's remaining should be the same as what is promised.
-log_debug_p(log, "parsed primary block: version %d length %u full_length %u len remaining %zu",
-                primary.version, block->data_length(), block->full_length(), len);    
-    // What remains in the buffer should now be equal to what the block-length
-    // field advertised.
-    ASSERT(len == block->data_length());
+ log_debug_p(log, "parsed primary block: version %d length %u full_length %u len remaining %zu",
+ primary.version, block->data_length(), block->full_length(), len);    
+ // What remains in the buffer should now be equal to what the block-length
+ // field advertised.
+ ASSERT(len == block->data_length());
 */
     ASSERT(len == primary.block_length);
     
@@ -1157,7 +1139,7 @@ log_debug_p(log, "parsed primary block: version %d length %u full_length %u len 
 #undef PBP_READ_SDNV
     return 0;
     
-tooshort:
+ tooshort:
     return -1;
 }
 

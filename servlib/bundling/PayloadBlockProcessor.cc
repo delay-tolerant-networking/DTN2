@@ -116,9 +116,11 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
 
 //----------------------------------------------------------------------
 bool
-PayloadBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                     BundleProtocol::status_report_reason_t* reception_reason,
-                     BundleProtocol::status_report_reason_t* deletion_reason)
+PayloadBlockProcessor::validate(const Bundle*           bundle,
+                                BlockInfoVec*           block_list,
+                                BlockInfo*              block,
+                                status_report_reason_t* reception_reason,
+                                status_report_reason_t* deletion_reason)
 {
     static const char* log = "/dtn/bundle/protocol";
 
@@ -202,17 +204,17 @@ PayloadBlockProcessor::produce(const Bundle*    bundle,
 
 //----------------------------------------------------------------------
 void
-PayloadBlockProcessor::process(const Bundle* bundle,  
-                                 const BlockInfo* caller_block,
-                                 const BlockInfo* target_block,
-                                 process_func_const* func, 
-                                 size_t offset, 
-                                 size_t& len,
-                                 OpaqueContext* r)
+PayloadBlockProcessor::process(process_func*    func,
+                               const Bundle*    bundle,
+                               const BlockInfo* caller_block,
+                               const BlockInfo* target_block,
+                               size_t           offset,            
+                               size_t           len,
+                               OpaqueContext*   context)
 {
     const u_char* buf;
-    u_char  work[1024];         // XXX/pl TODO rework buffer usage
-                                      //    and look at type for the payload data
+    u_char  work[1024]; // XXX/pl TODO rework buffer usage
+                        // and look at type for the payload data
     size_t  len_to_do = 0;
     
     // re-do these appropriately for the payload
@@ -222,10 +224,12 @@ PayloadBlockProcessor::process(const Bundle* bundle,
     // First work on specified range of the preamble
     if (offset < target_block->data_offset()) {
         len_to_do = std::min(len, target_block->data_offset() - offset);
+
         // convert the offset to a pointer in the target block
         buf = target_block->contents().buf() + offset;
+
         // call the processing function to do the work
-        (*func)(bundle, caller_block, target_block, buf, len_to_do, r);
+        (*func)(bundle, caller_block, target_block, buf, len_to_do, context);
         buf    += len_to_do;
         offset += len_to_do;
         len    -= len_to_do;
@@ -247,28 +251,27 @@ PayloadBlockProcessor::process(const Bundle* bundle,
         buf = bundle->payload_.read_data(payload_offset, len_to_do, work);
         
         // call the processing function to do the work
-        (*func)(bundle, caller_block, target_block, buf, len_to_do, r);
+        (*func)(bundle, caller_block, target_block, buf, len_to_do, context);
         
         payload_offset  += len_to_do;
         remaining       -= len_to_do;
     }
-    
 }
 
 //----------------------------------------------------------------------
-void
-PayloadBlockProcessor::process(Bundle* bundle,  
-                                 const BlockInfo* caller_block,
-                                 BlockInfo* target_block,
-                                 process_func* func, 
-                                 size_t offset, 
-                                 size_t& len,
-                                 OpaqueContext* r,
-                                 bool& changed)
+bool
+PayloadBlockProcessor::mutate(mutate_func*     func,
+                              Bundle*          bundle,
+                              const BlockInfo* caller_block,
+                              BlockInfo*       target_block,
+                              size_t           offset,
+                              size_t           len,
+                              OpaqueContext*   r)
 {
+    bool changed = false;
     u_char* buf;
     u_char  work[1024];         // XXX/pl TODO rework buffer usage
-                                      //    and look at type for the payload data
+    //    and look at type for the payload data
     size_t  len_to_do = 0;
     
     // re-do these appropriately for the payload
@@ -281,19 +284,19 @@ PayloadBlockProcessor::process(Bundle* bundle,
         // convert the offset to a pointer in the target block
         buf = target_block->contents().buf() + offset;
         // call the processing function to do the work
-        (*func)(bundle, caller_block, target_block, buf, len_to_do, r, changed);
+        changed = (*func)(bundle, caller_block, target_block, buf, len_to_do, r);
         buf    += len_to_do;
         offset += len_to_do;
         len    -= len_to_do;
     }
 
     if (len == 0)
-        return;
+        return changed;
 
     // Adjust offset to account for the preamble
     size_t payload_offset = offset - target_block->data_offset();
-    size_t  remaining = std::min(len, bundle->payload_.length() - payload_offset);
-    size_t  outlen; 
+    size_t remaining = std::min(len, bundle->payload_.length() - payload_offset);
+    size_t outlen; 
 
     buf = work;     // use local buffer
 
@@ -303,17 +306,20 @@ PayloadBlockProcessor::process(Bundle* bundle,
         bundle->payload_.read_data(payload_offset, len_to_do, buf);
         
         // call the processing function to do the work
-        (*func)(bundle, caller_block, target_block, buf, len_to_do, r, changed);
+        bool chunk_changed =
+            (*func)(bundle, caller_block, target_block, buf, len_to_do, r);
         
         // if we need to flush changed content back to disk, do it 
-        if ( changed )            
+        if ( chunk_changed )            
             bundle->payload_.write_data(buf, payload_offset, len_to_do);
-            
+        
+        changed |= chunk_changed;
+                   
         payload_offset  += len_to_do;
         remaining       -= len_to_do;
     }
-    
-}
 
+    return changed;
+}
 
 } // namespace dtn

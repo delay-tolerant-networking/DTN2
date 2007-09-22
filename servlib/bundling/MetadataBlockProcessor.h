@@ -43,17 +43,17 @@ public:
                  u_char*    buf,
                  size_t     len);
 
-    bool validate(const Bundle* bundle,
-                  BlockInfoVec* block_list,
-                  BlockInfo*    block,
-                  BundleProtocol::status_report_reason_t* reception_reason,
-                  BundleProtocol::status_report_reason_t* deletion_reason);
+    bool validate(const Bundle*           bundle,
+                  BlockInfoVec*           block_list,
+                  BlockInfo*              block,
+                  status_report_reason_t* reception_reason,
+                  status_report_reason_t* deletion_reason);
 
-    int prepare(const Bundle*    bundle,
+    int prepare(const Bundle*     bundle,
                  BlockInfoVec*    xmit_blocks,
                  const BlockInfo* source,
                  const LinkRef&   link,
-                 BlockInfo::list_owner_t list);
+                 list_owner_t     list);
 
     int generate(const Bundle*  bundle,
                   BlockInfoVec*  xmit_blocks,
@@ -91,9 +91,9 @@ private:
      * @return true if the bundle in which the invalid block was received
      * should be deleted; otherwise false.
      */
-    bool handle_error(const BlockInfo* block,
-                      BundleProtocol::status_report_reason_t* reception_reason,
-                      BundleProtocol::status_report_reason_t* deletion_reason);
+    bool handle_error(const BlockInfo*        block,
+                      status_report_reason_t* reception_reason,
+                      status_report_reason_t* deletion_reason);
 };
 
 } // namespace dtn

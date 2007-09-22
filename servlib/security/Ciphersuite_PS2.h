@@ -19,13 +19,12 @@
 
 #ifdef BSP_ENABLED
 
+#include <oasys/util/ScratchBuffer.h>
 #include "bundling/BlockProcessor.h"
 #include "PS_BlockProcessor.h"
-#include <oasys/util/ScratchBuffer.h>
-
-typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
 
 namespace dtn {
+
 struct PrimaryBlock_ex;
 
 /**
@@ -33,10 +32,12 @@ struct PrimaryBlock_ex;
  */
 class Ciphersuite_PS2 : public Ciphersuite {
 public:
+    typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
+
     /// Constructor
     Ciphersuite_PS2();
     
-    virtual u_int16_t   cs_num();
+    virtual u_int16_t cs_num();
     
     /// @{ Virtual from BlockProcessor
     /**
@@ -55,8 +56,10 @@ public:
      *
      * @return the amount of data consumed or -1 on error
      */
-    virtual int consume(Bundle* bundle, BlockInfo* block,
-                        u_char* buf, size_t len);
+    virtual int consume(Bundle*    bundle,
+                        BlockInfo* block,
+                        u_char*    buf,
+                        size_t     len);
 
     /**
      * Validate the block. This is called after all blocks in the
@@ -64,9 +67,11 @@ public:
      *
      * @return true if the block passes validation
      */
-    virtual bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                     BundleProtocol::status_report_reason_t* reception_reason,
-                     BundleProtocol::status_report_reason_t* deletion_reason);
+    virtual bool validate(const Bundle*           bundle,
+                          BlockInfoVec*           block_list,
+                          BlockInfo*              block,
+                          status_report_reason_t* reception_reason,
+                          status_report_reason_t* deletion_reason);
 
     /**
      * First callback to generate blocks for the output pass. The
@@ -77,21 +82,21 @@ public:
      * appropriate owner_ pointer.
      */
     virtual int prepare(const Bundle*    bundle,
-                         BlockInfoVec*    xmit_blocks,
-                         const BlockInfo* source,
-                         const LinkRef&   link,
-                         BlockInfo::list_owner_t list);
+                        BlockInfoVec*    xmit_blocks,
+                        const BlockInfo* source,
+                        const LinkRef&   link,
+                        list_owner_t     list);
     
     /**
      * Second callback for transmitting a bundle. This pass should
      * generate any data for the block that does not depend on other
      * blocks' contents.
      */
-    virtual int generate(const Bundle* 	bundle,
-                          BlockInfoVec*     xmit_blocks,
-                          BlockInfo*    	block,
-                          const LinkRef&    link,
-                          bool          	last);
+    virtual int generate(const Bundle*  bundle,
+                         BlockInfoVec*  xmit_blocks,
+                         BlockInfo*     block,
+                         const LinkRef& link,
+                         bool           last);
     
     /**
      * Third callback for transmitting a bundle. This pass should
@@ -101,47 +106,40 @@ public:
      * The base class implementation does nothing. 
      */
     virtual int finalize(const Bundle*  bundle, 
-                          BlockInfoVec*  xmit_blocks, 
-                          BlockInfo*     block, 
-                          const LinkRef& link);
+                         BlockInfoVec*  xmit_blocks, 
+                         BlockInfo*     block, 
+                         const LinkRef& link);
 
     /**
      * Callback for digesting data. 
      */
-    static void digest(const Bundle* bundle, 
-                             const BlockInfo* caller_block,
-                             const BlockInfo* target_block,
-                             const void* buf, 
-                             size_t len,
-                             OpaqueContext* r);
+    static void digest(const Bundle*    bundle,
+                       const BlockInfo* caller_block,
+                       const BlockInfo* target_block,
+                       const void*      buf,
+                       size_t           len,
+                       OpaqueContext*   r);
 
     /**
      * Internal call for digesting data. 
      */
-    static void create_digest(const Bundle* bundle, 
-                            BlockInfoVec*  block_list,
-                          	BlockInfo*     block,
-                          	DataBuffer&    db);
+    static void create_digest(const Bundle* bundle,
+                              BlockInfoVec* block_list,
+                              BlockInfo*    block,
+                              DataBuffer&   db);
 
     /**
      * Internal call to interpret primary block fields
      */
-	static int read_primary(const Bundle*		bundle, 
-								BlockInfo* 		block,
-								PrimaryBlock_ex&	primary,
-								char**          dict);
-    
-    /**
-     * General hook to set up a block with the given contents. Used
-     * for testing generic extension blocks.
-     */
-    void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                    u_char* bp, size_t len);
+    static int read_primary(const Bundle*     bundle,
+                            BlockInfo*        block,
+                            PrimaryBlock_ex&  primary,
+                            char**            dict);
     
     /**
      * Ciphersuite number
      */
-    enum { CSNUM_PS2 		= 2 };      
+    enum { CSNUM_PS2 = 2 };      
     
     /// @}
 };

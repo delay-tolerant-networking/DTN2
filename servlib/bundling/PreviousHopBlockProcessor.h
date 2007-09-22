@@ -30,11 +30,22 @@ public:
     PreviousHopBlockProcessor();
     
     /// @{ Virtual from BlockProcessor
-    int prepare(const Bundle* bundle, BlockInfoVec* xmit_blocks, const BlockInfo* source,
-                 const LinkRef& link, BlockInfo::list_owner_t list);
-    int generate(const Bundle* bundle, BlockInfoVec*  xmit_blocks, 
-                  BlockInfo* block, const LinkRef& link, bool last);
-    int consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len);
+    int prepare(const Bundle*    bundle,
+                BlockInfoVec*    xmit_blocks,
+                const BlockInfo* source,
+                const LinkRef&   link,
+                list_owner_t     list);
+    
+    int generate(const Bundle*  bundle,
+                 BlockInfoVec*  xmit_blocks,
+                 BlockInfo*     block,
+                 const LinkRef& link,
+                 bool           last);
+    
+    int consume(Bundle*    bundle,
+                BlockInfo* block,
+                u_char*    buf,
+                size_t     len);
     /// @}
 };
 

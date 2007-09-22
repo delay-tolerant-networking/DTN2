@@ -271,11 +271,11 @@ PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 int
-PrimaryBlockProcessor::prepare(const Bundle*   bundle,
-                              BlockInfoVec*    xmit_blocks,
-                              const BlockInfo* source,
-                              const LinkRef&   link,
-                              BlockInfo::list_owner_t list)
+PrimaryBlockProcessor::prepare(const Bundle*    bundle,
+                               BlockInfoVec*    xmit_blocks,
+                               const BlockInfo* source,
+                               const LinkRef&   link,
+                               list_owner_t     list)
 {
     (void)bundle;
     (void)link;
@@ -298,7 +298,10 @@ PrimaryBlockProcessor::prepare(const Bundle*   bundle,
 
 //----------------------------------------------------------------------
 int
-PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len)
+PrimaryBlockProcessor::consume(Bundle*    bundle,
+                               BlockInfo* block,
+                               u_char*    buf,
+                               size_t     len)
 {
     static const char* log = "/dtn/bundle/protocol";
     size_t consumed = 0;
@@ -413,7 +416,7 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
      * Verify that we have the whole dictionary.
      */
     if (len < primary.dictionary_length) {
-tooshort:
+ tooshort:
         log_err_p(log, "primary block advertised incorrect length %u",
                   block->data_length());
         return -1;
@@ -438,20 +441,20 @@ tooshort:
 
     dict->set_dict(dictionary, primary.dictionary_length);
     dict->extract_eid(&bundle->source_, 
-                           primary.source_scheme_offset,
-                           primary.source_ssp_offset);
+                      primary.source_scheme_offset,
+                      primary.source_ssp_offset);
     
     dict->extract_eid(&bundle->dest_, 
-                           primary.dest_scheme_offset,
-                           primary.dest_ssp_offset);
+                      primary.dest_scheme_offset,
+                      primary.dest_ssp_offset);
     
     dict->extract_eid(&bundle->replyto_, 
-                           primary.replyto_scheme_offset,
-                           primary.replyto_ssp_offset);
+                      primary.replyto_scheme_offset,
+                      primary.replyto_ssp_offset);
     
     dict->extract_eid(&bundle->custodian_, 
-                           primary.custodian_scheme_offset,
-                           primary.custodian_ssp_offset);
+                      primary.custodian_scheme_offset,
+                      primary.custodian_ssp_offset);
     
     // If the bundle is a fragment, grab the fragment offset and original
     // bundle size (and make sure they fit in a 32 bit integer).
@@ -486,9 +489,11 @@ tooshort:
 
 //----------------------------------------------------------------------
 bool
-PrimaryBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                     BundleProtocol::status_report_reason_t* reception_reason,
-                     BundleProtocol::status_report_reason_t* deletion_reason)
+PrimaryBlockProcessor::validate(const Bundle*           bundle,
+                                BlockInfoVec*           block_list,
+                                BlockInfo*              block,
+                                status_report_reason_t* reception_reason,
+                                status_report_reason_t* deletion_reason)
 {
     (void)block_list;
     (void)block;
@@ -514,21 +519,21 @@ PrimaryBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list,
     if (bundle->source_ == EndpointID::NULL_EID()) {
         if (bundle->receipt_requested() || bundle->app_acked_rcpt_) { 
             log_err_p(log, "bundle with null source eid has requested a "
-                    "report; rejection it");
+                      "report; rejection it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
         }
     
         if (bundle->custody_requested_) {
             log_err_p(log, "bundle with null source eid has requested custody "
-                    "transfer; rejection it");
+                      "transfer; rejection it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
         }
 
         if (!bundle->do_not_fragment_) {
             log_err_p(log, "bundle with null source eid has not set "
-                    "'do-not-fragment' flag; rejection it");
+                      "'do-not-fragment' flag; rejection it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
         }

@@ -49,16 +49,18 @@ public:
      *
      * @return the amount of data consumed or -1 on error
      */
-    virtual int consume(Bundle* bundle, BlockInfo* block,
-                        u_char* buf, size_t len);
+    virtual int consume(Bundle*    bundle,
+                        BlockInfo* block,
+                        u_char*    buf,
+                        size_t     len);
 
     /**
      * Perform any needed action in the case where a block/bundle
      * has been reloaded from store
      */
-    virtual int reload_post_process(const Bundle*    bundle,
-                                    BlockInfoVec*   block_list,
-                                    BlockInfo*      block);
+    virtual int reload_post_process(const Bundle* bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block);
 
     /**
      * Validate the block. This is called after all blocks in the
@@ -66,9 +68,11 @@ public:
      *
      * @return true if the block passes validation
      */
-    virtual bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                     BundleProtocol::status_report_reason_t* reception_reason,
-                     BundleProtocol::status_report_reason_t* deletion_reason);
+    virtual bool validate(const Bundle*           bundle,
+                          BlockInfoVec*           block_list,
+                          BlockInfo*              block,
+                          status_report_reason_t* reception_reason,
+                          status_report_reason_t* deletion_reason);
 
     /**
      * First callback to generate blocks for the output pass. The
@@ -79,21 +83,24 @@ public:
      * appropriate owner_ pointer.
      */
     virtual int prepare(const Bundle*    bundle,
-                         BlockInfoVec*    xmit_blocks,
-                         const BlockInfo* source,
-                         const LinkRef&   link,
-                         BlockInfo::list_owner_t list);
+                        BlockInfoVec*    xmit_blocks,
+                        const BlockInfo* source,
+                        const LinkRef&   link,
+                        list_owner_t     list);
     
     /**
      * Second callback for transmitting a bundle. This pass should
      * generate any data for the block that does not depend on other
-     * blocks' contents.
+     * blocks' contents.  It MUST add any EID references it needs by
+     * calling block->add_eid(), then call generate_preamble(), which
+     * will add the EIDs to the primary block's dictionary and write
+     * their offsets to this block's preamble.
      */
-    virtual int generate(const Bundle* 	bundle,
-                          BlockInfoVec*     xmit_blocks,
-                          BlockInfo*    	block,
-                          const LinkRef&    link,
-                          bool          	last);
+    virtual int generate(const Bundle*  bundle,
+                         BlockInfoVec*  xmit_blocks,
+                         BlockInfo*     block,
+                         const LinkRef& link,
+                         bool           last);
     
     /**
      * Third callback for transmitting a bundle. This pass should
@@ -103,17 +110,9 @@ public:
      * The base class implementation does nothing. 
      */
     virtual int finalize(const Bundle*  bundle, 
-                          BlockInfoVec*  xmit_blocks, 
-                          BlockInfo*     block, 
-                          const LinkRef& link);
-
-    /**
-     * General hook to set up a block with the given contents. Used
-     * for testing generic extension blocks.
-     */
-    void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                    u_char* bp, size_t len);
-    
+                         BlockInfoVec*  xmit_blocks, 
+                         BlockInfo*     block, 
+                         const LinkRef& link);
     /// @}
 };
 

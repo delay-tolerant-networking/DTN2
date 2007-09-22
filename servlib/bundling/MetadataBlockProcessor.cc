@@ -64,9 +64,11 @@ MetadataBlockProcessor::consume(Bundle*    bundle,
 
 //----------------------------------------------------------------------
 bool
-MetadataBlockProcessor::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                  BundleProtocol::status_report_reason_t* reception_reason,
-                  BundleProtocol::status_report_reason_t* deletion_reason)
+MetadataBlockProcessor::validate(const Bundle*           bundle,
+                                 BlockInfoVec*           block_list,
+                                 BlockInfo*              block,
+                                 status_report_reason_t* reception_reason,
+                                 status_report_reason_t* deletion_reason)
 {
     static const char* log = "/dtn/bundle/protocol";
 
@@ -100,7 +102,7 @@ MetadataBlockProcessor::prepare(const Bundle*    bundle,
                                 BlockInfoVec*    xmit_blocks,
                                 const BlockInfo* source,
                                 const LinkRef&   link,
-                                BlockInfo::list_owner_t list)
+                                list_owner_t     list)
 {
     static const char* log = "/dtn/bundle/protocol";
 
@@ -214,7 +216,7 @@ MetadataBlockProcessor::generate(const Bundle*  bundle,
 
     // Determine if the outgoing metadata block was received in the
     // bundle or newly generated; however, both should not be true.
-    MetadataBlock* metadata;
+    MetadataBlock* metadata = NULL;
     bool received_block = false;
     bool generated_block = false;
     
@@ -394,9 +396,9 @@ MetadataBlockProcessor::parse_metadata(Bundle* bundle, BlockInfo* block)
 
 //----------------------------------------------------------------------
 bool
-MetadataBlockProcessor::handle_error(const BlockInfo* block,
-    BundleProtocol::status_report_reason_t* reception_reason,
-    BundleProtocol::status_report_reason_t* deletion_reason)
+MetadataBlockProcessor::handle_error(const BlockInfo*        block,
+                                     status_report_reason_t* reception_reason,
+                                     status_report_reason_t* deletion_reason)
 {
     if (block->flags() & BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) {
         *reception_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
@@ -412,7 +414,7 @@ MetadataBlockProcessor::handle_error(const BlockInfo* block,
 
 //----------------------------------------------------------------------
 void
-MetadataBlockProcessor::delete_generated_metadata(Bundle* bundle,
+MetadataBlockProcessor::delete_generated_metadata(Bundle*        bundle,
                                                   const LinkRef& link)
 {
     ASSERT(bundle != NULL);

@@ -28,7 +28,7 @@ typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
 
 class Bundle;
 
-class KeyParameterInfo;		//opaque info -- hints for what key to use
+class KeyParameterInfo;    //opaque info -- hints for what key to use
 
 class KeySteward  {
 
@@ -36,38 +36,38 @@ public:
     
     /// static class in this demo code
     
-    static int		encrypt(			const Bundle*		b, 
-		    							KeyParameterInfo*	kpi,
-		    							const LinkRef&  	link, 
-		    							std::string			security_dest,
-		    							u_char*				data, 
-		    							size_t				data_len,
-		    							DataBuffer&			db);
+    static int encrypt(const Bundle*     b,
+                       KeyParameterInfo* kpi,
+                       const LinkRef&    link,
+                       std::string       security_dest,
+                       u_char*           data,
+                       size_t            data_len,
+                       DataBuffer&       db);
     
-    static int		decrypt(			const Bundle*		b, 
-		    							std::string			security_src,
-		    							u_char*				enc_data, 
-		    							size_t				enc_data_len,
-		    							DataBuffer&			db);
+    static int decrypt(const Bundle* b,
+                       std::string   security_src,
+                       u_char*       enc_data,
+                       size_t        enc_data_len,
+                       DataBuffer&   db);
     
-    static int		sign(				const Bundle*		b, 
-		    							KeyParameterInfo*	kpi,
-		    							const LinkRef& 	 	link, 
-		    							u_char*				data, 
-		    							size_t				data_len,
-		    							DataBuffer&			db);
+    static int sign(const Bundle*    b,
+                    KeyParameterInfo*kpi,
+                    const LinkRef&   link,
+                    u_char*          data,
+                    size_t           data_len,
+                    DataBuffer&      db);
     
-    static int		signature_length(	const Bundle*		b, 
-		    							KeyParameterInfo*	kpi,
-		    							const LinkRef& 	 	link, 
-		    							size_t				data_len,
-		    							size_t&				out_len);
+    static int signature_length(const Bundle*     b,
+                                KeyParameterInfo* kpi,
+                                const LinkRef&    link,
+                                size_t            data_len,
+                                size_t&           out_len);
     
-    static int		verify(				const Bundle*		b, 
-		    							u_char*				enc_data, 
-		    							size_t				enc_data_len, 
-		    							u_char*				data, 
-		    							size_t				data_len);
+    static int verify(const Bundle* b,
+                      u_char*       enc_data,
+                      size_t        enc_data_len,
+                      u_char*       data,
+                      size_t        data_len);
 };
 
 

@@ -38,7 +38,7 @@ PreviousHopBlockProcessor::prepare(const Bundle*    bundle,
                                    BlockInfoVec*    xmit_blocks,
                                    const BlockInfo* source,
                                    const LinkRef&   link,
-                                   BlockInfo::list_owner_t list)
+                                   list_owner_t     list)
 {
     if (link == NULL || !link->params().prevhop_hdr_) {
         return BP_FAIL;
@@ -87,8 +87,10 @@ PreviousHopBlockProcessor::generate(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 int
-PreviousHopBlockProcessor::consume(Bundle* bundle, BlockInfo* block,
-                                   u_char* buf, size_t len)
+PreviousHopBlockProcessor::consume(Bundle*    bundle,
+                                   BlockInfo* block,
+                                   u_char*    buf,
+                                   size_t     len)
 {
     int cc = BlockProcessor::consume(bundle, block, buf, len);
 

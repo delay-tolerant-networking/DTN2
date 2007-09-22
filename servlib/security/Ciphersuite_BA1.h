@@ -62,9 +62,11 @@ public:
      *
      * @return true if the block passes validation
      */
-    virtual bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                     BundleProtocol::status_report_reason_t* reception_reason,
-                     BundleProtocol::status_report_reason_t* deletion_reason);
+    virtual bool validate(const Bundle*           bundle,
+                          BlockInfoVec*           block_list,
+                          BlockInfo*              block,
+                          status_report_reason_t* reception_reason,
+                          status_report_reason_t* deletion_reason);
 
     /**
      * First callback to generate blocks for the output pass. The
@@ -75,10 +77,10 @@ public:
      * appropriate owner_ pointer.
      */
     virtual int prepare(const Bundle*    bundle,
-                         BlockInfoVec*    xmit_blocks,
-                         const BlockInfo* source,
-                         const LinkRef&   link,
-                         BlockInfo::list_owner_t list);
+                        BlockInfoVec*    xmit_blocks,
+                        const BlockInfo* source,
+                        const LinkRef&   link,
+                        BlockInfo::list_owner_t list);
     
     /**
      * Second callback for transmitting a bundle. This pass should
@@ -89,10 +91,10 @@ public:
      * their offsets to this block's preamble.
      */
     virtual int generate(const Bundle* 	bundle,
-                          BlockInfoVec*     xmit_blocks,
-                          BlockInfo*    	block,
-                          const LinkRef&	link,
-                          bool          	last);
+                         BlockInfoVec*     xmit_blocks,
+                         BlockInfo*    	block,
+                         const LinkRef&	link,
+                         bool          	last);
     
     /**
      * Third callback for transmitting a bundle. This pass should
@@ -102,23 +104,16 @@ public:
      * The base class implementation does nothing. 
      */
     virtual int finalize(const Bundle*  bundle, 
-                          BlockInfoVec*  xmit_blocks, 
-                          BlockInfo*     block, 
-                          const LinkRef& link);
+                         BlockInfoVec*  xmit_blocks, 
+                         BlockInfo*     block, 
+                         const LinkRef& link);
 
-    static void digest(const Bundle* bundle, 
-                             const BlockInfo* caller_block,
-                             const BlockInfo* target_block,
-                             const void* buf, 
-                             size_t len,
-                             OpaqueContext* r);
-
-    /**
-     * General hook to set up a block with the given contents. Used
-     * for testing generic extension blocks.
-     */
-    void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                    u_char* bp, size_t len);
+    static void digest(const Bundle*    bundle,
+                       const BlockInfo* caller_block,
+                       const BlockInfo* target_block,
+                       const void*      buf,
+                       size_t           len,
+                       OpaqueContext*   r);
     
     /**
      * Defined size, in bytes, for security result.

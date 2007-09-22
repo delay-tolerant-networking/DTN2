@@ -49,9 +49,9 @@ Ciphersuite_BA1::cs_num(void)
 //----------------------------------------------------------------------
 int
 Ciphersuite_BA1::consume(Bundle* bundle, BlockInfo* block,
-                        u_char* buf, size_t len)
+                         u_char* buf, size_t len)
 {
-	log_debug_p(log, "Ciphersuite_BA1::consume()");
+    log_debug_p(log, "Ciphersuite_BA1::consume()");
     int cc = block->owner()->consume(bundle, block, buf, len);
 
     if (cc == -1) {
@@ -75,9 +75,11 @@ Ciphersuite_BA1::consume(Bundle* bundle, BlockInfo* block,
 
 //----------------------------------------------------------------------
 bool
-Ciphersuite_BA1::validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                    BundleProtocol::status_report_reason_t* reception_reason,
-                    BundleProtocol::status_report_reason_t* deletion_reason)
+Ciphersuite_BA1::validate(const Bundle*           bundle,
+                          BlockInfoVec*           block_list,
+                          BlockInfo*              block,
+                          status_report_reason_t* reception_reason,
+                          status_report_reason_t* deletion_reason)
 {
     (void)block_list;
     size_t          offset;
@@ -93,10 +95,10 @@ Ciphersuite_BA1::validate(const Bundle* bundle, BlockInfoVec*  block_list, Block
     u_int64_t       cs_flags;
     u_int64_t       suite_num;
     u_int64_t       field_length           = 0LL;
-    int 			sdnv_len = 0;		// use an int to handle -1 return values
+    int             sdnv_len = 0;        // use an int to handle -1 return values
     (void)reception_reason;
     
-	log_debug_p(log, "Ciphersuite_BA1::validate()");
+    log_debug_p(log, "Ciphersuite_BA1::validate()");
     // if first block
     locals = dynamic_cast<BP_Local_CS*>(block->locals());
     CS_FAIL_IF_NULL(locals);
@@ -122,8 +124,8 @@ Ciphersuite_BA1::validate(const Bundle* bundle, BlockInfoVec*  block_list, Block
         
         // walk the list and process each of the blocks
         for ( BlockInfoVec::const_iterator iter = recv_blocks->begin();
-             iter != recv_blocks->end();
-             ++iter)
+              iter != recv_blocks->end();
+              ++iter)
         {
             offset = 0;
             len = iter->full_length();
@@ -133,7 +135,7 @@ Ciphersuite_BA1::validate(const Bundle* bundle, BlockInfoVec*  block_list, Block
                 // So we need to see if there is a security-result field
                 // which needs exclusion
                 
-		        // ciphersuite number and flags
+                // ciphersuite number and flags
                 u_char* ptr = iter->data();
                 rem = iter->full_length();
 
@@ -149,38 +151,34 @@ Ciphersuite_BA1::validate(const Bundle* bundle, BlockInfoVec*  block_list, Block
                 ptr += sdnv_len;
                 rem -= sdnv_len;
 
-		        if ( cs_flags & CS_BLOCK_HAS_RESULT ) {
-		        	// if there's a security-result we have to ease up to it
-		        	
-		        	sdnv_len =  SDNV::len(ptr);		//step over correlator
+                if ( cs_flags & CS_BLOCK_HAS_RESULT ) {
+                    // if there's a security-result we have to ease up to it
+                    
+                    sdnv_len =  SDNV::len(ptr);        //step over correlator
                     ptr += sdnv_len;
                     rem -= sdnv_len;
-		        	
-		        	sdnv_len =  SDNV::len(ptr);		//step over security-result-length field
+                    
+                    sdnv_len =  SDNV::len(ptr);        //step over security-result-length field
                     ptr += sdnv_len;
                     rem -= sdnv_len;
-		        	
-		        	len = ptr - iter->contents().buf();  //this is the length to use
-		        }
+                    
+                    len = ptr - iter->contents().buf();  //this is the length to use
+                }
             }
             
-            iter->owner()->process( bundle,
+            iter->owner()->process( Ciphersuite_BA1::digest,
+                                    bundle,
                                     block,
                                     &*iter,
-                                    Ciphersuite_BA1::digest,
                                     offset,
                                     len,
                                     r);
-            
         }
-        
         
         // finalize the digest
         HMAC_Final(&ctx, result, &rlen);
         HMAC_cleanup(&ctx);
         ASSERT(rlen == Ciphersuite_BA1::res_len);
-        
-        
         
         // check the digest in the result - in the *second* block
         // walk the list to find it
@@ -188,66 +186,66 @@ Ciphersuite_BA1::validate(const Bundle* bundle, BlockInfoVec*  block_list, Block
              iter != block_list->end();
              ++iter)
         {
-	        BP_Local_CS* target_locals;
-	        if ( iter->type() != BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK )
-	        	continue;
-	        
-	        target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
+            BP_Local_CS* target_locals;
+            if ( iter->type() != BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK )
+                continue;
+            
+            target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
             CS_FAIL_IF_NULL(target_locals);
-	        if ( target_locals->owner_cs_num() != CSNUM_BA1 )
-	        	continue;
-	        
-	        if (target_locals->correlator() != locals->correlator() )
-	        	continue;
-	        
-	        // Now we're at the block which is ...
-	        //   1. BA block
-	        //   2. BA1 ciphersuite
-	        //   3. same correlator as the main one        
-	        
-		    if ( target_locals->cs_flags() & Ciphersuite::CS_BLOCK_HAS_RESULT ) {
-		        buf = target_locals->security_result().buf();
-		        len = target_locals->security_result().len();
-		        
-		    	// we expect only one item in the field, the BA signature
-		    	if ( *buf++ != Ciphersuite::CS_signature_field ) {		// item type
-		            log_err_p(log, "Ciphersuite_BA1 item type incorrect");
-		    		goto fail;				//field type is bad
-		    	}
-		    	len--;
-		        
-		        sdnv_len = SDNV::decode(buf, len, &field_length);		// item length
-		        buf += sdnv_len;
-		        len -= sdnv_len;
-		        ASSERT(field_length == Ciphersuite_BA1::res_len);
-		        ASSERT(         len == Ciphersuite_BA1::res_len);
-		        
-		    	if ( memcmp(buf, result, Ciphersuite_BA1::res_len) != 0) {
-		            log_err_p(log, "block failed security validation Ciphersuite_BA1");
-		            goto fail;
-		        } else {
-		            log_debug_p(log, "block passed security validation Ciphersuite_BA1");
+            if ( target_locals->owner_cs_num() != CSNUM_BA1 )
+                continue;
+            
+            if (target_locals->correlator() != locals->correlator() )
+                continue;
+            
+            // Now we're at the block which is ...
+            //   1. BA block
+            //   2. BA1 ciphersuite
+            //   3. same correlator as the main one        
+            
+            if ( target_locals->cs_flags() & Ciphersuite::CS_BLOCK_HAS_RESULT ) {
+                buf = target_locals->security_result().buf();
+                len = target_locals->security_result().len();
+                
+                // we expect only one item in the field, the BA signature
+                if ( *buf++ != Ciphersuite::CS_signature_field ) {        // item type
+                    log_err_p(log, "Ciphersuite_BA1 item type incorrect");
+                    goto fail;                //field type is bad
+                }
+                len--;
+                
+                sdnv_len = SDNV::decode(buf, len, &field_length);        // item length
+                buf += sdnv_len;
+                len -= sdnv_len;
+                ASSERT(field_length == Ciphersuite_BA1::res_len);
+                ASSERT(         len == Ciphersuite_BA1::res_len);
+                
+                if ( memcmp(buf, result, Ciphersuite_BA1::res_len) != 0) {
+                    log_err_p(log, "block failed security validation Ciphersuite_BA1");
+                    goto fail;
+                } else {
+                    log_debug_p(log, "block passed security validation Ciphersuite_BA1");
                     locals->set_proc_flag(CS_BLOCK_PASSED_VALIDATION);
-		            return true;
-		        }
-		    }
-		    else 
-		    {
-	            continue;
-		    }
+                    return true;
+                }
+            }
+            else 
+            {
+                continue;
+            }
         }
         log_err_p(log, "block failed security validation Ciphersuite_BA1 - result is missing");
         goto fail;
     }
     else    
     {
-	    //  do NOT set a proc_flag here, for this block as it's not the owner of the correlated set
-	    log_debug_p(log, "BA1BlockProcessor::validate(): no check on this block");
+        //  do NOT set a proc_flag here, for this block as it's not the owner of the correlated set
+        log_debug_p(log, "BA1BlockProcessor::validate(): no check on this block");
     }
 
     return true;
 
-fail:
+ fail:
     locals->set_proc_flag(CS_BLOCK_FAILED_VALIDATION | CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
     *deletion_reason = BundleProtocol::REASON_SECURITY_FAILED;
     return false;
@@ -259,7 +257,7 @@ Ciphersuite_BA1::prepare(const Bundle*    bundle,
                          BlockInfoVec*    xmit_blocks,
                          const BlockInfo* source,
                          const LinkRef&   link,
-                         BlockInfo::list_owner_t list)
+                         list_owner_t     list)
 {
     (void)bundle;
     (void)link;
@@ -269,7 +267,7 @@ Ciphersuite_BA1::prepare(const Bundle*    bundle,
     u_int16_t       flags = CS_BLOCK_HAS_CORRELATOR;
     BP_Local_CS*    locals = NULL;
 
-	log_debug_p(log, "Ciphersuite_BA1::prepare()");
+    log_debug_p(log, "Ciphersuite_BA1::prepare()");
     if ( list == BlockInfo::LIST_RECEIVED )
         return BP_SUCCESS;   //don't forward received BA blocks
         
@@ -318,7 +316,7 @@ Ciphersuite_BA1::prepare(const Bundle*    bundle,
     result = BP_SUCCESS;
     return result;
     
-fail:
+ fail:
     if ( locals !=  NULL )
         locals->set_proc_flag(CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
     return BP_FAIL;
@@ -326,33 +324,33 @@ fail:
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_BA1::generate(const Bundle* bundle,
-                                    BlockInfoVec*  xmit_blocks,
-                                    BlockInfo*    block,
-                                    const LinkRef& link,
-                                    bool          last)
+Ciphersuite_BA1::generate(const Bundle*  bundle,
+                          BlockInfoVec*  xmit_blocks,
+                          BlockInfo*     block,
+                          const LinkRef& link,
+                          bool           last)
 {
     (void)bundle;
     (void)link;
     (void)xmit_blocks;
 
-	log_debug_p(log, "Ciphersuite_BA1::generate()");
+    log_debug_p(log, "Ciphersuite_BA1::generate()");
     int             result = BP_FAIL;
     BP_Local_CS*    locals = dynamic_cast<BP_Local_CS*>(block->locals());
     u_int16_t       flags = locals->cs_flags();
-    size_t	        item_len = 0;
+    size_t          item_len = 0;
     u_char*         buf = NULL;
     int             len = 0;
     size_t          length = 0;    
-    int             sdnv_len = 0;		// use an int to handle -1 return values
+    int             sdnv_len = 0;        // use an int to handle -1 return values
     BlockInfo::DataBuffer* contents = NULL;
             
     CS_FAIL_IF_NULL(locals);
     // add security-source to EID-list
     if ( flags & CS_BLOCK_HAS_SOURCE ) {
-    	block->add_eid(locals->security_src());
-            /* xmit_blocks->dict()->add_eid() is done for us in
-             * generate_preamble() below */
+        block->add_eid(locals->security_src());
+        /* xmit_blocks->dict()->add_eid() is done for us in
+         * generate_preamble() below */
     }
     
     length = 0;         // ciphersuite number and flags
@@ -369,7 +367,7 @@ Ciphersuite_BA1::generate(const Bundle* bundle,
                       block,
                       BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK,
                       BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
-                        (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
+                      (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                       length);
 
     contents = block->writable_contents();
@@ -412,7 +410,7 @@ Ciphersuite_BA1::generate(const Bundle* bundle,
     result = BP_SUCCESS;
     return result;
 
-fail:
+ fail:
     if ( locals !=  NULL )
         locals->set_proc_flag(CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
     return BP_FAIL;
@@ -438,8 +436,8 @@ Ciphersuite_BA1::finalize(const Bundle*  bundle,
     BP_Local_CS*    locals = NULL;
     u_int64_t       cs_flags;
     u_int64_t       suite_num;
-    int sdnv_len = 0;		// use an int to handle -1 return values
-	log_debug_p(log, "Ciphersuite_BA1::finalize()");
+    int sdnv_len = 0;        // use an int to handle -1 return values
+    log_debug_p(log, "Ciphersuite_BA1::finalize()");
     
     /* The processing for BundleAuthentication takes place
      * when finalize() is called for the "front" block, even though
@@ -488,7 +486,7 @@ Ciphersuite_BA1::finalize(const Bundle*  bundle,
                 // So we need to see if there is a security-result field
                 // which needs exclusion
                 
-		        // ciphersuite number and flags
+                // ciphersuite number and flags
                 u_char* ptr = iter->data();
                 rem = iter->full_length();
                 sdnv_len = SDNV::decode(ptr,
@@ -502,30 +500,29 @@ Ciphersuite_BA1::finalize(const Bundle*  bundle,
                                         &cs_flags);
                 ptr += sdnv_len;
                 rem -= sdnv_len;
-		        
-		        if ( cs_flags & CS_BLOCK_HAS_RESULT ) {
-		        	// if there's a security-result we have to ease up to it
-		        	
-		        	sdnv_len =  SDNV::len(ptr);		//step over correlator
+                
+                if ( cs_flags & CS_BLOCK_HAS_RESULT ) {
+                    // if there's a security-result we have to ease up to it
+                    
+                    sdnv_len =  SDNV::len(ptr);        //step over correlator
                     ptr += sdnv_len;
                     rem -= sdnv_len;
-		        	
-		        	sdnv_len =  SDNV::len(ptr);		//step over security-result-length field
+                    
+                    sdnv_len =  SDNV::len(ptr);        //step over security-result-length field
                     ptr += sdnv_len;
                     rem -= sdnv_len;
-		        	
-		        	len = ptr - iter->contents().buf();  //this is the length to use
-		        }
+                    
+                    len = ptr - iter->contents().buf();  //this is the length to use
+                }
             }
             
-            iter->owner()->process( bundle,
-                                  block,
-                                  &*iter,
-                                  Ciphersuite_BA1::digest,
-                                  offset,
-                                  len,
-                                  r);
-            
+            iter->owner()->process( Ciphersuite_BA1::digest,
+                                    bundle,
+                                    block,
+                                    &*iter,
+                                    offset,
+                                    len,
+                                    r );
         }
                 
         // finalize the digest
@@ -539,48 +536,48 @@ Ciphersuite_BA1::finalize(const Bundle*  bundle,
              iter != xmit_blocks->end();
              ++iter)
         {
-	        BP_Local_CS* target_locals;
-	        if ( iter->type() != BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK )
-	        	continue;
-	        
-	        target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
+            BP_Local_CS* target_locals;
+            if ( iter->type() != BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK )
+                continue;
+            
+            target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
             CS_FAIL_IF_NULL(target_locals);
-	        if ( target_locals->owner_cs_num() != CSNUM_BA1 )
-	        	continue;
-	        
-	        if (target_locals->correlator() != locals->correlator() )
-	        	continue;
-	        
-	        if (target_locals->correlator_sequence() != 1 )
-	        	continue;
-	        
-	        // Now we're at the block which is ...
-	        //   1. BA block
-	        //   2. BA1 ciphersuite
-	        //   3. same correlator as the main one
-	        //   4. correlator sequence is 1, which means second block
+            if ( target_locals->owner_cs_num() != CSNUM_BA1 )
+                continue;
+            
+            if (target_locals->correlator() != locals->correlator() )
+                continue;
+            
+            if (target_locals->correlator_sequence() != 1 )
+                continue;
+            
+            // Now we're at the block which is ...
+            //   1. BA block
+            //   2. BA1 ciphersuite
+            //   3. same correlator as the main one
+            //   4. correlator sequence is 1, which means second block
         
-	        u_char* buf = iter->writable_contents()->buf() + iter->data_offset() + target_locals->security_result_offset();
-	        size_t  rem = iter->data_length() - target_locals->security_result_offset();
-	        sdnv_len = SDNV::len(buf);			//length of security-result field
-	        CS_FAIL_IF(sdnv_len != 1);
-	        buf += sdnv_len;
-	        rem -= sdnv_len;
-	        *buf++ = Ciphersuite::CS_signature_field;				// item type
-	        rem--;
-	        sdnv_len = SDNV::encode(Ciphersuite_BA1::res_len, buf, rem);	// item length
-	        CS_FAIL_IF(sdnv_len != 1);
-	        buf += sdnv_len;
-	        rem -= sdnv_len;
-	        CS_FAIL_IF (rem != Ciphersuite_BA1::res_len);
-	        memcpy(buf, digest_result, Ciphersuite_BA1::res_len);
+            u_char* buf = iter->writable_contents()->buf() + iter->data_offset() + target_locals->security_result_offset();
+            size_t  rem = iter->data_length() - target_locals->security_result_offset();
+            sdnv_len = SDNV::len(buf);            //length of security-result field
+            CS_FAIL_IF(sdnv_len != 1);
+            buf += sdnv_len;
+            rem -= sdnv_len;
+            *buf++ = Ciphersuite::CS_signature_field;                // item type
+            rem--;
+            sdnv_len = SDNV::encode(Ciphersuite_BA1::res_len, buf, rem);    // item length
+            CS_FAIL_IF(sdnv_len != 1);
+            buf += sdnv_len;
+            rem -= sdnv_len;
+            CS_FAIL_IF (rem != Ciphersuite_BA1::res_len);
+            memcpy(buf, digest_result, Ciphersuite_BA1::res_len);
         }
     }
     
     result = BP_SUCCESS;
     return result;
 
-fail:
+ fail:
     if ( locals !=  NULL )
         locals->set_proc_flag(CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
     return BP_FAIL;
@@ -588,35 +585,21 @@ fail:
 
 //----------------------------------------------------------------------
 void
-Ciphersuite_BA1::digest(const Bundle* bundle, 
-                             const BlockInfo* caller_block,
-                             const BlockInfo* target_block,
-                             const void* buf, 
-                             size_t len,
-                             OpaqueContext* r)
+Ciphersuite_BA1::digest(const Bundle*    bundle,
+                        const BlockInfo* caller_block,
+                        const BlockInfo* target_block,
+                        const void*      buf,
+                        size_t           len,
+                        OpaqueContext*   r)
 {
     (void)bundle;
     (void)caller_block;
     (void)target_block;
-	log_debug_p(log, "Ciphersuite_BA1::digest() %zu bytes", len);
+    log_debug_p(log, "Ciphersuite_BA1::digest() %zu bytes", len);
     
     HMAC_CTX*       pctx = reinterpret_cast<HMAC_CTX*>(r);
     
     HMAC_Update( pctx, reinterpret_cast<const u_char*>(buf), len );
-}
-
-//----------------------------------------------------------------------
-void
-Ciphersuite_BA1::init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                           u_char* bp, size_t len)
-{
-    ASSERT(block->owner() != NULL);
-    generate_preamble(NULL, block, type, flags, len);
-    ASSERT(block->data_offset() != 0);
-    block->writable_contents()->reserve(block->full_length());
-    block->writable_contents()->set_len(block->full_length());
-    memcpy(block->writable_contents()->buf() + block->data_offset(),
-           bp, len);
 }
 
 } // namespace dtn

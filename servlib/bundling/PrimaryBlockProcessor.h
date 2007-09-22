@@ -33,20 +33,28 @@ public:
     PrimaryBlockProcessor();
     
     /// @{ Virtual from BlockProcessor
-    int consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len);
+    int consume(Bundle*    bundle,
+                BlockInfo* block,
+                u_char*    buf,
+                size_t     len);
 
-    bool validate(const Bundle* bundle, BlockInfoVec*  block_list, BlockInfo* block,
-                  BundleProtocol::status_report_reason_t* reception_reason,
-                  BundleProtocol::status_report_reason_t* deletion_reason);
+    bool validate(const Bundle*           bundle,
+                  BlockInfoVec*           block_list,
+                  BlockInfo*              block,
+                  status_report_reason_t* reception_reason,
+                  status_report_reason_t* deletion_reason);
 
-    virtual int prepare(const Bundle*    bundle,
-                         BlockInfoVec*    xmit_blocks,
-                         const BlockInfo* source,
-                         const LinkRef&   link,
-                         BlockInfo::list_owner_t list);
+    int prepare(const Bundle*    bundle,
+                BlockInfoVec*    xmit_blocks,
+                const BlockInfo* source,
+                const LinkRef&   link,
+                list_owner_t     list);
 
-    int generate(const Bundle* bundle, BlockInfoVec* xmit_blocks, 
-                  BlockInfo* block, const LinkRef& link, bool last);
+    int generate(const Bundle*  bundle,
+                 BlockInfoVec*  xmit_blocks,
+                 BlockInfo*     block,
+                 const LinkRef& link,
+                 bool           last);
 
     void generate_primary(const Bundle* bundle,
                           BlockInfoVec* xmit_blocks,
