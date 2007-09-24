@@ -89,7 +89,7 @@ public:
      * Copy the metadata from one bundle to another (used in
      * fragmentation).
      */
-    void copy_metadata(Bundle* new_bundle);
+    void copy_metadata(Bundle* new_bundle) const;
 
     /**
      * Virtual from formatter.

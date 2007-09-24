@@ -243,7 +243,7 @@ Bundle::serialize(oasys::SerializeAction* a)
     
 //----------------------------------------------------------------------
 void
-Bundle::copy_metadata(Bundle* new_bundle)
+Bundle::copy_metadata(Bundle* new_bundle) const
 {
     new_bundle->is_admin_ 		= is_admin_;
     new_bundle->is_fragment_ 		= is_fragment_;
