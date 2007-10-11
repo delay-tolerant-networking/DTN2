@@ -629,7 +629,7 @@ Ciphersuite_C3::prepare(const Bundle*    bundle,
     (void)link;
     
     int             result = BP_FAIL;
-    u_int16_t       cs_flags = CSNUM_C3;
+    u_int16_t       cs_flags = 0;
     BP_Local_CS*    locals = NULL;
     BP_Local_CS*    source_locals = NULL;
     EndpointID      local_eid = BundleDaemon::instance()->local_eid();
