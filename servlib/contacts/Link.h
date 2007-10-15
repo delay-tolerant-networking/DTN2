@@ -393,16 +393,6 @@ public:
     const std::string& name_str() const { return name_; }
 
     /**
-     * Accessor to local string
-     */
-    const char* local() const { return local_.c_str(); }
-
-    /**
-     * Mutator for local string
-     */
-    void set_local(const std::string& local) { local_.assign(local); }
-
-    /**
      * Accessor to next hop string
      */
     const char* nexthop() const { return nexthop_.c_str(); }
@@ -660,9 +650,6 @@ protected:
     /// to be used to transmit bundles.
     bool usable_;
 
-    /// Local address (optional)
-    std::string local_;
-    
     /// Next hop address
     std::string nexthop_;
     
