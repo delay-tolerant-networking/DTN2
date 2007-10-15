@@ -279,7 +279,6 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
     // if the port wasn't specified, use the default
     if (port == 0) {
         port = UDPCL_DEFAULT_PORT;
-        return false;
     }
 
     Params* params = (Params*)link->cl_info();
