@@ -10695,12 +10695,18 @@ fi
     { echo "$as_me:$LINENO: checking whether python distutils can build an extension module" >&5
 echo $ECHO_N "checking whether python distutils can build an extension module... $ECHO_C" >&6; }
 
-    cat > conftest.c <<EOF
-#include <Python.h>
-void conftest() {}
-EOF
+    cat > conftest.c <<_ACEOF
 
-    cat > conftest.py <<EOF
+#include <Python.h>
+
+int main(int argc, char** argv)
+{
+    Py_InitModule("conftest", NULL);
+}
+
+_ACEOF
+
+    cat > conftest.py <<_ACEOF
 
 from distutils.core import setup, Extension
 setup(name='conftest',
@@ -10708,12 +10714,17 @@ setup(name='conftest',
       ext_modules=[Extension('_conftest', ['conftest.c'])]
       )
 
-EOF
+_ACEOF
 
-     $PYTHON conftest.py build -b conftest_build
+     # Current versions of autoconf access config.log
+     # through file descriptor 5, so use it here to
+     # redirect output from the build operation.
+     _ACCMD="$PYTHON conftest.py build -b conftest_build"
+     echo "$as_me:$LINENO: running $_ACCMD... output:" >&5
+     $_ACCMD >&5 2>&5
      ac_python_build=$?
 
-     if test $ac_python_build ; then
+     if test $ac_python_build = 0 ; then
      	{ echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
 	PYTHON_BUILD_EXT=yes
