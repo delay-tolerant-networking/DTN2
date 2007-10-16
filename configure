@@ -711,11 +711,7 @@ LFSDEFS
 TCL_LDFLAGS
 XSD_TOOL
 PYTHON
-PYTHON_CPPFLAGS
-PYTHON_LDFLAGS
-PYTHON_SITE_PKG
-PYTHON_EXTRA_LIBS
-PYTHON_EXTRA_LDFLAGS
+PYTHON_BUILD_EXT
 CXXCPP
 OASYS_LIBS
 subdirs
@@ -10694,297 +10690,42 @@ fi
 
 
 
-	#
-	# Allow the use of a (user set) custom python version
-	#
+    if test ! -z "$PYTHON" ; then
 
+    { echo "$as_me:$LINENO: checking whether python distutils can build an extension module" >&5
+echo $ECHO_N "checking whether python distutils can build an extension module... $ECHO_C" >&6; }
 
-	if test ! -z "$PYTHON" ; then
+    cat > conftest.c <<EOF
+#include <Python.h>
+void conftest() {}
+EOF
 
-	#
-	# Check for a version of Python >= 2.1.0
-	#
-	{ echo "$as_me:$LINENO: checking for a version of Python >= '2.1.0'" >&5
-echo $ECHO_N "checking for a version of Python >= '2.1.0'... $ECHO_C" >&6; }
-	ac_supports_python_ver=`$PYTHON -c "import sys, string; \
-		ver = string.split(sys.version)[0]; \
-		print ver >= '2.1.0'"`
-	if test "$ac_supports_python_ver" != "True"; then
-		if test -z "$PYTHON_NOVERSIONCHECK"; then
-			{ echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-			{ echo "$as_me:$LINENO:
-This version of the AC_PYTHON_DEVEL macro
-doesn't work properly with versions of Python before
-2.1.0. You may need to re-run configure, setting the
-variables PYTHON_CPPFLAGS, PYTHON_LDFLAGS, PYTHON_SITE_PKG,
-PYTHON_EXTRA_LIBS and PYTHON_EXTRA_LDFLAGS by hand.
-Moreover, to disable this check, set PYTHON_NOVERSIONCHECK
-to something else than an empty string.
-" >&5
-echo "$as_me:
-This version of the AC_PYTHON_DEVEL macro
-doesn't work properly with versions of Python before
-2.1.0. You may need to re-run configure, setting the
-variables PYTHON_CPPFLAGS, PYTHON_LDFLAGS, PYTHON_SITE_PKG,
-PYTHON_EXTRA_LIBS and PYTHON_EXTRA_LDFLAGS by hand.
-Moreover, to disable this check, set PYTHON_NOVERSIONCHECK
-to something else than an empty string.
-" >&6;}
-		else
-			{ echo "$as_me:$LINENO: result: skip at user request" >&5
-echo "${ECHO_T}skip at user request" >&6; }
-		fi
-	else
-		{ echo "$as_me:$LINENO: result: yes" >&5
+    cat > conftest.py <<EOF
+
+from distutils.core import setup, Extension
+setup(name='conftest',
+      version='1.0',
+      ext_modules=[Extension('_conftest', ['conftest.c'])]
+      )
+
+EOF
+
+     $PYTHON conftest.py build -b conftest_build
+     ac_python_build=$?
+
+     if test $ac_python_build ; then
+     	{ echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
-	fi
+	PYTHON_BUILD_EXT=yes
 
-	#
-	# if the macro parameter ``version'' is set, honour it
-	#
-	if test -n ""; then
-		{ echo "$as_me:$LINENO: checking for a version of Python " >&5
-echo $ECHO_N "checking for a version of Python ... $ECHO_C" >&6; }
-		ac_supports_python_ver=`$PYTHON -c "import sys, string; \
-			ver = string.split(sys.version)[0]; \
-			print ver "`
-		if test "$ac_supports_python_ver" = "True"; then
-	   	   { echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6; }
-		else
-			{ echo "$as_me:$LINENO: result: no" >&5
+     else
+        { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
-			{ echo "$as_me:$LINENO: this package requires Python .
-If you have it installed, but it isn't the default Python
-interpreter in your system path, please pass the PYTHON_VERSION
-variable to configure. See \`\`configure --help'' for reference.
-" >&5
-echo "$as_me: this package requires Python .
-If you have it installed, but it isn't the default Python
-interpreter in your system path, please pass the PYTHON_VERSION
-variable to configure. See \`\`configure --help'' for reference.
-" >&6;}
-			PYTHON_VERSION=""
-		fi
-	fi
+     fi
 
-	#
-	# Check if you have distutils, else fail
-	#
-	{ echo "$as_me:$LINENO: checking for the distutils Python package" >&5
-echo $ECHO_N "checking for the distutils Python package... $ECHO_C" >&6; }
-	ac_distutils_result=`$PYTHON -c "import distutils" 2>&1`
-	if test -z "$ac_distutils_result"; then
-		{ echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6; }
-	else
-		{ echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-		{ echo "$as_me:$LINENO: cannot import Python module \"distutils\".
-Please check your Python installation. The error was:
-$ac_distutils_result" >&5
-echo "$as_me: cannot import Python module \"distutils\".
-Please check your Python installation. The error was:
-$ac_distutils_result" >&6;}
-		PYTHON_VERSION=""
-	fi
+     rm -rf conftest_build conftest.py conftest.c
 
-	#
-	# Check for Python include path
-	#
-	{ echo "$as_me:$LINENO: checking for Python include path" >&5
-echo $ECHO_N "checking for Python include path... $ECHO_C" >&6; }
-	if test -z "$PYTHON_CPPFLAGS"; then
-		python_path=`$PYTHON -c "import distutils.sysconfig; \
-           		print distutils.sysconfig.get_python_inc();"`
-		if test -n "${python_path}"; then
-		   	python_path="-I$python_path"
-		fi
-		PYTHON_CPPFLAGS=$python_path
-	fi
-	{ echo "$as_me:$LINENO: result: $PYTHON_CPPFLAGS" >&5
-echo "${ECHO_T}$PYTHON_CPPFLAGS" >&6; }
-
-
-	#
-	# Check for Python library path
-	#
-	{ echo "$as_me:$LINENO: checking for Python library path" >&5
-echo $ECHO_N "checking for Python library path... $ECHO_C" >&6; }
-	if test -z "$PYTHON_LDFLAGS"; then
-		# (makes two attempts to ensure we've got a version number
-		# from the interpreter)
-		py_version=`$PYTHON -c "from distutils.sysconfig import *; \
-			from string import join; \
-			print join(get_config_vars('VERSION'))"`
-		if test "$py_version" == "None"; then
-			if test -n "$PYTHON_VERSION"; then
-				py_version=$PYTHON_VERSION
-			else
-				py_version=`$PYTHON -c "import sys; \
-					print sys.version[:3]"`
-			fi
-		fi
-
-		PYTHON_LDFLAGS=`$PYTHON -c "from distutils.sysconfig import *; \
-			from string import join; \
-			print '-L' + get_python_lib(0,1), \
-		      	'-lpython';"`$py_version
-	fi
-	{ echo "$as_me:$LINENO: result: $PYTHON_LDFLAGS" >&5
-echo "${ECHO_T}$PYTHON_LDFLAGS" >&6; }
-
-
-	#
-	# Check for site packages
-	#
-	{ echo "$as_me:$LINENO: checking for Python site-packages path" >&5
-echo $ECHO_N "checking for Python site-packages path... $ECHO_C" >&6; }
-	if test -z "$PYTHON_SITE_PKG"; then
-		PYTHON_SITE_PKG=`$PYTHON -c "import distutils.sysconfig; \
-		        print distutils.sysconfig.get_python_lib(0,0);"`
-	fi
-	{ echo "$as_me:$LINENO: result: $PYTHON_SITE_PKG" >&5
-echo "${ECHO_T}$PYTHON_SITE_PKG" >&6; }
-
-
-	#
-	# libraries which must be linked in when embedding
-	#
-	{ echo "$as_me:$LINENO: checking python extra libraries" >&5
-echo $ECHO_N "checking python extra libraries... $ECHO_C" >&6; }
-	if test -z "$PYTHON_EXTRA_LIBS"; then
-	   PYTHON_EXTRA_LIBS=`$PYTHON -c "import distutils.sysconfig; \
-                conf = distutils.sysconfig.get_config_var; \
-                print conf('LOCALMODLIBS'), conf('LIBS')"`
-	fi
-	{ echo "$as_me:$LINENO: result: $PYTHON_EXTRA_LIBS" >&5
-echo "${ECHO_T}$PYTHON_EXTRA_LIBS" >&6; }
-
-
-	#
-	# linking flags needed when embedding
-	#
-	{ echo "$as_me:$LINENO: checking python extra linking flags" >&5
-echo $ECHO_N "checking python extra linking flags... $ECHO_C" >&6; }
-	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
-		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "import distutils.sysconfig; \
-			conf = distutils.sysconfig.get_config_var; \
-			print conf('LINKFORSHARED')"`
-	fi
-	{ echo "$as_me:$LINENO: result: $PYTHON_EXTRA_LDFLAGS" >&5
-echo "${ECHO_T}$PYTHON_EXTRA_LDFLAGS" >&6; }
-
-
-	#
-	# final check to see if everything compiles alright
-	#
-	{ echo "$as_me:$LINENO: checking consistency of all components of python development environment" >&5
-echo $ECHO_N "checking consistency of all components of python development environment... $ECHO_C" >&6; }
-	ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-	# save current global flags
-	LIBS="$ac_save_LIBS $PYTHON_LDFLAGS"
-	CPPFLAGS="$ac_save_CPPFLAGS $PYTHON_CPPFLAGS"
-	cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-		#include <Python.h>
-
-int
-main ()
-{
-
-		Py_Initialize();
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext &&
-       $as_test_x conftest$ac_exeext; then
-  pythonexists=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	pythonexists=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-
-	{ echo "$as_me:$LINENO: result: $pythonexists" >&5
-echo "${ECHO_T}$pythonexists" >&6; }
-
-        if test ! "$pythonexists" = "yes"; then
-	   { echo "$as_me:$LINENO:
-  Could not link test program to Python. Maybe the main Python library has been
-  installed in some non-standard library path. If so, pass it to configure,
-  via the LDFLAGS environment variable.
-  Example: ./configure LDFLAGS=\"-L/usr/non-standard-path/python/lib\"
-  ============================================================================
-   NOTICE!
-   You probably have to install the development version of the Python package
-   for your distribution.  The exact name of this package varies among them.
-  ============================================================================
-	   " >&5
-echo "$as_me:
-  Could not link test program to Python. Maybe the main Python library has been
-  installed in some non-standard library path. If so, pass it to configure,
-  via the LDFLAGS environment variable.
-  Example: ./configure LDFLAGS=\"-L/usr/non-standard-path/python/lib\"
-  ============================================================================
-   NOTICE!
-   You probably have to install the development version of the Python package
-   for your distribution.  The exact name of this package varies among them.
-  ============================================================================
-	   " >&6;}
-	  PYTHON_VERSION=""
-
-	  # demmer: if there's no devel environment then don't set PYTHON at all
-	  PYTHON=""
-	fi
-	ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-	# turn back to default flags
-	CPPFLAGS="$ac_save_CPPFLAGS"
-	LIBS="$ac_save_LIBS"
-
-	#
-	# all done!
-	#
-
-	fi # PYTHON != ""
+     fi # PYTHON != ""
 
 
 #--------------------------------------------------------------------------
@@ -11644,7 +11385,6 @@ fi
 # basic system tests.
 #
 CPPFLAGS="-I\$(SRCDIR)/servlib -I\$(SRCDIR)/oasys $OASYS_CPPFLAGS $DTN_CPPFLAGS $CPPFLAGS"
-# CPPFLAGS="-I\$(SRCDIR)/servlib $OASYS_CPPFLAGS $DTN_CPPFLAGS $CPPFLAGS"
 LDFLAGS="-L. $OASYS_LDFLAGS $DTN_LDFLAGS $LDFLAGS"
 
 if test "x$STATIC" = "xlibs" ; then
@@ -12379,11 +12119,7 @@ LFSDEFS!$LFSDEFS$ac_delim
 TCL_LDFLAGS!$TCL_LDFLAGS$ac_delim
 XSD_TOOL!$XSD_TOOL$ac_delim
 PYTHON!$PYTHON$ac_delim
-PYTHON_CPPFLAGS!$PYTHON_CPPFLAGS$ac_delim
-PYTHON_LDFLAGS!$PYTHON_LDFLAGS$ac_delim
-PYTHON_SITE_PKG!$PYTHON_SITE_PKG$ac_delim
-PYTHON_EXTRA_LIBS!$PYTHON_EXTRA_LIBS$ac_delim
-PYTHON_EXTRA_LDFLAGS!$PYTHON_EXTRA_LDFLAGS$ac_delim
+PYTHON_BUILD_EXT!$PYTHON_BUILD_EXT$ac_delim
 CXXCPP!$CXXCPP$ac_delim
 OASYS_LIBS!$OASYS_LIBS$ac_delim
 subdirs!$subdirs$ac_delim
@@ -12391,7 +12127,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 88; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 84; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

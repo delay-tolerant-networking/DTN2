@@ -169,7 +169,7 @@ AC_OASYS_CONFIG_XSD
 AC_OASYS_CONFIG_STORAGE
 
 AX_WITH_PYTHON
-AC_PYTHON_DEVEL
+AC_PYTHON_BUILD_EXT
 
 #--------------------------------------------------------------------------
 # Checks for other optional features that may depend on third-party 
@@ -193,7 +193,6 @@ AC_CONFIG_OPENSSL
 # basic system tests.
 #
 CPPFLAGS="-I\$(SRCDIR)/servlib -I\$(SRCDIR)/oasys $OASYS_CPPFLAGS $DTN_CPPFLAGS $CPPFLAGS"
-# CPPFLAGS="-I\$(SRCDIR)/servlib $OASYS_CPPFLAGS $DTN_CPPFLAGS $CPPFLAGS"
 LDFLAGS="-L. $OASYS_LDFLAGS $DTN_LDFLAGS $LDFLAGS"
 
 if test "x$STATIC" = "xlibs" ; then

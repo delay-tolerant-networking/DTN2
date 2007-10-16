@@ -197,7 +197,7 @@ LIBFILES += libdtnapi++.$(SHLIB_EXT) libdtnapi++-$(VSHLIB)
 LIBFILES += tcl/libdtntcl.$(SHLIB_EXT) tcl/libdtntcl-$(VSHLIB)
 endif
 
-ifneq ($(PYTHON),)
+ifneq ($(PYTHON_BUILD_EXT),)
 LIBFILES += python/dtnapi.pyc
 endif
 
