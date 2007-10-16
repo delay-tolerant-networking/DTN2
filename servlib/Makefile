@@ -191,21 +191,21 @@ STORAGE_SRCS :=					\
 	storage/GlobalStore.cc			\
 	storage/RegistrationStore.cc		\
 
-SECURITY_SRCS :=					\
-	security/Ciphersuite.cc				\
-	security/BA_BlockProcessor.cc	\
-	security/PS_BlockProcessor.cc	\
-	security/C_BlockProcessor.cc	\
-	security/Ciphersuite_BA1.cc	\
-	security/Ciphersuite_PS2.cc	\
-	security/Ciphersuite_C3.cc	\
-	security/BP_Tag.cc				\
-	security/KeyDB.cc				\
-	security/SPD.cc					\
+SECURITY_SRCS :=				\
+	security/Ciphersuite.cc			\
+	security/BA_BlockProcessor.cc		\
+	security/PS_BlockProcessor.cc		\
+	security/C_BlockProcessor.cc		\
+	security/Ciphersuite_BA1.cc		\
+	security/Ciphersuite_PS2.cc		\
+	security/Ciphersuite_C3.cc		\
+	security/BP_Tag.cc			\
+	security/KeyDB.cc			\
+	security/SPD.cc				\
 	security/KeySteward.cc			\
-	gcm/gcm_aes.c					\
-	gcm/gcm.cc						\
-	gcm/gf128mul.cc					\
+	gcm/gcm_aes.c				\
+	gcm/gcm.cc				\
+	gcm/gf128mul.cc				\
 
 SERVLIB_SRCS := 				\
 	DTNServer.cc				\
