@@ -121,7 +121,6 @@ oasys_save_CFLAGS="$CFLAGS"
 oasys_save_CXXFLAGS="$CXXFLAGS"
 
 # these macros directly or indirectly call AC_PROG_CC and AC_PROG_CXX
-AC_OASYS_CONFIG_GCC_OPTS
 AC_OASYS_CONFIG_GCC
 
 # now that AC_PROG_CC and AC_PROG_CXX are done, we know whether we're
