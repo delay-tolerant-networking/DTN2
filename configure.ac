@@ -222,30 +222,17 @@ AC_OUTPUT
 chmod oug-w Rules.make config.h config.h oasys/Rules.make oasys/config.h
 
 echo "DTN2 configure state:"
-echo "Target/Tools:"
 echo "  TARGET is: $TARGET"
 echo "  CC is: $CC (version $oasys_cv_prog_gccver)"
 echo "  CXX is: $CXX"
+
 echo " "
 echo "Options:"
-echo "  Debug: $DEBUG"
-echo "  Optimize: $OPTIMIZE"
-echo "  Static: $STATIC"
+echo "  CPPFLAGS: $CPPFLAGS"
+echo "  LDFLAGS:  $LDFLAGS"
+echo "  LIBS:     $LIBS"
 echo " "
 echo "External packages:"
-echo "  tcl: $oasys_cv_path_tcl_h/tcl.h -L$oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
-if test $LIBDB_ENABLED = 1 ; then
-  echo "  db: $oasys_cv_path_db_h/db.h -L$oasys_cv_path_db_lib -l$oasys_cv_lib_db"
-fi
-
-if test $POSTGRES_ENABLED = 1 ; then
-  echo "  postgres: $oasys_cv_path_postgres_h/libpq-fe.h -L $oasys_cv_path_postgres_lib -lpq"
-fi
-
-if test $MYSQL_ENABLED = 1 ; then 
-  if test "$ac_mysqldaemon" = "no" ; then
-     echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqlclient"
-  else
-     echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqld"
-  fi
-fi
+echo "  OASYS_CPPFLAGS: $OASYS_CPPFLAGS"
+echo "  OASYS_LDFLAGS:  $OASYS_LDFLAGS"
+echo "  OASYS_LIBS:     $OASYS_LIBS"

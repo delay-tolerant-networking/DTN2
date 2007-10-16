@@ -9553,13 +9553,13 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-                            if test "$ac_dbdir" = yes -a ! x$oasys_cv_path_db_h = x ; then
-        echo "checking for Berkeley DB installation... (cached) $oasys_cv_path_db_h/db.h, $oasys_cv_path_db_lib -l$oasys_cv_lib_db"
+                            if test "$ac_dbdir" = yes -a ! x$oasys_cv_db_incpath = x ; then
+        echo "checking for Berkeley DB installation... (cached) -I$oasys_cv_db_incpath -L$oasys_cv_db_libpath -l$oasys_cv_db_lib"
     else
 
-    oasys_cv_path_db_h=
-    oasys_cv_path_db_lib=
-    oasys_cv_lib_db=
+    oasys_cv_db_incpath=
+    oasys_cv_db_libpath=
+    oasys_cv_db_lib=
 
     ac_save_CPPFLAGS="$CPPFLAGS"
     ac_save_LDFLAGS="$LDFLAGS"
@@ -9570,28 +9570,31 @@ _ACEOF
     ac_dbver_major=`echo $ac_dbver | cut -d . -f1`
     ac_dbver_minor=`echo $ac_dbver | cut -d . -f2`
 
-    if test "$ac_dbdir" = system -o \
+                    if test "$ac_dbdir" = system -o \
             "$ac_dbdir" = yes -o \
             "$ac_dbdir" = "" ;
     then
-        ac_dbincdirs="/usr/include"
-        ac_dbincdirs="$ac_dbincdirs /usr/include/db$ac_dbver"
-	ac_dbincdirs="$ac_dbincdirs /usr/local/include/db$ac_dbver"
-	ac_dbincdirs="$ac_dbincdirs /usr/local/include/db$ac_dbver_major"
-	ac_dbincdirs="$ac_dbincdirs /usr/local/include/db$ac_dbver_major$ac_dbver_minor"
-        ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$ac_dbver/include"
-
-        ac_dblibdirs="/usr/lib"
-	ac_dblibdirs="$ac_dblibdirs /usr/local/lib"
-	ac_dblibdirs="$ac_dblibdirs /usr/local/lib/db$ac_dbver"
-	ac_dblibdirs="$ac_dblibdirs /usr/local/lib/db$ac_dbver_major$ac_dbver_minor"
-        ac_dblibdirs="$ac_dblibdirs /usr/local/BerkeleyDB.$ac_dbver/lib"
+	ac_dbdirs="/usr /usr/local /usr/local/BerkeleyDB.$ac_dbver"
     else
-        ac_dbincdirs="$ac_dbdir/include"
-        ac_dblibdirs="$ac_dbdir/lib"
+	ac_dbdirs="$ac_dbdir"
     fi
 
-    for ac_dbincdir in $ac_dbincdirs; do
+    for dir in $ac_dbdirs; do
+        ac_dbincdirs="$dir/include"
+        ac_dblibdirs="$dir/lib"
+
+				if test $dir = /usr/local ; then
+ 	    ac_dbincdirs="$ac_dbincdirs /usr/local/include/db$ac_dbver"
+ 	    ac_dbincdirs="$ac_dbincdirs /usr/local/include/db$ac_dbver_major"
+ 	    ac_dbincdirs="$ac_dbincdirs /usr/local/include/db$ac_dbver_major$ac_dbver_minor"
+
+ 	    ac_dblibdirs="$ac_dblibdirs /usr/local/lib/db$ac_dbver"
+ 	    ac_dblibdirs="$ac_dblibdirs /usr/local/lib/db$ac_dbver_major"
+ 	    ac_dblibdirs="$ac_dblibdirs /usr/local/lib/db$ac_dbver_major$ac_dbver_minor"
+	fi
+
+	for ac_dbincdir in $ac_dbincdirs ; do
+
 	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_dbincdir"
 	LDFLAGS="$ac_save_LDFLAGS"
 	LIBS="$ac_save_LIBS"
@@ -9657,33 +9660,33 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
 
-      for ac_dblibdir in $ac_dblibdirs; do
-      for ac_dblib    in db-$ac_dbver; do
+          for ac_dblibdir in $ac_dblibdirs; do
+          for ac_dblib    in db-$ac_dbver; do
 
-	LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
-	if test x"$STATIC" = x"extlibs" ; then
-		LIBS="-Wl,-Bstatic -l$ac_dblib -Wl,-Bdynamic $ac_save_LIBS"
-	else
-		LIBS="-l$ac_dblib $ac_save_LIBS"
-	fi
+          LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
+          if test x"$STATIC" = x"extlibs" ; then
+                  LIBS="-Wl,-Bstatic -l$ac_dblib -Wl,-Bdynamic $ac_save_LIBS"
+          else
+                  LIBS="-l$ac_dblib $ac_save_LIBS"
+          fi
 
-        { echo "$as_me:$LINENO: checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib" >&5
+          { echo "$as_me:$LINENO: checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib" >&5
 echo $ECHO_N "checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib... $ECHO_C" >&6; }
-	cat >conftest.$ac_ext <<_ACEOF
+          cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-                #include <db.h>
+                  #include <db.h>
 
 int
 main ()
 {
 
-	        DB *db;
-                db_create(&db, NULL, 0);
+                  DB *db;
+                  db_create(&db, NULL, 0);
 
   ;
   return 0;
@@ -9708,29 +9711,31 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
        } && test -s conftest$ac_exeext &&
        $as_test_x conftest$ac_exeext; then
 
-              { echo "$as_me:$LINENO: result: yes" >&5
+                { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
-              oasys_cv_path_db_h=$ac_dbincdir
-              oasys_cv_path_db_lib=$ac_dblibdir
-              oasys_cv_lib_db=$ac_dblib
-              break 4
+                oasys_cv_db_incpath=$ac_dbincdir
+                oasys_cv_db_libpath=$ac_dblibdir
+                oasys_cv_db_lib=$ac_dblib
+                break 5
 
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 
-              { echo "$as_me:$LINENO: result: no" >&5
+                { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
 
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
-    done
-    done
-    done
-    done
+
+          done # foreach ac_dblib
+          done # foreach ac_dblibdir
+        done # foreach ac_dbincdir
+    done # foreach ac_dbdir
+    done # foreach ac_dbver
 
 
 cat >>confdefs.h <<_ACEOF
@@ -9742,7 +9747,7 @@ _ACEOF
     LDFLAGS="$ac_save_LDFLAGS"
     LIBS="$ac_save_LIBS"
 
-    if test x$oasys_cv_path_db_h = x ; then
+    if test x$oasys_cv_db_incpath = x ; then
 
 cat <<EOF
 
@@ -9774,17 +9779,17 @@ echo "$as_me: error: can't find usable Berkeley DB installation" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
+    fi # no cache
+
+    if test ! $oasys_cv_db_incpath = /usr/include ; then
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_db_incpath"
     fi
 
-    if test ! $oasys_cv_path_db_h = /usr/include ; then
-        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_db_h"
+    if test ! $oasys_cv_db_libpath = /usr/lib ; then
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_db_libpath"
     fi
 
-    if test ! $oasys_cv_path_db_lib = /usr/lib ; then
-        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_db_lib"
-    fi
-
-    OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_db"
+    OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_db_lib"
 
     fi # LIBDB_ENABLED
 
@@ -12751,30 +12756,17 @@ fi
 chmod oug-w Rules.make config.h config.h oasys/Rules.make oasys/config.h
 
 echo "DTN2 configure state:"
-echo "Target/Tools:"
 echo "  TARGET is: $TARGET"
 echo "  CC is: $CC (version $oasys_cv_prog_gccver)"
 echo "  CXX is: $CXX"
+
 echo " "
 echo "Options:"
-echo "  Debug: $DEBUG"
-echo "  Optimize: $OPTIMIZE"
-echo "  Static: $STATIC"
+echo "  CPPFLAGS: $CPPFLAGS"
+echo "  LDFLAGS:  $LDFLAGS"
+echo "  LIBS:     $LIBS"
 echo " "
 echo "External packages:"
-echo "  tcl: $oasys_cv_path_tcl_h/tcl.h -L$oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
-if test $LIBDB_ENABLED = 1 ; then
-  echo "  db: $oasys_cv_path_db_h/db.h -L$oasys_cv_path_db_lib -l$oasys_cv_lib_db"
-fi
-
-if test $POSTGRES_ENABLED = 1 ; then
-  echo "  postgres: $oasys_cv_path_postgres_h/libpq-fe.h -L $oasys_cv_path_postgres_lib -lpq"
-fi
-
-if test $MYSQL_ENABLED = 1 ; then
-  if test "$ac_mysqldaemon" = "no" ; then
-     echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqlclient"
-  else
-     echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqld"
-  fi
-fi
+echo "  OASYS_CPPFLAGS: $OASYS_CPPFLAGS"
+echo "  OASYS_LDFLAGS:  $OASYS_LDFLAGS"
+echo "  OASYS_LIBS:     $OASYS_LIBS"
