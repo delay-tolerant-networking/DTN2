@@ -168,6 +168,9 @@ AC_OASYS_CONFIG_ZLIB
 AC_OASYS_CONFIG_XSD
 AC_OASYS_CONFIG_STORAGE
 
+AX_WITH_PYTHON
+AC_PYTHON_DEVEL
+
 #--------------------------------------------------------------------------
 # Checks for other optional features that may depend on third-party 
 # libraries.

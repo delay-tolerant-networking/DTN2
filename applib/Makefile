@@ -126,9 +126,10 @@ tcl/libdtntcl-$(VSHLIB): tcl/dtn_api_wrap_tcl.o libdtnapi-$(VSHLIB)
 pythonapi: python/dtnapi.pyc
 python/dtnapi.pyc: python/setup.py python/dtn_api_wrap_python.cc libdtnapi-$(VSHLIB)
 	cd python && python setup.py build
+	cd python && python -c "import py_compile; py_compile.compile('dtnapi.py')"
 
-pythonapi_install: pythonapi
-	cd python && python setup.py install
+pythonapi_install:
+	cd python && make install
 
 OTHER_FILES += python/MANIFEST python/dtnapi.pyc python/build python/dist
 
@@ -194,6 +195,10 @@ ifeq ($(SHLIBS),yes)
 LIBFILES += libdtnapi.$(SHLIB_EXT) libdtnapi-$(VSHLIB) 
 LIBFILES += libdtnapi++.$(SHLIB_EXT) libdtnapi++-$(VSHLIB)
 LIBFILES += tcl/libdtntcl.$(SHLIB_EXT) tcl/libdtntcl-$(VSHLIB)
+endif
+
+ifneq ($(PYTHON),)
+LIBFILES += python/dtnapi.pyc
 endif
 
 libs: $(LIBFILES)
