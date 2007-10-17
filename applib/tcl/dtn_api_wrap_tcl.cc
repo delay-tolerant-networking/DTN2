@@ -7919,7 +7919,7 @@ SWIGEXPORT int SWIG_init(Tcl_Interp *interp) {
   SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_AUTHDATA", SWIG_From_int(static_cast< int >(1024)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_REGION_LEN", SWIG_From_int(static_cast< int >(64)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_BUNDLE_MEM", SWIG_From_int(static_cast< int >(50000)));
-  SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_BLOCK_LEN", SWIG_From_int(static_cast< int >(64)));
+  SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_BLOCK_LEN", SWIG_From_int(static_cast< int >(1024)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_BLOCKS", SWIG_From_int(static_cast< int >(256)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_REGID_NONE", SWIG_From_int(static_cast< int >(0)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_REG_DROP", SWIG_From_int(static_cast< int >(DTN_REG_DROP)));
