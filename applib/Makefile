@@ -135,7 +135,7 @@ tcl/libdtntcl-$(VSHLIB): tcl/dtn_api_wrap_tcl.o libdtnapi-$(VSHLIB)
 #
 .PHONY: pythonapi pythonapi_install
 pythonapi: python/dtnapi.pyc
-python/dtnapi.pyc: pythondir python/setup.py python/dtn_api_wrap_python.cc libdtnapi-$(VSHLIB)
+python/dtnapi.pyc: python/setup.py python/dtn_api_wrap_python.cc libdtnapi-$(VSHLIB)
 	cd python && $(SWIG_BUILD_ENV) python setup.py build
 	cd python && python -c "import py_compile; py_compile.compile('dtnapi.py')"
 
@@ -143,11 +143,11 @@ python/dtnapi.pyc: pythondir python/setup.py python/dtn_api_wrap_python.cc libdt
 # Need to create the python directory and symlink the relevant files
 # if we're not building in the source directory
 #
-pythondir:
-	[ -d python ] || (mkdir python && cd python && \
-			  ln -s $(SRCDIR)/applib/python/dtnapi.py && \
-			  ln -s $(SRCDIR)/applib/python/dtn_api_wrap_python.cc && \
-			  ln -s $(SRCDIR)/applib/python/setup.py)
+python/setup.py:
+	mkdir python && cd python && \
+	ln -s $(SRCDIR)/applib/python/dtnapi.py && \
+	ln -s $(SRCDIR)/applib/python/dtn_api_wrap_python.cc && \
+	ln -s $(SRCDIR)/applib/python/setup.py
 
 pythonapi_install:
 	cd python && $(SWIG_BUILD_ENV) python setup.py install
@@ -160,7 +160,7 @@ OTHER_FILES += python/MANIFEST python/dtnapi.pyc python/build python/dist
 .PHONY: perlapi perlapi_install
 perlapi: perl/dtn_api_wrap_perl.o
 
-perl/dtn_api_wrap_perl.o: perldir perl/dtn_api_wrap_perl.cc libdtnapi-$(VSHLIB)
+perl/dtn_api_wrap_perl.o: perl/Makefile.PL perl/dtn_api_wrap_perl.cc libdtnapi-$(VSHLIB)
 	cd perl && \
 	  $(SWIG_BUILD_ENV) perl Makefile.PL CC=$(CXX) LD=$(CXX) CCFLAGS=$(CFLAGS) VERSION=$(DTN_VERSION) && make
 
@@ -168,13 +168,13 @@ perlapi_install: perlapi
 	cd perl && make install
 
 #
-# Need to create the python directory and symlink the relevant files
+# Need to create the perl directory and symlink the relevant files
 # if we're not building in the source directory
 #
-perldir:
-	[ -d perl ] || (mkdir perl && cd perl && \
-			  ln -s $(SRCDIR)/applib/perl/Makefile.PL && \
-			  ln -s $(SRCDIR)/applib/perl/dtn_api_wrap_perl.cc)
+perl/Makefile.PL:
+	mkdir perl && cd perl && \
+	ln -s $(SRCDIR)/applib/perl/Makefile.PL && \
+	ln -s $(SRCDIR)/applib/perl/dtn_api_wrap_perl.cc
 
 OTHER_FILES += perl/Makefile perl/Makefile.old perl/blib perl/dtnapi.bs perl/pm_to_blib
 
