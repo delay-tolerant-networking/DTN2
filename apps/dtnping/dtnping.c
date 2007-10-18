@@ -154,7 +154,7 @@ main(int argc, const char** argv)
     ping_spec.expiration = expiration;
     ping_spec.dopts = DOPTS_DELETE_RCPT;
 
-    printf("PING [%s]...\n", ping_spec.dest.uri);
+    printf("PING [%s] (expiration %u)...\n", ping_spec.dest.uri, expiration);
     if (interval == 0) {
         printf("WARNING: zero second interval will result in flooding pings!!\n");
     }
