@@ -71,7 +71,8 @@ MetadataBlockProcessor::validate(const Bundle*           bundle,
                                  status_report_reason_t* deletion_reason)
 {
     static const char* log = "/dtn/bundle/protocol";
-
+    (void)log;
+    
     ASSERT(bundle != NULL);
     ASSERT(block != NULL);
     ASSERT(block->owner() == this);
