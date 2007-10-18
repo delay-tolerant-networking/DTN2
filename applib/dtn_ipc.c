@@ -133,8 +133,8 @@ dtnipc_open(dtnipc_handle_t* handle)
     
     ret = connect(handle->sock, (const struct sockaddr*)&sa, sizeof(sa));
     if (ret != 0) {
-        handle->err = DTN_ECOMM;
         dtnipc_close(handle);
+        handle->err = DTN_ECOMM;
         return -1;
     }
 
@@ -144,8 +144,8 @@ dtnipc_open(dtnipc_handle_t* handle)
     handshake = htonl(DTN_OPEN << 16 | dtnipc_version);
     ret = write(handle->sock, &handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
-        handle->err = DTN_ECOMM;
         dtnipc_close(handle);
+        handle->err = DTN_ECOMM;
         return -1;
     }
 
@@ -153,14 +153,14 @@ dtnipc_open(dtnipc_handle_t* handle)
     handshake = 0;
     ret = read(handle->sock, &handshake, sizeof(handshake));
     if (ret != sizeof(handshake) || (ntohl(handshake) >> 16) != DTN_OPEN) {
-        handle->err = DTN_ECOMM;
         dtnipc_close(handle);
+        handle->err = DTN_ECOMM;
         return -1;
     }
     
     if ((ntohl(handshake) & 0x0ffff) != DTN_IPC_VERSION) {
-        handle->err = DTN_EMSGTYPE;
         dtnipc_close(handle);
+        handle->err = DTN_EVERSION;
         return -1;
     }
     

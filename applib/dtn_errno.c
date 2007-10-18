@@ -33,6 +33,7 @@ dtn_strerror(int err)
     case DTN_EINTERNAL: return "internal error";
     case DTN_EINPOLL:   return "illegal operation called after dtn_poll";
     case DTN_EBUSY:     return "registration already in use";
+    case DTN_EVERSION:  return "ipc version mismatch";
     case DTN_EMSGTYPE:  return "unknown ipc message type";
     case DTN_ENOSPACE:	return "no storage space";
     case -1:            return "(invalid error code -1)";

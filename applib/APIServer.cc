@@ -165,20 +165,25 @@ APIClient::handle_handshake()
     ipc_version = (u_int16_t) (ntohl(handshake) & 0x0ffff);
 
     if (message_type != DTN_OPEN) {
-        log_err("handshake (%d)'s message type %d != DTN_OPEN (%d)",
+        log_err("handshake (0x%x)'s message type %d != DTN_OPEN (%d)",
                 handshake, message_type, DTN_OPEN);
         return -1;
     }
     
-    if (ipc_version != DTN_IPC_VERSION) {
-        log_err("handshake (%d)'s version %d != DTN_IPC_VERSION (%d)",
-                handshake, ipc_version, DTN_IPC_VERSION);
-        return -1;
-    }
+    // to handle version mismatch more cleanly, we re-build the
+    // handshake word with our own version and send it back to inform
+    // the client, then if there's a mismatch, close the channel
+    handshake = htonl(DTN_OPEN << 16 | DTN_IPC_VERSION);
     
     ret = writeall((char*)&handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
         log_err("error writing handshake: %s", strerror(errno));
+        return -1;
+    }
+
+    if (ipc_version != DTN_IPC_VERSION) {
+        log_err("handshake (0x%x)'s version %d != DTN_IPC_VERSION (%d)",
+                handshake, ipc_version, DTN_IPC_VERSION);
         return -1;
     }
 
