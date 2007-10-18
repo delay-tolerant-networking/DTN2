@@ -102,6 +102,17 @@ xdrs:
 	rpcgen -c dtn_types.x -o dtn_types_xdr.c
 
 #
+# The python and perl scripts need some environment variables to
+# properly set up the include and lib paths.
+#
+ifeq ($(SRCDIR),..)
+SWIG_BUILD_ENV := INCDIR=../.. LIBDIR=..
+else
+SWIG_BUILD_ENV := INCDIR=$(SRCDIR) LIBDIR=..
+endif
+
+
+#
 # SWIG rules to generate the language-specific bindings
 #
 .PHONY: swig
@@ -124,12 +135,22 @@ tcl/libdtntcl-$(VSHLIB): tcl/dtn_api_wrap_tcl.o libdtnapi-$(VSHLIB)
 #
 .PHONY: pythonapi pythonapi_install
 pythonapi: python/dtnapi.pyc
-python/dtnapi.pyc: python/setup.py python/dtn_api_wrap_python.cc libdtnapi-$(VSHLIB)
-	cd python && python setup.py build
+python/dtnapi.pyc: pythondir python/setup.py python/dtn_api_wrap_python.cc libdtnapi-$(VSHLIB)
+	cd python && $(SWIG_BUILD_ENV) python setup.py build
 	cd python && python -c "import py_compile; py_compile.compile('dtnapi.py')"
 
+#
+# Need to create the python directory and symlink the relevant files
+# if we're not building in the source directory
+#
+pythondir:
+	[ -d python ] || (mkdir python && cd python && \
+			  ln -s $(SRCDIR)/applib/python/dtnapi.py && \
+			  ln -s $(SRCDIR)/applib/python/dtn_api_wrap_python.cc && \
+			  ln -s $(SRCDIR)/applib/python/setup.py)
+
 pythonapi_install:
-	cd python && make install
+	cd python && $(SWIG_BUILD_ENV) python setup.py install
 
 OTHER_FILES += python/MANIFEST python/dtnapi.pyc python/build python/dist
 
@@ -139,12 +160,21 @@ OTHER_FILES += python/MANIFEST python/dtnapi.pyc python/build python/dist
 .PHONY: perlapi perlapi_install
 perlapi: perl/dtn_api_wrap_perl.o
 
-perl/dtn_api_wrap_perl.o: perl/dtn_api_wrap_perl.cc libdtnapi-$(VSHLIB)
+perl/dtn_api_wrap_perl.o: perldir perl/dtn_api_wrap_perl.cc libdtnapi-$(VSHLIB)
 	cd perl && \
-	  perl Makefile.PL CC=$(CXX) LD=$(CXX) CCFLAGS=$(CFLAGS) VERSION=$(DTN_VERSION) && make
+	  $(SWIG_BUILD_ENV) perl Makefile.PL CC=$(CXX) LD=$(CXX) CCFLAGS=$(CFLAGS) VERSION=$(DTN_VERSION) && make
 
 perlapi_install: perlapi
 	cd perl && make install
+
+#
+# Need to create the python directory and symlink the relevant files
+# if we're not building in the source directory
+#
+perldir:
+	[ -d perl ] || (mkdir perl && cd perl && \
+			  ln -s $(SRCDIR)/applib/perl/Makefile.PL && \
+			  ln -s $(SRCDIR)/applib/perl/dtn_api_wrap_perl.cc)
 
 OTHER_FILES += perl/Makefile perl/Makefile.old perl/blib perl/dtnapi.bs perl/pm_to_blib
 

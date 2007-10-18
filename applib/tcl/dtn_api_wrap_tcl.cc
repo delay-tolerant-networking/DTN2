@@ -1656,9 +1656,9 @@ SWIGEXPORT int SWIG_init(Tcl_Interp *);
 /* Include files needed to build the wrapper code */
 using namespace std;
 
-#include "../dtn_types.h"
-#include "../dtn_api.h"
-#include "../dtn_api_wrap.cc"
+#include <applib/dtn_types.h>
+#include <applib/dtn_api.h>
+#include <applib/dtn_api_wrap.cc>
 
 
 #include <limits.h>

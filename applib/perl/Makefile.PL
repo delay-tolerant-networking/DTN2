@@ -9,8 +9,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
 	      'FIRST_MAKEFILE' => 'Makefile',
 	      'NAME'   => 'dtnapi',
-	      'LIBS'   => ["-ldtnapi"],
+	      'INC'    => "-I $ENV{INCDIR}",
+	      'LIBS'   => ["-L$ENV{LIBDIR} -ldtnapi"],
 	      'OBJECT' => 'dtn_api_wrap_perl.o',
 	      );
-
-

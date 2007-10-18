@@ -1,4 +1,11 @@
 from distutils.core import setup, Extension
+from os import getenv
+
+INCDIR   = getenv('INCDIR')
+LIBDIR = getenv('LIBDIR')
+
+if INCDIR == None: raise ValueError('must set INCDIR')
+if LIBDIR == None: raise ValueError('must set LIBDIR')
 
 setup(name="dtnapi", 
       version="2.4.1", 
@@ -8,5 +15,7 @@ setup(name="dtnapi",
       url="http://www.dtnrg.org",
       py_modules=["dtnapi"],
       ext_modules=[Extension("_dtnapi", ["dtn_api_wrap_python.cc"],
-			     library_dirs=[".."], libraries=["dtnapi-2.4.1"])]
+                             include_dirs=[INCDIR],
+			     library_dirs=[LIBDIR],
+                             libraries=["dtnapi-2.4.1"])]
       )
