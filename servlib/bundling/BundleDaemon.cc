@@ -2169,8 +2169,8 @@ BundleDaemon::delete_from_pending(Bundle* bundle)
     
     bool erased = pending_bundles_->erase(bundle);
 
-    int elapsed = now.elapsed_ms();
-    log_debug("BundleDaemon: pending_bundles erasure took %d ms", elapsed);
+    log_debug("BundleDaemon: pending_bundles erasure took %u ms",
+              now.elapsed_ms());
 
     if (!erased) {
         log_err("unexpected error removing bundle from pending list");
@@ -2303,9 +2303,8 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
         actions_->cancel_bundle(bundle, (*iter));
     }
     
-    int elapsed = now.elapsed_ms();
-    log_debug("BundleDaemon: canceling deleted bundle on all links took %d ms",
-               elapsed);
+    log_debug("BundleDaemon: canceling deleted bundle on all links took %u ms",
+               now.elapsed_ms());
 
     return erased;
 }
@@ -2564,7 +2563,7 @@ BundleDaemon::run()
 
             int elapsed = now.elapsed_ms();
             if (elapsed > 2000) {
-                log_warn_p(LOOP_LOG, "event %s took %d ms to process",
+                log_warn_p(LOOP_LOG, "event %s took %u ms to process",
                            event->type_str(), elapsed);
             }
 
