@@ -106,11 +106,19 @@ xdrs:
 # properly set up the include and lib paths.
 #
 ifeq ($(SRCDIR),..)
-SWIG_BUILD_ENV := INCDIR=../.. LIBDIR=..
+SWIG_BUILD_ENV := INCDIR=../.. LIBDIR=.. VERSION=$(DTN_VERSION)
 else
-SWIG_BUILD_ENV := INCDIR=$(SRCDIR) LIBDIR=..
+SWIG_BUILD_ENV := INCDIR=$(SRCDIR) LIBDIR=.. VERSION=$(DTN_VERSION)
 endif
 
+#
+# For some install rules we need the prefix
+#
+ifneq ($(DESTDIR),)
+INSTALL_PREFIX := --prefix=$(DESTDIR)usr
+else
+INSTALL_PREFIX := 
+endif
 
 #
 # SWIG rules to generate the language-specific bindings
@@ -150,7 +158,7 @@ python/setup.py:
 	ln -s $(SRCDIR)/applib/python/setup.py
 
 pythonapi_install:
-	cd python && $(SWIG_BUILD_ENV) python setup.py install
+	cd python && $(SWIG_BUILD_ENV) python setup.py install $(INSTALL_PREFIX)
 
 OTHER_FILES += python/MANIFEST python/dtnapi.pyc python/build python/dist
 
