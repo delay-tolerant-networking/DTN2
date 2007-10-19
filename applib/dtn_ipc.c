@@ -158,7 +158,7 @@ dtnipc_open(dtnipc_handle_t* handle)
         return -1;
     }
     
-    if ((ntohl(handshake) & 0x0ffff) != DTN_IPC_VERSION) {
+    if ((ntohl(handshake) & 0x0ffff) != dtnipc_version) {
         dtnipc_close(handle);
         handle->err = DTN_EVERSION;
         return -1;
