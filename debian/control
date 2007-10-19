@@ -9,6 +9,7 @@ Package: dtn
 Architecture: any
 Suggests: tclreadline
 Depends: ${shlibs:Depends}
+Provides: dtn
 Description: Delay Tolerant Networking reference implementation
  .
  This package contains the reference implementation of the Delay
@@ -21,6 +22,7 @@ Description: Delay Tolerant Networking reference implementation
 
 Package: python-dtn
 Depends: dtn
+Provides: ${python:Provides}
 Architecture: all
 Description: DTN python api
  .

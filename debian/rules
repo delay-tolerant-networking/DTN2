@@ -28,12 +28,13 @@ clean:
 	dh_clean
 
 install: build
+	dh_clean
 	dh_testdir
 	dh_testroot
 	dh_installdirs
 
 	$(MAKE) DESTDIR=`pwd`/debian/dtn/ install
-	$(MAKE) DESTDIR=`pwd`/debian/dtn/ -C applib pythonapi_install
+	$(MAKE) DESTDIR=`pwd`/debian/python-dtn/ -C applib pythonapi_install
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -43,7 +44,7 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs
+#	dh_installchangelogs
 	dh_installdocs
 	dh_installexamples
 #	dh_installmenu
@@ -63,7 +64,6 @@ binary-arch: build install
 	dh_compress
 	dh_fixperms
 #	dh_perl
-	dh_python
 #	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps
