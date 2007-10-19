@@ -370,7 +370,7 @@ INPUT                  = .
 # *.c *.cc *.cxx *.cpp *.c++ *.java *.ii *.ixx *.ipp *.i++ *.inl *.h *.hh *.hxx *.hpp 
 # *.h++ *.idl *.odl *.cs *.php *.php3 *.inc
 
-FILE_PATTERNS          = 
+FILE_PATTERNS          = *.h *.cc *.c 
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories 
 # should be searched for input files as well. Possible values are YES and NO. 
@@ -382,9 +382,14 @@ RECURSIVE              = YES
 # excluded from the INPUT source files. This way you can easily exclude a 
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE                = doc/ ideas/ test/ oasys/compat/ oasys/test/ \
-		         oasys/thread/Atomic-x86.h \
-			 oasys/debug/Formatter.cc
+EXCLUDE                = doc/ ideas/ test/ \
+			 servlib/routing/router.h servlib/routing/router.cc \
+			 servlib/routing/router-custom.h servlib/routing/router-custom.cc \
+			 servlib/conv_layers/clevent.h servlib/conv_layers/clevent.cc \			 
+			 oasys/compat/ oasys/test/ oasys/xsd/ \
+			 oasys/debug/Formatter.cc oasys/debug/vfprintf.c \
+			 oasys/storage/DS.h oasys/storage/DS.cc \
+			 apps/tca_admin/libs/ 
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or directories 
 # that are symbolic links (a Unix filesystem feature) are excluded from the input.
@@ -395,7 +400,7 @@ EXCLUDE_SYMLINKS       = NO
 # EXCLUDE_PATTERNS tag to specify one or more wildcard patterns to exclude 
 # certain files from those directories.
 
-EXCLUDE_PATTERNS       = gdtoa* arith*.h
+EXCLUDE_PATTERNS       = gdtoa* arith*.h Atomic-*.h
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or 
 # directories that contain example code fragments that are included (see 
