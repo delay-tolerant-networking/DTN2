@@ -83,7 +83,9 @@ dtn-tests:
 #
 # Installation rules
 #
-install:
+install: installdirs installbin installlib installetc
+
+installdirs:
 	for dir in $(DESTDIR)$(localstatedir)/dtn \
 		   $(DESTDIR)$(localstatedir)/dtn/bundles \
 		   $(DESTDIR)$(localstatedir)/dtn/db ; do \
@@ -97,6 +99,7 @@ install:
 	[ -d $(DESTDIR)$(libdir) ] || \
 	    (mkdir -p $(DESTDIR)$(libdir); chmod 755 $(DESTDIR)$(libdir))
 
+installbin: installdirs
 	for prog in daemon/dtnd \
 		    tools/dtnd-control \
 		    apps/dtncat/dtncat \
@@ -111,6 +114,9 @@ install:
 	    ($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir)) ; \
 	done
 
+	[ x$(DTN_USER) = x ] || chown -R $(DTN_USER) $(DESTDIR)$(bindir)
+
+installlib: installdirs
 	[ x$(SHLIBS) = x ] || \
 	for lib in oasys/liboasys.$(SHLIB_EXT) \
 		   oasys/liboasyscompat.$(SHLIB_EXT) \
@@ -125,8 +131,7 @@ install:
 		 ln -s $$lib-$(DTN_VERSION).$(SHLIB_EXT) $$lib.$(SHLIB_EXT)) \
 	done
 
-	[ x$(DTN_USER) = x ] || chown -R $(DTN_USER) $(DESTDIR)$(bindir)
-
+installetc: installdirs
 	[ -d $(DESTDIR)$(sysconfdir) ] || mkdir -p $(DESTDIR)$(sysconfdir)
 	if [ -f $(DESTDIR)$(sysconfdir)/dtn.conf ]; then \
 		echo "WARNING: $(DESTDIR)$(sysconfdir)/dtn.conf exists -- not overwriting"; \
