@@ -2,7 +2,7 @@ Source: dtn
 Section: net
 Priority: optional
 Maintainer: Michael Demmer [demmer@cs.berkeley.edu]
-Build-Depends: make, gcc, g++, debhelper (>= 4), tcl8.3-dev | tcl8.4-dev, libdb4.3-dev | libdb4.4-dev, libxerces-dev (>= 2.7)
+Build-Depends: make, gcc, g++, debhelper (>= 4), tcl8.3-dev | tcl8.4-dev, libdb4.3-dev | libdb4.4-dev, libxerces27-dev
 
 Package: dtn
 Architecture: any
