@@ -9,3 +9,4 @@ config.status
 configure.scan
 autom4te.cache
 build-stamp
+configure-stamp

@@ -7,27 +7,33 @@ export DH_VERBOSE=1
 # work below
 export DH_OPTIONS
 
-build: build-stamp
-build-stamp:
+configure: configure-stamp
+configure-stamp:
 	dh_testdir
 	./configure -C
+	touch configure-stamp
+
+build: configure build-stamp
+build-stamp:
+	dh_testdir
 	$(MAKE)
+	$(MAKE) -C applib pythonapi
 	touch build-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp
-	$(MAKE) distclean
+	rm -f configure-stamp build-stamp
+	$(MAKE) distclean || echo "nothing to clean"
 	dh_clean
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k
 	dh_installdirs
 
 	$(MAKE) DESTDIR=`pwd`/debian/dtn/ install
+	$(MAKE) DESTDIR=`pwd`/debian/dtn/ -C applib pythonapi_install
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -57,7 +63,7 @@ binary-arch: build install
 	dh_compress
 	dh_fixperms
 #	dh_perl
-#	dh_python
+	dh_python
 #	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps

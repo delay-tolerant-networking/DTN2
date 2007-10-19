@@ -2,13 +2,13 @@ Source: dtn
 Section: net
 Priority: optional
 Maintainer: Michael Demmer [demmer@cs.berkeley.edu]
-Build-Depends: make, gcc, g++, debhelper (>= 4), tcl8.3-dev | tcl8.4-dev, libdb4.3-dev | libdb4.4-dev, libxerces27-dev
+Build-Depends: make, gcc, g++, debhelper (>= 4), tcl8.3-dev | tcl8.4-dev, libdb4.3-dev | libdb4.4-dev, libxerces27-dev, python, python2.4-dev
+
 
 Package: dtn
 Architecture: any
 Suggests: tclreadline
 Depends: ${shlibs:Depends}
-Provides: dtnd
 Description: Delay Tolerant Networking reference implementation
  .
  This package contains the reference implementation of the Delay
@@ -17,3 +17,15 @@ Description: Delay Tolerant Networking reference implementation
  protocols. 
  . 
  Homepage: http://www.dtnrg.org
+
+
+Package: python-dtn
+Depends: dtn
+Architecture: all
+Description: DTN python api
+ .
+ This package contains python bindings for applications to use the DTN
+ reference implementation.
+ . 
+ Homepage: http://www.dtnrg.org
+
