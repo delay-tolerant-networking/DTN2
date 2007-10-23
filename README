@@ -13,7 +13,6 @@ Compilation / Installation Instructions
 ./configure -C
 make
 make install
-(or make deb ; dpkg -i dtnd.<version>.deb)
 
 Note that by default, the configure script will also run configure
 inside the oasys/ subdirectory. The -C argument enables the autoconf
@@ -31,7 +30,7 @@ A good place to start for playing around with DTN is to look at the
 manual and tutorials (see doc/manual/index.html). This set of
 documentation explains some of the configuration and applications. If
 you find omissions or errors, please feel free to post updates and
-corrections to dtn-bugs@mailman.dtnrg.org.
+corrections to dtn-users@mailman.dtnrg.org.
 
 Reporting Bugs / Other Help
 ---------------------------
@@ -78,13 +77,9 @@ gcc/g++
 pthreads
 tcl8.3+
 
-one or more of:
-    BerkeleyDB 4.2+ 	(enabled by default)
-    mysql		(enabled with configure options)
-    postgressql		(enabled with configure options)
-
 Optional External Packages
 --------------------------
 tclreadline
 tclx
 tcllib
+BerkeleyDB
