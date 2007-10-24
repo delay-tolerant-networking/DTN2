@@ -42,22 +42,23 @@ OTHER_APPS :=				\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
-# XXX/demmer fix these to use dynamic linking now that there's versions...
-DTN_LIBS := ../applib/libdtnapi.a ../oasys/liboasyscompat.a
-DTN_LIBS++ := $(DTN_LIBS) ../applib/libdtnapi++.a ../oasys/liboasys.a
+all: $(DTN_LIBS++) $(DTN_LIBS_STATIC) $(APPS) $(MANPAGES)
+include ../Rules.make
+include ../dtn-version.mk
 
-all: $(DTN_LIBS++) $(APPS) $(MANPAGES)
+DTN_LIBS_STATIC := ../applib/libdtnapi.a ../applib/libdtnapi++.a
+DTN_LIBS := -ldtnapi-$(DTN_VERSION) $(OASYS_COMPAT_LDFLAGS)
+DTN_LIBS++ := $(DTN_LIBS) -ldtnapi++-$(DTN_VERSION) $(OASYS_LDFLAGS)
 
 # Fake build target in case the api lib doesn't exist, but allows us
 # to include it as a dependency above so the apps get properly rebuilt
 # for the 'all' target
-$(DTN_LIBS++):
+$(DTN_LIBS_STATIC):
 	@echo "ERROR: $@ must be built before the apps can"
 	exit 1
 
-include ../Rules.make
 CPPFLAGS += -I$(SRCDIR)/applib
-LDFLAGS += -L../applib -L../oasys
+LDFLAGS += -L../applib
 
 BINFILES += $(APPS)
 
@@ -73,21 +74,20 @@ dtnmoteproxy/serialsource.o: dtnmoteproxy/serialsource.c
 	$(CC) $(CPPFLAGS) -Wno-cast-align $(CFLAGS) -c $< -o $@
 
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
-			   dtnmoteproxy/serialsource.o \
-			   $(DTN_LIBS)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)
+			   dtnmoteproxy/serialsource.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) $(DTN_LIBS)
 
 #
 # Rules for dtntest
 #
-dtntest/dtntest: dtntest/dtntest.o $(DTN_LIBS++) 
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS) 
-
+dtntest/dtntest: dtntest/dtntest.o  $(DTN_LIBS_STATIC)
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) \
+	   $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
 #
 # Rules for dtntest
 #
-dtnsend/dtnsend: dtnsend/dtnsend.o $(DTN_LIBS++) 
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS) 
+dtnsend/dtnsend: dtnsend/dtnsend.o 
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS) $(DTN_LIBS++)
 
 #
 # Rules for dtntunnel
@@ -95,8 +95,8 @@ dtnsend/dtnsend: dtnsend/dtnsend.o $(DTN_LIBS++)
 dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
 		     dtntunnel/UDPTunnel.o \
-		     $(DTN_LIBS++)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS) 
+		     $(DTN_LIBS_STATIC)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS) $(LIBS) 
 
 #
 # Rules for tca_admin
@@ -110,12 +110,12 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_prot_xdr.o \
                 tca_admin/libs/gateway_rpc.o \
                 tca_admin/libs/sha1.o \
-		$(DTN_LIBS++)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS)
+		$(DTN_LIBS_STATIC)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS) $(LIBS)
 
 #
 # Default rule for all single source apps
 #
-$(SINGLE_SOURCE_APPS): %: %.o $(DTN_LIBS)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)
+$(SINGLE_SOURCE_APPS): %: %.o 
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) $(DTN_LIBS)
 

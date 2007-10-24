@@ -20,11 +20,10 @@
 #  Note: make sure to run build-configure.sh when any changes are
 #        made to this file or to any of the files in aclocal
 
-
 AC_PREREQ(2.57)
 AC_INIT(DTN2)
 AC_CONFIG_SRCDIR([dtn-version.h])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADER([dtn-config.h])
 AC_CONFIG_AUX_DIR([tools])
 AC_PREFIX_DEFAULT([/usr])
 
@@ -48,9 +47,9 @@ AC_COPYRIGHT([
 
 ])
 	       
-AC_DEFINE(HAVE_CONFIG_STATE, 1, 
-          [always defined so code can ensure that config.h is properly included])
-	       
+AC_DEFINE(DTN_CONFIG_STATE, 1, 
+          [always defined so code can ensure that dtn-config.h is properly included])
+
 #  This is handy to re-run configure but use any options you used before.
 AC_ARG_WITH(
   [previous-options],
@@ -120,7 +119,6 @@ prefix=$oasys_save_prefix
 oasys_save_CFLAGS="$CFLAGS"
 oasys_save_CXXFLAGS="$CXXFLAGS"
 
-# these macros directly or indirectly call AC_PROG_CC and AC_PROG_CXX
 AC_OASYS_CONFIG_GCC
 
 # now that AC_PROG_CC and AC_PROG_CXX are done, we know whether we're
@@ -138,38 +136,15 @@ fi
 # done with default -O2 workaround
 ######################################################################
 
-AC_OASYS_SYSTEM_PROGRAMS
-AC_OASYS_SYSTEM_LIBRARIES
-AC_OASYS_SYSTEM_HEADERS
-AC_OASYS_SYSTEM_TYPES
-AC_OASYS_SYSTEM_FUNCTIONS
-AC_OASYS_CONFIG_ATOMIC
-AC_CHECK_HEADERS([sys/file.h termios.h])
-AC_CHECK_FUNCS([select strpbrk])
-AC_FUNC_SELECT_ARGTYPES
-AC_C_BIGENDIAN
+#
+# Find oasys
+#
+AC_OASYS_CONFIG
 
 # -------------------------------------------------------------------------
 # Dump the autoconf cache now to try to avoid redundant checks
 # -------------------------------------------------------------------------
 AC_CACHE_SAVE
-
-# -------------------------------------------------------------------------
-# Checks for dependent third-party libraries
-# -------------------------------------------------------------------------
-AC_OASYS_CONFIG_TCL
-AC_OASYS_CONFIG_GOOGLE_PERFTOOLS
-AC_OASYS_CONFIG_BLUEZ
-AC_OASYS_CONFIG_BONJOUR
-AC_OASYS_CONFIG_EXPAT
-AC_OASYS_CONFIG_XERCES
-AC_OASYS_CONFIG_TCLREADLINE
-AC_OASYS_CONFIG_ZLIB
-AC_OASYS_CONFIG_XSD
-AC_OASYS_CONFIG_STORAGE
-
-AX_WITH_PYTHON
-AC_PYTHON_BUILD_EXT
 
 #--------------------------------------------------------------------------
 # Checks for other optional features that may depend on third-party 
@@ -192,18 +167,26 @@ AC_CONFIG_OPENSSL
 # We defer setting the various CFLAGS to avoid interfering with the 
 # basic system tests.
 #
-CPPFLAGS="-I\$(SRCDIR)/servlib -I\$(SRCDIR)/oasys $OASYS_CPPFLAGS $DTN_CPPFLAGS $CPPFLAGS"
-LDFLAGS="-L. $OASYS_LDFLAGS $DTN_LDFLAGS $LDFLAGS"
+CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS"
+if test $OASYS_INCDIR != /usr/include ; then
+    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
+fi
+
+LDFLAGS="-L. $LDFLAGS"
+if test $OASYS_LIBDIR != /usr/lib ; then
+    LDFLAGS="$LDFLAGS -L$OASYS_LIBDIR"
+fi
 
 if test "x$STATIC" = "xlibs" ; then
    OASYS_LIBS="-Wl,-Bstatic $OASYS_LIBS -Wl,-Bdynamic"
 fi
-AC_SUBST([OASYS_LIBS])
 
-AC_CONFIG_FILES([Rules.make:oasys/Rules.make.in])
+AC_SUBST(OASYS_LIBS)
+
+AC_CONFIG_FILES([Rules.make:$OASYS_ETCDIR/Rules.make.in])
 
 if test ! $SRCDIR = `pwd` ; then
-   AC_CONFIG_FILES([Makefile:oasys/Makefile-Builddir.in])
+   AC_CONFIG_FILES([Makefile:Makefile-Builddir.in])
    AC_CONFIG_FILES([applib/Makefile:applib/Makefile-Builddir.in])
    AC_CONFIG_FILES([servlib/Makefile:servlib/Makefile-Builddir.in])
    AC_CONFIG_FILES([daemon/Makefile:daemon/Makefile-Builddir.in])
@@ -213,13 +196,19 @@ if test ! $SRCDIR = `pwd` ; then
 fi
 
 #
-# Always reconfigure oasys as well
+# dtn-config.h piggybacks on tests from oasys-config.h
 #
-AC_CONFIG_SUBDIRS([oasys])
+AC_CONFIG_COMMANDS(include-oasys-config, [
+cat >> dtn-config.h <<EOF
+
+/* Include oasys configuration state */
+#include <oasys/oasys-config.h>
+EOF
+])
 
 AC_OUTPUT
 
-chmod oug-w Rules.make config.h config.h oasys/Rules.make oasys/config.h
+chmod oug-w Rules.make dtn-config.h
 
 echo "DTN2 configure state:"
 echo "  TARGET is: $TARGET"

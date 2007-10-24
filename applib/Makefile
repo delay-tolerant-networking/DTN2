@@ -205,7 +205,7 @@ libdtnapi++-$(VLIB): $(CLIENT_EXTRA_OBJS)
 
 libdtnapi++-$(VSHLIB): $(CLIENT_EXTRA_OBJS) libdtnapi.a
 	rm -f $@
-	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) -L../oasys -loasys libdtnapi.a $(LDFLAGS) -o $@
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) $(OASYS_LDFLAGS) libdtnapi.a $(LDFLAGS) -o $@
 
 libdtnapisrv.a: $(SERVERLIB_OBJS)
 	rm -f $@

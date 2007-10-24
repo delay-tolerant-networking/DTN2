@@ -33,7 +33,7 @@
 // Begin prologue.
 //
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include <dtn-config.h>
 #endif
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
 //

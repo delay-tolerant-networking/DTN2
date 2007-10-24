@@ -30,7 +30,7 @@
 
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include <dtn-config.h>
 #endif
 
 #ifdef BSP_ENABLED

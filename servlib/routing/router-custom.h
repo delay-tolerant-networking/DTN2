@@ -22,8 +22,8 @@
 #ifndef _ROUTER_CUSTOM_H_
 #define _ROUTER_CUSTOM_H_
 
-#ifndef HAVE_CONFIG_STATE
-#error "MUST INCLUDE config.h before including this file"
+#ifndef DTN_CONFIG_STATE
+#error "MUST INCLUDE dtn-config.h before including this file"
 #endif
 
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)

@@ -11,12 +11,18 @@ AC_DEFUN(AC_CONFIG_EXTERNAL_CL, [
     dnl
     dnl First make sure we even want it
     dnl
+    AC_MSG_CHECKING(whether to enable external convergence layer support)
     if test "$ac_ecl" = no; then
+        AC_MSG_RESULT(no)
         EXTERNAL_CL_ENABLED=0
     else
-        if test ! "$XERCES_C_ENABLED" = 1 ; then
+        AC_MSG_RESULT(yes)
+
+        AC_OASYS_SUPPORTS(XERCES_C_ENABLED)
+	if test $ac_oasys_supports_result != yes ; then
 	    AC_MSG_ERROR([external convergence layer support requires xerces... install it or configure --disable-ecl])
-        fi
+	fi
+
         EXTERNAL_CL_ENABLED=1
         AC_DEFINE_UNQUOTED(EXTERNAL_CL_ENABLED, 1, [whether external convergence layer support is enabled])
     fi # EXTERNAL_CL_ENABLED

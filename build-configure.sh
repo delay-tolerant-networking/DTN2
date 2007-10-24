@@ -24,7 +24,7 @@
 # This should not need to be run often, only when things like library
 # dependencies change or when some changes are made to the configure.ac
 # script. In particular, all generated files are cross-platform
-# and are therefore checked into CVS.
+# and are therefore stored in the version control repository.
 
 trap 'rm -f aclocal.m4 ; exit 0' 0 1 2 3 13 15
 
@@ -32,18 +32,24 @@ echo "build-configure: building aclocal.m4..."
 rm -f aclocal.m4
 cat aclocal/*.ac > aclocal.m4
 
-if [ -d oasys ] ; then
-    echo "build-configure: loading oasys functions into aclocal.m4..."
-    cat oasys/aclocal/*.ac >> aclocal.m4
+if [ -d ../oasys ] ; then
+    oasys_dir=../oasys
+
+elif [ -d /usr/share/oasys ] ; then
+    oasys_dir=/usr/share/oasys
+
 else
     echo "build-configure: ERROR -- can't find oasys for autoconf macros"
     exit 1
 fi
 
-echo "build-configure: running autoheader to build config.h.in..."
-rm -f config.h config.h.in
+echo "build-configure: loading oasys functions into aclocal.m4..."
+cat $oasys_dir/aclocal/*.ac >> aclocal.m4
+
+echo "build-configure: running autoheader to build dtn-config.h.in..."
+rm -f dtn-config.h dtn-config.h.in
 autoheader
-chmod 444 config.h.in
+chmod 444 dtn-config.h.in
 
 echo "build-configure: running autoconf to build configure..."
 rm -f configure
@@ -55,6 +61,3 @@ rm -rf autom4te.cache
 rm -f config.cache
 
 echo "build-configure: done."
-
-echo "build-configure: rebuilding in oasys as well"
-(cd oasys && sh build-configure.sh)

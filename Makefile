@@ -24,7 +24,7 @@
 # by default.
 #
 
-SUBDIRS := oasys applib servlib daemon apps sim
+SUBDIRS := applib servlib daemon apps sim
 
 all: checkconfigure $(SUBDIRS)
 
@@ -46,7 +46,7 @@ include $(SRCDIR)/dtn-version.mk
 #
 # Dependency rules between subdirectories needed for make -j
 #
-applib servlib: oasys dtn-version.o
+applib servlib: dtn-version.o
 daemon: applib servlib
 apps: applib servlib
 sim: servlib
@@ -57,7 +57,7 @@ sim: servlib
 dtn-version.o: dtn-version.c
 dtn-version.c: dtn-version.h
 dtn-version.h: dtn-version.h.in dtn-version.dat
-	$(SRCDIR)/oasys/tools/subst-version $(SRCDIR)/dtn-version.dat \
+	$(OASYS_ETCDIR)/tools/subst-version $(SRCDIR)/dtn-version.dat \
 		< $(SRCDIR)/dtn-version.h.in > dtn-version.h
 
 vpath dtn-version.h.in $(SRCDIR)
@@ -74,7 +74,6 @@ bump-version:
 test: tests
 tests: 
 	$(MAKE) all
-	$(MAKE) -C oasys tests
 	$(MAKE) -C test
 
 dtn-tests:
@@ -118,9 +117,7 @@ installbin: installdirs
 
 installlib: installdirs
 	[ x$(SHLIBS) = x ] || \
-	for lib in oasys/liboasys.$(SHLIB_EXT) \
-		   oasys/liboasyscompat.$(SHLIB_EXT) \
-		   applib/libdtnapi-$(DTN_VERSION).$(SHLIB_EXT) \
+	for lib in applib/libdtnapi-$(DTN_VERSION).$(SHLIB_EXT) \
 	           applib/libdtnapi++-$(DTN_VERSION).$(SHLIB_EXT) \
 	           applib/tcl/libdtntcl-$(DTN_VERSION).$(SHLIB_EXT) ; do \
 	    ($(INSTALL_PROGRAM) $$lib $(DESTDIR)$(libdir)) ; \
@@ -141,7 +138,6 @@ installetc: installdirs
 
 	$(INSTALL_DATA) servlib/routing/router.xsd $(DESTDIR)$(sysconfdir)/router.xsd
 	$(INSTALL_DATA) servlib/conv_layers/clevent.xsd $(DESTDIR)$(sysconfdir)/clevent.xsd
-	$(INSTALL_DATA) oasys/storage/DS.xsd $(DESTDIR)$(sysconfdir)/DS.xsd
 
 #
 # Generate the doxygen documentation
@@ -162,13 +158,12 @@ xsddoc:
 	mkdir -p doc/cla-xsddoc
 	xsddoc -t "External CLA Interface" -o doc/cla-xsddoc -q \
 		servlib/conv_layers/clevent.xsd
-	mkdir -p doc/router-xsddoc
-	xsddoc -t "External Data Store Interface" -o doc/ds-xsddoc -q \
-		oasys/storage/DS.xsd
+# 	mkdir -p doc/router-xsddoc
+# 	xsddoc -t "External Data Store Interface" -o doc/ds-xsddoc -q \
+# 		oasys/storage/DS.xsd
 
 xsdbindings:
 	$(MAKE) -C servlib xsdbindings
-	$(MAKE) -C oasys xsdbindings
 
 #
 # Build a TAGS database. Note this includes all the sources so it gets
@@ -188,12 +183,12 @@ tags TAGS:
 .PHONY: checkconfigure
 checkconfigure: Rules.make
 
-Rules.make: $(SRCDIR)/configure $(SRCDIR)/oasys/Rules.make.in 
+Rules.make: $(SRCDIR)/configure $(OASYS_ETCDIR)/Rules.make.in 
 	@[ ! x`echo "$(MAKECMDGOALS)" | grep clean` = x ] || \
 	(echo "$@ is out of date, need to rerun configure" && \
 	exit 1)
 
-$(SRCDIR)/configure $(SRCDIR)/oasys/Rules.make.in:
+$(SRCDIR)/configure $(OASYS_ETCDIR)/Rules.make.in:
 	@echo SRCDIR: $(SRCDIR)
 	@echo error -- Makefile did not set SRCDIR properly
 	@exit 1

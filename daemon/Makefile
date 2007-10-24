@@ -40,14 +40,12 @@ all: $(BINFILES)
 COMPONENT_LIBS := \
 	../applib/libdtnapisrv.a 	\
 	../servlib/libdtnserv.a 	\
-	../oasys/liboasys.a 		\
 
 dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
 	$(CXX) $(CXXFLAGS) $(DAEMON_OBJS) $(COMPONENT_LIBS) \
-		-o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS)
+		-o $@ $(LDFLAGS) $(OASYS_LIBS) -L$(OASYS_LIBDIR) -loasys-$(OASYS_VERSION) $(LIBS)
 
 #
 # Include the common rules
 #
 include ../Rules.make
-

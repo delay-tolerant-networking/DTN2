@@ -52,11 +52,11 @@ all: dtnsim
 #
 BINFILES += dtnsim
 
-COMPONENT_LIBS := ../servlib/libdtnserv.a ../oasys/liboasys.a 
+COMPONENT_LIBS := ../servlib/libdtnserv.a
 
 dtnsim: $(SIM_OBJS) $(COMPONENT_LIBS)
 	$(CXX) $(CXXFLAGS) $(SIM_OBJS) $(COMPONENT_LIBS) \
-		-o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS)
+		-o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS) $(LIBS)
 
 #
 # Include the common rules

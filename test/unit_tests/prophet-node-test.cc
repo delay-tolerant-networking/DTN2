@@ -1,5 +1,5 @@
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include <dtn-config.h>
 #endif
 #include <oasys/util/UnitTest.h>
 #include <netinet/in.h>
