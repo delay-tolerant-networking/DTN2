@@ -70,7 +70,7 @@ dtnipc_msgtoa(u_int8_t type)
 int
 dtnipc_open(dtnipc_handle_t* handle)
 {
-    int ret;
+    int remote_version, ret;
     char *env, *end;
     struct sockaddr_in sa;
     in_addr_t ipc_addr;
@@ -157,8 +157,9 @@ dtnipc_open(dtnipc_handle_t* handle)
         handle->err = DTN_ECOMM;
         return -1;
     }
-    
-    if ((ntohl(handshake) & 0x0ffff) != dtnipc_version) {
+
+    remote_version = (ntohl(handshake) & 0x0ffff);
+    if (remote_version != dtnipc_version) {
         dtnipc_close(handle);
         handle->err = DTN_EVERSION;
         return -1;
