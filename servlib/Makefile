@@ -247,26 +247,6 @@ libdtnserv.a: $(SERVLIB_OBJS)
 	$(RANLIB) $@ || true
 
 #
-# Need special rules for the gdtoa sources adapted from the source
-# distribution.
-#
-debug/arith-native.h: debug/gdtoa-arithchk.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o debug/arithchk
-	debug/arithchk > $@
-	rm -f debug/arithchk
-
-debug/arith.h:
-	$(MAKE) debug/arith-$(TARGET).h
-	cp debug/arith-$(TARGET).h $@
-
-debug/Formatter.cc: debug/arith.h
-
-debug/gdtoa-%.o: debug/gdtoa-%.c debug/arith.h
-	$(CC) -DINFNAN_CHECK $(CPPFLAGS) $(CFLAGS) -c $< -o $@
-
-GENFILES += debug/arith.h debug/arith-native.h debug/arithchk
-
-#
 # Make sure SRCDIR is set (.. by default)
 #
 ifeq ($(SRCDIR),)
