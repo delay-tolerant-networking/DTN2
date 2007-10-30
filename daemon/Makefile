@@ -43,7 +43,7 @@ COMPONENT_LIBS := \
 
 dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
 	$(CXX) $(CXXFLAGS) $(DAEMON_OBJS) $(COMPONENT_LIBS) \
-		-o $@ $(LDFLAGS) $(OASYS_LIBS) -L$(OASYS_LIBDIR) -loasys-$(OASYS_VERSION) $(LIBS)
+		-o $@ $(LDFLAGS) $(OASYS_LIBS) $(OASYS_LDFLAGS) $(LIBS)
 
 #
 # Include the common rules
