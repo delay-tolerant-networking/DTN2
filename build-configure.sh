@@ -49,6 +49,13 @@ cat $oasys_dir/aclocal/*.ac >> aclocal.m4
 echo "build-configure: running autoheader to build dtn-config.h.in..."
 rm -f dtn-config.h dtn-config.h.in
 autoheader
+
+cat >> dtn-config.h.in <<EOF
+
+/* Include oasys configuration state */
+#include <oasys/oasys-config.h>
+EOF
+
 chmod 444 dtn-config.h.in
 
 echo "build-configure: running autoconf to build configure..."

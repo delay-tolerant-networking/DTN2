@@ -23,7 +23,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-
+#
 ## --------------------- ##
 ## M4sh Initialization.  ##
 ## --------------------- ##
@@ -5201,12 +5201,6 @@ if test ! $SRCDIR = `pwd` ; then
 
 fi
 
-#
-# dtn-config.h piggybacks on tests from oasys-config.h
-#
-ac_config_commands="$ac_config_commands include-oasys-config"
-
-
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -5621,7 +5615,6 @@ cat >>$CONFIG_STATUS <<_ACEOF
 # Files that config.status was made for.
 config_files="$ac_config_files"
 config_headers="$ac_config_headers"
-config_commands="$ac_config_commands"
 
 _ACEOF
 
@@ -5647,9 +5640,6 @@ $config_files
 
 Configuration headers:
 $config_headers
-
-Configuration commands:
-$config_commands
 
 Report bugs to <bug-autoconf@gnu.org>."
 
@@ -5772,7 +5762,6 @@ do
     "apps/Makefile") CONFIG_FILES="$CONFIG_FILES apps/Makefile:apps/Makefile-Builddir.in" ;;
     "sim/Makefile") CONFIG_FILES="$CONFIG_FILES sim/Makefile:sim/Makefile-Builddir.in" ;;
     "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile:test/Makefile-Builddir.in" ;;
-    "include-oasys-config") CONFIG_COMMANDS="$CONFIG_COMMANDS include-oasys-config" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -5788,7 +5777,6 @@ done
 if $ac_need_defaults; then
   test "${CONFIG_FILES+set}" = set || CONFIG_FILES=$config_files
   test "${CONFIG_HEADERS+set}" = set || CONFIG_HEADERS=$config_headers
-  test "${CONFIG_COMMANDS+set}" = set || CONFIG_COMMANDS=$config_commands
 fi
 
 # Have a temporary directory for convenience.  Make it in the build tree
@@ -5970,7 +5958,7 @@ cat >>$CONFIG_STATUS <<\_ACEOF
 fi # test -n "$CONFIG_FILES"
 
 
-for ac_tag in  :F $CONFIG_FILES  :H $CONFIG_HEADERS    :C $CONFIG_COMMANDS
+for ac_tag in  :F $CONFIG_FILES  :H $CONFIG_HEADERS
 do
   case $ac_tag in
   :[FHLC]) ac_mode=$ac_tag; continue;;
@@ -6304,22 +6292,9 @@ echo "$as_me: $ac_file is unchanged" >&6;}
   rm -f "$tmp/out12"
  ;;
 
-  :C)  { echo "$as_me:$LINENO: executing $ac_file commands" >&5
-echo "$as_me: executing $ac_file commands" >&6;}
- ;;
-  esac
-
-
-  case $ac_file$ac_mode in
-    "include-oasys-config":C)
-cat >> dtn-config.h <<EOF
-
-/* Include oasys configuration state */
-#include <oasys/oasys-config.h>
-EOF
- ;;
 
   esac
+
 done # for ac_tag
 
 
@@ -6350,8 +6325,6 @@ if test "$no_create" != yes; then
   $ac_cs_success || { (exit 1); exit 1; }
 fi
 
-
-chmod oug-w Rules.make dtn-config.h
 
 echo "DTN2 configure state:"
 echo "  TARGET is: $TARGET"

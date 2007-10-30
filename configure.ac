@@ -195,20 +195,7 @@ if test ! $SRCDIR = `pwd` ; then
    AC_CONFIG_FILES([test/Makefile:test/Makefile-Builddir.in])
 fi
 
-#
-# dtn-config.h piggybacks on tests from oasys-config.h
-#
-AC_CONFIG_COMMANDS(include-oasys-config, [
-cat >> dtn-config.h <<EOF
-
-/* Include oasys configuration state */
-#include <oasys/oasys-config.h>
-EOF
-])
-
 AC_OUTPUT
-
-chmod oug-w Rules.make dtn-config.h
 
 echo "DTN2 configure state:"
 echo "  TARGET is: $TARGET"
