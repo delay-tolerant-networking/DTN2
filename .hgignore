@@ -18,7 +18,7 @@ configure-stamp
 *.dylib
 *.so
 
-applib/python/build/lib.macosx-10.3-fat-2.4/dtnapi.py
+applib/python/build
 applib/python/dtnapi.pyc
 apps/tca_admin/tca_admin
 apps/dtncat/dtncat
