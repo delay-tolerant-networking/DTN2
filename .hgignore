@@ -18,6 +18,8 @@ configure-stamp
 *.dylib
 *.so
 
+run-*
+
 applib/python/build
 applib/python/dtnapi.pyc
 apps/tca_admin/tca_admin
@@ -35,3 +37,4 @@ apps/dtntest/dtntest
 apps/dtntunnel/dtntunnel
 daemon/dtnd
 sim/dtnsim
+test/unit_tests/*-test
