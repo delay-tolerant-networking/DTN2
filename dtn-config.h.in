@@ -12,6 +12,9 @@
 /* whether external decision plane support is enabled */
 #undef EXTERNAL_DP_ENABLED
 
+/* Define to 1 if you have the <dns_sd.h> header file. */
+#undef HAVE_DNS_SD_H
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -47,6 +50,9 @@
 
 /* directory for config files (default /etc) */
 #undef INSTALL_SYSCONFDIR
+
+/* whether bonjour support is enabled */
+#undef OASYS_BONJOUR_ENABLED
 
 /* whether oasys lock debugging is enabled */
 #undef OASYS_DEBUG_LOCKING_ENABLED

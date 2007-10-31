@@ -119,6 +119,7 @@ AC_CACHE_SAVE
 # Checks for other optional features that may depend on third-party 
 # libraries.
 #--------------------------------------------------------------------------
+AC_CONFIG_BONJOUR
 AC_CONFIG_EXTERNAL_CL
 AC_CONFIG_EXTERNAL_DP
 
