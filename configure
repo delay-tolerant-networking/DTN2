@@ -684,6 +684,7 @@ CXX
 CXXFLAGS
 ac_ct_CXX
 CPP
+DEPFLAGS
 AR
 RANLIB
 DEBUG
@@ -698,7 +699,6 @@ RPATH
 LDFLAGS_SHLIB
 EXTRA_CFLAGS
 EXTRA_LDFLAGS
-DEPFLAGS
 BUILD_SYSTEM
 OASYS_INCDIR
 OASYS_LIBDIR
@@ -706,6 +706,7 @@ OASYS_ETCDIR
 OASYS_VERSION
 GREP
 EGREP
+INCFLAGS
 OASYS_LIBS
 LIBOBJS
 LTLIBOBJS'
@@ -1878,20 +1879,8 @@ _ACEOF
 prefix=$oasys_save_prefix
 
 # -------------------------------------------------------------------------
-# Checks for programs and libraries
+# Configure gcc and find oasys
 # -------------------------------------------------------------------------
-
-######################################################################
-# rhansen@bbn.com:  workaround to disable autoconf's default -O2,
-# since -O2 enables warnings that don't show up with -O0.  If the
-# flags are empty, AC_PROG_CC and AC_PROG_CXX will set the flags to
-# "-O2 -g", otherwise they are left alone.  We need the flags to be
-# set to "-g" if empty, otherwise left alone.
-
-# back up CFLAGS and CXXFLAGS
-oasys_save_CFLAGS="$CFLAGS"
-oasys_save_CXXFLAGS="$CXXFLAGS"
-
 
 
 
@@ -3378,7 +3367,7 @@ echo "${ECHO_T}$oasys_cv_prog_gxxver" >&6; }
         # _GNU_SOURCE isn't defined, so do both those things here
         #
         3.1*|2.9*)
-            OASYS_CPPFLAGS="$OASYS_CPPFLAGS -D_GNU_SOURCE"
+            CFLAGS="$CFLAGS -D_GNU_SOURCE"
 	    DEPFLAGS=""
             echo "*** "
 	    echo "*** warning: using old compiler $cc version $oasys_cv_prog_gccver,"
@@ -3390,7 +3379,7 @@ echo "${ECHO_T}$oasys_cv_prog_gxxver" >&6; }
 	# Note that for m4 to output a '$' requires the '$' heinosity below.
 	#
 	3.*|4.*)
-	    DEPFLAGS='-MMD -MP -MT "$*.o $*.E $*.po"'
+	    DEPFLAGS='-MMD -MP -MT "$*.o $*.E"'
 	    ;;
 	#
 	# Otherwise bail
@@ -3400,6 +3389,7 @@ echo "${ECHO_T}$oasys_cv_prog_gxxver" >&6; }
 	    exit  1
 	    ;;
     esac
+
 
                 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}ar", so it can be a program name with args.
@@ -3618,7 +3608,7 @@ echo "${ECHO_T}$debug" >&6; }
     if test $debug = yes ; then
         DEBUG="-g -fno-inline"
     else
-        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -DNDEBUG"
+        DEBUG="-DNDEBUG"
     fi
 
 
@@ -3705,7 +3695,6 @@ echo "${ECHO_T}$profile" >&6; }
     if test $profile = yes ; then
         PROFILE="-pg"
     fi
-
 
 
                     # Check whether --enable-static was given.
@@ -3942,7 +3931,6 @@ if test "${oasys_cv_prog_gcc_w_no_long_double+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-        CPPFLAGS_save=$CPPFLAGS
         CPPFLAGS="$CPPFLAGS -Wno-long-double"
 	cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
@@ -3999,34 +3987,13 @@ fi
 echo "${ECHO_T}$oasys_cv_prog_gcc_w_no_long_double" >&6; }
 
     if test $oasys_cv_prog_gcc_w_no_long_double = yes ; then
-        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -Wno-long-double"
+        CPPFLAGS="$CPPFLAGS -Wno-long-double"
     fi
-
-
 
 
                     BUILD_SYSTEM=`uname -s || echo UNKNOWN | sed 's/CYGWIN.*/CYGWIN/'`
 
 
-
-# now that AC_PROG_CC and AC_PROG_CXX are done, we know whether we're
-# using GCC.  If we're not using GCC, then leave the flags alone.  If
-# we are using GCC, and the flags were empty before, then we know that
-# the flags now contain "-O2 -g" so the flags should have "-O2"
-# removed.  If the user specified flags, then leave the flags alone.
-if test "x$GCC" = "xyes" -a -z "$oasys_save_CFLAGS" ; then
-   CFLAGS="-g"
-fi
-if test "x$GXX" = "xyes" -a -z "$oasys_save_CXXFLAGS" ; then
-   CXXFLAGS="-g"
-fi
-
-# done with default -O2 workaround
-######################################################################
-
-#
-# Find oasys
-#
 
     ac_oasysdir=../oasys
 
@@ -5161,23 +5128,8 @@ fi
 # Output
 # -------------------------------------------------------------------------
 
-#
-# We defer setting the various CFLAGS to avoid interfering with the
-# basic system tests.
-#
-CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS"
-if test $OASYS_INCDIR != /usr/include ; then
-    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
-fi
+INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
 
-LDFLAGS="-L. $LDFLAGS"
-if test $OASYS_LIBDIR != /usr/lib ; then
-    LDFLAGS="$LDFLAGS -L$OASYS_LIBDIR"
-fi
-
-if test "x$STATIC" = "xlibs" ; then
-   OASYS_LIBS="-Wl,-Bstatic $OASYS_LIBS -Wl,-Bdynamic"
-fi
 
 
 
@@ -5874,6 +5826,7 @@ CXX!$CXX$ac_delim
 CXXFLAGS!$CXXFLAGS$ac_delim
 ac_ct_CXX!$ac_ct_CXX$ac_delim
 CPP!$CPP$ac_delim
+DEPFLAGS!$DEPFLAGS$ac_delim
 AR!$AR$ac_delim
 RANLIB!$RANLIB$ac_delim
 DEBUG!$DEBUG$ac_delim
@@ -5888,7 +5841,6 @@ RPATH!$RPATH$ac_delim
 LDFLAGS_SHLIB!$LDFLAGS_SHLIB$ac_delim
 EXTRA_CFLAGS!$EXTRA_CFLAGS$ac_delim
 EXTRA_LDFLAGS!$EXTRA_LDFLAGS$ac_delim
-DEPFLAGS!$DEPFLAGS$ac_delim
 BUILD_SYSTEM!$BUILD_SYSTEM$ac_delim
 OASYS_INCDIR!$OASYS_INCDIR$ac_delim
 OASYS_LIBDIR!$OASYS_LIBDIR$ac_delim
@@ -5896,12 +5848,13 @@ OASYS_ETCDIR!$OASYS_ETCDIR$ac_delim
 OASYS_VERSION!$OASYS_VERSION$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
+INCFLAGS!$INCFLAGS$ac_delim
 OASYS_LIBS!$OASYS_LIBS$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 76; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 77; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -6326,18 +6279,4 @@ if test "$no_create" != yes; then
 fi
 
 
-echo "DTN2 configure state:"
-echo "  TARGET is: $TARGET"
-echo "  CC is: $CC (version $oasys_cv_prog_gccver)"
-echo "  CXX is: $CXX"
-
-echo " "
-echo "Options:"
-echo "  CPPFLAGS: $CPPFLAGS"
-echo "  LDFLAGS:  $LDFLAGS"
-echo "  LIBS:     $LIBS"
-echo " "
-echo "External packages:"
-echo "  OASYS_CPPFLAGS: $OASYS_CPPFLAGS"
-echo "  OASYS_LDFLAGS:  $OASYS_LDFLAGS"
-echo "  OASYS_LIBS:     $OASYS_LIBS"
+make buildopts

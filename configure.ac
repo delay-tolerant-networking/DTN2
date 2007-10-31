@@ -1,5 +1,5 @@
 #
-#    Copyright 2005-2006 Intel Corporation
+#    Copyright 2005-2007 Intel Corporation
 # 
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -105,40 +105,9 @@ AC_DEFINE_UNQUOTED(INSTALL_LOCALSTATEDIR, "$oasys_conf_dir",
 prefix=$oasys_save_prefix
 
 # -------------------------------------------------------------------------
-# Checks for programs and libraries
+# Configure gcc and find oasys
 # -------------------------------------------------------------------------
-
-######################################################################
-# rhansen@bbn.com:  workaround to disable autoconf's default -O2,
-# since -O2 enables warnings that don't show up with -O0.  If the
-# flags are empty, AC_PROG_CC and AC_PROG_CXX will set the flags to
-# "-O2 -g", otherwise they are left alone.  We need the flags to be
-# set to "-g" if empty, otherwise left alone.
-
-# back up CFLAGS and CXXFLAGS
-oasys_save_CFLAGS="$CFLAGS"
-oasys_save_CXXFLAGS="$CXXFLAGS"
-
 AC_OASYS_CONFIG_GCC
-
-# now that AC_PROG_CC and AC_PROG_CXX are done, we know whether we're
-# using GCC.  If we're not using GCC, then leave the flags alone.  If
-# we are using GCC, and the flags were empty before, then we know that
-# the flags now contain "-O2 -g" so the flags should have "-O2"
-# removed.  If the user specified flags, then leave the flags alone.
-if test "x$GCC" = "xyes" -a -z "$oasys_save_CFLAGS" ; then
-   CFLAGS="-g"
-fi
-if test "x$GXX" = "xyes" -a -z "$oasys_save_CXXFLAGS" ; then
-   CXXFLAGS="-g"
-fi
-
-# done with default -O2 workaround
-######################################################################
-
-#
-# Find oasys
-#
 AC_OASYS_CONFIG
 
 # -------------------------------------------------------------------------
@@ -163,23 +132,8 @@ AC_CONFIG_OPENSSL
 # Output
 # -------------------------------------------------------------------------
 
-#
-# We defer setting the various CFLAGS to avoid interfering with the 
-# basic system tests.
-#
-CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS"
-if test $OASYS_INCDIR != /usr/include ; then
-    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
-fi
-
-LDFLAGS="-L. $LDFLAGS"
-if test $OASYS_LIBDIR != /usr/lib ; then
-    LDFLAGS="$LDFLAGS -L$OASYS_LIBDIR"
-fi
-
-if test "x$STATIC" = "xlibs" ; then
-   OASYS_LIBS="-Wl,-Bstatic $OASYS_LIBS -Wl,-Bdynamic"
-fi
+INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
+AC_SUBST(INCFLAGS)
 
 AC_SUBST(OASYS_LIBS)
 
@@ -197,18 +151,4 @@ fi
 
 AC_OUTPUT
 
-echo "DTN2 configure state:"
-echo "  TARGET is: $TARGET"
-echo "  CC is: $CC (version $oasys_cv_prog_gccver)"
-echo "  CXX is: $CXX"
-
-echo " "
-echo "Options:"
-echo "  CPPFLAGS: $CPPFLAGS"
-echo "  LDFLAGS:  $LDFLAGS"
-echo "  LIBS:     $LIBS"
-echo " "
-echo "External packages:"
-echo "  OASYS_CPPFLAGS: $OASYS_CPPFLAGS"
-echo "  OASYS_LDFLAGS:  $OASYS_LDFLAGS"
-echo "  OASYS_LIBS:     $OASYS_LIBS"
+make buildopts

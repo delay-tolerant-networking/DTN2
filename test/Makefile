@@ -69,7 +69,6 @@ echoobjs:
 COMPONENT_LIBS := \
 	$(BUILDDIR)/applib/libdtnapisrv.a 	\
 	$(BUILDDIR)/servlib/libdtnserv.a 	\
-	$(BUILDDIR)/oasys/liboasys.a 		\
 
 #
 # Default pattern rule to build the tests
@@ -79,10 +78,9 @@ unit_tests/%-test.o: unit_tests/%-test.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 %-test: unit_tests/%-test
-unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
+unit_tests/%-test: unit_tests/%-test.o 
 	@rm -f $@; mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $< $(COMPONENT_LIBS) \
-		-o $@ $(LDFLAGS) $(LIBS)  $(OASYS_LIBS)
+	$(CXX) $(CXXFLAGS) $< $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(OASYS_LDFLAGS)
 
 #
 # As one exception, the bundle-timestamp-test can't have -Wcast-align

@@ -57,7 +57,8 @@ $(DTN_LIBS_STATIC):
 	@echo "ERROR: $@ must be built before the apps can"
 	exit 1
 
-CPPFLAGS += -I$(SRCDIR)/applib
+CFLAGS += -I$(SRCDIR)/applib
+CXXFLAGS += -I$(SRCDIR)/applib
 LDFLAGS += -L../applib
 
 BINFILES += $(APPS)
@@ -75,19 +76,19 @@ dtnmoteproxy/serialsource.o: dtnmoteproxy/serialsource.c
 
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 			   dtnmoteproxy/serialsource.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) $(DTN_LIBS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS)
 
 #
 # Rules for dtntest
 #
 dtntest/dtntest: dtntest/dtntest.o  $(DTN_LIBS_STATIC)
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) \
-	   $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
+	   $(DTN_LIBS++) $(OASYS_LIBS)
 #
 # Rules for dtntest
 #
 dtnsend/dtnsend: dtnsend/dtnsend.o 
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS) $(DTN_LIBS++)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(DTN_LIBS++)
 
 #
 # Rules for dtntunnel
@@ -96,7 +97,7 @@ dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
 		     dtntunnel/UDPTunnel.o \
 		     $(DTN_LIBS_STATIC)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS) $(LIBS) 
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS)
 
 #
 # Rules for tca_admin
@@ -111,11 +112,10 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_rpc.o \
                 tca_admin/libs/sha1.o \
 		$(DTN_LIBS_STATIC)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS) $(LIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS)
 
 #
 # Default rule for all single source apps
 #
 $(SINGLE_SOURCE_APPS): %: %.o 
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) $(DTN_LIBS)
-
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS)
