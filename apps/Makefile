@@ -82,13 +82,12 @@ dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 # Rules for dtntest
 #
 dtntest/dtntest: dtntest/dtntest.o  $(DTN_LIBS_STATIC)
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) \
-	   $(DTN_LIBS++) $(OASYS_LIBS)
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(DTN_LIBS++)
 #
 # Rules for dtntest
 #
 dtnsend/dtnsend: dtnsend/dtnsend.o 
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LIBS) $(DTN_LIBS++)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS++)
 
 #
 # Rules for dtntunnel
@@ -97,7 +96,7 @@ dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
 		     dtntunnel/UDPTunnel.o \
 		     $(DTN_LIBS_STATIC)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS)
 
 #
 # Rules for tca_admin
@@ -112,7 +111,7 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_rpc.o \
                 tca_admin/libs/sha1.o \
 		$(DTN_LIBS_STATIC)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(OASYS_LIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS)
 
 #
 # Default rule for all single source apps

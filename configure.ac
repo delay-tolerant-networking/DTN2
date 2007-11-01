@@ -136,8 +136,6 @@ AC_CONFIG_OPENSSL
 INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
 AC_SUBST(INCFLAGS)
 
-AC_SUBST(OASYS_LIBS)
-
 AC_CONFIG_FILES([Rules.make:$OASYS_ETCDIR/Rules.make.in])
 
 if test ! $SRCDIR = `pwd` ; then
