@@ -56,12 +56,9 @@ cat >> dtn-config.h.in <<EOF
 #include <oasys/oasys-config.h>
 EOF
 
-chmod 444 dtn-config.h.in
-
 echo "build-configure: running autoconf to build configure..."
 rm -f configure
 autoconf
-chmod 555 configure
 
 echo "build-configure: purging configure cache..."
 rm -rf autom4te.cache
