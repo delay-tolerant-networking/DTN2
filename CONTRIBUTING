@@ -7,8 +7,8 @@ still be largely in flux.
 Contribution Process
 --------------------
 
-Anonymous CVS access to code.dtnrg.org is available for the general
-public. To gain access for checkins and/or ssh access for CVS requires
+Anonymous source code repository access is available for the general
+public. To gain access for checkins via ssh access requires
 permission. Send email to Michael Demmer <demmer@cs.berkeley.edu> if
 you're interested in contributing.
 
