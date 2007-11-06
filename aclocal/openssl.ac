@@ -1,11 +1,9 @@
 dnl
 dnl Autoconf support for finding OpenSSL
 dnl
-dnl XXX should allow alternative OpenSSL prefix using --with-openssl=<prefix>
 dnl
 
 AC_DEFUN(AC_CONFIG_OPENSSL, [
-
     if test "$ac_bsp" = yes; then
         ac_openssldir='yes'
         
@@ -14,6 +12,7 @@ AC_DEFUN(AC_CONFIG_OPENSSL, [
                 [location of an OpenSSL installation (default system)]),
             ac_openssldir=$withval)
         
+        ac_save_CPPFLAGS="$CPPFLAGS"
         ac_save_LDFLAGS="$LDFLAGS"
         ac_save_LIBS="$LIBS"
         
@@ -36,9 +35,9 @@ AC_DEFUN(AC_CONFIG_OPENSSL, [
                 openssl_lib="/usr/lib"
             else
                 openssl_include=$ac_openssldir/include
-                CPPFLAGS="$ac_save_CPPFLAGS -I$openssl_include"
+                CPPFLAGS="-I$openssl_include"
                 openssl_lib=$ac_openssldir/lib
-                LDFLAGS="$ac_save_LDFLAGS -L$openssl_lib"
+                LDFLAGS="-L$openssl_lib"
            fi
             
         fi
@@ -52,5 +51,19 @@ AC_DEFUN(AC_CONFIG_OPENSSL, [
         AC_CHECK_LIB([crypto], [EVP_sha256], [], [AC_MSG_FAILURE([Cannot find EVP_sha256.
        On Mac OS X systems, you probably need an updated OpenSSL package, version 0.9.8.
        Specify   --with-openssl=/path/to/openssl LDFLAGS="-Wl,-search_paths_first"])])
+
+       if test "$openssl_include" != /usr/include ; then
+          EXTLIB_CFLAGS="$EXTLIB_CFLAGS -I$openssl_include"
+       fi
+
+       if test "$openssl_lib" != /usr/lib ; then
+	   EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS -L$openssl_lib"
+       fi
+       
+       EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS -lcrypto"
+
+       CPPFLAGS=$ac_save_CPPFLAGS
+       LDFLAGS=$ac_save_LDFLAGS
+       LIBS=$ac_save_LIBS
     fi
 ])

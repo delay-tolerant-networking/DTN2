@@ -704,6 +704,10 @@ OASYS_INCDIR
 OASYS_LIBDIR
 OASYS_ETCDIR
 OASYS_VERSION
+EXTLIB_CFLAGS
+EXTLIB_LDFLAGS
+SYS_EXTLIB_CFLAGS
+SYS_EXTLIB_LDFLAGS
 GREP
 EGREP
 INCFLAGS
@@ -4063,6 +4067,11 @@ echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
 
 
 
+
+
+
+
+
     { echo "$as_me:$LINENO: result: $ac_oasysdir (version $OASYS_VERSION)" >&5
 echo "${ECHO_T}$ac_oasysdir (version $OASYS_VERSION)" >&6; }
 
@@ -5074,7 +5083,6 @@ _ACEOF
     fi # BSP_ENABLED
 
 
-
     if test "$ac_bsp" = yes; then
         ac_openssldir='yes'
 
@@ -5085,6 +5093,7 @@ if test "${with_openssl+set}" = set; then
 fi
 
 
+        ac_save_CPPFLAGS="$CPPFLAGS"
         ac_save_LDFLAGS="$LDFLAGS"
         ac_save_LIBS="$LIBS"
 
@@ -5101,9 +5110,9 @@ fi
                 openssl_lib="/usr/lib"
             else
                 openssl_include=$ac_openssldir/include
-                CPPFLAGS="$ac_save_CPPFLAGS -I$openssl_include"
+                CPPFLAGS="-I$openssl_include"
                 openssl_lib=$ac_openssldir/lib
-                LDFLAGS="$ac_save_LDFLAGS -L$openssl_lib"
+                LDFLAGS="-L$openssl_lib"
            fi
 
         fi
@@ -5418,6 +5427,20 @@ See \`config.log' for more details." >&2;}
    { (exit 1); exit 1; }; }
 fi
 
+
+       if test "$openssl_include" != /usr/include ; then
+          EXTLIB_CFLAGS="$EXTLIB_CFLAGS -I$openssl_include"
+       fi
+
+       if test "$openssl_lib" != /usr/lib ; then
+	   EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS -L$openssl_lib"
+       fi
+
+       EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS -lcrypto"
+
+       CPPFLAGS=$ac_save_CPPFLAGS
+       LDFLAGS=$ac_save_LDFLAGS
+       LIBS=$ac_save_LIBS
     fi
 
 
@@ -6141,6 +6164,10 @@ OASYS_INCDIR!$OASYS_INCDIR$ac_delim
 OASYS_LIBDIR!$OASYS_LIBDIR$ac_delim
 OASYS_ETCDIR!$OASYS_ETCDIR$ac_delim
 OASYS_VERSION!$OASYS_VERSION$ac_delim
+EXTLIB_CFLAGS!$EXTLIB_CFLAGS$ac_delim
+EXTLIB_LDFLAGS!$EXTLIB_LDFLAGS$ac_delim
+SYS_EXTLIB_CFLAGS!$SYS_EXTLIB_CFLAGS$ac_delim
+SYS_EXTLIB_LDFLAGS!$SYS_EXTLIB_LDFLAGS$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
 INCFLAGS!$INCFLAGS$ac_delim
@@ -6148,7 +6175,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 76; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 80; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
