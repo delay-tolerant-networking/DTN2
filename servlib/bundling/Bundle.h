@@ -17,7 +17,6 @@
 #ifndef _BUNDLE_H_
 #define _BUNDLE_H_
 
-#include <set>
 #include <sys/time.h>
 
 #include <oasys/debug/Formatter.h>
@@ -27,6 +26,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "BlockInfo.h"
+#include "BundleMappings.h"
 #include "BundlePayload.h"
 #include "BundleTimestamp.h"
 #include "CustodyTimer.h"
@@ -143,29 +143,19 @@ public:
      */
     int del_ref(const char* what1, const char* what2 = "");
 
-    /*
-     * Types used for the mapping table.
-     */
-    typedef std::set<BundleList*> BundleMappings;
-    typedef BundleMappings::const_iterator MappingsIterator;
-    
     /**
-     * The number of mappings for this bundle.
+     * Return the number of mappings for this bundle.
      */
-    int num_mappings() { return mappings_.size(); }
+    size_t num_mappings();
 
     /**
-     * Return an iterator to scan through the mappings.
+     * Return a pointer to the mappings. Requires that the bundle be
+     * locked.
      */
-    MappingsIterator mappings_begin();
-    
-    /**
-     * Return an iterator to mark the end of the mappings set.
-     */
-    MappingsIterator mappings_end();
+    BundleMappings* mappings();
 
     /**
-     * Return true if the bundle is on the given list.
+     * Return true if the bundle is on the given list. 
      */
     bool is_queued_on(BundleList* l);
 
@@ -269,8 +259,6 @@ public:
     LinkMetadataSet generated_metadata_; ///< Metadata to be included in bundle
 
 protected:
-    friend class BundleList;
-    
     /*
      * Protected fields.
      */

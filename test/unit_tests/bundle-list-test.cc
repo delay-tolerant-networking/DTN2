@@ -19,6 +19,8 @@
 #endif
 
 #include <oasys/util/UnitTest.h>
+#include <oasys/util/Time.h>
+#include <oasys/util/Random.h>
 
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
@@ -27,15 +29,16 @@ using namespace oasys;
 using namespace dtn;
 
 #define COUNT 10
+#define MANY  10000
 
-Bundle* bundles[COUNT];
+Bundle* bundles[MANY];
 BundleList::iterator iter;
-Bundle::MappingsIterator map_iter;
+BundleMappings::iterator map_iter;
 
 BundleList *l1, *l2, *l3;
 
 DECLARE_TEST(Init) {
-    for (int i = 0; i < COUNT; ++i) {
+    for (int i = 0; i < MANY; ++i) {
         bundles[i] = new Bundle(oasys::Builder::builder());
         bundles[i]->bundleid_ = i;
         bundles[i]->payload_.init(i, BundlePayload::NODATA);
@@ -65,10 +68,24 @@ DECLARE_TEST(BasicPushPop) {
 
     CHECK(l1->front() == NULL);
     CHECK(l1->back() == NULL);
+
+    l1->push_back(bundles[0]);
+    CHECK(l1->front() == bundles[0]);
+    CHECK(l1->back()  == bundles[0]);
+    CHECK(l1->size() == 1);
+    CHECK(bundles[0]->num_mappings() == 1);
+
+    b = l1->pop_front();
+    CHECK(l1->front() == NULL);
+    CHECK(l1->back() == NULL);
+    CHECK(l1->size() == 0);
+    CHECK(bundles[0]->num_mappings() == 0);
+    b = NULL;
     
     for (int i = 0; i < COUNT; ++i) {
         l1->push_back(bundles[i]);
         CHECK(l1->back() == bundles[i]);
+        CHECK(bundles[i]->is_queued_on(l1));
         CHECK_EQUAL(bundles[i]->refcount(), 2);
     }
 
@@ -134,13 +151,28 @@ DECLARE_TEST(ContainsAndErase) {
     CHECK(! l1->contains(bundles[5]));
     CHECK_EQUAL(bundles[5]->refcount(), 1);
     CHECK_EQUAL(bundles[5]->num_mappings(), 0);
+    CHECK(! bundles[5]->is_queued_on(l1));
     CHECK(!l1->empty());
     CHECK_EQUAL(l1->size(), COUNT - 2);
+
+    // test using an iterator
+    l1->lock()->lock("test lock");
+    iter = l1->begin();
+    iter++; iter++; iter++;
+    CHECK(*iter == bundles[4]);
+    DO(l1->erase(iter));
+    CHECK(! l1->contains(bundles[4]));
+    CHECK_EQUAL(bundles[4]->refcount(), 1);
+    CHECK_EQUAL(bundles[4]->num_mappings(), 0);
+    CHECK(! bundles[4]->is_queued_on(l1));
+    CHECK(!l1->empty());
+    CHECK_EQUAL(l1->size(), COUNT - 3);
+    l1->lock()->unlock();
 
     CHECK(! l1->contains(NULL));
     CHECK(! l1->erase(NULL));
     CHECK(!l1->empty());
-    CHECK_EQUAL(l1->size(), COUNT - 2);
+    CHECK_EQUAL(l1->size(), COUNT - 3);
 
     l1->clear();
     CHECK(l1->empty());
@@ -178,16 +210,17 @@ DECLARE_TEST(MultipleLists) {
     b = bundles[0];
     CHECK_EQUAL(b->num_mappings(), 3);
     b->lock_.lock("test lock");
-    for (map_iter = b->mappings_begin();
-         map_iter != b->mappings_end();
+    for (map_iter = b->mappings()->begin();
+         map_iter != b->mappings()->end();
          ++map_iter)
     {
-        l = *map_iter;
+        l = map_iter->list();
+        CHECK(*map_iter->position() == b);
         CHECK(l->contains(b));
     }
 
     while (b->num_mappings() != 0) {
-        l = *b->mappings_begin();
+        l = b->mappings()->front().list();
         b->lock_.unlock();
         CHECK(l->erase(b));
         b->lock_.lock("test lock");
@@ -215,7 +248,7 @@ DECLARE_TEST(MultipleListRemoval) {
         CHECK_EQUAL(b->num_mappings(), 3);
 
         while (b->num_mappings() != 0) {
-            l = *b->mappings_begin();
+            l = b->mappings()->front().list();
             
             CHECK(l->contains(b));
             b->lock_.unlock();
@@ -267,6 +300,47 @@ DECLARE_TEST(MoveContents) {
     return UNIT_TEST_PASSED;
 }
 
+DECLARE_TEST(ManyBundles) {
+    for (int i = 0; i < MANY; ++i) {
+        l1->push_back(bundles[i]);
+    }
+    
+    oasys::PermutationArray a(MANY);
+    oasys::Time t;
+    
+    log_always_p("/test", "testing %u erasures with mapping code", MANY);
+    bool ok = true;
+    t.get_time();
+    for (int i = 0; i < MANY; ++i) {
+        ok = ok && l1->erase(bundles[a.map(i)]);
+    }
+    log_always_p("/test", "elapsed time: %u ms", t.elapsed_ms());
+    CHECK(ok);
+    CHECK(l1->size() == 0);
+
+    for (int i = 0; i < MANY; ++i) {
+        l1->push_back(bundles[i]);
+    }
+    
+    log_always_p("/test", "testing %u erasures with linear code", MANY);
+    t.get_time();
+    l1->lock()->lock("test lock");
+    for (int i = 0; i < MANY; ++i) {
+        Bundle* b = bundles[a.map(i)];
+        for (iter = l1->begin(); iter != l1->end(); ++iter) {
+            if (*iter == b) {
+                l1->erase(iter);
+                break;
+            }
+        }
+    }
+    l1->lock()->unlock();
+    log_always_p("/test", "elapsed time: %u ms", t.elapsed_ms());
+    CHECK(l1->size() == 0);
+
+    return UNIT_TEST_PASSED;
+}
+
 DECLARE_TESTER(BundleListTest) {
     ADD_TEST(Init);
     ADD_TEST(BasicPushPop);
@@ -274,6 +348,7 @@ DECLARE_TESTER(BundleListTest) {
     ADD_TEST(MultipleLists);
     ADD_TEST(MultipleListRemoval);
     ADD_TEST(MoveContents);
+    ADD_TEST(ManyBundles);
 }
 
 DECLARE_TEST_FILE(BundleListTest, "bundle list test");

@@ -165,8 +165,9 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
 
     oasys::ScopeLock l(&lock_, "Bundle::format_verbose");
     buf->appendf("queued on %zu lists:\n", mappings_.size());
-    for (MappingsIterator i = mappings_begin(); i != mappings_end(); ++i) {
-        buf->appendf("\t%s\n", (*i)->name().c_str());
+    for (BundleMappings::iterator i = mappings_.begin();
+         i != mappings_.end(); ++i) {
+        buf->appendf("\t%s\n", i->list()->name().c_str());
     }
 
     buf->append("\nblocks:");
@@ -321,23 +322,21 @@ Bundle::del_ref(const char* what1, const char* what2)
 }
 
 //----------------------------------------------------------------------
-Bundle::MappingsIterator
-Bundle::mappings_begin()
+size_t
+Bundle::num_mappings()
 {
-    if (!lock_.is_locked_by_me())
-        PANIC("Must lock Bundle before using mappings iterator");
-    
-    return mappings_.begin();
+    oasys::ScopeLock l(&lock_, "Bundle::num_mappings");
+    return mappings_.size();
 }
-    
+
 //----------------------------------------------------------------------
-Bundle::MappingsIterator
-Bundle::mappings_end()
+BundleMappings*
+Bundle::mappings()
 {
-    if (!lock_.is_locked_by_me())
-        PANIC("Must lock Bundle before using mappings iterator");
+    ASSERTF(lock_.is_locked_by_me(),
+            "Must lock Bundle before using mappings iterator");
     
-    return mappings_.end();
+    return &mappings_;
 }
 
 //----------------------------------------------------------------------
@@ -345,7 +344,7 @@ bool
 Bundle::is_queued_on(BundleList* bundle_list)
 {
     oasys::ScopeLock l(&lock_, "Bundle::is_queued_on");
-    return (mappings_.count(bundle_list) > 0);
+    return mappings_.contains(bundle_list);
 }
 
 //----------------------------------------------------------------------

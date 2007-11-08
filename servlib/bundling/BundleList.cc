@@ -24,6 +24,7 @@
 
 #include "Bundle.h"
 #include "BundleList.h"
+#include "BundleMappings.h"
 #include "BundleTimestamp.h"
 
 namespace dtn {
@@ -84,17 +85,19 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
 {
     ASSERT(lock_->is_locked_by_me());
     ASSERT(b->lock_.is_locked_by_me());
-
-    if (b->mappings_.insert(this).second == false) {
+    
+    if (b->is_queued_on(this)) {
         log_err("ERROR in add bundle: "
                 "bundle id %d already on list [%s]",
                 b->bundleid_, name_.c_str());
-
+        
         return;
     }
-
-    list_.insert(pos, b);
-    b->add_ref("bundle_list", name_.c_str()); 
+    
+    iterator new_pos = list_.insert(pos, b);
+    b->mappings()->push_back(BundleMapping(this, new_pos));
+    b->add_ref("bundle_list", name_.c_str());
+    
     if (notifier_ != 0) {
         notifier_->notify();
     }
@@ -187,21 +190,22 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
     ASSERT(lock_->is_locked_by_me());
     
     // lock the bundle
-    oasys::ScopeLock l(& b->lock_, "BundleList::del_bundle");
+    oasys::ScopeLock l(b->lock(), "BundleList::del_bundle");
 
     // remove the mapping
     log_debug("bundle id %d del_bundle: deleting mapping [%s]",
               b->bundleid_, name_.c_str());
-    
-    Bundle::BundleMappings::iterator mapping_pos = b->mappings_.find(this);
-    if (mapping_pos == b->mappings_.end()) {
+    BundleMappings::iterator mapping = b->mappings()->find(this);
+    if (mapping == b->mappings()->end()) {
         log_err("ERROR in del bundle: "
-                "bundle id %d not on list [%s]",
+                "bundle id %d has no mapping for list [%s]",
                 b->bundleid_, name_.c_str());
     } else {
-        b->mappings_.erase(mapping_pos);
+        ASSERT(mapping->list() == this);
+        ASSERT(mapping->position() == pos);
+        b->mappings()->erase(mapping);
     }
-
+    
     // remove the bundle from the list
     list_.erase(pos);
     
@@ -264,16 +268,29 @@ BundleList::erase(Bundle* bundle, bool used_notifier)
         return false;
     }
 
+    // The bundle list lock must always be taken before the
+    // to-be-erased bundle lock.
     ASSERTF(!bundle->lock_.is_locked_by_me(),
-            "bundle cannot be locked in erase due to potential deadlock");
+            "bundle cannot be locked before calling erase "
+            "due to potential deadlock");
     
     oasys::ScopeLock l(lock_, "BundleList::erase");
 
-    iterator pos = std::find(begin(), end(), bundle);
-    if (pos == end()) {
+    // Now we need to take the bundle lock in order to search through
+    // its mappings
+    oasys::ScopeLock bl(bundle->lock(), "BundleList::erase");
+    
+    BundleMappings::iterator mapping = bundle->mappings()->find(this);
+    if (mapping == bundle->mappings()->end()) {
         return false;
     }
 
+    ASSERT(mapping->list() == this);
+    ASSERT(*mapping->position() == bundle);
+
+    // Make a local copy of the position since del_bundle destroys the
+    // mapping object but still needs the position.
+    iterator pos = mapping->position();
     Bundle* b = del_bundle(pos, used_notifier);
     ASSERT(b == bundle);
     

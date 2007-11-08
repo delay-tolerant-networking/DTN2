@@ -31,6 +31,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundleDaemon.cc		\
 	bundling/BundleEventHandler.cc		\
 	bundling/BundleList.cc			\
+	bundling/BundleMappings.cc		\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
 	bundling/BundleStatusReport.cc		\
