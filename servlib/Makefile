@@ -159,9 +159,6 @@ ROUTING_SRCS :=					\
 	routing/ExternalRouter.cc		\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
-	routing/NeighborhoodRouter.cc		\
-	routing/LinkStateGraph.cc		\
-	routing/LinkStateRouter.cc		\
 	routing/LinkScheduleEstimator.cc	\
 	routing/ProphetBundleCore.cc		\
 	routing/ProphetBundleList.cc		\

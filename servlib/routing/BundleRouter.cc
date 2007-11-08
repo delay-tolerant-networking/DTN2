@@ -28,9 +28,7 @@
 
 #include "StaticBundleRouter.h"
 #include "FloodBundleRouter.h"
-#include "NeighborhoodRouter.h"
 #include "ProphetRouter.h"
-#include "LinkStateRouter.h"
 #include "DTLSRRouter.h"
 #include "ExternalRouter.h"
 #include "TcaRouter.h"
@@ -55,18 +53,12 @@ BundleRouter::create_router(const char* type)
     if (strcmp(type, "static") == 0) {
         return new StaticBundleRouter();
     }
-    else if (strcmp(type, "neighborhood") == 0) {
-        return new NeighborhoodRouter();
-    }
     else if (strcmp(type, "prophet") == 0) {
         return new ProphetRouter();
     }
     else if (strcmp(type, "flood") == 0) {
         return new FloodBundleRouter();
     }
-    else if (strcmp(type, "linkstate") == 0) {
-        return new LinkStateRouter();
-    }    
     else if (strcmp(type, "dtlsr") == 0) {
         return new DTLSRRouter();
     }    
@@ -132,7 +124,8 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     {
         log_debug("should_fwd bundle %d: "
                   "skip %s since remote eid %s == bundle prevhop",
-                  bundle->bundleid_, link->name(), link->remote_eid().c_str());
+                  bundle->bundleid_, link->name(),
+                  link->remote_eid().c_str());
         return false;
     }
 
