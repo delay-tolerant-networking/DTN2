@@ -42,7 +42,8 @@ double Simulator::runtill_ = -1;
 //----------------------------------------------------------------------
 Simulator::Simulator()
     : Logger("Simulator", "/dtnsim"),
-      eventq_()
+      eventq_(),
+      exit_event_(NULL)
 {
 }
 
@@ -162,7 +163,6 @@ Simulator::run()
         }
         
         if ((next_timer_ms == -1) && (e == NULL)) {
-            log_info("Simulator loop done -- no pending events or timers");
             break;
         }
         else if (next_timer < next_event) {
@@ -193,8 +193,13 @@ Simulator::run()
         }
     }
 
-    log_info("eventq is empty, time is %f", time_);
+    log_info("Simulator loop done -- no pending events or timers (time is %f)",
+             time_);
 
+    if (exit_event_) {
+        run_at_event(exit_event_);
+    }
+    
 done:
     log_inqueue_stats();
     SimLog::instance()->flush();
@@ -282,19 +287,33 @@ Simulator::process(SimEvent *e)
 {
     switch (e->type()) {
     case SIM_AT_EVENT: {
-        SimAtEvent* evt = (SimAtEvent*)e;
-        int err = oasys::TclCommandInterp::instance()->
-                  exec_command(evt->objc_, evt->objv_);
-        if (err != 0) {
-            oasys::StringBuffer cmd;
-            cmd.appendf("puts \"ERROR in at command, pausing simulation\"");
-            oasys::TclCommandInterp::instance()->exec_command(cmd.c_str());
-            pause();
-        }
+        run_at_event((SimAtEvent*)e);
         break;
     }    
     default:
         NOTREACHED;
+    }
+}
+
+//----------------------------------------------------------------------
+void
+Simulator::set_exit_event(SimAtEvent* evt)
+{
+    ASSERTF(exit_event_ == NULL, "cannot set multiple exit events");
+    exit_event_ = evt;
+}
+
+//----------------------------------------------------------------------
+void
+Simulator::run_at_event(SimAtEvent* evt)
+{
+    int err = oasys::TclCommandInterp::instance()->
+              exec_command(evt->objc_, evt->objv_);
+    if (err != 0) {
+        oasys::StringBuffer cmd;
+        cmd.appendf("puts \"ERROR in at command, pausing simulation\"");
+        oasys::TclCommandInterp::instance()->exec_command(cmd.c_str());
+        pause();
     }
 }
 

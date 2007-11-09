@@ -79,6 +79,11 @@ public:
      */
     void run_console(bool complete);
 
+    /**
+     * Register a command to run at exit.
+     */
+    void set_exit_event(SimAtEvent* event);
+
     static double runtill_;             ///< time to end the simulation
     
 private:
@@ -94,6 +99,10 @@ private:
     std::priority_queue<SimEvent*,
                         std::vector<SimEvent*>,
                         SimEventCompare> eventq_;
+
+    SimAtEvent* exit_event_;
+
+    void run_at_event(SimAtEvent* evt);
 
     /*
      * Handlers for SIGINT to pause the simulation while it's running.

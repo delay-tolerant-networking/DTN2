@@ -76,26 +76,36 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
         return TCL_OK;
 
     } else if (strcmp(cmd, "at") == 0) {
-        // sim at <time> <cmd...>
+        // sim at [<time>|exit] <cmd...>
         if (argc < 4) {
             wrong_num_args(argc, argv, 2, 4, INT_MAX);
             return TCL_ERROR;
         }
 
         char* end;
-        double time = strtod(argv[2], &end);
-        if (*end != '\0') {
-            resultf("time value '%s' invalid", argv[1]);
-            return TCL_ERROR;
+        double time;
+        if (!strcmp(argv[2], "exit")) {
+            time = -1;
+        } else {
+            time = strtod(argv[2], &end);
+            if (*end != '\0') {
+                resultf("time value '%s' invalid", argv[1]);
+                return TCL_ERROR;
+            }
         }
-
+        
         SimAtEvent* e = new SimAtEvent(time, Simulator::instance());
         e->objc_ = argc - 3;
         for (int i = 0; i < e->objc_; ++i) {
             e->objv_[i] = Tcl_NewStringObj(argv[i+3], -1);
 	    Tcl_IncrRefCount(e->objv_[i]);
         }
-        Simulator::post(e);
+
+        if (time == -1) {
+            Simulator::instance()->set_exit_event(e);
+        } else {
+            Simulator::post(e);
+        }
         return TCL_OK;
         
     } else if (strcmp(cmd, "run") == 0) {
