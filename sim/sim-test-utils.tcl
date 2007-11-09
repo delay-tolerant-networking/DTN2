@@ -2,12 +2,12 @@
 # Testing scripts etc used for running in the simulator
 #
 
-source "$base_test_dir/oasys/test-utils/import.tcl"
+source "$base_test_dir/../test-utils/import.tcl"
 set import::path [list \
+	$base_test_dir/../test-utils \
+	$base_test_dir/../oasys/tclcmd \
 	$base_test_dir/test-utils \
 	$base_test_dir/test/nets \
-	$base_test_dir/oasys/test-utils \
-	$base_test_dir/oasys/tclcmd \
 	]
 
 import "tcl-utils.tcl" 
