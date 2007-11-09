@@ -44,7 +44,7 @@ private:
 
     EndpointID src_;    ///< source eid
     EndpointID dst_;    ///< destination eid
-    u_int size_;        ///< size of each message
+    u_int64_t size_;    ///< size of each message
     u_int expiration_;  ///< expiration time for each bundle
     u_int reps_;        ///< total number of reps/batches
     u_int batch_;       ///< no of messages in each batch

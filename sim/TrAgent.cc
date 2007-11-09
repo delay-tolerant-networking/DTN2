@@ -49,7 +49,7 @@ TrAgent::init(const EndpointID& src, const EndpointID& dst,
     TrAgent* a = new TrAgent(src, dst);
 
     oasys::OptParser p;
-    p.addopt(new oasys::UIntOpt("size", &a->size_));
+    p.addopt(new oasys::SizeOpt("size", &a->size_));
     p.addopt(new oasys::UIntOpt("expiration", &a->expiration_));
     p.addopt(new oasys::UIntOpt("reps", &a->reps_));
     p.addopt(new oasys::UIntOpt("batch", &a->batch_));
@@ -132,9 +132,9 @@ TrAgent::send_bundle()
     //b->orig_length_   = 0;
     //b->frag_offset_   = 0;    
     
-    log_info("N[%s]: GEN id:%d %s -> %s size:%d",
+    log_info("N[%s]: GEN id:%d %s -> %s size:%llu",
              Node::active_node()->name(), b->bundleid_,
-             src_.c_str(), dst_.c_str(), size_);
+             src_.c_str(), dst_.c_str(), U64FMT(size_));
 
     SimLog::instance()->log_gen(Node::active_node(), b);
 		
