@@ -31,6 +31,13 @@ namespace eval dtn {
     }
 }
 
+# Override the net::nodelist proc
+namespace eval net {
+    proc nodelist {} {
+        return [sim nodes]
+    }
+}
+
 proc parse_opts {{defaults ""}} {
     global opt opts
 
