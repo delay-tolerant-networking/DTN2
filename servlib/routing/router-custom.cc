@@ -102,7 +102,6 @@ linkType::linkType(Link* l)
             info->segment_length(params->segment_length_);
 
         #define LINK_PARAMS \
-            info->busy_queue_depth(params->busy_queue_depth_); \
             info->reactive_frag_enabled(params->reactive_frag_enabled_); \
             info->sendbuf_length(params->sendbuf_len_); \
             info->recvbuf_length(params->recvbuf_len_); \
@@ -294,11 +293,11 @@ contactType::contactType (const contactType& a,
 contactType::contactType (Contact* c)
     : contactType_base (
         linkType(c->link().object()),
-        c->start_time_.tv_sec,
-        c->start_time_.tv_usec,
-        c->duration_ms_,
-        c->bps_,
-        c->latency_ms_,
+        c->start_time().sec_,
+        c->start_time().usec_,
+        c->duration(),
+        c->bps(),
+        c->latency(),
         0)  // @@@ pkt_loss_prob (where do we get this from?)
 {
 }
