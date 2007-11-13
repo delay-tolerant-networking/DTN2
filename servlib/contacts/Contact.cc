@@ -35,10 +35,10 @@ Contact::Contact(const LinkRef& link)
       Logger("Contact", "/dtn/contact/%s",link->name()),
       link_(link.object(), "Contact"), cl_info_(NULL)
 {
-    ::gettimeofday(&start_time_, 0);
-    duration_ms_ = 0;
+    start_time_.get_time();
+    duration_ = 0;
     bps_         = 0;
-    latency_ms_  = 0;
+    latency_  = 0;
     
     log_info("new contact *%p", this);
 }
@@ -56,23 +56,17 @@ Contact::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz, "contact %s (started %u.%u)",
                     link_->nexthop(),
-                    (u_int32_t)start_time_.tv_sec,
-                    (u_int32_t)start_time_.tv_usec);
+                    start_time_.sec_, start_time_.usec_);
 }
 
 void
 Contact::serialize(oasys::SerializeAction *a)
 {
-    // casting won't be necessary after port to oasys::Time
-    // in the mean time, avoid gcc pointer cast complaints
-    u_int32_t tv_sec_pass = start_time_.tv_sec;
-    a->process("start_time_sec",&tv_sec_pass);
-    u_int32_t tv_usec_pass = start_time_.tv_usec;
-    a->process("start_time_usec",&tv_usec_pass);
-
-    a->process("duration", &duration_ms_);
+    a->process("start_time_sec", &start_time_.sec_);
+    a->process("start_time_usec", &start_time_.usec_);
+    a->process("duration", &duration_);
     a->process("bps", &bps_);
-    a->process("latency", &latency_ms_);
+    a->process("latency", &latency_);
     a->process("link", link_.object());
 }
 

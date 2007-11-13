@@ -22,6 +22,7 @@
 #include <oasys/serialize/Serialize.h>
 #include <oasys/util/Ref.h>
 #include <oasys/util/RefCountedObject.h>
+#include <oasys/util/Time.h>
 
 namespace dtn {
 
@@ -98,19 +99,32 @@ public:
      */
     virtual void serialize( oasys::SerializeAction *a );
 
+
+    /// @{ Accessors
+    const oasys::Time& start_time() const { return start_time_; }
+    u_int32_t          duration()   const { return duration_; }
+    u_int32_t          bps()        const { return bps_; }
+    u_int32_t          latency()    const { return latency_; }
+
+    void set_start_time(const oasys::Time& t) { start_time_ = t; }
+    void set_duration(u_int32_t duration)     { duration_ = duration; }
+    void set_bps(u_int32_t bps)               { bps_ = bps; }
+    void set_latency(u_int32_t latency)       { latency_ = latency; }
+    /// @}
+    
+protected:
     /// Time when the contact begin
-    struct timeval start_time_;
+    oasys::Time start_time_;
 
     /// Contact duration (0 if unknown)
-    u_int32_t duration_ms_;
+    u_int32_t duration_;
 
     /// Approximate bandwidth
     u_int32_t bps_;
     
     /// Approximate latency
-    u_int32_t latency_ms_;
+    u_int32_t latency_;
 
-protected:
     LinkRef link_ ; 	///< Parent link on which this contact exists
     
     CLInfo* cl_info_;	///< convergence layer specific info
