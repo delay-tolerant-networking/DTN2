@@ -33,33 +33,6 @@ namespace dtn {
 BluetoothConvergenceLayer::BluetoothLinkParams
     BluetoothConvergenceLayer::default_link_params_(true);
 
-void
-BluetoothConvergenceLayer::BluetoothLinkParams::serialize(
-                                    oasys::SerializeAction *a) {
-    char *la = batostr(&local_addr_);
-    char *ra = batostr(&remote_addr_);
-
-    a->process("local_addr", (u_char *) la);
-    a->process("remote_addr", (u_char *) ra);
-    a->process("channel", &channel_);
-
-    // from StreamLinkParams
-    a->process("segment_ack_enabled", &segment_ack_enabled_);
-    a->process("negative_ack_enabled", &negative_ack_enabled_);
-    a->process("keepalive_interval", &keepalive_interval_);
-    a->process("segment_length", &segment_length_);
-
-    // from LinkParams
-    a->process("busy_queue_depth", &busy_queue_depth_);
-    a->process("reactive_frag_enabled", &reactive_frag_enabled_);
-    a->process("sendbuf_len", &sendbuf_len_);
-    a->process("recvbuf_len", &recvbuf_len_);
-    a->process("data_timeout", &data_timeout_);
-
-    free(la);
-    free(ra);
-}
-
 //----------------------------------------------------------------------
 BluetoothConvergenceLayer::BluetoothLinkParams::BluetoothLinkParams(
                                                     bool init_defaults )
@@ -257,21 +230,9 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
 bool
 BluetoothConvergenceLayer::interface_down(Interface* iface)
 {
-    // grab the listener object, set a flag for the thread to stop and
-    // then close the socket out from under it, which should cause the
-    // thread to break out of the blocking call to accept() and
-    // terminate itself
     Listener* listener = dynamic_cast<Listener*>(iface->cl_info());
     ASSERT(listener != NULL);
-
-    listener->set_should_stop();
-
-    listener->interrupt_from_io();
-
-    while (! listener->is_stopped()) {
-        oasys::Thread::yield();
-    }
-
+    listener->stop();
     delete listener;
     return true;
 }
@@ -343,14 +304,11 @@ BluetoothConvergenceLayer::Connection::Connection(
          "BluetoothConvergenceLayer::Connection", cl->logpath(), cl, params,
          false /* call accept() */)
 {
+    logpathf("%s/conn/%s-%d",cl->logpath(),bd2str(addr),channel);
+
     // set the nexthop parameter for the base class
     set_nexthop(bd2str(addr));
     ::bacpy(&params->remote_addr_,&addr);
-
-    logpathf("%s/conn/%s-%d",cl->logpath(),bd2str(addr),channel);
-
-    // set nexthop parameter for base class
-    set_nexthop(bd2str(addr));
 
     sock_ = new oasys::RFCOMMClient(fd, addr, channel, logpath_);
     sock_->set_logfd(false);
@@ -361,6 +319,34 @@ BluetoothConvergenceLayer::Connection::Connection(
 BluetoothConvergenceLayer::Connection::~Connection()
 {
     delete sock_;
+}
+
+//----------------------------------------------------------------------
+void
+BluetoothConvergenceLayer::BluetoothLinkParams::serialize(
+                                    oasys::SerializeAction *a) {
+    char *la = batostr(&local_addr_);
+    char *ra = batostr(&remote_addr_);
+
+    a->process("local_addr", (u_char *) la);
+    a->process("remote_addr", (u_char *) ra);
+    a->process("channel", &channel_);
+
+    // from StreamLinkParams
+    a->process("segment_ack_enabled", &segment_ack_enabled_);
+    a->process("negative_ack_enabled", &negative_ack_enabled_);
+    a->process("keepalive_interval", &keepalive_interval_);
+    a->process("segment_length", &segment_length_);
+
+    // from LinkParams
+    a->process("busy_queue_depth", &busy_queue_depth_);
+    a->process("reactive_frag_enabled", &reactive_frag_enabled_);
+    a->process("sendbuf_len", &sendbuf_len_);
+    a->process("recvbuf_len", &recvbuf_len_);
+    a->process("data_timeout", &data_timeout_);
+
+    free(la);
+    free(ra);
 }
 
 //----------------------------------------------------------------------
@@ -507,7 +493,7 @@ BluetoothConvergenceLayer::Connection::handle_poll_activity()
             log_err("process_data left no space in recvbuf!!");
         }
 
-        if (! contact_broken_) {
+        if (contact_up_ && ! contact_broken_) {
             check_keepalive();
         }
 
