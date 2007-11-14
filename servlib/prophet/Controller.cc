@@ -57,6 +57,12 @@ Controller::Controller(BundleCore* core, Repository* repository,
 
 Controller::~Controller()
 {
+    List::iterator i = list_.begin();
+    while (i != list_.end())
+    {
+        delete *i;
+        list_.erase(i++);
+    }
 }
 
 bool
@@ -245,6 +251,11 @@ Controller::handle_bundle_transmitted(const Bundle* b, const Link* l)
 {
     if (b == NULL) return;
     if (l == NULL) return;
+    if (is_prophet_control(b))
+    {
+        core()->drop_bundle(b);
+        return;
+    }
     stats_.update_stats(b,nodes_.p_value(l->remote_eid()));
     repository_->change_priority(b);
 }
