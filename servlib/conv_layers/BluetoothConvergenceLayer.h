@@ -156,13 +156,6 @@ protected:
         /// @}
 
         void recv_data();
-        bool recv_contact_header(int timeout);
-        bool send_bundle(Bundle* bundle);
-        bool recv_bundle();
-        bool handle_reply();
-        int handle_ack();
-        bool send_ack(u_int32_t bundle_id, size_t acked_len);
-        bool send_keepalive();
 
         /**
          * Utility function to downcast the params_ pointer that's
