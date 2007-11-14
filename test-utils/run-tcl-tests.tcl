@@ -70,6 +70,20 @@ set tests(basic) {
     "version-mismatch.tcl"	""
 }
 
+# Prophet router test group
+set tests(prophet) {
+    "prophet.tcl"   ""
+    "discovery.tcl"   ""
+}
+
+# BlueZ utils test group
+set tests(bluez) {
+    "bluez-rfcomm.tcl"   ""
+    "bluez-sdp.tcl"    ""
+    "bluez-inq.tcl"    ""
+    "bluez-links.tcl"    ""
+}
+
 # the stress test group
 set tests(stress) {
     "api-leak-test.tcl"		""

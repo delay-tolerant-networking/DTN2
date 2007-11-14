@@ -105,6 +105,7 @@ proc get_port {what id} {
 proc is_bidirectional {cl} {
     switch -- $cl {
 	tcp { return 1 }
+	bt { return 1 }
     }
     
     return 0
@@ -116,11 +117,16 @@ proc is_bidirectional {cl} {
 proc config_interface {cl args} {
     global net::listen_addr
     foreach id [net::nodelist] {
+	
+    if {$cl == "bt"} {
+    # first pass -- just take defaults ... figure out option parsing later
+    conf::add dtnd $id [eval list interface add ${cl}0 $cl]
+    } else {
 	set addr $net::listen_addr($id)
 	set port [dtn::get_port $cl $id]
-	
 	conf::add dtnd $id [eval list interface add ${cl}0 $cl \
 		local_addr=$addr local_port=$port $args]
+    }
     }
 }
 

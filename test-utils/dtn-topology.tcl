@@ -78,7 +78,7 @@ proc get_link_name {cl src dst} {
 # Add a link and optionally a route from a to b.
 #
 proc config_link {id peerid type cl with_routes link_args} {
-    global dtn::link_names net::internal_host
+    global dtn::link_names net::internal_host bluez::btaddr
     
     set peeraddr $net::internal_host($peerid)
     set peerport [dtn::get_port $cl $peerid]
@@ -94,9 +94,16 @@ proc config_link {id peerid type cl with_routes link_args} {
 	    [get_link_name $cl $peerid $id] != ""} {
 	set type OPPORTUNISTIC
     }
-    
+
+    set nexthop $peeraddr:$peerport
+
+    if {$cl == "bt"} {
+        puts "% bt link nexthop $bluez::btaddr($peerid) -> $peer_eid"
+    set nexthop $bluez::btaddr($peerid)  
+    }
+
     conf::add dtnd $id [join [list \
-	    link add $link $peeraddr:$peerport $type $cl \
+	    link add $link $nexthop $type $cl \
 	    remote_eid=$peer_eid $link_args]]
     
     return $link
