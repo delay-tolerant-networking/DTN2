@@ -47,8 +47,8 @@ include ../Rules.make
 include ../dtn-version.mk
 
 DTN_LIBS_STATIC := ../applib/libdtnapi.a ../applib/libdtnapi++.a
-DTN_LIBS := -ldtnapi-$(DTN_VERSION) $(OASYS_COMPAT_LDFLAGS)
-DTN_LIBS++ := $(DTN_LIBS) -ldtnapi++-$(DTN_VERSION) $(OASYS_LDFLAGS)
+DTN_LIBS := ../applib/libdtnapi.a $(OASYS_COMPAT_LDFLAGS)
+DTN_LIBS++ := $(DTN_LIBS) ../applib/libdtnapi++.a $(OASYS_LDFLAGS)
 
 # Fake build target in case the api lib doesn't exist, but allows us
 # to include it as a dependency above so the apps get properly rebuilt
@@ -86,8 +86,8 @@ dtntest/dtntest: dtntest/dtntest.o  $(DTN_LIBS_STATIC)
 #
 # Rules for dtntest
 #
-dtnsend/dtnsend: dtnsend/dtnsend.o 
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS++)
+dtnsend/dtnsend: dtnsend/dtnsend.o  $(DTN_LIBS_STATIC)
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(DTN_LIBS++)
 
 #
 # Rules for dtntunnel
@@ -116,5 +116,5 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
 #
 # Default rule for all single source apps
 #
-$(SINGLE_SOURCE_APPS): %: %.o 
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS)
+$(SINGLE_SOURCE_APPS): %: %.o $(DTN_LIBS_STATIC)
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS) $(DTN_LIBS)
