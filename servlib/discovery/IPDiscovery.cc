@@ -34,7 +34,8 @@ const u_int IPDiscovery::DEFAULT_MCAST_TTL = 1;
 
 IPDiscovery::IPDiscovery(const std::string& name)
     : Discovery(name,"ip"),
-      oasys::Thread("IPDiscovery")
+      oasys::Thread("IPDiscovery"),
+      socket_("/dtn/discovery/ip/sock")
 {
     remote_addr_ = DEFAULT_DST_ADDR;
     local_addr_ = DEFAULT_SRC_ADDR;
@@ -42,8 +43,6 @@ IPDiscovery::IPDiscovery(const std::string& name)
     port_ = 0;
     shutdown_ = false;
     persist_ = false;
-
-    socket_.logpathf("%s/sock", logpath_);
 }
 
 bool
