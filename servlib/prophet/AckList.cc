@@ -161,6 +161,7 @@ AckList::is_ackd(const std::string& dest_id,
         // all parameters match?
         if ((*i)->cts() == cts && (*i)->seq() == seq)
             return true;
+        i++;
     }
     // not found, therefore must not be Ack'd
     return false;
