@@ -1023,8 +1023,12 @@ Encounter::send_tlv(ProphetTLV* tlv)
     LOG(LOG_DEBUG,"send_tlv(%u) with %zu TLVs",tid_,tlv->size());
 
     // create a new facade bundle with src and dst
+    // expire after HELLO_DEAD interval seconds
+    // (convert from 100's of ms)
     Bundle* b = oracle_->core()->create_bundle(
-                       tlv->source(),tlv->destination());
+                       tlv->source(),tlv->destination(),
+                       oracle_->params()->hello_dead() *
+                       oracle_->params()->hello_interval() / 10);
 
     // create a buffer to move data between Prophet and bundle host, with
     // some slush factor
@@ -1044,8 +1048,6 @@ Encounter::send_tlv(ProphetTLV* tlv)
         {
             // update timestamp
             data_sent_ = time(0);
-            // let go of local bundle
-            oracle_->core()->drop_bundle(b);
         }
         else
             LOG(LOG_ERR,"failed to send TLV");
