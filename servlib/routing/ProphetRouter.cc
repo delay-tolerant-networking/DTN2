@@ -40,7 +40,7 @@ bool ProphetRouter::is_init_ = false;
 ProphetRouter::ProphetRouter()
     : BundleRouter("ProphetRouter","prophet"),
       core_(NULL), oracle_(NULL),
-      lock_(new oasys::SpinLock())
+      lock_(new oasys::SpinLock("ProphetRouter"))
 {
 }
 
@@ -144,7 +144,6 @@ bool
 ProphetRouter::accept_bundle(Bundle* bundle, int* errp)
 {
     log_info("ProphetRouter accept_bundle");
-    oasys::ScopeLock l(lock_, "accept_bundle");
 
     // first ask base class
     if (!BundleRouter::accept_bundle(bundle,errp))
@@ -155,6 +154,8 @@ ProphetRouter::accept_bundle(Bundle* bundle, int* errp)
 
     BundleRef tmp("accept_bundle");
     tmp = bundle;
+
+    oasys::ScopeLock l(lock_, "accept_bundle");
     // retrieve temp prophet handle to Bundle metadata
     const prophet::Bundle* b = core_->get_temp_bundle(tmp);
     if (errp != NULL) errp = (int) BundleProtocol::REASON_NO_ADDTL_INFO;
@@ -170,7 +171,6 @@ void
 ProphetRouter::handle_bundle_received(BundleReceivedEvent* e)
 {
     log_info("ProphetRouter handle_bundle_received");
-    oasys::ScopeLock sl(lock_, "handle_bundle_received");
 
     // should not be reached, but somehow still is
     if (e->source_ == EVENTSRC_STORE)
@@ -178,6 +178,7 @@ ProphetRouter::handle_bundle_received(BundleReceivedEvent* e)
 
     const prophet::Link* l = NULL;
 
+    oasys::ScopeLock sl(lock_, "handle_bundle_received");
     if (e->source_ != EVENTSRC_APP)
     {
 	// The external CL does not set this field, which the Prophet
