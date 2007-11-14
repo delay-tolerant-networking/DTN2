@@ -103,6 +103,7 @@ DECLARE_TEST(Table) {
     }
     CHECK(p2->p_value(a) == 0.75);
     CHECK(p2->p_value(b) >= 0.75);
+    delete p2;
 
     return UNIT_TEST_PASSED;
 }
@@ -148,6 +149,8 @@ DECLARE_TEST(AckList) {
 
         CHECK(pl.size() == i+1);
 
+        CHECK(pl.is_ackd(str.c_str(),0xff00+i,i));
+
         CHECK(pl.fetch(str.c_str(),&clone) == 1);
         pa = clone.front();
         CHECK_EQUALSTR(str.c_str(), pa->dest_id().c_str());
@@ -156,6 +159,7 @@ DECLARE_TEST(AckList) {
     CHECK_EQUAL(pl.size(),test_iterations);
     CHECK_EQUAL(pl.expire(),test_iterations);
     CHECK_EQUAL(0,pl.size());
+    CHECK(pl.empty());
     return UNIT_TEST_PASSED;
 }
 

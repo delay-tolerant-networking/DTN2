@@ -70,12 +70,15 @@ DECLARE_TEST(GTMX) {
 
     // try again with MAX_FWD > 1
     delete d;
+
     d = prophet::Decider::decider(prophet::FwdStrategy::GTMX,
                                   &nexthop, &core, &local, &remote,
                                   &stats, 3, true);
 
     CHECK(   d->operator()(&m) );
     CHECK( ! d->operator()(&n) );
+
+    delete d;
 
     return UNIT_TEST_PASSED;
 }
@@ -104,6 +107,8 @@ DECLARE_TEST(GRTR_PLUS) {
 
     CHECK( ! d->operator()(&m) );
     CHECK( ! d->operator()(&n) );
+
+    delete d;
 
     return UNIT_TEST_PASSED;
 }
@@ -141,6 +146,8 @@ DECLARE_TEST(GTMX_PLUS) {
 
     CHECK( ! d->operator()(&m) );
     CHECK( ! d->operator()(&n) );
+
+    delete d;
 
     return UNIT_TEST_PASSED;
 }

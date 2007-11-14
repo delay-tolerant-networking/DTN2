@@ -75,6 +75,9 @@ DECLARE_TEST(BundleTLVEntryTest) {
     CHECK( d->accept());
     CHECK( ! d->ack());
 
+    delete a;
+    delete b;
+    delete d;
     return UNIT_TEST_PASSED;
 }
 
