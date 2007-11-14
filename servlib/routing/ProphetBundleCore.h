@@ -46,12 +46,18 @@ class ProphetBundleCore : public prophet::BundleCore,
                           public oasys::Logger
 {
 public:
+
     /**
      * Constructor
      */
     ProphetBundleCore(const std::string& local_eid,
                       BundleActions* actions,
                       oasys::SpinLock* lock);
+
+    /**
+     * Test constructor
+     */
+    ProphetBundleCore(oasys::Builder);
 
     /**
      * Destructor
@@ -81,7 +87,8 @@ public:
                 bundle,buffer,len);
     }
     prophet::Bundle* create_bundle(const std::string& src,
-                                   const std::string& dst);
+                                   const std::string& dst,
+                                   u_int expiration);
     const prophet::BundleList& bundles() const
     {
         return bundles_.get_bundles();
@@ -159,12 +166,18 @@ public:
      */
     prophet::Repository* bundles() { return bundles_.bundles(); }
 
+protected:
+    friend class ProphetRouter;
+
     BundleActions* const actions_; ///< actions interface for send, delete, etc
     ProphetBundleList bundles_; ///< objects that link DTN to Prophet bundles
     ProphetLinkList links_; ///< objects that link DTN to Prophet links
     ProphetNodeList nodes_; ///< interface into persistent storage
     const std::string local_eid_; ///< route to local DTN instance
     oasys::SpinLock* const lock_; ///< shared lock with ProphetRouter
+    bool test_mode_; ///< test constructor used, meaning that BundleDaemon is
+                     ///  unavailable
+
 }; // class ProphetBundleCore
 
 }; // namespace dtn

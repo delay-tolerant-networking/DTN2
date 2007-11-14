@@ -30,6 +30,8 @@
 
 #define LOG(_args...) print_log("core",LOG_DEBUG,_args);
 
+#define TEST_MODE_QUOTA 0xffffffff
+
 namespace dtn
 {
 
@@ -40,10 +42,20 @@ ProphetBundleCore::ProphetBundleCore(const std::string& local_eid,
       actions_(actions),
       bundles_(this),
       local_eid_(local_eid),
-      lock_(lock)
+      lock_(lock),
+      test_mode_(false)
 {
     ASSERT(actions_ != NULL);
     oasys::Random::seed(time(0));
+}
+
+ProphetBundleCore::ProphetBundleCore(oasys::Builder)
+    : oasys::Logger("ProphetBundleCore","/dtn/route/prophet/test"),
+      actions_(NULL),
+      bundles_(this),
+      lock_(NULL)
+{
+    test_mode_ = true;
 }
 
 void
@@ -78,6 +90,7 @@ ProphetBundleCore::should_fwd(const prophet::Bundle* b,
     // if DTN objects are non-NULL ...
     if (bundle.object() != NULL && nexthop.object() != NULL)
     {
+        if (test_mode_) return true;
         BundleRouter* router = BundleDaemon::instance()->router();
         bool ok = false;
         if (router != NULL)
@@ -130,12 +143,14 @@ ProphetBundleCore::get_route(const std::string& dest_id) const
 u_int64_t
 ProphetBundleCore::max_bundle_quota() const
 {
+    if (test_mode_) return TEST_MODE_QUOTA;
     return BundleStore::instance()->payload_quota();
 }
 
 bool
 ProphetBundleCore::custody_accepted() const
 {
+    if (test_mode_) return false;
     return BundleDaemon::params_.accept_custody_;
 }
 
@@ -288,7 +303,7 @@ ProphetBundleCore::read_bundle(const prophet::Bundle* bundle,
 
 prophet::Bundle*
 ProphetBundleCore::create_bundle(const std::string& src,
-        const std::string& dst)
+        const std::string& dst, u_int expiration)
 {
     LOG("create_bundle");
     Bundle* b = new Bundle();
@@ -296,7 +311,7 @@ ProphetBundleCore::create_bundle(const std::string& src,
     b->dest_.assign(dst);
     b->replyto_.assign(EndpointID::NULL_EID());
     b->custodian_.assign(EndpointID::NULL_EID());
-    b->expiration_ = 3600;
+    b->expiration_ = expiration;
     BundleRef tmp("create_bundle");
     tmp = b;
     add(tmp);
