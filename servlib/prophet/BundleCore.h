@@ -131,9 +131,11 @@ public:
      * Factory method to request new Bundle from bundle host.
      * @param src Route of bundle originator
      * @param dst Route of bundle destination
+     * @param exp Lifespan in seconds
      */
     virtual Bundle* create_bundle(const std::string& src,
-                                  const std::string& dst) = 0;
+                                  const std::string& dst,
+                                  u_int exp) = 0;
 
     /**
      * Given a BundleList, a route, a creation ts, and a sequence number,
@@ -286,8 +288,8 @@ public:
         }
         return false;
     }
-    Bundle* create_bundle(const std::string& src, const std::string& dst)
-    { return new BundleImpl(src,dst); }
+    Bundle* create_bundle(const std::string& src, const std::string& dst,u_int exp=3600)
+    { return new BundleImpl(src,dst,0,0,exp); }
     const Bundle* find(const BundleList&,const std::string&,u_int32_t,
             u_int32_t) const
     { return NULL; }
