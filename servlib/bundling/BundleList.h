@@ -113,7 +113,23 @@ public:
     /**
      * Add a new bundle to the front of the list.
      */
+    void push_front(const BundleRef& bundle)
+    {
+        return push_front(bundle.object());
+    }
+
+    /**
+     * Add a new bundle to the back of the list.
+     */
     void push_back(Bundle* bundle);
+
+    /**
+     * Add a new bundle to the back of the list.
+     */
+    void push_back(const BundleRef& bundle)
+    {
+        return push_back(bundle.object());
+    }
 
     /**
      * Type codes for sorted insertion
@@ -186,6 +202,16 @@ public:
      */
     bool contains(Bundle* bundle);
 
+    /**
+     * Search the list for the given bundle.
+     *
+     * @return true if found, false if not
+     */
+    bool contains(const BundleRef& bundle)
+    {
+        return contains(bundle.object());
+    }
+    
     /**
      * Search the list for a bundle with the given id.
      *
