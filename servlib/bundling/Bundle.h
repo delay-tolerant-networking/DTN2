@@ -157,7 +157,7 @@ public:
     /**
      * Return true if the bundle is on the given list. 
      */
-    bool is_queued_on(BundleList* l);
+    bool is_queued_on(const BundleList* l);
 
     /**
      * Validate the bundle's fields

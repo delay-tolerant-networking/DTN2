@@ -96,14 +96,14 @@ public:
      *
      * @return the bundle or NULL if the list is empty
      */
-    BundleRef front();
+    BundleRef front() const;
 
     /**
      * Peek at the last bundle on the list.
      *
      * @return the bundle or NULL if the list is empty
      */
-    BundleRef back();
+    BundleRef back() const;
 
     /**
      * Add a new bundle to the front of the list.
@@ -200,14 +200,14 @@ public:
      *
      * @return true if found, false if not
      */
-    bool contains(Bundle* bundle);
+    bool contains(Bundle* bundle) const;
 
     /**
      * Search the list for the given bundle.
      *
      * @return true if found, false if not
      */
-    bool contains(const BundleRef& bundle)
+    bool contains(const BundleRef& bundle) const
     {
         return contains(bundle.object());
     }
@@ -218,7 +218,7 @@ public:
      * @return a reference to the bundle or a reference to NULL if the
      * list is empty.
      */
-    BundleRef find(u_int32_t bundleid);
+    BundleRef find(u_int32_t bundleid) const;
 
     /**
      * Search the list for a bundle with the given source eid and
@@ -228,14 +228,14 @@ public:
      * list is empty.
      */
     BundleRef find(const EndpointID& source_eid,
-                   const BundleTimestamp& creation_ts);
+                   const BundleTimestamp& creation_ts) const;
 
     /**
      * Search the list for a bundle with the given GBOF ID
      *
      * @return the bundle or NULL if not found.
      */
-    BundleRef find(GbofId& gbof_id);
+    BundleRef find(GbofId& gbof_id) const;
     
     /**
      * Search the list for a bundle with the given GBOF ID and extended
@@ -244,7 +244,7 @@ public:
      * @return the bundle or NULL if not found.
      */
     BundleRef find(const GbofId& gbof_id,
-                   const BundleTimestamp& extended_id);
+                   const BundleTimestamp& extended_id) const;
 
     /**
      * Move all bundles from this list to another.

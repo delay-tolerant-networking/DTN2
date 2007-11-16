@@ -62,13 +62,13 @@ public:
      * Return an iterator at the mapping to the given list, or end()
      * if the mapping is not present.
      */
-    iterator find(BundleList* list);
+    iterator find(const BundleList* list);
 
     /**
      * Syntactic sugar for finding whether or not a mapping exists for
      * the given list.
      */
-    bool contains(BundleList* list) { return find(list) != end(); }
+    bool contains(const BundleList* list) { return find(list) != end(); }
 };
 
 } // namespace dtn

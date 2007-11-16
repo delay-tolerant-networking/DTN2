@@ -341,7 +341,7 @@ Bundle::mappings()
 
 //----------------------------------------------------------------------
 bool
-Bundle::is_queued_on(BundleList* bundle_list)
+Bundle::is_queued_on(const BundleList* bundle_list)
 {
     oasys::ScopeLock l(&lock_, "Bundle::is_queued_on");
     return mappings_.contains(bundle_list);

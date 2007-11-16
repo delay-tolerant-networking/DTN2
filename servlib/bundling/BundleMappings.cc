@@ -25,7 +25,7 @@ namespace dtn {
 
 //----------------------------------------------------------------------
 BundleMappings::iterator
-BundleMappings::find(BundleList* list)
+BundleMappings::find(const BundleList* list)
 {
     for (iterator i = begin(); i != end(); ++i)
     {

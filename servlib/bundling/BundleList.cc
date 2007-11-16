@@ -53,7 +53,7 @@ BundleList::~BundleList()
 
 //----------------------------------------------------------------------
 BundleRef
-BundleList::front()
+BundleList::front() const
 {
     oasys::ScopeLock l(lock_, "BundleList::front");
     
@@ -67,7 +67,7 @@ BundleList::front()
 
 //----------------------------------------------------------------------
 BundleRef
-BundleList::back()
+BundleList::back() const
 {
     oasys::ScopeLock l(lock_, "BundleList::back");
 
@@ -316,7 +316,7 @@ BundleList::erase(iterator& iter, bool used_notifier)
 
 //----------------------------------------------------------------------
 bool
-BundleList::contains(Bundle* bundle)
+BundleList::contains(Bundle* bundle) const
 {
     if (bundle == NULL) {
         return false;
@@ -336,11 +336,11 @@ BundleList::contains(Bundle* bundle)
 
 //----------------------------------------------------------------------
 BundleRef
-BundleList::find(u_int32_t bundle_id)
+BundleList::find(u_int32_t bundle_id) const
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
-    for (iterator iter = begin(); iter != end(); ++iter) {
+    for (const_iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->bundleid_ == bundle_id) {
             ret = *iter;
             return ret;
@@ -353,12 +353,12 @@ BundleList::find(u_int32_t bundle_id)
 //----------------------------------------------------------------------
 BundleRef
 BundleList::find(const EndpointID& source_eid,
-                 const BundleTimestamp& creation_ts)
+                 const BundleTimestamp& creation_ts) const
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     
-    for (iterator iter = begin(); iter != end(); ++iter) {
+    for (const_iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->source_.equals(source_eid) &&
             (*iter)->creation_ts_.seconds_ == creation_ts.seconds_ &&
             (*iter)->creation_ts_.seqno_ == creation_ts.seqno_)
@@ -373,12 +373,12 @@ BundleList::find(const EndpointID& source_eid,
 
 //----------------------------------------------------------------------
 BundleRef
-BundleList::find(GbofId& gbof_id)
+BundleList::find(GbofId& gbof_id) const
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     
-    for (iterator iter = begin(); iter != end(); ++iter) {
+    for (const_iterator iter = begin(); iter != end(); ++iter) {
         if (gbof_id.equals( (*iter)->source_,
                             (*iter)->creation_ts_,
                             (*iter)->is_fragment_,
@@ -395,12 +395,12 @@ BundleList::find(GbofId& gbof_id)
 
 //----------------------------------------------------------------------
 BundleRef
-BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id)
+BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id) const
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     
-    for (iterator iter = begin(); iter != end(); ++iter) {
+    for (const_iterator iter = begin(); iter != end(); ++iter) {
         if (gbof_id.equals( (*iter)->source_,
                             (*iter)->creation_ts_,
                             (*iter)->is_fragment_,
