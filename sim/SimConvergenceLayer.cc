@@ -184,9 +184,9 @@ SimLink::send_bundle(Bundle* bundle, size_t total_len, const ConnState& cs)
         if (! reopen_timer_.pending()) {
             // wait until we re-reach the bucket's level plus some slop
             // for the next bundle
-            u_int32_t next_send = tb_.time_to_level(1024);
-            log_debug("scheduling reopen timer in %u ms", next_send);
-            reopen_timer_.schedule_in(next_send);
+            oasys::Time next_send = oasys::Time(Simulator::time()) + tb_.time_to_level(1024);
+            log_debug("scheduling reopen timer at %u.%u", next_send.sec_, next_send.usec_);
+            reopen_timer_.schedule_at(next_send);
         }
     }
 }
