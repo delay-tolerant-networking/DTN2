@@ -1,5 +1,6 @@
 syntax: glob
 
+.gdb_history
 .glimpse_*
 Rules.make
 dtn-config.h
