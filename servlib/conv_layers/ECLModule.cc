@@ -1360,11 +1360,13 @@ void
 ECLModule::update_contact_attributes(const contact_attributes& attributes,
                                      const ContactRef& contact)
 {
-    contact->start_time_.tv_sec = attributes.start_time() / 1000;
-    contact->start_time_.tv_usec = attributes.start_time() * 1000;
-    contact->duration_ms_ = attributes.duration();
-    contact->bps_ = attributes.bps();
-    contact->latency_ms_ = attributes.latency();
+    // XXX/demmer I don't think this should be able to set the start
+    // time, but I'll leave the hook in there for now
+    contact->set_start_time(oasys::Time(attributes.start_time() / 1000,
+                                        attributes.start_time() * 1000));
+    contact->set_duration(attributes.duration());
+    contact->set_bps(attributes.bps());
+    contact->set_latency(attributes.latency());
 }
 
 } // namespace dtn
