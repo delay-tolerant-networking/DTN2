@@ -18,6 +18,7 @@
 #define _PROPHET_ALARM_H_
 
 #include <sys/time.h>
+#include <sys/types.h>
 #include <vector>
 #include <string>
 

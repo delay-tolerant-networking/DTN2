@@ -17,7 +17,9 @@
 #ifndef _PROPHET_BASE_TLV_H_
 #define _PROPHET_BASE_TLV_H_
 
+#include <unistd.h>
 #include <sys/types.h>
+
 
 namespace prophet
 {
