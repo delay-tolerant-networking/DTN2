@@ -48,6 +48,11 @@ protected:
     bool configure(int argc, const char* argv[]);
     void run();
 
+    /**
+     * Virtual from Discovery
+     */
+    void handle_announce() { notifier_.notify(); }
+
     volatile bool shutdown_;
     bdaddr_t local_addr_;
     oasys::Notifier notifier_;
