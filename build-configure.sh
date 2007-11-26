@@ -26,8 +26,6 @@
 # script. In particular, all generated files are cross-platform
 # and are therefore stored in the version control repository.
 
-trap 'rm -f aclocal.m4 ; exit 0' 0 1 2 3 13 15
-
 echo "build-configure: building aclocal.m4..."
 rm -f aclocal.m4
 cat aclocal/*.ac > aclocal.m4
