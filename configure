@@ -3333,7 +3333,7 @@ if test "${oasys_cv_prog_gccver+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-      oasys_cv_prog_gccver=`$CC --version | head -1`
+      oasys_cv_prog_gccver=`$CC --version | head -n 1`
       oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/.*gcc.*(GCC) //'`
       oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/ .*//'`
 
@@ -3347,7 +3347,7 @@ if test "${oasys_cv_prog_gxxver+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-      oasys_cv_prog_gxxver=`$CXX --version | head -1`
+      oasys_cv_prog_gxxver=`$CXX --version | head -n 1`
       oasys_cv_prog_gxxver=`echo $oasys_cv_prog_gxxver | sed 's/.*g++.*(GCC) //'`
       oasys_cv_prog_gxxver=`echo $oasys_cv_prog_gxxver | sed 's/ .*//'`
 
