@@ -36,6 +36,8 @@ apps/dtnrecv/dtnrecv
 apps/dtnsend/dtnsend
 apps/dtntest/dtntest
 apps/dtntunnel/dtntunnel
+apps/num2sdnv/num2sdnv
+apps/num2sdnv/sdnv2num
 daemon/dtnd
 sim/dtnsim
 test/unit_tests/*-test

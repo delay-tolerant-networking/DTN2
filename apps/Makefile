@@ -32,6 +32,7 @@ SINGLE_SOURCE_APPS := 			\
 	dtnperf/dtnperf-client		\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\
+	num2sdnv/num2sdnv		\
 
 OTHER_APPS :=				\
 	dtnmoteproxy/dtnmoteproxy	\
@@ -39,6 +40,7 @@ OTHER_APPS :=				\
 	dtntunnel/dtntunnel		\
 	tca_admin/tca_admin		\
 	dtnsend/dtnsend			\
+	num2sdnv/sdnv2num		\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
@@ -84,10 +86,16 @@ dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 dtntest/dtntest: dtntest/dtntest.o  $(DTN_LIBS_STATIC)
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(DTN_LIBS++)
 #
-# Rules for dtntest
+# Rules for dtnsend
 #
 dtnsend/dtnsend: dtnsend/dtnsend.o  $(DTN_LIBS_STATIC)
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(DTN_LIBS++)
+
+#
+# num2sdnv and sdnv2num are the same app
+#
+num2sdnv/sdnv2num: num2sdnv/num2sdnv
+	cp $< $@
 
 #
 # Rules for dtntunnel
