@@ -129,7 +129,7 @@ public:
         age_     = n.age_;
         delete params_;
         params_  = new NodeParams(*n.params_);
-        heap_pos_ = 0;
+        heap_pos_ = n.heap_pos_;
         return *this;
     }
 
@@ -150,10 +150,14 @@ public:
      */
     void update_age();
 
+    ///@{ Accessor and mutator for heap index used by Table and testing
+    size_t heap_pos() { return heap_pos_; }
+    void set_heap_pos(size_t pos) { heap_pos_ = pos; }
+    ///}
+
 protected:
     friend class Table;
     friend class RIBTLV;
-    friend class NodeHeap;
 
     ///@{ Mutators, protected for use by friend classes only
     void set_pvalue( double d )
