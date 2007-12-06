@@ -51,7 +51,7 @@ Node::Node(const NodeParams* params)
 Node::Node(const Node& n)
     : p_value_(n.p_value_), relay_(n.relay_),
       custody_(n.custody_), internet_gateway_(n.internet_gateway_),
-      dest_id_(n.dest_id_), age_(n.age_), heap_pos_(0)
+      dest_id_(n.dest_id_), age_(n.age_), heap_pos_(n.heap_pos_)
 {
     // store local copy of NodeParams
     params_ = new NodeParams(*n.params_);
