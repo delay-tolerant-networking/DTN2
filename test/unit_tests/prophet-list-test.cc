@@ -18,6 +18,7 @@
 using namespace oasys;
 
 size_t test_iterations = 10;
+size_t table_iterations = 100;
 
 DECLARE_TEST(NodeList) {
     prophet::NodeList list;
@@ -105,6 +106,28 @@ DECLARE_TEST(Table) {
     CHECK(p2->p_value(b) >= 0.75);
     delete p2;
 
+    // default is 0, quota disabled
+    prophet::Table p3(&core,"p3");
+
+    for (size_t i=0; i<table_iterations; i++) {
+        oasys::StringBuffer str(128,"dtn://node-");
+        str.appendf("%zu",i);
+        p3.update_route(str.c_str());
+        int j = i % 10;
+        while (j-- > 0) {
+            p3.update_route(str.c_str());
+        }
+    }
+
+    p3.set_max_route(table_iterations/2);
+    CHECK_EQUAL(p3.size(), table_iterations/2);
+
+    prophet::Table::heap_iterator hi = p3.heap_begin();
+    std::vector<prophet::Node*> list(p3.heap_begin(),p3.heap_end());
+    struct prophet::heap_compare c;
+    CHECK( (prophet::Heap<prophet::Node*,
+                          std::vector<prophet::Node*>,
+                          struct prophet::heap_compare>::is_heap(list,c)) ); 
     return UNIT_TEST_PASSED;
 }
 
