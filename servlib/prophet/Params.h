@@ -27,7 +27,7 @@ namespace prophet
 
 /**
  * Tunable parameter struct for setting global default values
- * for variou Prophet algorithms
+ * for various Prophet algorithms
  */
 class ProphetParams : public NodeParams
 {
@@ -63,6 +63,11 @@ public:
     static const u_int8_t PROPHET_VERSION = 0x01;
 
     /**
+     * Maximum number of routes to retain (not specified by I-D)
+     */
+    static const u_int MAX_TABLE_SIZE = 1024;
+
+    /**
      * Constructor. Default values are defined in Prophet.h
      */
     ProphetParams()
@@ -74,6 +79,7 @@ public:
           max_forward_(DEFAULT_NUM_F_MAX),
           min_forward_(DEFAULT_NUM_F_MIN),
           age_period_(AGE_PERIOD),
+          max_table_size_(MAX_TABLE_SIZE),
           epsilon_(0.0039), // min value using 1/255
           relay_node_(true),
           internet_gw_(false) // not implemented
@@ -102,6 +108,8 @@ public:
     u_int    min_forward_; ///< min times to forward bundle before LEPR drops
 
     u_int    age_period_; ///< seconds between applying age algorithm
+
+    u_int    max_table_size_; ///< max number of routes to retain
 
     double   epsilon_;    ///< minimum predictability before dropping route
 
