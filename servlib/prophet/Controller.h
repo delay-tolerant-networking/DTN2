@@ -89,6 +89,12 @@ public:
     void set_hello_interval();
 
     /**
+     * Callback for runtime changes made to
+     * ProphetParams::max_table_size_
+     */
+    void set_max_route();
+
+    /**
      * Callback for host system to notify of shutdown event
      */
     void shutdown();
@@ -131,6 +137,7 @@ protected:
     BundleCore* core_; ///< facade interface for interacting with Bundle host
     ProphetParams* params_; ///< tuneable parameter struct
     Stats stats_; ///< forwarding statistics per bundle, used by queue policy
+    u_int max_route_; ///< upper limit to number of routes retained by Prophet
     Table nodes_; ///< table of routes learned by local node
     AckList acks_; ///< Prophet ack's for successfully delivered bundles
     u_int16_t next_instance_; ///< used to generate serial number for
