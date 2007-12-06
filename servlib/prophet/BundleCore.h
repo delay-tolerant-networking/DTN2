@@ -77,8 +77,7 @@ public:
     virtual std::string get_route_pattern(const std::string& dest_id) const = 0;
 
     /**
-     * Callback method for Prophet to query storage_quota();
-     * required by BundlePriorityQueue template
+     * Callback method for Prophet to query storage_quota()
      */
     virtual u_int64_t max_bundle_quota() const = 0;
 
