@@ -29,13 +29,13 @@ namespace prophet
 Table::Table(BundleCore* core,
              const std::string& name,
              bool persistent)
-    : core_(core), persistent_(persistent), name_(name)
+    : core_(core), persistent_(persistent), name_(name), max_route_(0)
 {
 }
 
 Table::Table(const Table& t)
     : core_(t.core_), persistent_(t.persistent_),
-      name_(t.name_)
+      name_(t.name_), max_route_(0)
 {
     iterator i = table_.begin();
     for (const_iterator c = t.table_.begin();
@@ -44,6 +44,8 @@ Table::Table(const Table& t)
     {
         Node *n = new Node(*(c->second));
         i = table_.insert(i,rib_table::value_type(c->first,n));
+        // keep track of min-heap for quota-enforcement
+        heap_add(n);
     }
 }
 
@@ -51,6 +53,23 @@ Table::~Table()
 {
     free();
     table_.clear();
+}
+
+void Table::heap_add(Node* n) {
+    heap_.add(n);
+}
+
+void
+Table::heap_del(Node* n) {
+    // first make sure we're picking off the right victim
+    size_t pos = n->heap_pos_;
+    const Node*  old_n;
+    if (pos < heap_.size())
+    {
+        old_n = heap_.sequence()[pos];
+        if (old_n->dest_id_ == n->dest_id_)
+            heap_.remove(pos);
+    }
 }
 
 const Node*
@@ -111,11 +130,20 @@ Table::update(Node* n)
         Node* old = i->second;
         p_old = i->second->p_value();
         i->second = n;
-        if (n != old) delete old;
+        if (n != old) 
+        {
+            heap_del(old);
+            delete old;
+        }
+        else
+            heap_del(n);
     }
     // else this is a new dest_id, insert right here
     else
         table_.insert(i,rib_table::value_type(n->dest_id(),n));
+
+    heap_add(n);
+    enforce_quota();
 
     // log the results
     core_->print_log(name_.c_str(),BundleCore::LOG_INFO,
@@ -148,6 +176,7 @@ Table::update_route(const std::string& dest_id,
         n->set_relay(relay);
         n->set_custody(custody);
         n->set_internet_gw(internet);
+        heap_del(n);
     }
     else
     {
@@ -155,6 +184,8 @@ Table::update_route(const std::string& dest_id,
         n->update_pvalue();
         table_.insert(i,rib_table::value_type(dest_id,n));
     }
+    heap_add(n);
+    enforce_quota();
 
     // log the results
     core_->print_log(name_.c_str(),BundleCore::LOG_INFO,
@@ -189,6 +220,7 @@ Table::update_transitive(const std::string& dest_id,
         n->set_relay(relay);
         n->set_custody(custody);
         n->set_internet_gw(internet);
+        heap_del(n);
     }
     else
     {
@@ -196,6 +228,8 @@ Table::update_transitive(const std::string& dest_id,
         n->update_transitive(ab,peer_pvalue);
         table_.insert(i,rib_table::value_type(dest_id,n));
     }
+    heap_add(n);
+    enforce_quota();
 
     // log the results
     core_->print_log(name_.c_str(),BundleCore::LOG_INFO,
@@ -240,6 +274,7 @@ Table::update_transitive(const std::string& peer_id,
             n->set_relay((*i)->relay());
             n->set_custody((*i)->custody());
             n->set_internet_gw((*i)->internet_gw());
+            heap_del(n);
         }
         else
         {
@@ -250,6 +285,8 @@ Table::update_transitive(const std::string& peer_id,
             n->update_transitive(ab,(*i)->p_value());
             table_.insert(t,rib_table::value_type(eid,n));
         }
+        heap_add(n);
+        enforce_quota();
 
         // log the results
         core_->print_log(name_.c_str(),BundleCore::LOG_INFO,
@@ -287,27 +324,50 @@ Table::truncate(double epsilon)
     // weed out the oddball case first
     if (epsilon >= 1.0)
     {
+
         // all nodes are goners, so skip the iteration below
         num = table_.size();
         free();
         table_.clear();
+
+        // most efficient way to clear heap is from the back
+        size_t pos = heap_.size();
+        while (pos-- > 0)
+            heap_.remove(pos);
+
         return num;
     }
 
-    // remove the nodes with too-small predictability
-    for (iterator i = table_.begin(); i != table_.end(); )
-    {
-        Node* n = (*i).second;
-        if (n->p_value() < epsilon)
-        {
-            iterator j = i++;
-            // remove this element and clean up its memory
-            remove(&j);
-            // count this removal in the reported total
-            num++;
+    Node* n;
+    iterator i;
+    if (heap_.empty()) {
+        for (i = table_.begin(); i != table_.end(); i++) {
+            n = (*i).second;
+            if (n->p_value() < epsilon) {
+                iterator j = i++;
+                // remove this element and clean up its memory
+                remove(&j);
+                // count this removal towards the reported total
+                num++;
+            } else
+                i++;
         }
-        else
-            i++;
+    } else {
+        n = heap_.top();
+        while (n->p_value() < epsilon)
+        {
+            if (find(n->dest_id(),&i))
+            {
+                // remove this element and clean up its memory
+                remove(&i);
+                // remove() will pop() from heap, now advance to next lowest
+                n = heap_.top();
+                // count this removal in the reported total
+                num++;
+            }
+            else
+                break;
+        }
     }
 
     // log the results
@@ -366,11 +426,14 @@ Table::age_nodes()
     size_t num = 0;
     for (iterator i = table_.begin(); i != table_.end(); i++)
     {
-        ((*i).second)->update_age();
+        Node *n = (*i).second;
+        n->update_age();
+        heap_del(n);
+        heap_add(n);
         num++;
 
         // utilize persistent storage as appropriate
-        if (persistent_) core_->update_node(i->second);
+        if (persistent_) core_->update_node(n);
     }
 
     // log if anything happens
@@ -389,7 +452,34 @@ Table::remove(iterator* i)
 
     Node* n = (**i).second;
     table_.erase(*i);
+    heap_del(n);
     delete n;
+}
+
+void
+Table::enforce_quota()
+{
+    if (max_route_ == 0)
+        // quota disabled
+        return;
+
+    iterator i;
+    core_->print_log(name_.c_str(),BundleCore::LOG_INFO,
+            "enforce_quota table_size=[%zu] max_route=[%zu]",
+            table_.size(), max_route_);
+    while(table_.size() > max_route_)
+    {
+        if (heap_.empty())
+            break;
+
+        // select the minimum known route and evict
+        Node* n = heap_.top();
+        if (find(n->dest_id(),&i))
+            remove(&i);
+        else
+            // shouldn't be reached ... ?
+            heap_del(n);
+    }
 }
 
 void
@@ -397,6 +487,7 @@ Table::free()
 {
     for (iterator i = table_.begin(); i != table_.end(); i++)
     {
+        heap_del((*i).second);
         delete ((*i).second);
     }
 }

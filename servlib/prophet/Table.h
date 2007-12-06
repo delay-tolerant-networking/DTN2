@@ -31,6 +31,26 @@ namespace prophet
 class Dictionary; 
 
 /**
+ * Compare object for Heap
+ */
+struct heap_compare {
+    bool operator() (Node* a, Node* b) {
+        if (a == NULL || b == NULL) return false;
+        return ((*a).p_value() > (*b).p_value());
+    }
+};
+
+/**
+ * Swap object for NodeHeap
+ */
+struct heap_pos {
+    inline void operator()(Node* a, size_t pos)
+    {
+        a->set_heap_pos(pos);
+    }
+};
+
+/**
  * Container for Prophet nodes (routes and predictability values).
  * Assumes ownership of memory pointed to by member Node*'s
  */
@@ -40,6 +60,8 @@ public:
     typedef std::map<std::string,Node*,less_string> rib_table;
     typedef std::map<std::string,Node*,less_string>::const_iterator
         const_iterator;
+    typedef std::vector<Node*> Sequence;
+    typedef Sequence::const_iterator heap_iterator;
 
     /**
      * Default constructor
@@ -121,6 +143,15 @@ public:
     size_t size() const { return table_.size(); }
 
     /**
+     * Set upper limit on number of routes retained by Table
+     */
+    void set_max_route(u_int max_route)
+    {
+        max_route_ = max_route;
+        enforce_quota();
+    }
+
+    /**
      * The predictability of Nodes should diminish with time; to allow for
      * maintenance of routes, the Prophet spec allows for removing routes
      * whose predictability falls below some arbitrary epsilon.
@@ -153,10 +184,32 @@ public:
     ///@{ Iterators
     const_iterator begin() const { return table_.begin(); }
     const_iterator end() const { return table_.end(); }
+    heap_iterator heap_begin const { return heap_.sequence().begin(); }
+    heap_iterator heap_end const { return heap_.sequence().end(); }
     ///@}
 
 protected:
     typedef rib_table::iterator iterator;
+    typedef Heap<Node*,
+                 std::vector<Node*>,
+                 struct heap_compare,
+                 struct heap_pos> NodeHeap;
+
+    /**
+     * Add route to heap
+     */
+    void heap_add(Node* n);
+
+    /**
+     * Remove node from heap
+     */
+    void heap_del(Node* n);
+
+    /**
+     * Enforce upper bound by eliminating minimum routes
+     */
+    void enforce_quota();
+
     /**
      * Clean up memory and remove pointer from internal map for this 
      * element
@@ -175,9 +228,11 @@ protected:
 
     BundleCore* const core_; ///< facade interface into Bundle host
     rib_table table_; ///< Mapped collection of <dest_id,Node*> pairs
+    NodeHeap heap_; ///< Min-heap for quota-enforcement eviction ordering
     bool persistent_; ///< whether to utilize BundleCore's persistent
                       ///  storage interface for Nodes
     std::string name_; ///< object name
+    u_int  max_route_; ///< upper limit to number of routes to retain
 }; //class Table
 
 }; //namespace prophet
