@@ -27,6 +27,7 @@ namespace prophet
 // forward declaration
 class Table;
 class RIBTLV;
+class NodeHeap;
 
 /**
  * Tunable parameter struct for setting global default values
@@ -128,6 +129,7 @@ public:
         age_     = n.age_;
         delete params_;
         params_  = new NodeParams(*n.params_);
+        heap_pos_ = 0;
         return *this;
     }
 
@@ -150,8 +152,8 @@ public:
 
 protected:
     friend class Table;
-    friend class NodeStorage;
     friend class RIBTLV;
+    friend class NodeHeap;
 
     ///@{ Mutators, protected for use by friend classes only
     void set_pvalue( double d )
@@ -190,6 +192,7 @@ protected:
     bool              internet_gateway_; ///< whether bridge to Internet
     std::string       dest_id_; ///< string representation of route to node
     u_int32_t         age_; ///< age in seconds of last update to p_value
+    size_t            heap_pos_; ///< heap index used by Table
 }; // Node
 
 /**
