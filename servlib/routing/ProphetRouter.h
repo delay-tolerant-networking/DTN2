@@ -73,6 +73,7 @@ public:
     ///@{ Callback methods for handling runtime configuration changes
     void set_queue_policy();
     void set_hello_interval();
+    void set_max_route();
     ///@}
 
     /**

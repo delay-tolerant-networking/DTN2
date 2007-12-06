@@ -369,4 +369,14 @@ ProphetRouter::set_hello_interval()
     oracle_->set_hello_interval();
 }
 
+void
+ProphetRouter::set_max_route()
+{
+    log_info("ProphetRouter set_max_route");
+    oasys::ScopeLock l(lock_, "set_max_route");
+    // tell Controller to change internal limit on number of routes
+    // to retain, based on changes made to params_ by ProphetCommand
+    oracle_->set_max_route();
+}
+
 }; // namespace dtn
