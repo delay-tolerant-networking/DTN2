@@ -35,7 +35,7 @@ NodeParams::DEFAULT_KAPPA = 100;
 
 Node::Node(const NodeParams* params)
     : p_value_(0.0), relay_(DEFAULT_RELAY), custody_(DEFAULT_CUSTODY),
-      internet_gateway_(DEFAULT_INTERNET), dest_id_("")
+      internet_gateway_(DEFAULT_INTERNET), dest_id_(""), heap_pos_(0)
 {
     // store local copy of NodeParams
     if (params != NULL)
@@ -51,7 +51,7 @@ Node::Node(const NodeParams* params)
 Node::Node(const Node& n)
     : p_value_(n.p_value_), relay_(n.relay_),
       custody_(n.custody_), internet_gateway_(n.internet_gateway_),
-      dest_id_(n.dest_id_), age_(n.age_)
+      dest_id_(n.dest_id_), age_(n.age_), heap_pos_(0)
 {
     // store local copy of NodeParams
     params_ = new NodeParams(*n.params_);
@@ -61,7 +61,8 @@ Node::Node(const std::string& dest_id,
            bool relay, bool custody, bool internet,
            const NodeParams* params)
     : params_(NULL), p_value_(0.0), relay_(relay),
-      custody_(custody), internet_gateway_(internet), dest_id_(dest_id)
+      custody_(custody), internet_gateway_(internet), dest_id_(dest_id),
+      heap_pos_(0)
 {
     // store local copy of NodeParams
     if (params != NULL)
