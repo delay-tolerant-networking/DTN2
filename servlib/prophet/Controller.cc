@@ -30,6 +30,7 @@ Controller::Controller(BundleCore* core, Repository* repository,
     : ExpirationHandler("controller"),
       core_(core),
       params_(params), 
+      max_route_(0),
       nodes_(core,"local",true), 
       next_instance_(0),
       timeout_(params_->hello_interval_ * 100),
@@ -51,6 +52,10 @@ Controller::Controller(BundleCore* core, Repository* repository,
 
     // set up reminder for aging out Nodes, Acks
     alarm_ = core_->create_alarm(this,timeout_ * 100);
+
+    // set upper limit to growth of routing table
+    max_route_ = params->max_table_size_;
+    nodes_.set_max_route(max_route_);
 
     LOG(LOG_DEBUG,"constructor");
 }
@@ -301,6 +306,17 @@ Controller::set_hello_interval()
         // alert the active peering sessions to parameter change
         for (List::iterator i = list_.begin(); i != list_.end(); i++)
             (*i)->hello_interval_changed();
+    }
+}
+
+void
+Controller::set_max_route()
+{
+    if (max_route_ != ((u_int)(params_->max_table_size_)))
+    {
+        LOG(LOG_DEBUG,"set_max_route (%u -> %u)",
+                max_route_, params_->max_table_size_);
+        nodes_.set_max_route(max_route_);
     }
 }
 
