@@ -113,6 +113,10 @@ ProphetCommand::ProphetCommand()
     add_to_help("hello_interval=<interval>",
                 "maximum delay between protocol messages, in 100ms units,"
                 " ranging from 1 to 255 (100 ms to 25.5s)");
+
+    add_to_help("max_route=<number>",
+                "maximum number of routes for Prophet to retain"
+                " (set to 0 to disable quota)");
 }
 
 int
@@ -223,6 +227,30 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 r->set_hello_interval();
         }
         resultf("hello_interval set to %d",hello_interval);
+    }
+    else
+    if (strncmp(cmd,"max_route",strlen("max_route")) == 0)
+    {
+        u_int max_route;
+        p.addopt(new oasys::UIntOpt("max_route",
+                 &max_route, "maximum number",
+                 "maximum number of routes for Prophet to retain"));
+
+        if (! p.parse(argc,argv,&invalid))
+        {
+            resultf("bad parameter for hello_interval: %s",invalid);
+            return TCL_ERROR;
+        }
+
+        ProphetRouter::params_.max_table_size_ = max_route;
+        if (ProphetRouter::is_init())
+        {
+            ProphetRouter* r = dynamic_cast<ProphetRouter*>(
+                    BundleDaemon::instance()->router());
+            if (r != NULL)
+                r->set_max_route();
+        }
+        resultf("max_route set to %u",max_route);
     }
 
     return TCL_OK;
