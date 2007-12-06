@@ -19,6 +19,8 @@ configure-stamp
 *.dylib
 *.so
 
+*.swp
+
 run-*
 
 applib/python/build
