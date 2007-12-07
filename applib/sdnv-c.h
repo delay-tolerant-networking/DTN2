@@ -19,7 +19,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif 
 
 /**
  * Return the number of bytes needed to encode the given value.
