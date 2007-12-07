@@ -465,7 +465,7 @@ Table::enforce_quota()
 
     iterator i;
     core_->print_log(name_.c_str(),BundleCore::LOG_INFO,
-            "enforce_quota table_size=[%zu] max_route=[%zu]",
+            "enforce_quota table_size=[%zu] max_route=[%u]",
             table_.size(), max_route_);
     while(table_.size() > max_route_)
     {
