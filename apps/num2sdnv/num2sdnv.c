@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
         len = sdnv_decode(buf, strlen(numstr)/2, &val);
     }
 
-    printf("val:  %lld (0x%llx)\n", val, val);
+    printf("val:  %llu (0x%llx)\n", (unsigned long long)val, (unsigned long long)val);
     printf("len:  %d\n", len);
     printf("sdnv: ");
     if (len > 0) {
