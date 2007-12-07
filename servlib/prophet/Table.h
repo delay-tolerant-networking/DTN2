@@ -184,8 +184,8 @@ public:
     ///@{ Iterators
     const_iterator begin() const { return table_.begin(); }
     const_iterator end() const { return table_.end(); }
-    heap_iterator heap_begin const { return heap_.sequence().begin(); }
-    heap_iterator heap_end const { return heap_.sequence().end(); }
+    heap_iterator heap_begin() const { return heap_.sequence().begin(); }
+    heap_iterator heap_end() const { return heap_.sequence().end(); }
     ///@}
 
 protected:
