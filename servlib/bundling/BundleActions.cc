@@ -177,6 +177,8 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
 void
 BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
 {
+    BundleRef bref(bundle, "BundleActions::cancel_bundle");
+    
     ASSERT(link != NULL);
     if (link->isdeleted()) {
         log_debug("BundleActions::cancel_bundle: "
@@ -196,31 +198,50 @@ BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
     // down to the convergence layer to see if it can interrupt
     // transmission, in which case it's responsible for posting the
     // send cancelled event.
-    //
-    // XXX/demmer make sure this works in all cases
-
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
-    if (blocks == NULL) {
-        log_warn("BundleActions::cancel_bundle: "
-                 "cancel *%p but no blocks queued or inflight on *%p",
-                 bundle, link.object());
-    }
-    size_t total_len = BundleProtocol::total_length(blocks);
     
-    BundleRef bref(bundle, "BundleActions::cancel_bundle");
-    if (link->del_from_queue(bref, total_len)) {
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    
+    if (link->del_from_deferred(bref)) {
+        // sanity checks
+        if (blocks != NULL) {
+            log_err("BundleActions::cancel_bundle: "
+                    "*%p queued on *%p deferred list but has xmit blocks!",
+                    bundle, link.object());
+        }
+        if (link->inflight()->contains(bundle)) {
+            log_err("BundleActions::cancel_bundle: "
+                    "*%p queued on *%p deferred list and inflight list!",
+                    bundle, link.object());
+        }
+        if (link->queue()->contains(bundle)) {
+            log_err("BundleActions::cancel_bundle: "
+                    "*%p queued on *%p deferred list and link queue",
+                    bundle, link.object());
+        }
+        
         BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
-    }
-    else if (link->del_from_deferred(bref)) {
-        BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
-    }
-    else if (link->inflight()->contains(bundle)) {
-        link->clayer()->cancel_bundle(link, bref);
-    }
-    else {
-        log_warn("BundleActions::cancel_bundle: "
-                 "cancel *%p but not queued or inflight on *%p",
-                 bundle, link.object());
+
+    } else {
+        if (blocks == NULL) {
+            log_warn("BundleActions::cancel_bundle: "
+                     "cancel *%p but no blocks queued or inflight on *%p",
+                     bundle, link.object());
+            return; 
+        }
+        
+        size_t total_len = BundleProtocol::total_length(blocks);
+        
+        if (link->del_from_queue(bref, total_len)) {
+            BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
+            
+        } else if (link->inflight()->contains(bundle)) {
+            link->clayer()->cancel_bundle(link, bref);
+        }
+        else {
+            log_warn("BundleActions::cancel_bundle: "
+                     "cancel *%p but not deferred, queued, or inflight on *%p",
+                     bundle, link.object());
+        }
     }
 }
 
