@@ -39,7 +39,7 @@ set tests(basic) {
     "dtn-cp.tcl"		""
     "dtn-ping.tcl"		""
     "dtn-tunnel.tcl"		""
-    "dtnsim.tcl"		"-c send-one-bundle.conf"
+    "dtnsim.tcl"		"-c two-node.conf"
     "dtnsim.tcl"		"-c bandwidth-test.conf"
     "dtnsim.tcl"		"-c storage-limit-test.conf"
     "dtnsim.tcl"		"-c conn-test.conf"
