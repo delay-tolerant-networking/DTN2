@@ -22,19 +22,22 @@ manifest::file apps/dtnrecv/dtnrecv dtnrecv
 
 set cl    tcp
 set count 200
+set storage_type filesysdb
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set cl $val
     } elseif {$var == "-count" || $var == "count"} {
 	set count $val
+    } elseif {$var == "-storage_type" } {
+	set storage_type $val
     } else {
 	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
 
-dtn::config --no_null_link
+dtn::config --no_null_link --storage_type $storage_type
 
 dtn::config_interface $cl
 dtn::config_linear_topology ALWAYSON $cl true
