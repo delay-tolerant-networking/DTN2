@@ -119,6 +119,9 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     }
 
     // check if we're trying to send it right back where it came from
+    //
+    // XXX/demmer this is bad -- some routing schemes might want to do
+    // this
     if (link->remote_eid() == bundle->prevhop_ &&
         link->remote_eid() != EndpointID::NULL_EID())
     {
@@ -151,8 +154,8 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     {
         size_t count = bundle->fwdlog_.get_count(
             ForwardingInfo::TRANSMITTED |
-            ForwardingInfo::IN_FLIGHT   |
-            ForwardingInfo::TRANSMIT_PENDING, action);
+            ForwardingInfo::IN_FLIGHT,
+            action);
 
         if (count > 0) {
             log_debug("should_fwd bundle %d: "
