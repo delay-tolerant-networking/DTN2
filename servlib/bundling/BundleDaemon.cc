@@ -714,20 +714,36 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     }
     
     /*
-     * Update statistics. Note that the link's queued length must
+     * Update statistics and remove the bundle from the link inflight
+     * queue. Note that the link's queued length statistics must
      * always be decremented by the full formatted size of the bundle,
      * yet the transmitted length is only the amount reported by the
      * event.
      */
-        
     size_t total_len = BundleProtocol::total_length(blocks);
     
     stats_.transmitted_bundles_++;
+    
     link->stats()->bundles_transmitted_++;
-    link->stats()->bundles_queued_--;
-
     link->stats()->bytes_transmitted_ += event->bytes_sent_;
-    link->stats()->bytes_queued_ -= total_len;
+
+    // remove the bundle from the link's in flight queue
+    if (link->del_from_inflight(event->bundleref_, total_len)) {
+        log_info("removed bundle id:%d from link %s inflight queue",
+                 bundle->bundleid_,
+                 link->name());
+    } else {
+        log_warn("bundle id:%d not on link %s inflight queue",
+                 bundle->bundleid_,
+                 link->name());
+    }
+    
+    // verify that the bundle is not on the link's to-be-sent queue
+    if (link->del_from_queue(event->bundleref_, total_len)) {
+        log_warn("bundle id:%d unexpectedly on link %s queue in transmitted event",
+                 bundle->bundleid_,
+                 link->name());
+    }
     
     log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> %s (%s)",
              bundle->bundleid_,
@@ -760,6 +776,9 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
                   bundle->bundleid_,link->name());
         BundleProtocol::delete_blocks(bundle, link);
+
+        log_warn("XXX/demmer fixme transmitted special case");
+        
         return;
     }
 
@@ -835,14 +854,6 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         // this node
     }
 
-    // remove the bundle from the link's queue
-    if (link->queue()->erase(bundle, false))
-    {
-        log_info("removed bundle id:%d from link %s queue",
-                 bundle->bundleid_,
-                 link->name());
-    }
-    
     /*
      * Check if we should can delete the bundle from the pending list,
      * i.e. we don't have custody and it's not being transmitted
@@ -1004,7 +1015,7 @@ BundleDaemon::handle_bundle_send(BundleSendRequest* event)
     ForwardingInfo::action_t fwd_action =
         (ForwardingInfo::action_t)event->action_;
 
-    actions_->send_bundle(br.object(), link,
+    actions_->queue_bundle(br.object(), link,
         fwd_action, CustodyTimerSpec::defaults_);
 }
 
@@ -1074,23 +1085,30 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     }
 
     /*
-     * Remove the bundle from the link queue.
+     * The bundle should no longer be on the link queue or on the
+     * inflight queue if it was cancelled.
      */
-    if (link->queue()->erase(bundle, false))
+    if (link->queue()->contains(bundle))
     {
-        log_info("removed bundle id:%d from link %s queue",
+        log_warn("cancelled bundle id:%d still on link %s queue",
                  bundle->bundleid_, link->name());
     }
-        
-    size_t total_len = BundleProtocol::total_length(blocks);
-    
+
+    /*
+     * The bundle should no longer be on the link queue or on the
+     * inflight queue if it was cancelled.
+     */
+    if (link->inflight()->contains(bundle))
+    {
+        log_warn("cancelled bundle id:%d still on link %s inflight list",
+                 bundle->bundleid_, link->name());
+    }
+
     /*
      * Update statistics. Note that the link's queued length must
      * always be decremented by the full formatted size of the bundle.
      */
     link->stats()->bundles_cancelled_++;
-    link->stats()->bundles_queued_--;
-    link->stats()->bytes_queued_ -= total_len;
     
     /*
      * Remove the formatted block info from the bundle since we don't
@@ -1381,22 +1399,6 @@ BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
 
 //----------------------------------------------------------------------
 void
-BundleDaemon::handle_link_busy(LinkBusyEvent* event)
-{
-    LinkRef link = event->link_;
-    if (link->isbusy())
-    {    
-        log_info("LINK BUSY *%p", link.object());
-    }
-    else
-    {
-        log_info("STALE LINK BUSY NOTIFICATION FOR LINK *%p -- not telling the router or the contact manager", link.object());
-        event->daemon_only_ = true;
-    }
-}
-
-//----------------------------------------------------------------------
-void
 BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 {
     LinkRef link = request->link_;
@@ -1453,16 +1455,6 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         if (link->state() == Link::UNAVAILABLE) {
             link->set_state(Link::AVAILABLE);
             
-        } else if (link->state() == Link::BUSY &&
-                   reason        == ContactEvent::UNBLOCKED) {
-            ASSERT(link->contact() != NULL);
-            link->set_state(Link::OPEN);
-            
-        } else if (link->state() == Link::OPEN &&
-                   reason        == ContactEvent::UNBLOCKED) {
-            // a CL might send multiple requests to go from
-            // BUSY->AVAILABLE, so we can safely ignore this
-            
         } else {
             log_err("LINK_STATE_CHANGE_REQUEST *%p: "
                     "tried to set state AVAILABLE in state %s",
@@ -1472,11 +1464,6 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 
         post_at_head(new LinkAvailableEvent(link,
                      ContactEvent::reason_t(reason)));
-        break;
-        
-    case Link::BUSY:
-        log_err("LINK_STATE_CHANGE_REQUEST can't be used for state %s",
-                Link::state_to_str(new_state));
         break;
         
     case Link::OPENING:
@@ -1636,7 +1623,7 @@ BundleDaemon::handle_bundle_queued_query(BundleQueuedQueryRequest* request)
               request->query_id_.c_str(),
               request->bundle_.object(), link.object());
     
-    bool is_queued = link->clayer()->is_queued(link, request->bundle_.object());
+    bool is_queued = request->bundle_->is_queued_on(link->queue());
     BundleDaemon::post(
         new BundleQueuedReportEvent(request->query_id_, is_queued));
 }
@@ -1811,29 +1798,6 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     log_info("CONTACT_UP *%p (contact %p)", link.object(), contact.object());
     link->set_state(Link::OPEN);
     link->stats_.contacts_++;
-
-    // If the convergence layer doesn't retain bundles between link up/down
-    // events, then we need to copy the delayed-send queue to it from
-    // the link
-    //
-    // XXX/demmer this can cause problems in cases where the queue
-    // grows long since the link will immediately become BUSY and
-    // therefore not really be "up" any more
-    if (!link->clayer()->has_persistent_link_queues() &&
-        !link->queue()->empty())
-    {
-        log_info("sending %zu delayed-send bundles from link %s to clayer %s",
-                 link->queue()->size(),
-                 link->name(),
-                 link->clayer()->name());
-
-        oasys::ScopeLock l(link->queue()->lock(),
-                           "BundleDaemon::handle_contact_up");
-        BundleList::iterator i;
-        for (i = link->queue()->begin(); i != link->queue()->end(); ++i) {
-            link->clayer()->send_bundle(contact, *i);
-        }
-    }
 }
 
 //----------------------------------------------------------------------
@@ -1849,8 +1813,8 @@ BundleDaemon::handle_contact_down(ContactDownEvent* event)
              link.object(), ContactEvent::reason_to_str(reason),
              contact.object());
 
-    // we don't need to do anything here since we just generated this
-    // event in response to a link state change request
+    // update the link stats
+    link->stats_.uptime_ += (contact->start_time().elapsed_ms() / 1000);
 }
 
 //----------------------------------------------------------------------
@@ -2228,23 +2192,6 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
         return false;
     }
     
-    size_t num_in_flight = bundle->fwdlog_.get_count(ForwardingInfo::IN_FLIGHT);
-    if (num_in_flight > 0) {
-        log_debug("try_delete_from_pending(*%p): not deleting because "
-                  "bundle in flight on %zu links",
-                  bundle, num_in_flight);
-        return false;
-    }
-
-    size_t num_pending =
-        bundle->fwdlog_.get_count(ForwardingInfo::TRANSMIT_PENDING);
-    if (num_pending > 0) {
-        log_debug("try_delete_from_pending(*%p): not deleting because "
-                  "bundle transmission pending on %zu links",
-                  bundle, num_pending);
-        return false;
-    }
-    
     return delete_from_pending(bundle);
 }
 
@@ -2286,21 +2233,22 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
         generate_status_report(bundle, BundleStatusReport::STATUS_DELETED, reason);
     }
 
-    // We have a choice to track what bundles are active on what links
-    // and then cancel only on appropriate links, or just cancel on every link.
-    // Since canceling a send is not likely the common case, we will cancel
-    // the bundle on all links for now.
-    //
-    // XXX/demmer this is strange to me as we should be able to figure
-    // out if is_queued() is true for the bundle/link
+    // cancel the bundle on all links where it is queued, deferred, or
+    // in flight
     oasys::Time now;
     now.get_time();
-    
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::delete_bundle");
     const LinkSet* links = contactmgr_->links();
     LinkSet::const_iterator iter;
     for (iter = links->begin(); iter != links->end(); ++iter) {
-        actions_->cancel_bundle(bundle, (*iter));
+        const LinkRef& link = *iter;
+        
+        if (link->queue()->contains(bundle) ||
+            link->deferred()->contains(bundle) ||
+            link->inflight()->contains(bundle))
+        {
+            actions_->cancel_bundle(bundle, link);
+        }
     }
     
     log_debug("BundleDaemon: canceling deleted bundle on all links took %u ms",

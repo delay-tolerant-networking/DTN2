@@ -227,29 +227,10 @@ ConvergenceLayer::close_contact(const ContactRef& contact)
 
 //----------------------------------------------------------------------
 void
-ConvergenceLayer::send_bundle_on_down_link(const LinkRef& link, Bundle* bundle)
+ConvergenceLayer::cancel_bundle(const LinkRef& link, const BundleRef& bundle)
 {
     (void)link;
     (void)bundle;
-    ASSERT(has_persistent_link_queues());
-}
-
-//----------------------------------------------------------------------
-bool
-ConvergenceLayer::cancel_bundle(const LinkRef& contact, Bundle* bundle)
-{
-    (void)contact;
-    (void)bundle;
-    return false;
-}
-
-//----------------------------------------------------------------------
-bool
-ConvergenceLayer::is_queued(const LinkRef& contact, Bundle* bundle)
-{
-    (void)contact;
-    (void)bundle;
-    return false;
 }
 
 //----------------------------------------------------------------------
@@ -305,13 +286,6 @@ ConvergenceLayer::query_cla_parameters(const std::string& query_id,
 
     AttributeVector param_values;
     BundleDaemon::post(new CLAParametersReportEvent(query_id, param_values));
-}
-
-//----------------------------------------------------------------------
-bool
-ConvergenceLayer::has_persistent_link_queues()
-{
-    return false;
 }
 
 } // namespace dtn

@@ -327,7 +327,6 @@ protected:
     void handle_link_deleted(LinkDeletedEvent* event);
     void handle_link_available(LinkAvailableEvent* event);    
     void handle_link_unavailable(LinkUnavailableEvent* event);
-    void handle_link_busy(LinkBusyEvent* event);
     void handle_link_state_change_request(LinkStateChangeRequest* request);
     void handle_link_create(LinkCreateRequest* event);
     void handle_link_delete(LinkDeleteRequest* request);

@@ -61,19 +61,19 @@ public:
     virtual void close_link(const LinkRef& link);
     
     /**
-     * Initiate transmission of a bundle out the given link. The link
-     * must already be open.
+     * Queue the bundle for transmission on the given link.
      *
      * @param bundle		the bundle
      * @param link		the link on which to send the bundle
-     * @param action		the forwarding action that was taken
+     * @param action		the forwarding action that was taken,
+     *                          recorded in the log
      * @param custody_timer	custody timer specification
      *
      * @return true if the transmission was successfully initiated
      */
-    virtual bool send_bundle(Bundle* bundle, const LinkRef& link,
-                             ForwardingInfo::action_t action,
-                             const CustodyTimerSpec& custody_timer);
+    virtual bool queue_bundle(Bundle* bundle, const LinkRef& link,
+                              ForwardingInfo::action_t action,
+                              const CustodyTimerSpec& custody_timer);
     
     /**
      * Attempt to cancel transmission of a bundle on the given link.
@@ -83,7 +83,7 @@ public:
      *
      * @return			true if successful
      */
-    virtual bool cancel_bundle(Bundle* bundle, const LinkRef& link);
+    virtual void cancel_bundle(Bundle* bundle, const LinkRef& link);
 
     /**
      * Inject a new bundle into the core system, which places it in
@@ -130,10 +130,6 @@ protected:
      * Remove the given bundle from the data store.
      */
     virtual void store_del(Bundle* bundle);
-    
-private:
-    void send_bundle_on(Bundle* bundle, const LinkRef& link);
-        
 };
 
 } // namespace dtn

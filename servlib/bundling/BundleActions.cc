@@ -75,23 +75,25 @@ BundleActions::close_link(const LinkRef& link)
 
 //----------------------------------------------------------------------
 bool
-BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
-                           ForwardingInfo::action_t action,
-                           const CustodyTimerSpec& custody_timer)
+BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
+                            ForwardingInfo::action_t action,
+                            const CustodyTimerSpec& custody_timer)
 {
+    BundleRef bref(bundle, "BundleActions::queue_bundle");
+    
     ASSERT(link != NULL);
     if (link->isdeleted()) {
-        log_warn("BundleActions::send_bundle: "
+        log_warn("BundleActions::queue_bundle: "
                  "failed to send bundle *%p on link %s",
                  bundle, link->name());
         return false;
     }
     
     log_debug("trying to find xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_,link->name());
+              bundle->bundleid_, link->name());
 
     if (bundle->xmit_blocks_.find_blocks(link) != NULL) {
-        log_err("BundleActions::send_bundle: "
+        log_err("BundleActions::queue_bundle: "
                 "link not ready to handle bundle (block vector already exists), "
                 "dropping send request");
         return false;
@@ -110,147 +112,123 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
     BlockInfoVec* blocks = BundleProtocol::prepare_blocks(bundle, link);
     size_t total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
 
-    log_debug("send bundle *%p to %s link %s (%s) (total len %zu)",
+    log_debug("queue bundle *%p on %s link %s (%s) (total len %zu)",
               bundle, link->type_str(), link->name(), link->nexthop(),
               total_len);
 
     ForwardingInfo::state_t state = bundle->fwdlog_.get_latest_entry(link);
     if (state == ForwardingInfo::IN_FLIGHT) {
-        log_err("send bundle *%p to %s link %s (%s): already in flight",
+        log_err("queue bundle *%p on %s link %s (%s): already in flight",
                 bundle, link->type_str(), link->name(), link->nexthop());
         return false;
     }
 
     if ((link->params().mtu_ != 0) && (total_len > link->params().mtu_)) {
-        log_err("send bundle *%p to %s link %s (%s): length %zu > mtu %u",
+        log_err("queue bundle *%p on %s link %s (%s): length %zu > mtu %u",
                 bundle, link->type_str(), link->name(), link->nexthop(),
                 total_len, link->params().mtu_);
         return false;
     }
 
-    // Make sure that the bundle isn't unexpectedly already on the queue
-    if (! link->clayer()->has_persistent_link_queues() &&
-        link->queue()->contains(bundle))
+    // Make sure that the bundle isn't unexpectedly already on the
+    // queue or in flight on the link
+    if (link->queue()->contains(bundle))
     {
-        log_err("send bundle *%p on link *%p: already queued on link",
+        log_err("queue bundle *%p on link *%p: already queued on link",
                 bundle, link.object());
         return false;
     }
-    
-    // XXX/demmer a better model would have the forwarding log be a
-    // real append-only log of actions, and there would be no update()
-    // interface. The job of get_count would be a bit more complicated
-    // since it would only pay attention to the latest entries
-    if (state == ForwardingInfo::TRANSMIT_PENDING) {
-        log_debug("updating forward log entry for %s link %s "
-                  "with nexthop %s and remote eid %s to *%p "
-                  "from TRANSMIT_PENDING to IN_FLIGHT",
-                  link->type_str(), link->name(),
-                  link->nexthop(), link->remote_eid().c_str(), bundle);
-        bundle->fwdlog_.update(link, ForwardingInfo::IN_FLIGHT);
 
-    } else {
-        log_debug("adding forward log entry for %s link %s "
-                  "with nexthop %s and remote eid %s to *%p",
-                  link->type_str(), link->name(),
-                  link->nexthop(), link->remote_eid().c_str(), bundle);
-    
-        bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
-                                  custody_timer);
+    if (link->inflight()->contains(bundle))
+    {
+        log_err("queue bundle *%p on link *%p: already in flight on link",
+                bundle, link.object());
+        return false;
     }
 
-    link->stats()->bundles_queued_++;
-    link->stats()->bytes_queued_ += total_len;
+    // But, the bundle might have been deferred on the link, so remove
+    // it from that queue.
+    if (link->del_from_deferred(bref))
+    {
+        log_debug("queue bundle removed *%p from link *%p deferred list",
+                  bundle, link.object());
+    }
+    
+    log_debug("adding forward log entry for %s link %s "
+              "with nexthop %s and remote eid %s to *%p",
+              link->type_str(), link->name(),
+              link->nexthop(), link->remote_eid().c_str(), bundle);
+    
+    bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
+                              custody_timer);
 
-    send_bundle_on(bundle, link);
-        
+    log_debug("adding *%p to link %s's queue (length %u)",
+              bundle, link->name(), link->stats_.bundles_queued_);
+
+    link->add_to_queue(bref, total_len);
+    
+    // finally, kick the convergence layer
+    link->clayer()->bundle_queued(link, bref);
+    
     return true;
 }
 
-void
-BundleActions::send_bundle_on(Bundle* bundle, const LinkRef& link)
-{
-
-    // If the link is open, tell the convergence layer to send the
-    // bundle. Otherwise, we either queue the bundle or kick the
-    // convergence layer to tell it to send the bundle on the down
-    // link, depending on the CL behavior
-    if (link->state() == Link::OPEN)
-    {
-        log_debug("immediate send of bundle *%p to link *%p: link in state %s",
-                  bundle, link.object(), Link::state_to_str(link->state()));
-
-        // XXX/demmer this is needed due to BBN's recent changes but
-        // it seems like a better model would be to always call
-        // send_bundle or send_bundle_on_down_link. then based on how
-        // the CL itself operates, it either puts the bundle on the
-        // queue or doesn't
-        if (!link->clayer()->has_persistent_link_queues()) {
-            link->queue()->push_back(bundle);
-        }
-        
-        link->clayer()->send_bundle(link->contact(), bundle);
-    }
-    else
-    {
-        log_debug("delayed send of bundle *%p to link *%p: link in state %s",
-                  bundle, link.object(), Link::state_to_str(link->state()));
-        
-        if (link->clayer()->has_persistent_link_queues()) {
-            link->clayer()->send_bundle_on_down_link(link, bundle);
-        } else {
-            link->queue()->push_back(bundle);
-        }
-    }
-}
-
 //----------------------------------------------------------------------
-bool
+void
 BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
 {
     ASSERT(link != NULL);
     if (link->isdeleted()) {
         log_debug("BundleActions::cancel_bundle: "
                   "cannot cancel bundle on deleted link %s", link->name());
-        return false;
+        return;
     }
 
-    log_debug("BundleActions::cancel_bundle: "
-              "cancel bundle *%p on %s link %s (%s)",
-              bundle, link->type_str(), link->name(), link->nexthop());
+    log_debug("BundleActions::cancel_bundle: cancelling *%p on *%p",
+              bundle, link.object());
 
-    // Check if the bundle is on the link's delayed-send queue
-    bool queued = false;
-    if (link->queue()->contains(bundle)) {
-        queued = true;
-    }
+    // Try to remove the bundle from the link's delayed-send queue and
+    // deferred queue. If it's there, then we can safely remove it and
+    // post the send cancelled request without involving the
+    // convergence layer.
+    //
+    // If instead it's actually in flight on the link, then we call
+    // down to the convergence layer to see if it can interrupt
+    // transmission, in which case it's responsible for posting the
+    // send cancelled event.
+    //
+    // XXX/demmer make sure this works in all cases
 
-    // If that bundle is in flight on the link on the link, cancel it
-    ForwardingInfo fwdinfo;
-    bool ok = bundle->fwdlog_.get_latest_entry(link, &fwdinfo);
-    if (ok && (fwdinfo.state() == ForwardingInfo::IN_FLIGHT))
-    {
-        // the cancel_bundle call should generate a cancelled event
-        return link->clayer()->cancel_bundle(link, bundle);
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    if (blocks == NULL) {
+        log_warn("BundleActions::cancel_bundle: "
+                 "cancel *%p but no blocks queued or inflight on *%p",
+                 bundle, link.object());
     }
-    else
-    {
-        // if the bundle was on the link queue but not yet sent to the
-        // convergence layer, we still need a send cancelled event to
-        // clean up the xmit blocks state and remove it from the queue
-        if (queued) {
-            BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
-        }
-    }
+    size_t total_len = BundleProtocol::total_length(blocks);
     
-    return false;
+    BundleRef bref(bundle, "BundleActions::cancel_bundle");
+    if (link->del_from_queue(bref, total_len)) {
+        BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
+    }
+    else if (link->del_from_deferred(bref)) {
+        BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
+    }
+    else if (link->inflight()->contains(bundle)) {
+        link->clayer()->cancel_bundle(link, bref);
+    }
+    else {
+        log_warn("BundleActions::cancel_bundle: "
+                 "cancel *%p but not queued or inflight on *%p",
+                 bundle, link.object());
+    }
 }
 
 //----------------------------------------------------------------------
 void
 BundleActions::inject_bundle(Bundle* bundle)
 {
-    PANIC("XXX/demmer fix this");
+    PANIC("XXX/demmer fix inject bundle");
     
     log_debug("inject bundle *%p", bundle);
     BundleDaemon::instance()->pending_bundles()->push_back(bundle);

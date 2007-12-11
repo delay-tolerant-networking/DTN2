@@ -43,7 +43,12 @@ Link::Params::Params()
       idle_close_time_(0),
       potential_downtime_(30),
       prevhop_hdr_(false),
-      cost_(100) {}
+      cost_(100),
+      qlimit_bundles_high_(10),
+      qlimit_bytes_high_(1024*1024), // 1M
+      qlimit_bundles_low_(5),
+      qlimit_bytes_low_(512*1024) // 512K
+{}
 
 Link::Params Link::default_params_;
 
@@ -110,7 +115,9 @@ Link::Link(const std::string& name, link_type_t type,
        nexthop_(nexthop),
        name_(name),
        reliable_(false),
-       queue_(std::string("Link ") + name),
+       queue_(name + ":queue"),
+       inflight_(name + ":inflight"),
+       deferred_(name + ":deferred"),
        contact_("Link"),
        clayer_(cl),
        cl_info_(NULL),
@@ -137,6 +144,8 @@ Link::Link(const oasys::Builder&)
       name_(""),
       reliable_(false),
       queue_(""),
+      inflight_(""),
+      deferred_(""),
       contact_("Link"),
       clayer_(NULL),
       cl_info_(NULL),
@@ -265,7 +274,7 @@ Link::serialize(oasys::SerializeAction* a)
     } else {
         cl_name = clayer_->name();
         a->process("clayer", &cl_name);
-        if ((state_ == OPEN) || (state_ == BUSY))
+        if (state_ == OPEN)
             a->process("clinfo", contact_->cl_info());
     }
 
@@ -301,6 +310,14 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
                                 &params_.potential_downtime_));
     p.addopt(new oasys::BoolOpt("prevhop_hdr", &params_.prevhop_hdr_));
     p.addopt(new oasys::UIntOpt("cost", &params_.cost_));
+    p.addopt(new oasys::UIntOpt("qlimit_bundles_high",
+                                &params_.qlimit_bundles_high_));
+    p.addopt(new oasys::SizeOpt("qlimit_bytes_high",
+                                &params_.qlimit_bytes_high_));
+    p.addopt(new oasys::UIntOpt("qlimit_bundles_low",
+                                &params_.qlimit_bundles_low_));
+    p.addopt(new oasys::SizeOpt("qlimit_bytes_low",
+                                &params_.qlimit_bytes_low_));
     
     int ret = p.parse_and_shift(argc, argv, invalidp);
     if (ret == -1) {
@@ -367,14 +384,10 @@ Link::set_state(state_t new_state)
         break;
         
     case OPEN:
-        ASSERT_STATE(state_ == OPENING || state_ == BUSY ||
+        ASSERT_STATE(state_ == OPENING ||
                      state_ == UNAVAILABLE /* for opportunistic links */);
         break;
 
-    case BUSY:
-        ASSERT_STATE(state_ == OPEN);
-        break;
-    
     default:
         NOTREACHED;
     }
@@ -431,6 +444,151 @@ Link::close()
     contact_ = NULL;
 
     log_debug("Link::close complete");
+}
+
+//----------------------------------------------------------------------
+bool
+Link::queue_is_full() const
+{
+    return ((stats_.bundles_queued_ > params_.qlimit_bundles_high_) ||
+            (stats_.bytes_queued_   > params_.qlimit_bytes_high_));
+}
+
+//----------------------------------------------------------------------
+bool
+Link::queue_has_space() const
+{
+    return ((stats_.bundles_queued_ < params_.qlimit_bundles_low_) &&
+            (stats_.bytes_queued_   < params_.qlimit_bytes_low_));
+}
+
+//----------------------------------------------------------------------
+bool
+Link::add_to_queue(const BundleRef& bundle, size_t total_len)
+{
+    if (queue_.contains(bundle)) {
+        log_err("add_to_queue: bundle *%p already in queue for link %s",
+                bundle.object(), name_.c_str());
+        return false;
+    }
+    
+    log_debug("adding *%p to queue (length %u)",
+              bundle.object(), stats_.bundles_queued_);
+    stats_.bundles_queued_++;
+    stats_.bytes_queued_ += total_len;
+    queue_.push_back(bundle);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+Link::del_from_queue(const BundleRef& bundle, size_t total_len)
+{
+    if (! queue_.erase(bundle)) {
+        return false;
+    }
+
+    ASSERT(stats_.bundles_queued_ > 0);
+    stats_.bundles_queued_--;
+    
+    // sanity checks
+    ASSERT(total_len != 0);
+    if (stats_.bytes_queued_ >= total_len) {
+        stats_.bytes_queued_ -= total_len;
+
+    } else {
+        log_err("del_from_queue: *%p bytes_queued %u < total_len %zu",
+                bundle.object(), stats_.bytes_queued_, total_len);
+    }
+    
+    log_debug("removed *%p from queue (length %u)",
+              bundle.object(), stats_.bundles_queued_);
+    return true;
+}
+//----------------------------------------------------------------------
+bool
+Link::add_to_inflight(const BundleRef& bundle, size_t total_len)
+{
+    oasys::ScopeLock l(&lock_, "Link::put_inflight");
+
+    if (bundle->is_queued_on(&inflight_)) {
+        log_err("bundle *%p already in flight for link %s",
+                bundle.object(), name_.c_str());
+        return false;
+    }
+    
+    log_debug("adding *%p to in flight list for link %s",
+              bundle.object(), name_.c_str());
+    
+    inflight_.push_back(bundle.object());
+
+    stats_.bundles_inflight_++;
+    stats_.bytes_inflight_ += total_len;
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+Link::del_from_inflight(const BundleRef& bundle, size_t total_len)
+{
+    if (! inflight_.erase(bundle)) {
+        return false;
+    }
+
+    ASSERT(stats_.bundles_inflight_ > 0);
+    stats_.bundles_inflight_--;
+    
+    // sanity checks
+    ASSERT(total_len != 0);
+    if (stats_.bytes_inflight_ >= total_len) {
+        stats_.bytes_inflight_ -= total_len;
+
+    } else {
+        log_err("del_from_inflight: *%p bytes_inflight %u < total_len %zu",
+                bundle.object(), stats_.bytes_inflight_, total_len);
+    }
+    
+    log_debug("removed *%p from inflight list (length %u)",
+              bundle.object(), stats_.bundles_inflight_);
+    return true;
+}
+
+
+//----------------------------------------------------------------------
+bool
+Link::add_to_deferred(const BundleRef& bundle)
+{
+    if (deferred_.contains(bundle)) {
+        log_err("add_to_deferred: bundle *%p already in deferred for link %s",
+                bundle.object(), name_.c_str());
+        return false;
+    }
+    
+    log_debug("adding *%p to deferred (length %u)",
+              bundle.object(), stats_.bundles_deferred_);
+
+    stats_.bundles_deferred_++;
+    deferred_.push_back(bundle);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+Link::del_from_deferred(const BundleRef& bundle)
+{
+    if (! deferred_.erase(bundle)) {
+        return false;
+    }
+
+    ASSERT(stats_.bundles_deferred_ > 0);
+    stats_.bundles_deferred_--;
+    
+    log_debug("removed *%p from deferred (length %u)",
+              bundle.object(), stats_.bundles_deferred_);
+    return true;
 }
 
 //----------------------------------------------------------------------
@@ -498,24 +656,40 @@ Link::dump_stats(oasys::StringBuffer* buf)
         return;
     }
 
+    u_int32_t uptime = stats_.uptime_;
+    if (contact_ != NULL) {
+        uptime += (contact_->start_time().elapsed_ms() / 1000);
+    }
+
+    u_int32_t throughput = 0;
+    if (uptime != 0) {
+        throughput = (stats_.bytes_transmitted_ * 8) / uptime;
+    }
+        
     buf->appendf("%u contact_attempts -- "
                  "%u contacts -- "
                  "%u bundles_transmitted -- "
                  "%u bytes_transmitted -- "
                  "%u bundles_queued -- "
                  "%u bytes_queued -- "
+                 "%u bundles_inflight -- "
+                 "%u bytes_inflight -- "
+                 "%u bundles_deferred -- "
                  "%u bundles_cancelled -- "
-                 "%u%% available -- "
-                 "%u%% reliable",
+                 "%u uptime -- "
+                 "%u throughput_bps",
                  stats_.contact_attempts_,
                  stats_.contacts_,
                  stats_.bundles_transmitted_,
                  stats_.bytes_transmitted_,
                  stats_.bundles_queued_,
                  stats_.bytes_queued_,
+                 stats_.bundles_inflight_,
+                 stats_.bytes_inflight_,
+                 stats_.bundles_deferred_,
                  stats_.bundles_cancelled_,
-                 stats_.availability_,
-                 stats_.reliability_);
+                 uptime,
+                 throughput);
 }
 
 } // namespace dtn

@@ -134,33 +134,21 @@ public:
     virtual bool close_contact(const ContactRef& contact);
 
     /**
-     * Try to send the given bundle on the current link.
+     * Notify the convergence layer that a bundle was queued on the
+     * link.
      *
-     * In some cases (e.g. TCP) this just sticks bundles on a queue
-     * for another thread to consume (after setting the link state to
-     * BUSY). In others (e.g. UDP) there is no per-contact thread, so
-     * this callback is used to send the bundle.
+     * In some cases (e.g. TCP) this just kicks the other thread to
+     * notice that there are bundles to send out. In others (e.g. UDP)
+     * there is no per-contact thread, so this callback is used to
+     * send the bundle.
      */
-    virtual void send_bundle(const ContactRef& contact, Bundle* bundle) = 0;
+    virtual void bundle_queued(const LinkRef& link, const BundleRef& bundle) = 0;
     
     /**
-     * Try to send the given bundle on a link which is down.
-     * This should not be used on convergence layers which do not
-     * have persistent link queues.
+     * Try to cancel transmission of a given bundle on the link.
      */
-    virtual void send_bundle_on_down_link(const LinkRef& link, Bundle* bundle);
+    virtual void cancel_bundle(const LinkRef& link, const BundleRef& bundle);
     
-    /**
-     * Try to cancel transmission of a given bundle on the contact.
-     */
-    virtual bool cancel_bundle(const LinkRef& contact, Bundle* bundle);
-    
-    /**
-     * Hook to see if the given bundle is queued for transmission on
-     * the given contact.
-     */
-    virtual bool is_queued(const LinkRef& contact, Bundle* bundle);
-
     /**
      * Report if the given endpoint is reachable via the given interface.
      */
@@ -187,14 +175,6 @@ public:
      */
     virtual void query_cla_parameters(const std::string& query_id,
                                       const AttributeNameVector& parameters);
-                                      
-    /**
-     * Some convergence layers (like external ones) retain queued
-     * bundles between link up/down events, while others (like the internal
-     * TCP CL) discard all queued bundles on a link when the link goes down.
-     * Unless overridden by the CL, queues are assumed NOT to be persistent.
-     */
-    virtual bool has_persistent_link_queues();
 
     /**
      * Perform any necessary shutdown procedures.

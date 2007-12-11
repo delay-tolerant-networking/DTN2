@@ -215,11 +215,6 @@ protected:
     virtual void handle_link_unavailable(LinkUnavailableEvent* event);
 
     /**
-     * Default event handler when a link is busy
-     */
-    virtual void handle_link_busy(LinkBusyEvent* event);
-
-    /**
      * Default event handler for link state change requests.
      */
     virtual void handle_link_state_change_request(LinkStateChangeRequest* req);

@@ -503,8 +503,6 @@ public:
         RECONNECT,      ///< Re-establish link after failure
         IDLE,           ///< Idle connection shut down by the CL
         TIMEOUT,        ///< Scheduled link ended duration
-        BLOCKED,        ///< Link is busy
-        UNBLOCKED,      ///< Link is no longer busy
     } reason_t;
 
     /**
@@ -523,7 +521,6 @@ public:
         case RECONNECT: return "re-establishing connection";
         case IDLE:      return "connection idle";
         case TIMEOUT:   return "schedule timed out";
-        case UNBLOCKED: return "no longer busy";
         }
         NOTREACHED;
     }
@@ -640,19 +637,6 @@ public:
           link_(link.object(), "LinkUnavailableEvent") {}
 
     /// The link that is unavailable
-    LinkRef link_;
-};
-
-/**
- * Event class for link busy events
- */
-class LinkBusyEvent : public ContactEvent {
-public:
-    LinkBusyEvent(const LinkRef& link)
-        : ContactEvent(LINK_BUSY, ContactEvent::BLOCKED),
-          link_(link.object(), "LinkBusyEvent") {}
-
-    /// The link that is busy
     LinkRef link_;
 };
 

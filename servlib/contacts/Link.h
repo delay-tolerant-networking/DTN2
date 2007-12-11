@@ -54,8 +54,8 @@ class LinkSet : public std::set<LinkRef> {};
  * The state of a link (regarding its availability) is described by
  * the Link::state_t enumerated type.
  *
- * All links in the OPEN or BUSY states have an associated contact
- * that represents an actual connection.
+ * All links in the OPEN state have an associated contact that
+ * represents an actual connection.
  *
  * Every link has a unique name associated with it which is used to
  * identify it. The name is configured explicitly when the link is
@@ -175,7 +175,9 @@ public:
     }
 
     /**
-     * The possible states for a link.
+     * The possible states for a link. These are defined as distinct
+     * bitfield values so that various functions can match on a set of
+     * states (e.g. see ContactManager::find_link_to).
      */
     typedef enum {
         UNAVAILABLE = 1,///< The link is closed and not able to be
@@ -199,12 +201,7 @@ public:
                         ///  can handle multiple simultaneous bundle
                         ///  transmissions.
         
-        BUSY = 16,	///< The link is busy, i.e. a bundle is
-                        ///  currently being sent on it by the
-                        ///  convergence layer and no more bundles may
-                        ///  be delivered to the link.
-
-        CLOSED = 32	///< Bogus state that's never actually used in
+        CLOSED = 16	///< Bogus state that's never actually used in
                         ///  the Link state_ variable, but is used for
                         ///  signalling the daemon thread with a
                         ///  LinkStateChangeRequest
@@ -222,7 +219,6 @@ public:
         case AVAILABLE: 	return "AVAILABLE";
         case OPENING: 		return "OPENING";
         case OPEN: 		return "OPEN";
-        case BUSY: 		return "BUSY";
         case CLOSED: 		return "CLOSED";
         }
 
@@ -290,18 +286,12 @@ public:
     /**
      * Return whether or not the link is open.
      */
-    bool isopen() const { return ( (state_ == OPEN) ||
-                                   (state_ == BUSY) ); }
+    bool isopen() const { return ( (state_ == OPEN) ); }
 
     /**
      * Return the availability state of the link.
      */
     bool isavailable() const { return (state_ != UNAVAILABLE); }
-
-    /**
-     * Return the busy state of the link.
-     */
-    bool isbusy() const { return (state_ == BUSY); }
 
     /**
      * Return whether the link is in the process of opening.
@@ -430,10 +420,50 @@ public:
     const EndpointID& remote_eid() { return remote_eid_; }
 
     /**
-     * Accessor for the link's queue of bundles.
+     * Accessor for the link's queue of bundles that are awaiting
+     * transmission.
      */
-    BundleList* queue() { return &queue_; }
+    const BundleList* queue() { return &queue_; }
 
+    /**
+     * Return whether or not the queue is full, based on the
+     * configured queue limits.
+     */
+    bool queue_is_full() const;
+    
+    /**
+     * Return whether or not the queue has space, based on the
+     * configured queue limits.
+     */
+    bool queue_has_space() const;
+
+    /**
+     * Accessor for the link's list of bundles that have been
+     * transmitted but for which the convergence layer is awaiting
+     * acknowledgement.
+     */
+    const BundleList* inflight() { return &inflight_; }
+    
+    /**
+     * Accessor for the link's list of deferred transmission bundles,
+     * due to the link being either busy or down.
+     */
+    const BundleList* deferred() { return &deferred_; }
+
+    /// @{
+    /**
+     * Accessor functions to add/remove bundles from the link queue
+     * and inflight list, keeping the statistics in-sync with the
+     * state of the lists.
+     */
+    bool add_to_queue(const BundleRef& bundle, size_t total_len);
+    bool del_from_queue(const BundleRef& bundle, size_t total_len);
+    bool add_to_inflight(const BundleRef& bundle, size_t total_len);
+    bool del_from_inflight(const BundleRef& bundle, size_t total_len);
+    bool add_to_deferred(const BundleRef& bundle);
+    bool del_from_deferred(const BundleRef& bundle);
+    /// @}
+    
     /**
      * Virtual from formatter
      */
@@ -505,8 +535,26 @@ public:
          * Default is 100.
          */
         u_int cost_;
-    };
 
+        /** @{
+         *
+         * Configurable high / low limits on the number of
+         * bundles/bytes that should be queued on the link.
+         *
+         * The high limits are used by Link::is_queue_full() to
+         * indicate whether or not more bundles can be queued onto the
+         * link to effect backpressure from the convergence layers.
+         *
+         * The low limits can be used by the router to determine when
+         * to re-scan the pending bundle lists 
+         */
+        u_int     qlimit_bundles_high_;
+        u_int64_t qlimit_bytes_high_;
+        u_int     qlimit_bundles_low_;
+        u_int64_t qlimit_bytes_low_;
+        /// @}
+    };
+    
     /**
      * Seconds to wait between attempts to re-open an unavailable
      * link. Initially set to min_retry_interval_, then doubles up to
@@ -535,50 +583,39 @@ public:
          */
         u_int contacts_;
         
-        /**
-         * Number of bundles transmitted
-         */
-        u_int bundles_transmitted_;
-
-        /**
-         * Total bytes transmitted (not counting convergence layer
-         * overhead).
-         */
-        u_int bytes_transmitted_;
-
-        /**
-         * Number of bundles currently queued on the link.
+        /** @{
+         *
+         * Data statistics about the link, both in terms of bundles
+         * and bytes. The stats correlate to state of the the
+         * link queue and inflight lists.
+         *
+         *    *_queued:       the link queue size
+         *    *_inflight:     transmitted but not yet acknowledged
+         *    *_transmitted:  successfully transmitted
+         *    *_cancelled:    cancelled
          */
         u_int bundles_queued_;
-
-        /**
-         * Count of bytes currently queued on the link (not counting
-         * convergence layer overhead).
-         */
-        u_int bytes_queued_;
-        
-        /**
-         * Number of bundles currently in flight.
-         */
+        u_int bytes_queued_; 
         u_int bundles_inflight_;
-
-        /**
-         * Total bytes currently in flight (not counting convergence
-         * layer overhead).
-         */
         u_int bytes_inflight_;
+        u_int bundles_deferred_;
+        u_int bundles_transmitted_;
+        u_int bytes_transmitted_;
+        u_int bundles_cancelled_;
+        /// @}
 
         /**
-         * Number of bundles with cancelled transmissions.
+         * The total uptime of the link, not counting the current
+         * contact.
          */
-        u_int bundles_cancelled_;
+        u_int uptime_;
 
         /**
          * The availablity of the link, as measured over time by the
          * convergence layer.
          */
         u_int availability_;
-
+        
         /**
          * The reliability of the link, as measured over time by the
          * convergence layer.  This is different from the is_reliable
@@ -607,7 +644,7 @@ public:
     void dump_stats(oasys::StringBuffer* buf);
 
     /**
-     * Accessor for the Link internal lock.
+     * Accessor for the Link state lock.
      */
     oasys::Lock* lock() { return &lock_; }
     
@@ -667,6 +704,12 @@ protected:
 
     /// Queue of bundles currently active or pending transmission on the Link
     BundleList queue_;
+
+    /// Queue of bundles that have been sent but not yet acknowledged
+    BundleList inflight_;
+
+    /// Queue of bundles that have deferred transmission
+    BundleList deferred_;
 
     /// Stats for the link
     mutable Stats stats_;

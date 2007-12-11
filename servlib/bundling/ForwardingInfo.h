@@ -73,7 +73,7 @@ public:
         TRANSMIT_FAILED  = 1 << 2, ///< Transmission failed
         CANCELLED        = 1 << 3, ///< Transmission cancelled
         CUSTODY_TIMEOUT  = 1 << 4, ///< Custody transfer timeout
-        TRANSMIT_PENDING = 1 << 5, ///< Waiting for link availability
+        TRANSMIT_DEFERRED= 1 << 6, ///< Waiting for link availability
     } state_t;
 
     /**
@@ -91,7 +91,7 @@ public:
         case TRANSMIT_FAILED:  	return "TRANSMIT_FAILED";
         case CANCELLED: 	return "CANCELLED";
         case CUSTODY_TIMEOUT:	return "CUSTODY_TIMEOUT";
-        case TRANSMIT_PENDING:	return "TRANSMIT_PENDING";
+        case TRANSMIT_DEFERRED:	return "TRANSMIT_DEFERRED";
         default:
             NOTREACHED;
         }
