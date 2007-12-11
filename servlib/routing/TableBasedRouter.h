@@ -107,17 +107,11 @@ protected:
      * is found, call fwd_to_nexthop on it.
      *
      * @param bundle		the bundle to forward
-     * @param this_link_only	if specified, restricts forwarding to
-     * 				the given next hop link
      *
-     * Returns the number of matches found and assigned.
+     * Returns the number of links on which the bundle was queued
+     * (i.e. the number of matching route entries.
      */
-    virtual int fwd_to_matching(Bundle* bundle, const LinkRef& this_link_only);
-
-    virtual int fwd_to_matching(Bundle* bundle) {
-        LinkRef link("TableBasedRouter::fwd_to_matching: null");
-        return fwd_to_matching(bundle, link);
-    }
+    virtual int route_bundle(Bundle* bundle);
 
     /**
      * Once a vector of matching routes has been found, sort the

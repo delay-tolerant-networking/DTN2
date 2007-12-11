@@ -56,6 +56,9 @@ void
 TableBasedRouter::del_route(const EndpointIDPattern& dest)
 {
     route_table_->del_entries(dest);
+
+    // XXX/demmer this needs to reroute bundles, cancelling them from
+    // their old route destinations
 }
 
 //----------------------------------------------------------------------
@@ -78,7 +81,7 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
         return;
     }
     
-    fwd_to_matching(bundle);
+    route_bundle(bundle);
 }
 
 //----------------------------------------------------------------------
@@ -89,8 +92,15 @@ TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
     (void)bundle;
     log_debug("handle bundle transmitted: *%p", bundle);
 
-    // XXX/demmer this should fix up the retention constraints to no
-    // longer require that the bundle be kept
+    // if the bundle has a deferred single-copy transmission for
+    // forwarding on any links, then remove the forwarding log entries
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    oasys::ScopeLock l(cm->lock(), "TableBasedRouter::handle_bundle_transmitted");
+    
+    // if the link queue has free space, then check the list of
+    // unrouted bundles to see if any should be routed to this link
+    const LinkRef& link = event->contact_->link();
+    check_next_hop(link);
 }
     
 //----------------------------------------------------------------------
@@ -112,7 +122,7 @@ TableBasedRouter::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     // if the bundle has expired, we don't want to reroute it.
     // XXX/demmer this might warrant a more general handling instead?
     if (!bundle->expired()) {
-        fwd_to_matching(bundle);
+        route_bundle(bundle);
     }
 }
 
@@ -254,7 +264,7 @@ TableBasedRouter::reroute_bundles(const LinkRef& link)
     
     oasys::ScopeLock l(link->queue()->lock(),
                        "TableBasedRouter::reroute_bundles");
-    BundleList::iterator iter;
+    BundleList::const_iterator iter;
     for (iter = link->queue()->begin();
          iter != link->queue()->end();
          ++iter)
@@ -279,10 +289,9 @@ TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
     {
         actions_->open_link(link);
     }
-    else
-    {
-        check_next_hop(link);
-    }
+    
+    // check if there's anything to be forwarded to the link
+    check_next_hop(link);
 }
 
 //----------------------------------------------------------------------
@@ -326,7 +335,7 @@ TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
     //
     // therefore, trying again to forward the bundle should match
     // either the previous link or any other route
-    fwd_to_matching(event->bundle_.object());
+    route_bundle(event->bundle_.object());
 }
 
 //----------------------------------------------------------------------
@@ -363,51 +372,50 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
 {
     const LinkRef& link = route->link();
 
-    // if the link is open and not busy, send the bundle to it
-    if (link->isopen() && !link->isbusy()) {
-        log_debug("sending *%p to *%p", bundle, link.object());
-        actions_->send_bundle(bundle, link, route->action(),
-                              route->custody_spec());
-        return true;
-    }
-
-    // otherwise we can't send the bundle now, so add a forwarding log
-    // entry indicating that transmission is pending on the given link
-    //
-    // XXX/demmer should also queue it on the link?
-    //
-    ForwardingInfo::state_t state = bundle->fwdlog_.get_latest_entry(link);
-    if (state != ForwardingInfo::TRANSMIT_PENDING) {
-        log_debug("adding TRANSMIT_PENDING forward log entry "
-                  "for bundle *%p on link *%p ",
-                  bundle, link.object());
-        bundle->fwdlog_.add_entry(link, route->action(),
-                                  ForwardingInfo::TRANSMIT_PENDING,
-                                  route->custody_spec());
-    }
-    
     // if the link is available and not open, open it
     if (link->isavailable() && (!link->isopen()) && (!link->isopening())) {
         log_debug("opening *%p because a message is intended for it",
                   link.object());
         actions_->open_link(link);
     }
-
+    
+    if (link->isopen() && !link->queue_is_full()) {
+        log_debug("queuing *%p on *%p", bundle, link.object());
+        actions_->queue_bundle(bundle, link, route->action(),
+                               route->custody_spec());
+        return true;
+    }
+    
+    // otherwise we can't send the bundle now, so put it on the link's
+    // deferred list, store the route state in the forwarding log, and
+    // then output the reason why we can't forward it
+    if (! bundle->is_queued_on(link->deferred())) {
+        BundleRef bref(bundle, "TableBasedRouter::fwd_to_nexthop");
+        link->add_to_deferred(bref);
+        log_debug("adding TRANSMIT_DEFERRED forwarding log entry "
+                  "for bundle *%p on link *%p ",
+                  bundle, link.object());
+        bundle->fwdlog_.add_entry(link, route->action(),
+                                  ForwardingInfo::TRANSMIT_DEFERRED,
+                                  route->custody_spec());
+    } else {
+        log_warn("bundle *%p already exists on deferred list of link *%p",
+                 bundle, link.object());
+    }
+    
     // otherwise, we can't do anything, so just log a bundle of
     // reasons why
-    else {
-        if (!link->isavailable()) {
-            log_debug("can't forward *%p to *%p because link not available",
-                      bundle, link.object());
-        } else if (! link->isopen()) {
-            log_debug("can't forward *%p to *%p because link not open",
-                      bundle, link.object());
-        } else if (link->isbusy()) {
-            log_debug("can't forward *%p to *%p because link is busy",
-                      bundle, link.object());
-        } else {
-            log_debug("can't forward *%p to *%p", bundle, link.object());
-        }
+    if (!link->isavailable()) {
+        log_debug("can't forward *%p to *%p because link not available",
+                  bundle, link.object());
+    } else if (! link->isopen()) {
+        log_debug("can't forward *%p to *%p because link not open",
+                  bundle, link.object());
+    } else if (link->queue_is_full()) {
+        log_debug("can't forward *%p to *%p because link queue is full",
+                  bundle, link.object());
+    } else {
+        log_debug("can't forward *%p to *%p", bundle, link.object());
     }
 
     return false;
@@ -415,40 +423,46 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
 
 //----------------------------------------------------------------------
 int
-TableBasedRouter::fwd_to_matching(Bundle* bundle, const LinkRef& this_link_only)
+TableBasedRouter::route_bundle(Bundle* bundle)
 {
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
 
-    log_debug("fwd_to_matching: checking bundle %d, link %s",
-              bundle->bundleid_,
-              this_link_only == NULL ? "(any link)" : this_link_only->name());
+    log_debug("route_bundle: checking bundle %d", bundle->bundleid_);
 
     // XXX/demmer fix this
     if (bundle->owner_ == "DO_NOT_FORWARD") {
-        log_notice("fwd_to_matching: "
+        log_notice("route_bundle: "
                    "ignoring bundle %d since owner is DO_NOT_FORWARD",
                    bundle->bundleid_);
         return 0;
     }
 
-    // get_matching only returns results that match the this_link_only
-    // link, if it's not null
-    route_table_->get_matching(bundle->dest_, this_link_only, &matches);
+    LinkRef null_link("TableBasedRouter::route_bundle");
+    route_table_->get_matching(bundle->dest_, null_link, &matches);
 
     // sort the matching routes by priority, allowing subclasses to
     // override the way in which the sorting occurs
     sort_routes(bundle, &matches);
 
-    log_debug("fwd_to_matching bundle id %d: checking %zu route entry matches",
+    log_debug("route_bundle bundle id %d: checking %zu route entry matches",
               bundle->bundleid_, matches.size());
     
     unsigned int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
+        log_debug("checking route entry %p link %s (%p)",
+                  *iter, (*iter)->link()->name(), (*iter)->link().object());
         if (! should_fwd(bundle, *iter)) {
             continue;
         }
+
+        // because there may be bundles that already have deferred
+        // transmission on the link, we first call check_next_hop to
+        // get them into the queue before trying to route the new
+        // arrival, otherwise it might leapfrog the other deferred
+        // bundles
+        check_next_hop((*iter)->link());
         
         if (!fwd_to_nexthop(bundle, *iter)) {
             continue;
@@ -457,7 +471,7 @@ TableBasedRouter::fwd_to_matching(Bundle* bundle, const LinkRef& this_link_only)
         ++count;
     }
 
-    log_debug("fwd_to_matching bundle id %d: forwarded on %u links",
+    log_debug("route_bundle bundle id %d: forwarded on %u links",
               bundle->bundleid_, count);
     return count;
 }
@@ -474,50 +488,73 @@ TableBasedRouter::sort_routes(Bundle* bundle, RouteEntryVec* routes)
 void
 TableBasedRouter::check_next_hop(const LinkRef& next_hop)
 {
-    log_debug("check_next_hop %s -> %s: checking pending bundle list...",
+    // if the link queue doesn't have space (based on the low water
+    // mark) don't do anything
+    if (! next_hop->queue_has_space()) {
+        log_debug("check_next_hop %s -> %s: no space in queue...",
+                  next_hop->name(), next_hop->nexthop());
+        return;
+    }
+    
+    log_debug("check_next_hop %s -> %s: checking deferred bundle list...",
               next_hop->name(), next_hop->nexthop());
 
-    // when the link comes up or is made available, any bundles
-    // destined for it will have a transmit pending entry in the
-    // forwarding log
-    //
-    // XXX/demmer this would be easier if they were just on the link
-    // queue...
-    oasys::ScopeLock l(pending_bundles_->lock(), 
+    oasys::ScopeLock l(next_hop->deferred()->lock(), 
                        "TableBasedRouter::check_next_hop");
-    BundleList::iterator iter;
-    for (iter = pending_bundles_->begin();
-         iter != pending_bundles_->end();
-         ++iter)
+
+    // because queue_bundle below will remove the current bundle from
+    // the deferred list, invalidating any iterators pointing to its
+    // position, make sure to advance the iterator before processing
+    // the current bundle
+    BundleList::const_iterator iter = next_hop->deferred()->begin();
+    while (iter != next_hop->deferred()->end())
     {
-        if (next_hop->isbusy()) {
-            log_debug("check_next_hop %s: link is busy, stopping loop",
+        if (next_hop->queue_is_full()) {
+            log_debug("check_next_hop %s: link queue is full, stopping loop",
                       next_hop->name());
             break;
         }
         
         BundleRef bundle("TableBasedRouter::check_next_hop");
         bundle = *iter;
-        
+        ++iter;
+
         ForwardingInfo info;
         bool ok = bundle->fwdlog_.get_latest_entry(next_hop, &info);
-
-        if (ok && (info.state() == ForwardingInfo::TRANSMIT_PENDING)) {
-            // if the link is available and not open, open it
-            if (next_hop->isavailable() &&
-                (!next_hop->isopen()) && (!next_hop->isopening()))
-            {
-                log_debug("check_next_hop: "
-                          "opening *%p because a message is intended for it",
-                          next_hop.object());
-                actions_->open_link(next_hop);
-            }
-            
-            log_debug("check_next_hop: sending *%p to *%p",
-                      bundle.object(), next_hop.object());
-            actions_->send_bundle(bundle.object() , next_hop,
-                                  info.action(), info.custody_spec());
+        if (! ok || (info.state() != ForwardingInfo::TRANSMIT_DEFERRED)) {
+            log_warn("check_next_hop: "
+                     "*%p doesn't have deferred fwd log entry for *%p",
+                     bundle.object(), next_hop.object());
+            continue;
         }
+        
+        // if should_fwd returns false, then the bundle was either
+        // already transmitted or is in flight on another node. since
+        // it's possible that one of the other transmissions will
+        // fail, we leave it on the deferred list for now, relying on
+        // the transmitted handlers to clean up the state
+        if (! BundleRouter::should_fwd(bundle.object(), next_hop,
+                                       info.action()))
+        {
+            log_debug("check_next_hop: not forwarding to link %s",
+                      next_hop->name());
+            continue;
+        }
+        
+        // if the link is available and not open, open it
+        if (next_hop->isavailable() &&
+            (!next_hop->isopen()) && (!next_hop->isopening()))
+        {
+            log_debug("check_next_hop: "
+                      "opening *%p because a message is intended for it",
+                      next_hop.object());
+            actions_->open_link(next_hop);
+        }
+
+        log_debug("check_next_hop: sending *%p to *%p",
+                  bundle.object(), next_hop.object());
+        actions_->queue_bundle(bundle.object() , next_hop,
+                               info.action(), info.custody_spec());
     }
 }
 
@@ -531,12 +568,14 @@ TableBasedRouter::reroute_all_bundles()
     log_debug("reroute_all_bundles... %zu bundles on pending list",
               pending_bundles_->size());
 
+    // XXX/demmer this should cancel transmissions if any decisions
+    // have changed
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
          ++iter)
     {
-        fwd_to_matching(*iter);
+        route_bundle(*iter);
     }
 }
 
