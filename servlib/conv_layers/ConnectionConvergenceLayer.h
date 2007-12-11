@@ -86,9 +86,8 @@ public:
     bool reconfigure_link(const LinkRef& link, int argc, const char* argv[]);
     bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
-    void send_bundle(const ContactRef& contact, Bundle* bundle);
-    bool cancel_bundle(const LinkRef& contact, Bundle* bundle);
-    bool is_queued(const LinkRef& link, Bundle* bundle);
+    void bundle_queued(const LinkRef& link, const BundleRef& bundle);
+    void cancel_bundle(const LinkRef& link, const BundleRef& bundle);
     /// @}
 
     /**
@@ -98,7 +97,6 @@ public:
      */
     class LinkParams : public CLInfo {
     public:
-        u_int32_t busy_queue_depth_;	///< Max # bundles in BD -> conn. queue
         bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         u_int sendbuf_len_;		///< Buffer size for sending data
         u_int recvbuf_len_;		///< Buffer size for receiving data

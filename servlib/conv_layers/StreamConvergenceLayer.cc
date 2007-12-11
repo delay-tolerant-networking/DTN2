@@ -233,6 +233,7 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
         log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
                  "-- disconnecting.", magic, MAGIC);
         break_contact(ContactEvent::CL_ERROR);
+        oasys::Breaker::break_here();
         return;
     }
 
@@ -363,25 +364,14 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
 
 //----------------------------------------------------------------------
 void
-StreamConvergenceLayer::Connection::handle_send_bundle(Bundle* bundle)
+StreamConvergenceLayer::Connection::handle_bundles_queued()
 {
-    // push the bundle onto the inflight queue. we'll handle sending
-    // the bundle out in the callback for transmit_bundle_data
-    InFlightBundle* inflight = new InFlightBundle(bundle);
-    log_debug("trying to find xmit blocks for bundle id:%d on link %s",bundle->bundleid_,contact_->link()->name());
-    inflight->blocks_ = bundle->xmit_blocks_.find_blocks(contact_->link());
-    
-    //bundle sends can be canceled, so abort if the blocks are removed
-    if(inflight->blocks_ == NULL)
-    {
-    	delete inflight;
-    	return;
-    }
-    
-    inflight->total_length_ = BundleProtocol::total_length(inflight->blocks_);
-
-    oasys::ScopeLock l(inflight_lock(), "StreamConvergenceLayer");
-    inflight_.push_back(inflight);
+    // since the main run loop checks the link queue to see if there
+    // are bundles that should be put in flight, we simply log a debug
+    // message here. the point of the message is to kick the thread
+    // out of poll() which forces the main loop to check the queue
+    log_debug("handle_bundles_queued: %u bundles on link queue",
+              contact_->link()->stats()->bundles_queued_);
 }
 
 //----------------------------------------------------------------------
@@ -537,7 +527,6 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     // return true if we've sent something
     return generated_ack;
 }
-
          
 //----------------------------------------------------------------------
 bool
@@ -545,47 +534,46 @@ StreamConvergenceLayer::Connection::start_next_bundle()
 {
     ASSERT(current_inflight_ == NULL);
 
+    if (! contact_up_) {
+        log_debug("start_next_bundle: contact not yet set up");
+        return false;
+    }
+    
     oasys::ScopeLock l(inflight_lock(),
                        "StreamConvergenceLayer::Connection::start_next_bundle");
+    
+    const LinkRef& link = contact_->link();
+    BundleRef bundle("StreamCL::Connection::start_next_bundle");
 
-    // find the bundle to start (identified by having nothing yet in
-    // sent_data) and store it in current_inflight_
-    InFlightList::iterator iter;
-    for (iter = inflight_.begin(); iter != inflight_.end(); ++iter) {
-        InFlightBundle* inflight = *iter;
-        
-        if (contact_broken_)
-            return false;
+    // try to pop the next bundle off the link queue and put it in
+    // flight, making sure to hold the link queue lock until it's
+    // safely on the link's inflight queue
+    oasys::ScopeLock qlock(link->queue()->lock(),
+                           "StreamCL::Connection::start_next_bundle");
 
-        // skip entries that we've sent completely
-        if (inflight->send_complete_)
-        {
-            ASSERT(inflight->sent_data_.num_contiguous() ==
-                   inflight->total_length_);
-            
-            log_debug("start_next_bundle: "
-                      "transmission of bundle %d already complete, skipping",
-                      inflight->bundle_->bundleid_);
-            continue;
-        }
-
-        // otherwise, we must not have sent anything for this bundle
-        // at all, so assert that sent_data is empty
-        ASSERT(inflight->sent_data_.empty());
-        current_inflight_ = inflight;
-        break;
-    }
-
-    // there might not be anything to send, in which case we return
-    // false to indicate as such
-    if (current_inflight_ == NULL) {
+    bundle = link->queue()->front();
+    if (bundle == NULL) {
+        log_debug("start_next_bundle: nothing to start");
         return false;
     }
 
-    // release the inflight lock before calling send_next_segment
-    // since it might take a while
-    l.unlock();
+    InFlightBundle* inflight = new InFlightBundle(bundle.object());
+    log_debug("trying to find xmit blocks for bundle id:%d on link %s",
+              bundle->bundleid_, link->name());
+    inflight->blocks_ = bundle->xmit_blocks_.find_blocks(contact_->link());
+    ASSERT(inflight->blocks_ != NULL);
+    inflight->total_length_ = BundleProtocol::total_length(inflight->blocks_);
+    inflight_.push_back(inflight);
+    current_inflight_ = inflight;
 
+    link->add_to_inflight(bundle, inflight->total_length_);
+    link->del_from_queue(bundle, inflight->total_length_);
+
+    // release our locks before calling send_next_segment since it
+    // might take a while
+    l.unlock();
+    qlock.unlock();
+    
     // now send the first segment for the bundle
     return send_next_segment(current_inflight_);
 }
@@ -687,6 +675,14 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
 
         note_data_sent();
         send_data();
+
+        // XXX/demmer once send_complete_ is true, we could post an
+        // event to free up space in the queue for more bundles to be
+        // sent down. note that it's possible the bundle isn't really
+        // out on the wire yet, but we don't have any way of knowing
+        // when it gets out of the sendbuf_ and into the kernel (nor
+        // for that matter actually onto the wire), so this is the
+        // best we can do for now.
         
         if (contact_broken_)
             return true;
@@ -694,7 +690,9 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
         // if test_write_delay is set, then we only send one segment
         // at a time before bouncing back to poll
         if (params_->test_write_delay_ != 0) {
-            log_debug("send_data_todo done, returning more to send (send_segment_todo_==%zu) since test_write_delay is non-zero", send_segment_todo_);
+            log_debug("send_data_todo done, returning more to send "
+                      "(send_segment_todo_==%zu) since test_write_delay is non-zero",
+                      send_segment_todo_);
             return true;
         }
     }
@@ -712,8 +710,7 @@ StreamConvergenceLayer::Connection::finish_bundle(InFlightBundle* inflight)
     current_inflight_ = NULL;
     
     check_completed(inflight);
-    check_unblock_link();
-    
+
     return true;
 }
 
@@ -780,7 +777,6 @@ StreamConvergenceLayer::Connection::send_keepalive()
 void
 StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
 {
-
     oasys::ScopeLock l(inflight_lock(), "StreamConvergenceLayer::"
                        "Connection::handle_cancel_bundle");
     
@@ -926,26 +922,6 @@ StreamConvergenceLayer::Connection::check_keepalive()
         if (std::min(elapsed, elapsed2) > ((params->keepalive_interval_ * 1000) - 500))
         {
             send_keepalive();
-        }
-    }
-
-    // XXX/demmer this is to fix a strange and not yet understood race
-    // condition
-    if (contact_ != NULL &&
-        contact_->link()->state() == Link::BUSY &&
-        num_pending_.value == 0)
-    {
-        elapsed = TIMEVAL_DIFF_MSEC(now, data_sent_);
-        if (elapsed > 5000) {
-            log_warn("0 bundles pending and %d msecs since last xmit, "
-                     "clearing BUSY state",
-                     elapsed);
-
-            // see comment in CLConnection.cc why we post at head
-            BundleDaemon::post_at_head(
-                new LinkStateChangeRequest(contact_->link(),
-                                           Link::AVAILABLE,
-                                           ContactEvent::UNBLOCKED));
         }
     }
 }
@@ -1415,8 +1391,6 @@ StreamConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
     case ContactEvent::NO_INFO:
     case ContactEvent::RECONNECT:
     case ContactEvent::TIMEOUT:
-    case ContactEvent::BLOCKED:
-    case ContactEvent::UNBLOCKED:
     case ContactEvent::DISCOVERY:
         NOTREACHED;
         break;

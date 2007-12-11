@@ -44,8 +44,7 @@ CLConnection::CLConnection(const char*       classname,
       active_connector_(active_connector),
       num_pollfds_(0),
       poll_timeout_(-1),
-      contact_broken_(false),
-      num_pending_(0)
+      contact_broken_(false)
 {
     sendbuf_.reserve(params_->sendbuf_len_);
     recvbuf_.reserve(params_->recvbuf_len_);
@@ -190,7 +189,7 @@ CLConnection::run()
 
 //----------------------------------------------------------------------
 void
-CLConnection::queue_bundle(Bundle* bundle)
+CLConnection::bundles_queued()
 {
     ASSERT(contact_->link() != NULL);
     ASSERT(contact_->link()->cl_info() != NULL);
@@ -205,27 +204,8 @@ CLConnection::queue_bundle(Bundle* bundle)
     LinkParams* params = dynamic_cast<LinkParams*>(contact_->link()->cl_info());
     ASSERT(params != NULL);
     
-    oasys::atomic_incr(&num_pending_);
-    
-    if (num_pending_.value >= params->busy_queue_depth_)
-    {
-        log_debug("%d bundles pending, setting BUSY state",
-                  num_pending_.value);
-        if (contact_->link()->state() == Link::BUSY) {
-            log_warn("queue_bundle called on BUSY link");
-        } else {
-            contact_->link()->set_state(Link::BUSY);
-            BundleDaemon::post_at_head(new LinkBusyEvent(contact_->link()));
-        }
-    }
-    else
-    {
-        log_debug("%d bundles pending -- leaving state as-is",
-                  num_pending_.value);
-    }
-
     cmdqueue_.push_back(
-        CLConnection::CLMsg(CLConnection::CLMSG_SEND_BUNDLE, bundle));
+        CLConnection::CLMsg(CLConnection::CLMSG_BUNDLES_QUEUED));
 }
 
 //----------------------------------------------------------------------
@@ -234,32 +214,8 @@ CLConnection::cancel_bundle(Bundle* bundle)
 {
     ASSERT(contact_->link() != NULL);
     ASSERT(contact_->link()->cl_info() != NULL);
-    if (is_queued(bundle)) {
-        cmdqueue_.push_back(
-            CLConnection::CLMsg(CLConnection::CLMSG_CANCEL_BUNDLE, bundle));
-    } else {
-        log_debug("request to cancel bundle %p that is not queued\n", bundle);
-    }
-}
-
-//----------------------------------------------------------------------
-bool
-CLConnection::is_queued(Bundle* bundle)
-{
-    oasys::ScopeLock l(inflight_lock(), "CLConnection::is_queued");
-
-    InFlightList::const_iterator iter;
-    for (iter = inflight_.begin(); iter != inflight_.end(); ++iter) {
-        if ((*iter)->bundle_ == bundle) {
-            return true;
-        }
-    }
-
-    // This method will return false in the event that the
-    // CLConnection::queue_bundle() method has been called,
-    // but the resulting CLMSG_SEND_BUNDLE message has not
-    // yet been processed.
-    return false;
+    cmdqueue_.push_back(
+        CLConnection::CLMsg(CLConnection::CLMSG_CANCEL_BUNDLE, bundle));
 }
 
 //----------------------------------------------------------------------
@@ -271,9 +227,9 @@ CLConnection::process_command()
     ASSERT(ok); // shouldn't be called if the queue is empty
     
     switch(msg.type_) {
-    case CLMSG_SEND_BUNDLE:
-        log_debug("processing CLMSG_SEND_BUNDLE");
-        handle_send_bundle(msg.bundle_.object());
+    case CLMSG_BUNDLES_QUEUED:
+        log_debug("processing CLMSG_BUNDLES_QUEUED");
+        handle_bundles_queued();
         break;
         
     case CLMSG_CANCEL_BUNDLE:
@@ -287,58 +243,6 @@ CLConnection::process_command()
         break;
     default:
         PANIC("invalid CLMsg typecode %d", msg.type_);
-    }
-}
-
-//----------------------------------------------------------------------
-void
-CLConnection::check_unblock_link()
-{
-    /*
-     * Check if we need to unblock the link by clearing the BUSY
-     * state. Note that we only do this when the link first goes back
-     * below the threshold since otherwise we'll flood the router with
-     * incorrect BUSY->AVAILABLE events.
-     */
-
-    LinkRef link = contact_->link();
-    ASSERT(link != NULL);
-    oasys::ScopeLock l(link->lock(), "CLConnection::check_unblock_link");
-
-    if (link->isdeleted()) {
-        log_debug("CLConnection::check_unblock_link: "
-                  "cannot unblock deleted link %s", link->name());
-        return;
-    }
-    ASSERT(link->cl_info() != NULL);
-        
-    LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
-    ASSERT(params != NULL);
-
-    oasys::atomic_decr(&num_pending_);
-    ASSERT((int)num_pending_.value >= 0);
-
-    if (link->state() == Link::BUSY)
-    {
-        if (num_pending_.value == (params->busy_queue_depth_ - 1))
-        {
-            log_debug("%d bundles pending, clearing BUSY state", num_pending_.value);
-
-            // XXX/demmer post the AVAILABLE event at the head of the
-            // event queue, since we want it to be processed quickly
-            // in case there's a backlog of events. this whole issue
-            // of backpressure needs to be worked through in a much
-            // better way.
-            BundleDaemon::post_at_head(
-                new LinkStateChangeRequest(link,
-                                           Link::AVAILABLE,
-                                           ContactEvent::UNBLOCKED));
-        }
-        else
-        {
-            log_debug("%d bundles pending, leaving state as-is",
-                      num_pending_.value);
-        }
     }
 }
 
@@ -366,7 +270,7 @@ CLConnection::break_contact(ContactEvent::reason_t reason)
     if (reason != ContactEvent::BROKEN) {
         disconnect();
     }
-    
+
     // if the connection isn't being closed by the user, we need to
     // notify the daemon that either the contact ended or the link
     // became unavailable before a contact began.
@@ -392,7 +296,7 @@ CLConnection::close_contact()
 
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
-
+    
     oasys::ScopeLock l(inflight_lock(), "CLConnection::close_contact");
 
     // drain the inflight queue, posting transmitted or transmit
@@ -401,7 +305,7 @@ CLConnection::close_contact()
         InFlightBundle* inflight = inflight_.front();
         u_int32_t sent_bytes  = inflight->sent_data_.num_contiguous();
         u_int32_t acked_bytes = inflight->ack_data_.num_contiguous();
-        
+
         if ((! params->reactive_frag_enabled_) ||
             (sent_bytes == 0) ||
             (link->is_reliable() && acked_bytes == 0))
@@ -461,29 +365,6 @@ CLConnection::close_contact()
         IncomingBundle* incoming = incoming_.back();
         incoming_.pop_back();
         delete incoming;
-    }
-    
-    // finally, drain the message queue, posting transmit failed
-    // events for any send bundle commands that may be in there
-    // (though this is unlikely to happen)
-    if (cmdqueue_.size() > 0) {
-        log_warn("close_contact: %zu CL commands still in queue: ",
-                 cmdqueue_.size());
-        
-        while (cmdqueue_.size() != 0) {
-            CLMsg msg;
-            bool ok = cmdqueue_.try_pop(&msg);
-            ASSERT(ok);
-
-            log_warn("close_contact: %s still in queue", clmsg_to_str(msg.type_));
-            
-            /*if (msg.type_ == CLMSG_SEND_BUNDLE) {
-                BundleDaemon::post(
-                    new BundleTransmitFailedEvent(msg.bundle_.object(),
-                                                  contact_,
-                                                  link));
-            }*/
-        }
     }
 }
 

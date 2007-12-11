@@ -197,7 +197,7 @@ protected:
 
         /// @{ virtual from CLConnection
         bool send_pending_data();
-        void handle_send_bundle(Bundle* bundle);
+        void handle_bundles_queued();
         void handle_cancel_bundle(Bundle* bundle);
         void handle_poll_timeout();
         void break_contact(ContactEvent::reason_t reason);

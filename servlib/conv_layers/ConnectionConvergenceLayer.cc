@@ -28,8 +28,7 @@ namespace dtn {
 
 //----------------------------------------------------------------------
 ConnectionConvergenceLayer::LinkParams::LinkParams(bool init_defaults)
-    : busy_queue_depth_(10),
-      reactive_frag_enabled_(true),
+    : reactive_frag_enabled_(true),
       sendbuf_len_(32768),
       recvbuf_len_(32768),
       data_timeout_(30000), // msec
@@ -57,8 +56,6 @@ ConnectionConvergenceLayer::parse_link_params(LinkParams* params,
 {
     oasys::OptParser p;
     
-    p.addopt(new oasys::UIntOpt("busy_queue_depth",
-                                &params->busy_queue_depth_));    
     p.addopt(new oasys::BoolOpt("reactive_frag_enabled",
                                 &params->reactive_frag_enabled_));
     p.addopt(new oasys::UIntOpt("sendbuf_len", &params->sendbuf_len_));
@@ -106,7 +103,6 @@ ConnectionConvergenceLayer::dump_link(const LinkRef& link,
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
-    buf->appendf("busy_queue_depth: %u\n", params->busy_queue_depth_);
     buf->appendf("reactive_frag_enabled: %u\n", params->reactive_frag_enabled_);
     buf->appendf("sendbuf_len: %u\n", params->sendbuf_len_);
     buf->appendf("recvbuf_len: %u\n", params->recvbuf_len_);
@@ -302,26 +298,41 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
 
 //----------------------------------------------------------------------
 void
-ConnectionConvergenceLayer::send_bundle(const ContactRef& contact,
-                                        Bundle* bundle)
+ConnectionConvergenceLayer::bundle_queued(const LinkRef& link,
+                                          const BundleRef& bundle)
 {
-    log_debug("ConnectionConvergenceLayer::send_bundle: "
-              "send bundle *%p to *%p", bundle, contact.object());
+    (void)bundle;
+    log_debug("ConnectionConvergenceLayer::bundle_queued: "
+              "queued *%p on *%p", bundle.object(), link.object());
 
+    if (! link->isopen()) {
+        return;
+    }
+
+    ASSERT(!link->isdeleted());
+    
+    const ContactRef& contact = link->contact();
+    ASSERT(contact != NULL);
+    
     CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
     ASSERT(conn != NULL);
-
-    ASSERT(contact->link() != NULL);
-    ASSERT(!contact->link()->isdeleted());
     
-    conn->queue_bundle(bundle);
+    conn->bundles_queued();
 }
 
 //----------------------------------------------------------------------
-bool
+void
 ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
-                                          Bundle* bundle)
+                                          const BundleRef& bundle)
 {
+    // the bundle should be on the inflight queue for cancel_bundle to
+    // be called
+    if (! bundle->is_queued_on(link->inflight())) {
+        log_warn("cancel_bundle *%p not on link %s inflight queue",
+                 bundle.object(), link->name());
+        return;
+    }
+    
     if (!link->isopen()) {
         /* 
          * (Taken from jmmikkel checkin comment on BBN source tree)
@@ -334,10 +345,10 @@ ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
          * happen in this situation, as the bundle is removed from the
          * link queue in that event's handler.
          */
-        log_debug("cancel_bundle *%p but link *%p isn't open!!",
-                  bundle, link.object());
-        BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
-        return false;
+        log_warn("cancel_bundle *%p but link *%p isn't open!!",
+                 bundle.object(), link.object());
+        BundleDaemon::post(new BundleSendCancelledEvent(bundle.object(), link));
+        return;
     }
     
     const ContactRef& contact = link->contact();
@@ -346,39 +357,10 @@ ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
 
     ASSERT(contact->link() == link);
     ASSERT(! link->isdeleted());
-
-    // XXX/demmer this should be an invariant maintained by the caller
-    if (is_queued(contact->link(), bundle)) {
-        log_debug("ConnectionConvergenceLayer::cancel_bundle: "
-                  "cancelling bundle *%p on *%p", bundle, link.object());
-        conn->cancel_bundle(bundle);
-    } else {
-        log_debug("ConnectionConvergenceLayer::cancel_bundle: "
-                  "not cancelling bundle *%p on *%p since !is_queued()",
-                  bundle, link.object());
-    }
-
-    // XXX/demmer this return value is always bogus so get rid of it
-    return false;
-}
-
-//----------------------------------------------------------------------
-bool
-ConnectionConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
-{
-    ASSERT(link != NULL);
-
-    ContactRef contact = link->contact();
-    if (contact == NULL || contact->cl_info() == NULL) {
-        log_debug("ConnectionConvergenceLayer::is_queued: "
-                  "link %s not fully open", link->name());
-        return false;
-    }
-
-    CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
-    ASSERT(conn != NULL);
-
-    return conn->is_queued(bundle);
+    
+    log_debug("ConnectionConvergenceLayer::cancel_bundle: "
+              "cancelling *%p on *%p", bundle.object(), link.object());
+    conn->cancel_bundle(bundle.object());
 }
 
 } // namespace dtn

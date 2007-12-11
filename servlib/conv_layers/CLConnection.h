@@ -52,7 +52,7 @@ public:
                  bool active_connector);
 
     /**
-     * Destructor.
+
      */
     virtual ~CLConnection();
 
@@ -62,20 +62,14 @@ public:
     void set_contact(const ContactRef& contact) { contact_ = contact; }
 
     /**
-     * Queue a bundle for transmission
+     * Notification that one or more bundles may be queued on the link.
      */
-    void queue_bundle(Bundle* bundle);
+    void bundles_queued();
 
     /**
-     * Cancel a bundle transmission
+     * Attempt to cancel the in-progress transmission of the given bundle.
      */
     void cancel_bundle(Bundle* bundle);
-    
-    /**
-     * Returns true if the given bundle is queued for transmission;
-     * otherwise returns false.
-     */
-    bool is_queued(Bundle* bundle);
 
 protected:
     /**
@@ -85,7 +79,6 @@ protected:
 
     /// @{
     /// Utility functions, all virtual so subclasses could override them
-    virtual void check_unblock_link();
     virtual void contact_up();
     virtual void break_contact(ContactEvent::reason_t reason);
     virtual void close_contact();
@@ -125,9 +118,9 @@ protected:
     virtual void initialize_pollfds() = 0;
 
     /**
-     * Handle a newly arriving bundle for transmission.
+     * Handle notification that bundle(s) may be queued on the link.
      */
-    virtual void handle_send_bundle(Bundle* b) = 0;
+    virtual void handle_bundles_queued() = 0;
 
     /**
      * Handle a cancel bundle request
@@ -142,7 +135,7 @@ protected:
      *
      * @returns true if some data was sent, which will trigger another
      * call, or false if the main loop should poll() on the socket
-     * before calling again
+     * before calling again.
      */
     virtual bool send_pending_data() = 0;
     
@@ -161,10 +154,10 @@ protected:
      * thread.
      */
     typedef enum {
-        CLMSG_INVALID       = 0,
-        CLMSG_SEND_BUNDLE   = 1,
-        CLMSG_CANCEL_BUNDLE = 2,
-        CLMSG_BREAK_CONTACT = 3,
+        CLMSG_INVALID        = 0,
+        CLMSG_BUNDLES_QUEUED = 1,
+        CLMSG_CANCEL_BUNDLE  = 2,
+        CLMSG_BREAK_CONTACT  = 3,
     } clmsg_t;
 
     /**
@@ -173,7 +166,7 @@ protected:
     const char* clmsg_to_str(clmsg_t type) {
         switch(type) {
         case CLMSG_INVALID:		return "CLMSG_INVALID";
-        case CLMSG_SEND_BUNDLE:		return "CLMSG_SEND_BUNDLE";
+        case CLMSG_BUNDLES_QUEUED:	return "CLMSG_BUNDLES_QUEUED";
         case CLMSG_CANCEL_BUNDLE:	return "CLMSG_CANCEL_BUNDLE";
         case CLMSG_BREAK_CONTACT:	return "CLMSG_BREAK_CONTACT";
         default:			PANIC("bogus clmsg_t");
