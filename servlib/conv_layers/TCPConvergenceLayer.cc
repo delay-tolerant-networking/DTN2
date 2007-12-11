@@ -353,7 +353,6 @@ TCPConvergenceLayer::Connection::serialize(oasys::SerializeAction *a)
     a->process("segment_length", &params->segment_length_);
 
     // from LinkParams
-    a->process("busy_queue_depth", &params->busy_queue_depth_);
     a->process("reactive_frag_enabled", &params->reactive_frag_enabled_);
     a->process("sendbuf_length", &params->sendbuf_len_);
     a->process("recvbuf_length", &params->recvbuf_len_);
