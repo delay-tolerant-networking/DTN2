@@ -319,12 +319,27 @@ CLConnection::close_contact()
             BundleDaemon::post(
                 new BundleTransmitFailedEvent(inflight->bundle_.object(),
                                               contact_, link));*/
+
+
+            // if we've started the bundle but not gotten anything
+            // out, we need to push the bundle back onto the link
+            // queue so it's there when the link re-opens
+            if (! link->del_from_inflight(inflight->bundle_,
+                                          inflight->total_length_) ||
+                ! link->add_to_queue(inflight->bundle_,
+                                     inflight->total_length_))
+            {
+                log_warn("inflight queue mismatch for bundle %d",
+                         inflight->bundle_->bundleid_);
+            }
             
         } else {
-            BundleDaemon::post(
-                new BundleTransmittedEvent(inflight->bundle_.object(),
-                                           contact_, link,
-                                           sent_bytes, acked_bytes));
+            if (! inflight->transmit_event_posted_) {
+                BundleDaemon::post(
+                    new BundleTransmittedEvent(inflight->bundle_.object(),
+                                               contact_, link,
+                                               sent_bytes, acked_bytes));
+            }
         }
 
         inflight_.pop_front();

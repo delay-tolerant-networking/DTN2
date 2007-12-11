@@ -204,7 +204,8 @@ protected:
         InFlightBundle(Bundle* b)
             : bundle_(b, "CLConnection::InFlightBundle"),
               total_length_(0),
-              send_complete_(false)
+              send_complete_(false),
+              transmit_event_posted_(false)
         {}
         
         BundleRef bundle_;
@@ -212,6 +213,7 @@ protected:
 
         u_int32_t total_length_;
         bool      send_complete_;
+        bool      transmit_event_posted_;
         
         DataBitmap sent_data_;
         DataBitmap ack_data_;

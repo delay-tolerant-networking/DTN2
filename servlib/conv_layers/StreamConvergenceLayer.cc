@@ -1298,6 +1298,8 @@ StreamConvergenceLayer::Connection::handle_ack_segment(u_int8_t flags)
                   (size_t)acked_len - ack_begin,
                   acked_len, &inflight->ack_data_);
 
+        inflight->transmit_event_posted_ = true;
+        
         BundleDaemon::post(
             new BundleTransmittedEvent(inflight->bundle_.object(),
                                        contact_,
