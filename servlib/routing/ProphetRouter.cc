@@ -325,9 +325,9 @@ ProphetRouter::handle_link_available(LinkAvailableEvent* e)
          iter != pending_bundles_->end();
          ++iter)
     {
-        if (next_hop->isbusy())
+        if (next_hop->queue_is_full())
         {
-            log_debug("handle_link_available %s: link is busy, stopping loop",
+            log_debug("handle_link_available %s: link queue is full, stopping loop",
                       next_hop->name());
             break;
         }
@@ -338,13 +338,13 @@ ProphetRouter::handle_link_available(LinkAvailableEvent* e)
         ForwardingInfo info;
         bool ok = bundle->fwdlog_.get_latest_entry(next_hop, &info);
 
-        if (ok && (info.state() == ForwardingInfo::TRANSMIT_PENDING))
+        if (ok && (info.state() == ForwardingInfo::TRANSMIT_DEFERRED))
         {
 
             log_debug("handle_link_available: sending *%p to *%p",
                       bundle.object(), next_hop.object());
-            actions_->send_bundle(bundle.object() , next_hop,
-                    info.action(), info.custody_spec());
+            actions_->queue_bundle(bundle.object(), next_hop,
+                                   info.action(), info.custody_spec());
         }
     }
 }

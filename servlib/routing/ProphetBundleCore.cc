@@ -215,14 +215,13 @@ ProphetBundleCore::send_bundle(const prophet::Bundle* bundle,
     // the remainder of ProphetBundleCore::send_bundle is lifted 
     // almost verbatim from TableBasedRouter::fwd_to_nexthop (v1.38)
 
-    // we can only send if link is open and non-busy
-    if (nexthop->isopen() && !nexthop->isbusy())
+    // we can only send if link is open and not full
+    if (nexthop->isopen() && !nexthop->queue_is_full())
     {
-        log_debug("send bundle *%p over link *%p",
-                  b,l);
-        actions_->send_bundle(b,nexthop,
-                              ForwardingInfo::COPY_ACTION,
-                              CustodyTimerSpec());
+        log_debug("send bundle *%p over link *%p", b, l);
+        actions_->queue_bundle(b, nexthop,
+                               ForwardingInfo::COPY_ACTION,
+                               CustodyTimerSpec());
         return true;
     }
 
@@ -232,12 +231,12 @@ ProphetBundleCore::send_bundle(const prophet::Bundle* bundle,
     // XXX/demmer should also queue it on the link?
     //
     ForwardingInfo::state_t state = b->fwdlog_.get_latest_entry(nexthop);
-    if (state != ForwardingInfo::TRANSMIT_PENDING)
+    if (state != ForwardingInfo::TRANSMIT_DEFERRED)
     {
-        log_debug("adding TRANSMIT_PENDING forward log entry "
+        log_debug("adding TRANSMIT_DEFERRED forward log entry "
                   "for bundle *%p on link *%p ",b,nexthop.object());
         b->fwdlog_.add_entry(nexthop, ForwardingInfo::COPY_ACTION,
-                             ForwardingInfo::TRANSMIT_PENDING,
+                             ForwardingInfo::TRANSMIT_DEFERRED,
                              CustodyTimerSpec());
     }
 
@@ -259,9 +258,9 @@ ProphetBundleCore::send_bundle(const prophet::Bundle* bundle,
         else if (!nexthop->isopen())
             log_debug("can't forward *%p to *%p because link not open",
                       b,nexthop.object());
-        else if (nexthop->isbusy())
-            log_debug("can't forward *%p to *%p because link busy",
-                      b,nexthop.object());
+        else if (nexthop->queue_is_full())
+            log_debug("can't forward *%p to *%p because link queue is full",
+                      b, nexthop.object());
         else
             log_debug("can't forward *%p to *%p", b,nexthop.object());
     }
