@@ -107,7 +107,7 @@ public:
     virtual void handle_link_unavailable(LinkUnavailableEvent *event);
     virtual void handle_link_attribute_changed(LinkAttributeChangedEvent *event);
     virtual void handle_contact_attribute_changed(ContactAttributeChangedEvent *event);
-    virtual void handle_link_busy(LinkBusyEvent *event);
+//    virtual void handle_link_busy(LinkBusyEvent *event);
     virtual void handle_new_eid_reachable(NewEIDReachableEvent* event);
     virtual void handle_registration_added(RegistrationAddedEvent* event);
     virtual void handle_registration_removed(RegistrationRemovedEvent* event);

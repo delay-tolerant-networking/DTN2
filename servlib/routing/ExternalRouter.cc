@@ -318,13 +318,13 @@ ExternalRouter::handle_contact_attribute_changed(ContactAttributeChangedEvent *e
     SEND(contact_attribute_changed_event, e)
 }
 
-void
-ExternalRouter::handle_link_busy(LinkBusyEvent *event)
-{
-    bpa::link_busy_event::type e(
-        event->link_.object());
-    SEND(link_busy_event, e)
-}
+// void
+// ExternalRouter::handle_link_busy(LinkBusyEvent *event)
+// {
+//     bpa::link_busy_event::type e(
+//         event->link_.object());
+//     SEND(link_busy_event, e)
+// }
 
 void
 ExternalRouter::handle_registration_added(RegistrationAddedEvent* event)
@@ -729,7 +729,6 @@ ExternalRouter::reason_to_str(int reason)
         case ContactEvent::RECONNECT:   return "reconnect";
         case ContactEvent::IDLE:        return "idle";
         case ContactEvent::TIMEOUT:     return "timeout";
-        case ContactEvent::UNBLOCKED:   return "unblocked";
         default: return "";
     }
 }
