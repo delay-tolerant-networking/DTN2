@@ -298,6 +298,9 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
     contact->set_cl_info(sender);
     BundleDaemon::post(new ContactUpEvent(link->contact()));
     
+    // XXX/demmer should this assert that there's nothing on the link
+    // queue??
+    
     return true;
 }
 
@@ -319,8 +322,12 @@ UDPConvergenceLayer::close_contact(const ContactRef& contact)
 
 //----------------------------------------------------------------------
 void
-UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
+UDPConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    
+    const ContactRef& contact = link->contact();
     Sender* sender = (Sender*)contact->cl_info();
     if (!sender) {
         log_crit("send_bundles called on contact *%p with no Sender!!",
@@ -329,30 +336,17 @@ UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     }
     ASSERT(contact == sender->contact_);
 
-    LinkRef link = contact->link();
-    ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
-
-    int len = sender->send_bundle(bundle); // consumes bundle reference
+    int len = sender->send_bundle(bundle);
 
     if (len > 0) {
+        link->del_from_queue(bundle, len);
+        link->add_to_inflight(bundle, len);
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact, link, len, 0));
+            new BundleTransmittedEvent(bundle.object(), contact, link, len, 0));
     } else {
         /*BundleDaemon::post(
             new BundleTransmitFailedEvent(bundle, contact, link));*/
     }
-}
-
-//----------------------------------------------------------------------
-bool
-UDPConvergenceLayer::is_queued(const LinkRef& contact, Bundle* bundle)
-{
-    (void)contact;
-    (void)bundle;
-
-    /// The UDP convergence layer does not maintain an output queue.
-    return false;
 }
 
 //----------------------------------------------------------------------
@@ -480,13 +474,13 @@ UDPConvergenceLayer::Sender::init(Params* params,
     
 //----------------------------------------------------------------------
 int
-UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
+UDPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 {
     BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact_->link());
     ASSERT(blocks != NULL);
 
     bool complete = false;
-    size_t total_len = BundleProtocol::produce(bundle, blocks,
+    size_t total_len = BundleProtocol::produce(bundle.object(), blocks,
                                                buf_, 0, sizeof(buf_),
                                                &complete);
     if (!complete) {

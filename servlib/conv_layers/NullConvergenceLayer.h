@@ -47,8 +47,8 @@ public:
     bool reconfigure_link(const LinkRef& link, int argc, const char* argv[]);
     void delete_link(const LinkRef& link);
     bool open_contact(const ContactRef& contact);
-    void send_bundle(const ContactRef& contact, Bundle* bundle);
-    bool cancel_bundle(const LinkRef& link, Bundle* bundle);
+    void bundle_queued(const LinkRef& link, const BundleRef& bundle);
+    void cancel_bundle(const LinkRef& link, const BundleRef& bundle);
     /// @}
 
 private:

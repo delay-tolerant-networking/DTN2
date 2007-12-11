@@ -125,9 +125,8 @@ NullConvergenceLayer::open_contact(const ContactRef& contact)
 
 //----------------------------------------------------------------------
 void
-NullConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
+NullConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
 {
-    LinkRef link = contact->link();
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
 
@@ -142,15 +141,18 @@ NullConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     size_t total_len = BundleProtocol::total_length(blocks);
     
     log_debug("send_bundle *%p to *%p (total len %zu)",
-              bundle, contact.object(), total_len);
+              bundle.object(), link.object(), total_len);
+    
+    link->del_from_queue(bundle, total_len);
+    link->add_to_inflight(bundle, total_len);
     
     BundleDaemon::post(
-        new BundleTransmittedEvent(bundle, contact, link, total_len, 0));
+        new BundleTransmittedEvent(bundle.object(), link->contact(), link, total_len, 0));
 }
 
 //----------------------------------------------------------------------
-bool
-NullConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
+void
+NullConvergenceLayer::cancel_bundle(const LinkRef& link, const BundleRef& bundle)
 {
     Params* params = (Params*)link->cl_info();
     
@@ -158,17 +160,14 @@ NullConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
     // question is still on the link queue, then it can be cancelled
     if (! params->can_transmit_&& link->queue()->contains(bundle)) {
         log_debug("NullConvergenceLayer::cancel_bundle: "
-                  "cancelling bundle *%p on *%p", bundle, link.object());
-        BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
-        return true;
+                  "cancelling bundle *%p on *%p", bundle.object(), link.object());
+        BundleDaemon::post(new BundleSendCancelledEvent(bundle.object(), link));
+        return;
     } else {
         log_debug("NullConvergenceLayer::cancel_bundle: "
                   "not cancelling bundle *%p on *%p since !is_queued()",
-                  bundle, link.object());
+                  bundle.object(), link.object());
     }
-
-    // XXX/demmer this return value is always bogus so get rid of it
-    return false;
 }
 
 } // namespace dtn

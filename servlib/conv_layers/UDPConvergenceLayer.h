@@ -86,12 +86,7 @@ public:
     /**
      * Send the bundle out the link.
      */
-    void send_bundle(const ContactRef& contact, Bundle* bundle);
-
-    /**
-     * Report if the given bundle is queued on the given link.
-     */
-    bool is_queued(const LinkRef& contact, Bundle* bundle);
+    void bundle_queued(const LinkRef& link, const BundleRef& bundle);
 
     /**
      * Tunable parameter structure.
@@ -192,7 +187,7 @@ protected:
          * Send one bundle.
          * @return the length of the bundle sent or -1 on error
          */
-        int send_bundle(Bundle* bundle);
+        int send_bundle(const BundleRef& bundle);
 
         /**
          * Pointer to the link parameters.
