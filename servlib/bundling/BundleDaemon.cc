@@ -729,7 +729,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 
     // remove the bundle from the link's in flight queue
     if (link->del_from_inflight(event->bundleref_, total_len)) {
-        log_info("removed bundle id:%d from link %s inflight queue",
+        log_debug("removed bundle id:%d from link %s inflight queue",
                  bundle->bundleid_,
                  link->name());
     } else {
@@ -795,7 +795,11 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         log_debug("%s",buf.c_str());
     }
     ASSERTF(ok, "no forwarding log entry for transmission");
-    ASSERT(fwdinfo.state() == ForwardingInfo::IN_FLIGHT);
+    // ASSERT(fwdinfo.state() == ForwardingInfo::IN_FLIGHT);
+    if (fwdinfo.state() != ForwardingInfo::IN_FLIGHT) {
+        log_err("*%p fwdinfo state %s != expected IN_FLIGHT",
+                bundle, ForwardingInfo::state_to_str(fwdinfo.state()));
+    }
     
     /*
      * Update the forwarding log indicating that the bundle is no
