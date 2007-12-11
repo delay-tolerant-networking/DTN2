@@ -31,9 +31,9 @@ namespace dtn {
  *
  * Whenever a new link arrives, we add a wildcard route to the table.
  * Then when a bundle arrives, we can stick it on the all_bundles list
- * and just call the base class fwd_to_matching function. The core
- * base class logic then makes sure that a copy of the bundle is
- * forwarded exactly once to each neighbor.
+ * and just call the base class route_bundle function. The core base
+ * class logic then makes sure that a copy of the bundle is forwarded
+ * exactly once to each neighbor.
  *
  * XXX/demmer This should be extended to avoid forwarding a bundle
  * back to the node from which it arrived. With the upcoming

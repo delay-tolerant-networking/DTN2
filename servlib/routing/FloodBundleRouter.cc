@@ -57,7 +57,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
     Bundle* bundle = event->bundleref_.object();
     log_debug("bundle received *%p", bundle);
     all_bundles_.push_back(bundle);
-    fwd_to_matching(bundle);
+    route_bundle(bundle);
 }
 
 //----------------------------------------------------------------------
