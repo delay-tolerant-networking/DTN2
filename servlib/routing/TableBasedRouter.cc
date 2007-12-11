@@ -199,6 +199,7 @@ TableBasedRouter::handle_contact_up(ContactUpEvent* event)
     // (or part of one), which we don't handle here since we can't
     // distinguish that case from one in which the CL is actually
     // sending data, just taking a long time to do so.
+
     RerouteTimerMap::iterator iter = reroute_timers_.find(link->name_str());
     if (iter != reroute_timers_.end()) {
         log_debug("link %s reopened, cancelling reroute timer", link->name());
@@ -219,6 +220,7 @@ TableBasedRouter::handle_contact_down(ContactDownEvent* event)
     // if there are any bundles queued on the link when it goes down,
     // schedule a timer to cancel those transmissions and reroute the
     // bundles in case the link takes too long to come back up
+
     size_t num_queued = link->queue()->size();
     if (num_queued != 0) {
         RerouteTimerMap::iterator iter = reroute_timers_.find(link->name_str());
@@ -252,8 +254,9 @@ TableBasedRouter::reroute_bundles(const LinkRef& link)
     // if the reroute timer fires, the link should be down and there
     // should be at least one bundle queued on it.
     //
-    // here, we cancel the previous transmissions and just rely on the
-    // BundleSendCancelledEvent handler to actually reroute them
+    // cancel the deferred and queued transmissions and rely on the
+    // BundleSendCancelledEvent handler to actually reroute the
+    // bundles
     log_debug("reroute timer fired -- cancelling %zu bundles on link *%p",
               link->queue()->size(), link.object());
     
@@ -262,15 +265,27 @@ TableBasedRouter::reroute_bundles(const LinkRef& link)
                  link.object(), Link::state_to_str(link->state()));
     }
     
+    BundleRef bundle("TableBasedRouter::reroute_bundles");
+
+    // be careful when iterating through the lists to avoid STL memory
+    // clobbering since cancel_bundle removes from the list
     oasys::ScopeLock l(link->queue()->lock(),
                        "TableBasedRouter::reroute_bundles");
-    BundleList::const_iterator iter;
-    for (iter = link->queue()->begin();
-         iter != link->queue()->end();
-         ++iter)
-    {
-        actions_->cancel_bundle(*iter, link);
+    while (! link->queue()->empty()) {
+        bundle = link->queue()->front();
+        actions_->cancel_bundle(bundle.object(), link);
+        ASSERT(! bundle->is_queued_on(link->queue()));
     }
+
+    oasys::ScopeLock l2(link->deferred()->lock(),
+                       "TableBasedRouter::reroute_bundles");
+    while (! link->deferred()->empty()) {
+        bundle = link->deferred()->front();
+        actions_->cancel_bundle(bundle.object(), link);
+        ASSERT(! bundle->is_queued_on(link->deferred()));
+    }
+
+    ASSERT(link->inflight()->empty());
 }    
 
 //----------------------------------------------------------------------
@@ -453,7 +468,14 @@ TableBasedRouter::route_bundle(Bundle* bundle)
     {
         log_debug("checking route entry %p link %s (%p)",
                   *iter, (*iter)->link()->name(), (*iter)->link().object());
+
         if (! should_fwd(bundle, *iter)) {
+            continue;
+        }
+
+        if (bundle->is_queued_on((*iter)->link()->deferred())) {
+            log_debug("route_bundle bundle %d: ignoring link *%p since already deferred",
+                      bundle->bundleid_, (*iter)->link().object());
             continue;
         }
 
@@ -568,8 +590,9 @@ TableBasedRouter::reroute_all_bundles()
     log_debug("reroute_all_bundles... %zu bundles on pending list",
               pending_bundles_->size());
 
-    // XXX/demmer this should cancel transmissions if any decisions
-    // have changed
+    // XXX/demmer this should cancel previous scheduled transmissions
+    // if any decisions have changed
+
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
