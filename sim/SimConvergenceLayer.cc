@@ -40,29 +40,34 @@ class InFlightBundle;
 
 //----------------------------------------------------------------------
 class SimLink : public CLInfo,
-                public oasys::Logger,
-                public oasys::Timer {
+                public oasys::Logger {
 public:
     struct Params;
     
     SimLink(const LinkRef& link,
             const SimLink::Params& params)
-        : Logger("/dtn/cl/sim/%s", link->name()),
+        : Logger("SimLink", "/dtn/cl/sim/%s", link->name()),
           link_(link.object(), "SimLink"),
           params_(params),
           tb_(((std::string)logpath_ + "/tb").c_str(),
               params_.capacity_,
-              0xffffffff /* unlimited rate */),
-          reopen_timer_(link)
+              0xffffffff  /* unlimited rate -- overridden by Connectivity */),
+          inflight_timer_(this, PendingEventTimer::INFLIGHT),
+          arrival_timer_(this, PendingEventTimer::ARRIVAL),
+          transmitted_timer_(this, PendingEventTimer::TRANSMITTED)
     {
     }
 
     ~SimLink() {};
 
-    void send_bundle(Bundle* bundle, size_t total_len, const ConnState& cs);
+    void send_bundle(Bundle* src_bundle, Bundle* dst_bundle,
+                     size_t total_len, const ConnState& cs);
 
-    void timeout(const timeval& now);
-    void reschedule_arrival();
+    void timeout(const oasys::Time& now);
+    void handle_inflight_events(const oasys::Time& now);
+    void handle_arrival_events(const oasys::Time& now);
+    void handle_transmitted_events(const oasys::Time& now);
+    void reschedule_timers();
 
     /// The dtn Link
     LinkRef link_;
@@ -77,7 +82,7 @@ public:
         /// convergence layer
         bool reliable_;
 
-        /// capacity of the link
+        /// burst capacity of the link (default 0)
         u_int capacity_;
 
         /// automatically infer the remote eid when the link connects
@@ -91,55 +96,177 @@ public:
     /// The receiving node
     Node* peer_node_;	
 
-    /// Helper class to track in flight bundles
-    struct InFlightBundle {
-        InFlightBundle(Bundle*            bundle,
-                       size_t             total_len,
-                       const oasys::Time& arrival_time)
-            : bundle_(bundle, "SimCL::InFlightBundle"),
-              total_len_(total_len),
-              arrival_time_(arrival_time) {}
-
-        BundleRef   bundle_;
-        size_t      total_len_;
-        oasys::Time arrival_time_;
-    };
-
-    /// The List of in flight bundles
-    std::queue<InFlightBundle*> inflight_;
-
     /// Token bucket to track the link rate
     oasys::TokenBucket tb_;
 
-    /// Helper class to unblock the link
-    class ReopenTimer : public oasys::Timer {
-    public:
-        ReopenTimer(const LinkRef& link)
-            : link_(link.object(), "SimLink::ReopenTimer") {}
-        
-        void timeout(const timeval& tv);
-        LinkRef link_;
+    /// Helper class to track bundle transmission or reception events
+    /// that need to be delivered in the future
+    struct PendingEvent {
+        PendingEvent(Bundle*            bundle,
+                     size_t             total_len,
+                     const oasys::Time& time)
+            : bundle_(bundle, "SimCL::PendingEvent"),
+              total_len_(total_len),
+              time_(time) {}
+
+        BundleRef   bundle_;
+        size_t      total_len_;
+        oasys::Time time_;
     };
 
-    /// The reopening timer
-    ReopenTimer reopen_timer_;
+    /// Pending events for when bundles are in flight
+    std::queue<PendingEvent*> inflight_events_;
+
+    /// Pending bundle arrival events
+    std::queue<PendingEvent*> arrival_events_;
+
+    /// Pending bundle transmitted events
+    std::queue<PendingEvent*> transmitted_events_;
+    
+    /// Timer class to manage pending events
+    class PendingEventTimer : public oasys::Timer {
+    public:
+        typedef enum { INFLIGHT, ARRIVAL, TRANSMITTED } type_t;
+        
+        PendingEventTimer(SimLink* link, type_t type)
+            : link_(link), type_(type) {}
+        
+        void timeout(const timeval& now);
+        
+    protected:
+        SimLink* link_;
+        type_t   type_;
+    };
+
+    /// @{ Three timer instances to independently schedule the timers,
+    /// though each class can itself be managed with a FIFO queue.
+    PendingEventTimer inflight_timer_;
+    PendingEventTimer arrival_timer_;
+    PendingEventTimer transmitted_timer_;
+    /// @}
 };
 
 //----------------------------------------------------------------------
 void
-SimLink::timeout(const timeval& tv)
+SimLink::send_bundle(Bundle* src_bundle, Bundle* dst_bundle,
+                     size_t total_len, const ConnState& cs)
+{
+    tb_.drain(total_len * 8);
+    
+    oasys::Time bw_delay = tb_.time_to_level(0);
+    oasys::Time inflight_time = oasys::Time(Simulator::time()) + bw_delay;
+    oasys::Time arrival_time = inflight_time + cs.latency_;
+    oasys::Time transmitted_time;
+
+    // the transmitted event either occurs after the "ack" comes back
+    // (when in reliable mode) or immediately after we send the bundle
+    if (params_.reliable_) {
+        transmitted_time = inflight_time + (cs.latency_ * 2);
+    } else {
+        transmitted_time = inflight_time;
+    }
+    
+    log_debug("send_bundle src %d dst %d: total len %zu, "
+              "inflight_time %u.%u arrival_time %u.%u transmitted_time %u.%u",
+              src_bundle->bundleid_, dst_bundle->bundleid_, total_len,
+              inflight_time.sec_, inflight_time.usec_,
+              arrival_time.sec_, arrival_time.usec_,
+              transmitted_time.sec_, transmitted_time.usec_);
+    
+    inflight_events_.push(new PendingEvent(src_bundle, total_len, inflight_time));
+    arrival_events_.push(new PendingEvent(dst_bundle, total_len, arrival_time));
+    transmitted_events_.push(new PendingEvent(src_bundle, total_len, transmitted_time));
+
+    reschedule_timers();
+}
+
+//----------------------------------------------------------------------
+void
+SimLink::reschedule_timers()
+{
+    // if the timer is already pending, there's no need to reschedule
+    // since the channel is FIFO and latency changes don't take effect
+    // mid-flight
+
+    if (! inflight_timer_.pending() && !inflight_events_.empty())
+    {
+        inflight_timer_.schedule_at(inflight_events_.front()->time_);
+    }
+
+    if (! arrival_timer_.pending() && !arrival_events_.empty())
+    {
+        arrival_timer_.schedule_at(arrival_events_.front()->time_);
+    }
+
+    if (! transmitted_timer_.pending() && !transmitted_events_.empty())
+    {
+        transmitted_timer_.schedule_at(transmitted_events_.front()->time_);
+    }
+}
+
+//----------------------------------------------------------------------
+void
+SimLink::PendingEventTimer::timeout(const timeval& tv)
 {
     oasys::Time now(tv.tv_sec, tv.tv_usec);
-    
-    ASSERT(!inflight_.empty());
+    switch (type_) {
+    case INFLIGHT:
+        link_->handle_inflight_events(now);
+        break;
+    case ARRIVAL:
+        link_->handle_arrival_events(now);
+        break;
+    case TRANSMITTED:
+        link_->handle_transmitted_events(now);
+        break;
+    default:
+        NOTREACHED;
+    }
+}
 
+//----------------------------------------------------------------------
+void
+SimLink::handle_inflight_events(const oasys::Time& now)
+{
+    ASSERT(! inflight_events_.empty());
+    
     // deliver any bundles that have arrived
-    while (!inflight_.empty()) {
-        InFlightBundle* next = inflight_.front();
-        if (next->arrival_time_ <= now) {
+    while (! inflight_events_.empty()) {
+        PendingEvent* next = inflight_events_.front();
+        if (next->time_ <= now) {
             const BundleRef& bundle = next->bundle_;
+            inflight_events_.pop();
+
+            log_debug("putting *%p in flight", bundle.object());
+            link_->add_to_inflight(bundle, next->total_len_);
+            link_->del_from_queue(bundle, next->total_len_);
             
-            inflight_.pop();
+            // XXX/demmer maybe there should be an event for this??
+
+            delete next;
+        } else {
+            break;
+        }
+    }
+    
+    reschedule_timers();
+}
+
+//----------------------------------------------------------------------
+void
+SimLink::handle_arrival_events(const oasys::Time& now)
+{
+    ASSERT(! arrival_events_.empty());
+    
+    // deliver any bundles that have arrived
+    while (! arrival_events_.empty()) {
+        PendingEvent* next = arrival_events_.front();
+        if (next->time_ <= now) {
+            const BundleRef& bundle = next->bundle_;
+            arrival_events_.pop();
+
+            log_debug("*%p arrived", bundle.object());
+            
             BundleReceivedEvent* rcv_event =
                 new BundleReceivedEvent(bundle.object(),
                                         EVENTSRC_PEER,
@@ -157,75 +284,39 @@ SimLink::timeout(const timeval& tv)
         }
     }
 
-    reschedule_arrival();
+    reschedule_timers();
 }
 
 //----------------------------------------------------------------------
 void
-SimLink::send_bundle(Bundle* bundle, size_t total_len, const ConnState& cs)
+SimLink::handle_transmitted_events(const oasys::Time& now)
 {
-    oasys::Time arrival_time(Simulator::time() + cs.latency_);
-    inflight_.push(new InFlightBundle(bundle, total_len, arrival_time));
-    reschedule_arrival();
-
-    bool full = !tb_.drain(total_len);
+    ASSERT(! transmitted_events_.empty());
     
-    log_debug("send_bundle %d: (total len %zu), link %s",
-              bundle->bundleid_, total_len,
-              full ? "capacity full" : "still has capacity");
-    
-    if (full)
-    {
-        if (link_->state() == Link::OPEN) {
-            link_->set_state(Link::BUSY);
-            BundleDaemon::post_at_head(new LinkBusyEvent(link_));
-        }
-        
-        if (! reopen_timer_.pending()) {
-            // wait until we re-reach the bucket's level plus some slop
-            // for the next bundle
-            oasys::Time next_send = oasys::Time(Simulator::time()) + tb_.time_to_level(1024);
-            log_debug("scheduling reopen timer at %u.%u", next_send.sec_, next_send.usec_);
-            reopen_timer_.schedule_at(next_send);
+    // deliver any bundles that have arrived
+    while (! transmitted_events_.empty()) {
+        PendingEvent* next = transmitted_events_.front();
+        if (next->time_ <= now) {
+            const BundleRef& bundle = next->bundle_;
+            transmitted_events_.pop();
+            
+            log_debug("*%p transmitted", bundle.object());
+            
+            BundleTransmittedEvent* xmit_event =
+                new BundleTransmittedEvent(bundle.object(), link_->contact(), link_,
+                                           next->total_len_,
+                                           params_.reliable_ ? next->total_len_ : 0);
+            BundleDaemon::post(xmit_event);
+            
+            delete next;
+        } else {
+            break;
         }
     }
+    
+    reschedule_timers();
 }
 
-//----------------------------------------------------------------------
-void
-SimLink::reschedule_arrival()
-{
-    if (pending_)
-        return;
-
-    if (inflight_.empty()) {
-        return;
-    }
-
-    InFlightBundle* next = inflight_.front();
-
-    struct timeval tv;
-    tv.tv_sec  = next->arrival_time_.sec_;
-    tv.tv_usec = next->arrival_time_.usec_;
-    schedule_at(&tv);
-}
-
-//----------------------------------------------------------------------
-void
-SimLink::ReopenTimer::timeout(const timeval& /*tv*/)
-{
-    if (link_->state() == Link::BUSY) {
-        BundleDaemon::post_at_head(
-            new LinkStateChangeRequest(link_,
-                                       Link::AVAILABLE,
-                                       ContactEvent::UNBLOCKED));
-    } else {
-        log_warn_p("/dtn/sim/cl",
-                   "reopen timer fired in bad state for link *%p",
-                   link_.object());
-    }
-}
- 
 //----------------------------------------------------------------------
 SimConvergenceLayer* SimConvergenceLayer::instance_;
 
@@ -248,10 +339,10 @@ SimConvergenceLayer::init_link(const LinkRef& link,
 
     params.deliver_partial_ = true;
     params.reliable_        = true;
-    params.capacity_        = 64 * 1000; // 64KB
+    params.capacity_        = 0;
     params.set_remote_eid_  = true;
     params.set_prevhop_     = true;
-
+    
     p.addopt(new oasys::BoolOpt("deliver_partial", &params.deliver_partial_));
     p.addopt(new oasys::BoolOpt("reliable", &params.reliable_));
     p.addopt(new oasys::UIntOpt("capacity", &params.capacity_));
@@ -300,14 +391,12 @@ SimConvergenceLayer::open_contact(const ContactRef& contact)
     
     const ConnState* cs = Connectivity::instance()->
                           lookup(Node::active_node(), sl->peer_node_);
-    ASSERTF(cs, "can't find connectivity state from %s -> %s",
-            Node::active_node()->name(), sl->peer_node_->name());
-
-    if (cs->open_) {
+    if (cs != NULL && cs->open_) {
         log_debug("opening contact");
         if (sl->params_.set_remote_eid_) {
             contact->link()->set_remote_eid(sl->peer_node_->local_eid());
         }
+        update_connectivity(Node::active_node(), sl->peer_node_, *cs);
         BundleDaemon::post(new ContactUpEvent(contact));
     } else {
         log_debug("connectivity is down when trying to open contact");
@@ -322,21 +411,15 @@ SimConvergenceLayer::open_contact(const ContactRef& contact)
 
 //----------------------------------------------------------------------
 void 
-SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
+SimConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
 {
-    LinkRef link = contact->link();
-    ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
 
-    log_debug("send_bundle *%p on link *%p", bundle, link.object());
+    log_debug("bundle_queued *%p on link *%p", bundle.object(), link.object());
 
     SimLink* sl = (SimLink*)link->cl_info();
     ASSERT(sl);
-
-    // XXX/demmer add Connectivity check to see if it's open and add
-    // bw/delay restrictions. then move the following events to
-    // there
 
     Node* src_node = Node::active_node();
     Node* dst_node = sl->peer_node_;
@@ -346,8 +429,6 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     const ConnState* cs = Connectivity::instance()->lookup(src_node, dst_node);
     ASSERT(cs);
     
-    bool reliable = sl->params_.reliable_;
-
     BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
     ASSERT(blocks != NULL);
 
@@ -362,7 +443,7 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     }
     
     bool complete = false;
-    size_t len = BundleProtocol::produce(bundle, blocks,
+    size_t len = BundleProtocol::produce(bundle.object(), blocks,
                                          buf_, 0, sizeof(buf_),
                                          &complete);
     ASSERTF(complete, "BundleProtocol non-payload blocks must fit in "
@@ -380,17 +461,12 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
         new_bundle->payload_.set_length(bundle->payload_.length());
     }
             
-    BundleTransmittedEvent* tx_event =
-        new BundleTransmittedEvent(bundle, contact, link,
-                                   total_len, reliable ? total_len : 0);
-    src_node->post_event(tx_event);
-
     if (link->state() != Link::OPEN) {
         log_warn("send_bundle in link state %s",
                  link->state_to_str(link->state()));
     }
 
-    sl->send_bundle(new_bundle, total_len, *cs);
+    sl->send_bundle(bundle.object(), new_bundle, total_len, *cs);
 }
 
 //----------------------------------------------------------------------
@@ -416,7 +492,7 @@ SimConvergenceLayer::update_connectivity(Node* n1, Node* n2, const ConnState& cs
         ASSERT(sl);
 
         // update the token bucket
-        sl->tb_.set_rate(cs.bw_ / 8);
+        sl->tb_.set_rate(cs.bw_);
         
         if (sl->peer_node_ != n2)
             continue;

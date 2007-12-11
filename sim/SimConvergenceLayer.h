@@ -56,7 +56,7 @@ public:
     bool init_link(const LinkRef& link, int argc, const char* argv[]);
     void delete_link(const LinkRef& link);
     bool open_contact(const ContactRef& contact);
-    void send_bundle(const ContactRef& contact, Bundle* bundle);
+    void bundle_queued(const LinkRef& link, const BundleRef& bundle);
     /// @}
 
     void update_connectivity(Node* n1, Node* n2, const ConnState& cs);
