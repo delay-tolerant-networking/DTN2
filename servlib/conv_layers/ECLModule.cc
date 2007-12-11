@@ -698,28 +698,28 @@ ECLModule::handle(const bundle_transmitted_event& message)
     ::remove( abs_path.c_str() );
     
     // If we were in state BUSY, see if sending this bundle made us un-busy.
-    if (resource->link_->state() == Link::BUSY) {
-        BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(resource->link_);
-        ASSERT(blocks != NULL);
+//     if (resource->link_->state() == Link::BUSY) {
+//         BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(resource->link_);
+//         ASSERT(blocks != NULL);
         
-        size_t total_len = BundleProtocol::total_length(blocks);
-        int queued_bytes = resource->link_->stats()->bytes_queued_ - total_len;
+//         size_t total_len = BundleProtocol::total_length(blocks);
+//         int queued_bytes = resource->link_->stats()->bytes_queued_ - total_len;
         
-        if ( resource->low_water_mark_crossed(queued_bytes) ) {
-            log_info( "Link %s crossed low-water mark; setting OPEN",
-                      resource->link_->name() ); 
-            // Post a state-change to AVAILABLE in order to get back to OPEN.
-            BundleDaemon::post_at_head(
-                    new LinkStateChangeRequest(resource->link_,
-                                               Link::AVAILABLE,
-                                               ContactEvent::UNBLOCKED) );
-        } // if
+//         if ( resource->low_water_mark_crossed(queued_bytes) ) {
+//             log_info( "Link %s crossed low-water mark; setting OPEN",
+//                       resource->link_->name() ); 
+//             // Post a state-change to AVAILABLE in order to get back to OPEN.
+//             BundleDaemon::post_at_head(
+//                     new LinkStateChangeRequest(resource->link_,
+//                                                Link::AVAILABLE,
+//                                                ContactEvent::UNBLOCKED) );
+//         } // if
         
-        else {
-            log_debug("Low-water mark not crossed; queued bytes: %d",
-                      queued_bytes);
-        }
-    } // if
+//         else {
+//             log_debug("Low-water mark not crossed; queued bytes: %d",
+//                       queued_bytes);
+//         }
+//     } // if
 
     // Tell the BundleDaemon about this.
     BundleTransmittedEvent* b_event =
@@ -756,28 +756,28 @@ ECLModule::handle(const bundle_canceled_event& message)
                         resource->link_) );
     
     // If we were in state BUSY, see if sending this bundle made us un-busy.
-    if (resource->link_->state() == Link::BUSY) {
-        BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(resource->link_);
-        ASSERT(blocks != NULL);
+//     if (resource->link_->state() == Link::BUSY) {
+//         BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(resource->link_);
+//         ASSERT(blocks != NULL);
         
-        size_t total_len = BundleProtocol::total_length(blocks);
-        int queued_bytes = resource->link_->stats()->bytes_queued_ - total_len;
+//         size_t total_len = BundleProtocol::total_length(blocks);
+//         int queued_bytes = resource->link_->stats()->bytes_queued_ - total_len;
         
-        if ( resource->low_water_mark_crossed(queued_bytes) ) {
-            log_info( "Link %s crossed low-water mark; setting OPEN",
-                      resource->link_->name() ); 
-            // Post a state-change to AVAILABLE in order to get back to OPEN.
-            BundleDaemon::post_at_head(
-                    new LinkStateChangeRequest(resource->link_,
-                                               Link::AVAILABLE,
-                                               ContactEvent::UNBLOCKED) );
-        } // if
+//         if ( resource->low_water_mark_crossed(queued_bytes) ) {
+//             log_info( "Link %s crossed low-water mark; setting OPEN",
+//                       resource->link_->name() ); 
+//             // Post a state-change to AVAILABLE in order to get back to OPEN.
+//             BundleDaemon::post_at_head(
+//                     new LinkStateChangeRequest(resource->link_,
+//                                                Link::AVAILABLE,
+//                                                ContactEvent::UNBLOCKED) );
+//         } // if
         
-        else {
-            log_debug("Low-water mark not crossed; queued bytes: %d",
-                      queued_bytes);
-        }
-    } // if
+//         else {
+//             log_debug("Low-water mark not crossed; queued bytes: %d",
+//                       queued_bytes);
+//         }
+//     } // if
 }
 
 void
@@ -1306,8 +1306,7 @@ ECLModule::cleanup() {
         // Only report the closing if the link is currently open (otherwise,
         // the bundle daemon nags).
         Link::state_t current_state = resource->link_->state();
-        if (current_state == Link::OPEN || current_state == Link::BUSY ||
-        current_state == Link::OPENING) {
+        if (current_state == Link::OPEN || current_state == Link::OPENING) {
             BundleDaemon::post( new LinkStateChangeRequest(resource->link_,
                                 Link::CLOSED, ContactEvent::NO_INFO) );
         }

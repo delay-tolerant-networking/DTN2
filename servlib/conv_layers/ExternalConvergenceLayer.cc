@@ -815,15 +815,7 @@ ExternalConvergenceLayer::close_contact(const ContactRef& contact)
 }
 
 void
-ExternalConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
-{
-    LinkRef link = contact->link();
-    send_bundle_on_down_link(link, bundle);
-}
-    
-void
-ExternalConvergenceLayer::send_bundle_on_down_link(const LinkRef& link, 
-                                                   Bundle* bundle)   
+ExternalConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)   
 {
     oasys::ScopeLock grl(&global_resource_lock_, "send_bundle");
     
@@ -873,21 +865,21 @@ ExternalConvergenceLayer::send_bundle_on_down_link(const LinkRef& link,
     request.bundle_attributes(bundle_attribs);
     
     // Pass the bundle and the message on to the ECLModule.
-    resource->add_outgoing_bundle(bundle);
+    resource->add_outgoing_bundle(bundle.object());
     POST_MESSAGE(resource->module_, bundle_send_request, request);
     
     // If this bundle causes the number of queued bytes to exceed the link's
     // high-water mark, set the link's state to BUSY. 
-    if ( resource->high_water_mark_crossed(link->stats()->bytes_queued_) ) {
-        log_info( "Link %s has crossed its high-water mark; setting it to BUSY",
-                  link->name() );
-        link->set_state(Link::BUSY);
-        BundleDaemon::post_at_head(new LinkBusyEvent(link));
-    }
+//     if ( resource->high_water_mark_crossed(link->stats()->bytes_queued_) ) {
+//         log_info( "Link %s has crossed its high-water mark; setting it to BUSY",
+//                   link->name() );
+//         link->set_state(Link::BUSY);
+//         BundleDaemon::post_at_head(new LinkBusyEvent(link));
+//     }
 }
 
-bool
-ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
+void
+ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, const BundleRef& bundle)
 {
     oasys::ScopeLock grl(&global_resource_lock_, "cancel_bundle");
     
@@ -899,10 +891,10 @@ ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
     // frequently on the testbed. If the link is deleted, we will silently
     // ignore the command.
     if ( link->isdeleted() )
-        return false;
+        return;
     
     if ( link->cl_info() == NULL)
-        return false;
+        return;
 
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
@@ -914,7 +906,7 @@ ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
     if (!resource->module_) {
         log_err("Cannot cancel bundle on nonexistent CL %s through link %s",
                 resource->protocol_.c_str(), link->name());
-        return false;
+        return;
     }
     
     log_info( "Cancelling bundle %d on link %s", bundle->bundleid_,
@@ -930,7 +922,7 @@ ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
     request.bundle_attributes(bundle_attribs);
     
     POST_MESSAGE(resource->module_, bundle_cancel_request, request);
-    return true;
+    return;
 }
 
 bool 
@@ -1103,14 +1095,6 @@ ExternalConvergenceLayer::query_cla_parameters(const std::string& query_id,
     POST_MESSAGE(module, query_cla_parameters, query);
 }
 
-// External CLs are required to accept and retain bundles until they are sent,
-// canceled, or expired
-bool
-ExternalConvergenceLayer::has_persistent_link_queues()
-{
-    return true;
-}
-
 void
 ExternalConvergenceLayer::shutdown() 
 {
@@ -1192,7 +1176,7 @@ ExternalConvergenceLayer::build_param_sequence(int argc, const char* argv[],
 }
 
 void
-ExternalConvergenceLayer::fill_bundle_attributes(const Bundle* bundle,
+ExternalConvergenceLayer::fill_bundle_attributes(const BundleRef& bundle,
                                                  bundle_attributes& attribs)
 {
     attribs.source_eid( bundle->source_.str() );
@@ -1437,7 +1421,7 @@ XMLConvert::convert_link_state(clmessage::linkStateType state)
         case linkStateType::available: return Link::AVAILABLE;
         case linkStateType::opening: return Link::OPENING;
         case linkStateType::open: return Link::OPEN;
-        case linkStateType::busy: return Link::BUSY;
+//        case linkStateType::busy: return Link::BUSY;
         case linkStateType::closed: return Link::CLOSED;
         default: break;
     }
@@ -1457,7 +1441,7 @@ XMLConvert::convert_link_reason(clmessage::linkReasonType reason)
         case linkReasonType::reconnect: return ContactEvent::RECONNECT;
         case linkReasonType::idle: return ContactEvent::IDLE;
         case linkReasonType::timeout: return ContactEvent::TIMEOUT;
-        case linkReasonType::unblocked: return ContactEvent::UNBLOCKED;
+//        case linkReasonType::unblocked: return ContactEvent::UNBLOCKED;
         default: break;
     }
     

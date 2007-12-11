@@ -252,9 +252,8 @@ public:
     void reconfigure_link(const LinkRef& link, AttributeVector& params);
     bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
-    void send_bundle(const ContactRef& contact, Bundle* bundle);
-    void send_bundle_on_down_link(const LinkRef& link, Bundle* bundle);
-    bool cancel_bundle(const LinkRef& link, Bundle* bundle);
+    void bundle_queued(const LinkRef& link, const BundleRef& bundle);
+    void cancel_bundle(const LinkRef& link, const BundleRef& bundle);
     bool is_queued(const LinkRef& link, Bundle* bundle);
     void is_eid_reachable(const std::string& query_id, Interface* iface,
                           const std::string& endpoint);
@@ -264,7 +263,6 @@ public:
                                 const AttributeNameVector& attributes);
     void query_cla_parameters(const std::string& query_id,
                               const AttributeNameVector& parameters);
-    bool has_persistent_link_queues();
     void shutdown();
 
     
@@ -397,7 +395,7 @@ private:
      * This will complete the bundle_attributes instance based on the given
      * bundle.
      */
-    void fill_bundle_attributes(const Bundle* bundle,
+    void fill_bundle_attributes(const BundleRef& bundle,
                                 clmessage::bundle_attributes& attribs);
         
     /// The list of active modules.
