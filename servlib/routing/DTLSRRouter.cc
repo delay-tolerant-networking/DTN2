@@ -571,7 +571,7 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
             // XXX/demmer need a better way to cancel transmissions
             log_debug("cancelling pending transmissions for *%p",
                       stale_lsa.object());
-            stale_lsa->fwdlog_.update_all(ForwardingInfo::TRANSMIT_PENDING,
+            stale_lsa->fwdlog_.update_all(ForwardingInfo::TRANSMIT_DEFERRED,
                                           ForwardingInfo::CANCELLED);
             stale_lsa->owner_ = "DO_NOT_FORWARD";
             
