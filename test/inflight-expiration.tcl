@@ -51,7 +51,7 @@ test::script {
     dtn::wait_for_bundle_stats 0 {1 expired}
     
     testlog "Checking that bundle is still in flight"
-    dtn::check_link_stats 0 tcp-link:0-1 {1 bundles_queued}
+    dtn::check_link_stats 0 tcp-link:0-1 {0 bundles_queued 1 bundles_inflight}
     
     testlog "Checking that it was received but not delivered"
     dtn::wait_for_bundle_stats 1 {1 received 1 expired 0 delivered}
@@ -78,7 +78,7 @@ test::script {
     dtn::wait_for_bundle_stats 0 {2 expired}
 
     testlog "Checking that only one bundle is still in flight"
-    dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_queued}
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {0 bundles_queued 1 bundles_inflight}
     
     testlog "Checking that one was received but not delivered"
     dtn::wait_for_bundle_stats 1 {1 received 1 expired 0 delivered}
