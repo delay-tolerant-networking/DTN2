@@ -27,7 +27,7 @@ AlwaysOnLink::AlwaysOnLink(std::string name, ConvergenceLayer* cl,
                            const char* nexthop)
     : Link(name, ALWAYSON, cl, nexthop)
 {
-    set_state(AVAILABLE);
+    set_state(UNAVAILABLE);
 }
 
 void
