@@ -58,7 +58,7 @@ test::script {
     dtn::tell_dtnd 0 sendbundle $source $dest length=5000
     
     testlog "Waiting for bundle to be in flight"
-    dtn::wait_for_link_stats 0 $cl-link:0-1 {1 bundles_queued}
+    dtn::wait_for_link_stats 0 $cl-link:0-1 {1 bundles_inflight}
 
     testlog "Closing the link"
     tell_dtnd 0 link close $cl-link:0-1
@@ -67,7 +67,7 @@ test::script {
     testlog "Checking that bundle is still queued on the link"
     dtn::check_bundle_stats 0 {1 pending}
     dtn::check_bundle_stats 1 {0 received}
-    dtn::check_link_stats 0 $cl-link:0-1 {1 bundles_queued}
+    dtn::check_link_stats 0 $cl-link:0-1 {1 bundles_queued 0 bundles_inflight}
 
     testlog "Reopening the link"
     tell_dtnd 0 link open $cl-link:0-1
@@ -77,7 +77,8 @@ test::script {
     dtn::wait_for_bundle_stats 1 {0 pending 1 received 1 delivered}
     
     testlog "Checking the link stats"
-    dtn::check_link_stats 0 $cl-link:0-1 {0 bundles_queued 1 bundles_transmitted}
+    dtn::check_link_stats 0 $cl-link:0-1 {0 bundles_queued 0 bundles_inflight 1 bundles_transmitted}
+    dtn::check_link_stats 0 $cl-link:0-1 {0 bytes_queued 0 bytes_inflight}
     
     testlog "Repeating the test with two bundles in flight"
     tell_dtnd 0 bundle reset_stats
@@ -86,8 +87,8 @@ test::script {
     dtn::tell_dtnd 0 sendbundle $source $dest length=5000
     dtn::tell_dtnd 0 sendbundle $source $dest length=5000
     
-    testlog "Waiting for bundles to be in flight"
-    dtn::wait_for_link_stats 0 $cl-link:0-1 {2 bundles_queued}
+    testlog "Waiting for first bundle to be in flight"
+    dtn::wait_for_link_stats 0 $cl-link:0-1 {1 bundles_queued 1 bundles_inflight}
 
     testlog "Closing the link"
     tell_dtnd 0 link close $cl-link:0-1
@@ -106,7 +107,8 @@ test::script {
     dtn::wait_for_bundle_stats 1 {0 pending 2 received 2 delivered}
     
     testlog "Checking the link stats"
-    dtn::check_link_stats 0 $cl-link:0-1 {0 bundles_queued 2 bundles_transmitted}
+    dtn::check_link_stats 0 $cl-link:0-1 {0 bundles_queued 0 bundles_inflight 2 bundles_transmitted}
+    dtn::check_link_stats 0 $cl-link:0-1 {0 bytes_queued 0 bytes_inflight}
 
     testlog "Test success!"
 }
