@@ -30,13 +30,10 @@ class BundleList;
 class CustodyTimerSpec;
 class EndpointID;
 class Interface;
-class RouterInfo;
 
 /**
- * Intermediary class that provides the interface that is exposed to
- * routers for the rest of the system. All functions are virtual since
- * the simulator overrides them to provide equivalent functionality
- * (in the simulated environment).
+ * Intermediary class that provides a utility interface to help
+ * routers more easily deal with the rest of the system.
  */
 class BundleActions : public oasys::Logger {
 public:
