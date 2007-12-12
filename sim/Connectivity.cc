@@ -61,36 +61,6 @@ Connectivity::create_conn()
 
 //----------------------------------------------------------------------
 bool
-ConnState::parse_bw(const char* bw_str, int* bw)
-{
-    char* end;
-    *bw = 0;
-    *bw = strtoul(bw_str, &end, 10);
-
-    if (end == bw_str)
-        return false;
-
-    if (*end == '\0') { // no specification means straight bps
-        return true;
-
-    } else if (!strcmp(end, "bps")) {
-        return true;
-
-    } else if (!strcmp(end, "kbps")) {
-        *bw = *bw * 1000;
-        return true;
-
-    } else if (!strcmp(end, "Mbps")) {
-        *bw = *bw * 1000000;
-        return true;
-
-    } else {
-        return false;
-    }
-}
-
-//----------------------------------------------------------------------
-bool
 ConnState::parse_time(const char* time_str, double* time)
 {
     char* end;
@@ -128,18 +98,12 @@ bool
 ConnState::parse_options(int argc, const char** argv, const char** invalidp)
 {
     oasys::OptParser p;
-    std::string bw_str;
     std::string latency_str;
 
-    p.addopt(new oasys::StringOpt("bw", &bw_str));
+    p.addopt(new oasys::RateOpt("bw", &bw_));
     p.addopt(new oasys::StringOpt("latency", &latency_str));
 
     if (! p.parse(argc, argv, invalidp)) {
-        return false;
-    }
-
-    if (bw_str != "" && !parse_bw(bw_str.c_str(), &bw_)) {
-        *invalidp = strdup(bw_str.c_str()); // leak!
         return false;
     }
 
@@ -155,8 +119,8 @@ ConnState::parse_options(int argc, const char** argv, const char** invalidp)
 void
 Connectivity::set_state(const char* n1, const char* n2, const ConnState& s)
 {
-    log_debug("set state %s,%s: %s bw=%d latency=%f",
-              n1, n2, s.open_ ? "up" : "down", s.bw_, s.latency_);
+    log_debug("set state %s,%s: %s bw=%llu latency=%f",
+              n1, n2, s.open_ ? "up" : "down", U64FMT(s.bw_), s.latency_);
     
     // handle wildcards
     if (!strcmp(n1, "*")) {

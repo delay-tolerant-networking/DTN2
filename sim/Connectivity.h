@@ -45,11 +45,6 @@ struct ConnState {
         : open_(open), bw_(bw), latency_(latency) {}
 
     /**
-     * Utility function to parse a bandwidth specification.
-     */
-    bool parse_bw(const char* bw_str, int* bw);
-
-    /**
      * Utility function to parse a time specification.
      */
     bool parse_time(const char* time_str, double* time);
@@ -60,9 +55,9 @@ struct ConnState {
      */
     bool parse_options(int argc, const char** argv, const char** invalidp);
 
-    bool   open_;
-    int	   bw_;      // in bps
-    double latency_; // in seconds
+    bool      open_;
+    u_int64_t bw_;      // in bps
+    double    latency_; // in seconds
 };
 
 /**
