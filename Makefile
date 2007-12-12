@@ -109,7 +109,9 @@ installbin: installdirs
 		    apps/dtnping/dtntraceroute \
 		    apps/dtnrecv/dtnrecv \
 		    apps/dtnsend/dtnsend \
-		    apps/dtntunnel/dtntunnel ; do \
+		    apps/dtntunnel/dtntunnel \
+		    apps/num2sdnv/num2sdnv \
+		    apps/num2sdnv/sdnv2num ; do \
 	    ($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir)) ; \
 	done
 
