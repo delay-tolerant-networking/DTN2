@@ -480,15 +480,10 @@ FragmentManager::delete_fragment(Bundle* fragment)
         return;
     }
 
-    // create a null buffer; the "null" character is used as padding in
-    // the partially reassembled bundle file
-    u_char buf[fragment->payload_.length()];
-    memset(buf, '\0', fragment->payload_.length());
+    // note that the old fragment data is still kept in the
+    // partially-reassembled bundle file, but there won't be metadata
+    // to indicate as such
     
-    // remove the fragment data from the partially reassembled bundle file
-    state->bundle()->payload_.write_data(buf, fragment->frag_offset_,
-                                         fragment->payload_.length());
-
     // delete reassembly state if no fragments now exist
     if (state->num_fragments() == 0) {
         fragment_table_.erase(hash_key);
