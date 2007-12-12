@@ -117,6 +117,12 @@ test::script {
     testlog "Waiting for receiver to complete"
     run::wait_for_pid_exit 3 $rcvpid
 
+    testlog "Waiting for all daemon event queues to flush"
+    dtn::wait_for_daemon_stat 0 0 pending_events
+    dtn::wait_for_daemon_stat 1 0 pending_events
+    dtn::wait_for_daemon_stat 2 0 pending_events
+    dtn::wait_for_daemon_stat 3 0 pending_events
+
     testlog "Test success!"
 
     set elapsed [expr [clock seconds] - $starttime]
