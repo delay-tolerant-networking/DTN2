@@ -339,7 +339,6 @@ BluetoothConvergenceLayer::BluetoothLinkParams::serialize(
     a->process("segment_length", &segment_length_);
 
     // from LinkParams
-    a->process("busy_queue_depth", &busy_queue_depth_);
     a->process("reactive_frag_enabled", &reactive_frag_enabled_);
     a->process("sendbuf_len", &sendbuf_len_);
     a->process("recvbuf_len", &recvbuf_len_);
