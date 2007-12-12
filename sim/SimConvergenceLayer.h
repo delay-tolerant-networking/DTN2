@@ -62,8 +62,9 @@ public:
     void update_connectivity(Node* n1, Node* n2, const ConnState& cs);
     
 protected:
+    void start_bundle(const LinkRef& link, const BundleRef& bundle);
+    
     static SimConvergenceLayer* instance_;
-    u_char buf_[65536];
 };
 
 } // namespace dtnsim

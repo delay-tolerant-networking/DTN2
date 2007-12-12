@@ -60,11 +60,9 @@ public:
 
     ~SimLink() {};
 
-    void send_bundle(Bundle* src_bundle, Bundle* dst_bundle,
-                     size_t total_len, const ConnState& cs);
-
+    void start_next_bundle();
     void timeout(const oasys::Time& now);
-    void handle_inflight_events(const oasys::Time& now);
+    void handle_pending_inflight(const oasys::Time& now);
     void handle_arrival_events(const oasys::Time& now);
     void handle_transmitted_events(const oasys::Time& now);
     void reschedule_timers();
@@ -99,6 +97,9 @@ public:
     /// Token bucket to track the link rate
     oasys::TokenBucket tb_;
 
+    /// Temp buffer
+    u_char buf_[65536];
+    
     /// Helper class to track bundle transmission or reception events
     /// that need to be delivered in the future
     struct PendingEvent {
@@ -114,8 +115,8 @@ public:
         oasys::Time time_;
     };
 
-    /// Pending events for when bundles are in flight
-    std::queue<PendingEvent*> inflight_events_;
+    /// Pending event (at most one) to put the next bundle in flight
+    PendingEvent* pending_inflight_;
 
     /// Pending bundle arrival events
     std::queue<PendingEvent*> arrival_events_;
@@ -148,20 +149,63 @@ public:
 
 //----------------------------------------------------------------------
 void
-SimLink::send_bundle(Bundle* src_bundle, Bundle* dst_bundle,
-                     size_t total_len, const ConnState& cs)
+SimLink::start_next_bundle()
 {
+    ASSERT(!link_->queue()->empty());
+    ASSERT(pending_inflight_ == NULL);
+    
+    Node* src_node = Node::active_node();
+    ASSERT(src_node != peer_node_);
+
+    const ConnState* cs = Connectivity::instance()->lookup(src_node, peer_node_);
+    ASSERT(cs);
+
+    BundleRef src_bundle("SimLink::start_next_bundle");
+    src_bundle = link_->queue()->front();
+    
+    BlockInfoVec* blocks = src_bundle->xmit_blocks_.find_blocks(link_);
+    ASSERT(blocks != NULL);
+
+    // since we don't really have any payload to send, we find the
+    // payload block and overwrite the data_length to be zero, then
+    // adjust the payload_ on the new bundle
+    if (src_bundle->payload_.location() == BundlePayload::NODATA) {
+        BlockInfo* payload = const_cast<BlockInfo*>(
+            blocks->find_block(BundleProtocol::PAYLOAD_BLOCK));
+        ASSERT(payload != NULL);
+        payload->set_data_length(0);
+    }
+    
+    bool complete = false;
+    size_t len = BundleProtocol::produce(src_bundle.object(), blocks,
+                                         buf_, 0, sizeof(buf_),
+                                         &complete);
+    ASSERTF(complete, "BundleProtocol non-payload blocks must fit in "
+            "65 K buffer size");
+
+    size_t total_len = len + src_bundle->payload_.length();
+
+    complete = false;
+    Bundle* dst_bundle = new Bundle(src_bundle->payload_.location());
+    int cc = BundleProtocol::consume(dst_bundle, buf_, len, &complete);
+    ASSERT(cc == (int)len);
+    ASSERT(complete);
+
+    if (src_bundle->payload_.location() == BundlePayload::NODATA) {
+        dst_bundle->payload_.set_length(src_bundle->payload_.length());
+    }
+            
     tb_.drain(total_len * 8);
     
     oasys::Time bw_delay = tb_.time_to_level(0);
     oasys::Time inflight_time = oasys::Time(Simulator::time()) + bw_delay;
-    oasys::Time arrival_time = inflight_time + cs.latency_;
+    oasys::Time arrival_time = inflight_time + cs->latency_;
     oasys::Time transmitted_time;
 
     // the transmitted event either occurs after the "ack" comes back
     // (when in reliable mode) or immediately after we send the bundle
     if (params_.reliable_) {
-        transmitted_time = inflight_time + (cs.latency_ * 2);
+        transmitted_time = inflight_time + (cs->latency_ * 2);
     } else {
         transmitted_time = inflight_time;
     }
@@ -172,10 +216,10 @@ SimLink::send_bundle(Bundle* src_bundle, Bundle* dst_bundle,
               inflight_time.sec_, inflight_time.usec_,
               arrival_time.sec_, arrival_time.usec_,
               transmitted_time.sec_, transmitted_time.usec_);
-    
-    inflight_events_.push(new PendingEvent(src_bundle, total_len, inflight_time));
+
+    pending_inflight_ = new PendingEvent(src_bundle.object(), total_len, inflight_time);
     arrival_events_.push(new PendingEvent(dst_bundle, total_len, arrival_time));
-    transmitted_events_.push(new PendingEvent(src_bundle, total_len, transmitted_time));
+    transmitted_events_.push(new PendingEvent(src_bundle.object(), total_len, transmitted_time));
 
     reschedule_timers();
 }
@@ -188,9 +232,9 @@ SimLink::reschedule_timers()
     // since the channel is FIFO and latency changes don't take effect
     // mid-flight
 
-    if (! inflight_timer_.pending() && !inflight_events_.empty())
+    if (! inflight_timer_.pending() && pending_inflight_ != NULL)
     {
-        inflight_timer_.schedule_at(inflight_events_.front()->time_);
+        inflight_timer_.schedule_at(pending_inflight_->time_);
     }
 
     if (! arrival_timer_.pending() && !arrival_events_.empty())
@@ -211,7 +255,7 @@ SimLink::PendingEventTimer::timeout(const timeval& tv)
     oasys::Time now(tv.tv_sec, tv.tv_usec);
     switch (type_) {
     case INFLIGHT:
-        link_->handle_inflight_events(now);
+        link_->handle_pending_inflight(now);
         break;
     case ARRIVAL:
         link_->handle_arrival_events(now);
@@ -226,26 +270,25 @@ SimLink::PendingEventTimer::timeout(const timeval& tv)
 
 //----------------------------------------------------------------------
 void
-SimLink::handle_inflight_events(const oasys::Time& now)
+SimLink::handle_pending_inflight(const oasys::Time& now)
 {
-    ASSERT(! inflight_events_.empty());
+    ASSERT(pending_inflight_ != NULL);
     
     // deliver any bundles that have arrived
-    while (! inflight_events_.empty()) {
-        PendingEvent* next = inflight_events_.front();
-        if (next->time_ <= now) {
-            const BundleRef& bundle = next->bundle_;
-            inflight_events_.pop();
+    if (pending_inflight_->time_ <= now) {
+        const BundleRef& bundle = pending_inflight_->bundle_;
 
-            log_debug("putting *%p in flight", bundle.object());
-            link_->add_to_inflight(bundle, next->total_len_);
-            link_->del_from_queue(bundle, next->total_len_);
+        log_debug("putting *%p in flight", bundle.object());
+        link_->add_to_inflight(bundle, pending_inflight_->total_len_);
+        link_->del_from_queue(bundle, pending_inflight_->total_len_);
             
-            // XXX/demmer maybe there should be an event for this??
+        // XXX/demmer maybe there should be an event for this??
+        
+        delete pending_inflight_;
+        pending_inflight_ = NULL;
 
-            delete next;
-        } else {
-            break;
+        if (! link_->queue()->empty()) {
+            start_next_bundle();
         }
     }
     
@@ -273,8 +316,8 @@ SimLink::handle_arrival_events(const oasys::Time& now)
                                         next->total_len_,
                                         NULL,
                                         params_.set_prevhop_ ?
-                                          Node::active_node()->local_eid() :
-                                          EndpointID::NULL_EID());
+                                        Node::active_node()->local_eid() :
+                                        EndpointID::NULL_EID());
             peer_node_->post_event(rcv_event);
 
             delete next;
@@ -301,6 +344,8 @@ SimLink::handle_transmitted_events(const oasys::Time& now)
             transmitted_events_.pop();
             
             log_debug("*%p transmitted", bundle.object());
+
+            ASSERT(link_->contact() != NULL);
             
             BundleTransmittedEvent* xmit_event =
                 new BundleTransmittedEvent(bundle.object(), link_->contact(), link_,
@@ -398,6 +443,12 @@ SimConvergenceLayer::open_contact(const ContactRef& contact)
         }
         update_connectivity(Node::active_node(), sl->peer_node_, *cs);
         BundleDaemon::post(new ContactUpEvent(contact));
+
+        // if there is a queued bundle on the link, start sending it
+        if (! contact->link()->queue()->empty()) {
+            sl->start_next_bundle();
+        }
+        
     } else {
         log_debug("connectivity is down when trying to open contact");
         BundleDaemon::post(
@@ -421,52 +472,9 @@ SimConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
     SimLink* sl = (SimLink*)link->cl_info();
     ASSERT(sl);
 
-    Node* src_node = Node::active_node();
-    Node* dst_node = sl->peer_node_;
-
-    ASSERT(src_node != dst_node);
-
-    const ConnState* cs = Connectivity::instance()->lookup(src_node, dst_node);
-    ASSERT(cs);
-    
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
-    ASSERT(blocks != NULL);
-
-    // since we don't really have any payload to send, we find the
-    // payload block and overwrite the data_length to be zero, then
-    // adjust the payload_ on the new bundle
-    if (bundle->payload_.location() == BundlePayload::NODATA) {
-        BlockInfo* payload = const_cast<BlockInfo*>(
-            blocks->find_block(BundleProtocol::PAYLOAD_BLOCK));
-        ASSERT(payload != NULL);
-        payload->set_data_length(0);
+    if (link->isopen() && (sl->pending_inflight_ == NULL)) {
+        sl->start_next_bundle();
     }
-    
-    bool complete = false;
-    size_t len = BundleProtocol::produce(bundle.object(), blocks,
-                                         buf_, 0, sizeof(buf_),
-                                         &complete);
-    ASSERTF(complete, "BundleProtocol non-payload blocks must fit in "
-            "65 K buffer size");
-
-    size_t total_len = len + bundle->payload_.length();
-
-    complete = false;
-    Bundle* new_bundle = new Bundle(bundle->payload_.location());
-    int cc = BundleProtocol::consume(new_bundle, buf_, len, &complete);
-    ASSERT(cc == (int)len);
-    ASSERT(complete);
-
-    if (bundle->payload_.location() == BundlePayload::NODATA) {
-        new_bundle->payload_.set_length(bundle->payload_.length());
-    }
-            
-    if (link->state() != Link::OPEN) {
-        log_warn("send_bundle in link state %s",
-                 link->state_to_str(link->state()));
-    }
-
-    sl->send_bundle(bundle.object(), new_bundle, total_len, *cs);
 }
 
 //----------------------------------------------------------------------
