@@ -921,6 +921,14 @@ StreamConvergenceLayer::Connection::check_keepalive()
         // we send it when we should
         if (std::min(elapsed, elapsed2) > ((params->keepalive_interval_ * 1000) - 500))
         {
+            // it's possible that the link is blocked while in the
+            // middle of a segment, triggering a poll timeout, so make
+            // sure not to send a keepalive in this case
+            if (send_segment_todo_ != 0) {
+                log_debug("not issuing keepalive in the middle of a segment");
+                return;
+            }
+    
             send_keepalive();
         }
     }
