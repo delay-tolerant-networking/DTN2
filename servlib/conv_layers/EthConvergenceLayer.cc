@@ -213,8 +213,12 @@ EthConvergenceLayer::delete_link(const LinkRef& link)
  * Send bundles queued up for the contact.
  */
 void
-EthConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
+EthConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    
+    const ContactRef& contact = link->contact();
     Sender* sender = (Sender*)contact->cl_info();
     if (!sender) {
         log_crit("send_bundles called on contact *%p with no Sender!!",
@@ -223,10 +227,7 @@ EthConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     }
     ASSERT(contact == sender->contact_);
 
-    ASSERT(contact->link() != NULL);
-    ASSERT(!contact->link()->isdeleted());
-    
-    sender->send_bundle(bundle); // consumes bundle reference
+    sender->send_bundle(bundle);
 }
 
 bool
@@ -520,7 +521,7 @@ EthConvergenceLayer::Sender::Sender(char* if_name,
  * Send one bundle.
  */
 bool 
-EthConvergenceLayer::Sender::send_bundle(Bundle* bundle) 
+EthConvergenceLayer::Sender::send_bundle(const BundleRef& bundle) 
 {
     int cc;
     struct iovec iov[3];
@@ -557,7 +558,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     ASSERT(blocks != NULL);
 
     bool complete = false;
-    size_t total_len = BundleProtocol::produce(bundle, blocks,
+    size_t total_len = BundleProtocol::produce(bundle.object(), blocks,
                                                buf_, 0, sizeof(buf_),
                                                &complete);
     if (!complete) {
@@ -580,7 +581,11 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         log_err("Send failed!\n");
     }    
     log_info("Sent packet, size: %d",cc );
-    
+
+    // move the bundle off the link queue and onto the inflight queue
+    contact_->link()->del_from_queue(bundle, total_len);
+    contact_->link()->add_to_inflight(bundle, total_len);
+
     // check that we successfully wrote it all
     bool ok;
     int total = sizeof(EthCLHeader) + sizeof(struct ether_header) + total_len;
@@ -596,7 +601,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         // since this is an unreliable protocol, acked_len = 0, and
         // ack = false
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_,contact_->link(),
+            new BundleTransmittedEvent(bundle.object(), contact_,contact_->link(),
                                        total_len, false));
         ok = true;
     }

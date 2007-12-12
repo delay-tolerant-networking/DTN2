@@ -137,7 +137,7 @@ public:
     /**
      * Send the bundle to the contact
      */
-    void send_bundle(const ContactRef& contact, Bundle* bundle);
+    void bundle_queued(const LinkRef& link, const BundleRef& bundle);
 
     /**
      * Report if the given bundle is queued on the given link.
@@ -232,7 +232,7 @@ public:
         /**
          * Send one bundle.
          */
-        bool send_bundle(Bundle* bundle);
+        bool send_bundle(const BundleRef& bundle);
 
         /// The contact that we're representing
         ContactRef contact_;
