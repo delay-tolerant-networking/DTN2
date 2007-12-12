@@ -266,6 +266,7 @@ DTNServer::shutdown()
     // make sure only one thread does this
     u_int32_t old_val = atomic_incr_ret(&in_shutdown_);
     if (old_val != 1) {
+        log_warn("second thread called DTNServer::shutdown... spinning forever");
         while (1) {
             sleep(1000000);
         }
