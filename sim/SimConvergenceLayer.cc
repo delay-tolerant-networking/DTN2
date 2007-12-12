@@ -183,7 +183,10 @@ SimLink::start_next_bundle()
     ASSERTF(complete, "BundleProtocol non-payload blocks must fit in "
             "65 K buffer size");
 
-    size_t total_len = len + src_bundle->payload_.length();
+    size_t total_len = len;
+
+    if (src_bundle->payload_.location() == BundlePayload::NODATA)
+        total_len += src_bundle->payload_.length();
 
     complete = false;
     Bundle* dst_bundle = new Bundle(src_bundle->payload_.location());
