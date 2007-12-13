@@ -46,7 +46,7 @@ APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
 all: $(DTN_LIBS++) $(DTN_LIBS_STATIC) $(APPS) $(MANPAGES)
 include ../Rules.make
-include ../dtn-version.mk
+include $(SRCDIR)/dtn-version.mk
 
 DTN_LIBS_STATIC := ../applib/libdtnapi.a ../applib/libdtnapi++.a
 DTN_LIBS := ../applib/libdtnapi.a $(OASYS_COMPAT_LDFLAGS)
