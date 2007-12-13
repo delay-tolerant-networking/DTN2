@@ -61,11 +61,14 @@ test::script {
 		dtn://host-1/test dtn://host-0/test length=5000]
     }
 
+    testlog "Dumping stats"
+    dtn::dump_stats
+    
     for {set i 0} {$i < $N} {incr i} {
 	testlog "Waiting for arrival of bundle $i"
 	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp($i)" 10000
     }
-    
+
     testlog "Doing sanity check on stats"
     dtn::wait_for_bundle_stats 0 "0 pending $N received $N delivered"
     dtn::wait_for_bundle_stats 1 "0 pending $N transmitted"
@@ -82,6 +85,9 @@ test::script {
 		dtn://host-1/test dtn://host-0/test length=4096]
     }
 
+    testlog "Dumping stats"
+    dtn::dump_stats
+    
     for {set i 0} {$i < $N} {incr i} {
 	testlog "Waiting for arrival of bundle $i at each node"
 	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp(1,$i)" 10000
