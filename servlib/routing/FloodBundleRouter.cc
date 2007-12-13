@@ -57,13 +57,16 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
     Bundle* bundle = event->bundleref_.object();
     log_debug("bundle received *%p", bundle);
     all_bundles_.push_back(bundle);
-    route_bundle(bundle);
+
+    TableBasedRouter::handle_bundle_received(event);
 }
 
 //----------------------------------------------------------------------
 void
 FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
 {
+    TableBasedRouter::handle_link_created(event);
+    
     LinkRef link = event->link_;
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
@@ -83,6 +86,8 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
 void
 FloodBundleRouter::handle_bundle_expired(BundleExpiredEvent* event)
 {
+    TableBasedRouter::handle_bundle_expired(event);
+    
     Bundle* bundle = event->bundleref_.object();
     log_debug("bundle_expired *%p", bundle);
     all_bundles_.erase(bundle);
