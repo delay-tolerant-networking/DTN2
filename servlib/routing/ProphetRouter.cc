@@ -311,42 +311,6 @@ ProphetRouter::handle_link_available(LinkAvailableEvent* e)
         // request to open link
         actions_->open_link(next_hop);
     }
-
-    // when the link comes up or is made available, any bundles
-    // destined for it will have a transmit pending entry in the
-    // forwarding log
-    //
-    // XXX/demmer this would be easier if they were just on the link
-    // queue...
-    oasys::ScopeLock l(pending_bundles_->lock(),
-                       "ProphetRouter::handle_link_available");
-    BundleList::iterator iter;
-    for (iter = pending_bundles_->begin();
-         iter != pending_bundles_->end();
-         ++iter)
-    {
-        if (next_hop->queue_is_full())
-        {
-            log_debug("handle_link_available %s: link queue is full, stopping loop",
-                      next_hop->name());
-            break;
-        }
-
-        BundleRef bundle("ProphetRouter::handle_link_available");
-        bundle = *iter;
-
-        ForwardingInfo info;
-        bool ok = bundle->fwdlog_.get_latest_entry(next_hop, &info);
-
-        if (ok && (info.state() == ForwardingInfo::TRANSMIT_DEFERRED))
-        {
-
-            log_debug("handle_link_available: sending *%p to *%p",
-                      bundle.object(), next_hop.object());
-            actions_->queue_bundle(bundle.object(), next_hop,
-                                   info.action(), info.custody_spec());
-        }
-    }
 }
 
 void

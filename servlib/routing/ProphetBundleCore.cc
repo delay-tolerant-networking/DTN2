@@ -212,8 +212,14 @@ ProphetBundleCore::send_bundle(const prophet::Bundle* bundle,
     LinkRef nexthop("send_bundle");
     nexthop = l;
 
-    // the remainder of ProphetBundleCore::send_bundle is lifted 
-    // almost verbatim from TableBasedRouter::fwd_to_nexthop (v1.38)
+    // if link is available but not open, open it
+    if (nexthop->isavailable() &&
+        (!nexthop->isopen()) && (!nexthop->isopening()))
+    {
+        log_debug("opening *%p because a message is intended for it",
+                  nexthop.object());
+        actions_->open_link(nexthop);
+    }
 
     // we can only send if link is open and not full
     if (nexthop->isopen() && !nexthop->queue_is_full())
@@ -225,45 +231,18 @@ ProphetBundleCore::send_bundle(const prophet::Bundle* bundle,
         return true;
     }
 
-    // since we can't send the bundle right now, add a forwarding log
-    // entry to indicate that transmission is pending on this link
-    //
-    // XXX/demmer should also queue it on the link?
-    //
-    ForwardingInfo::state_t state = b->fwdlog_.get_latest_entry(nexthop);
-    if (state != ForwardingInfo::TRANSMIT_DEFERRED)
-    {
-        log_debug("adding TRANSMIT_DEFERRED forward log entry "
-                  "for bundle *%p on link *%p ",b,nexthop.object());
-        b->fwdlog_.add_entry(nexthop, ForwardingInfo::COPY_ACTION,
-                             ForwardingInfo::TRANSMIT_DEFERRED,
-                             CustodyTimerSpec());
-    }
-
-    // if link is available but not open, open it
-    if (nexthop->isavailable() && (!nexthop->isopen()) &&
-            (!nexthop->isopening()))
-    {
-        log_debug("opening *%p because a message is intended for it",
-                  nexthop.object());
-        actions_->open_link(nexthop);
-    }
-
-    // else spew lots of logs on why we can't do anything
+    // since we can't send the bundle right now, log why
+    if (!nexthop->isavailable())
+        log_debug("can't forward *%p to *%p because link not available",
+                  b,nexthop.object());
+    else if (!nexthop->isopen())
+        log_debug("can't forward *%p to *%p because link not open",
+                  b,nexthop.object());
+    else if (nexthop->queue_is_full())
+        log_debug("can't forward *%p to *%p because link queue is full",
+                  b, nexthop.object());
     else
-    {
-        if (!nexthop->isavailable())
-            log_debug("can't forward *%p to *%p because link not available",
-                      b,nexthop.object());
-        else if (!nexthop->isopen())
-            log_debug("can't forward *%p to *%p because link not open",
-                      b,nexthop.object());
-        else if (nexthop->queue_is_full())
-            log_debug("can't forward *%p to *%p because link queue is full",
-                      b, nexthop.object());
-        else
-            log_debug("can't forward *%p to *%p", b,nexthop.object());
-    }
+        log_debug("can't forward *%p to *%p", b,nexthop.object());
 
     return false;
 }

@@ -254,7 +254,7 @@ TableBasedRouter::reroute_bundles(const LinkRef& link)
     // if the reroute timer fires, the link should be down and there
     // should be at least one bundle queued on it.
     //
-    // cancel the deferred and queued transmissions and rely on the
+    // cancel the queued and inflight transmissions and rely on the
     // BundleSendCancelledEvent handler to actually reroute the
     // bundles
     log_debug("reroute timer fired -- cancelling %zu bundles on link *%p",
@@ -277,14 +277,8 @@ TableBasedRouter::reroute_bundles(const LinkRef& link)
         ASSERT(! bundle->is_queued_on(link->queue()));
     }
 
-    oasys::ScopeLock l2(link->deferred()->lock(),
-                       "TableBasedRouter::reroute_bundles");
-    while (! link->deferred()->empty()) {
-        bundle = link->deferred()->front();
-        actions_->cancel_bundle(bundle.object(), link);
-        ASSERT(! bundle->is_queued_on(link->deferred()));
-    }
-
+    // there should never have been any in flight since the link is
+    // unavailable
     ASSERT(link->inflight()->empty());
 }    
 
@@ -317,6 +311,8 @@ TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
 
+    link->set_router_info(new DeferredList(logpath(), link));
+                          
     add_nexthop_route(link);
 }
 
@@ -393,7 +389,12 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
                   link.object());
         actions_->open_link(link);
     }
+
+    // XXX/demmer maybe this should queue_bundle immediately instead
+    // of waiting for the first contact_up event??
     
+    // if the link is open and has space in the queue, then queue the
+    // bundle for transmission there
     if (link->isopen() && !link->queue_is_full()) {
         log_debug("queuing *%p on *%p", bundle, link.object());
         actions_->queue_bundle(bundle, link, route->action(),
@@ -402,24 +403,21 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
     }
     
     // otherwise we can't send the bundle now, so put it on the link's
-    // deferred list, store the route state in the forwarding log, and
-    // then output the reason why we can't forward it
-    if (! bundle->is_queued_on(link->deferred())) {
+    // deferred list and log reason why we can't forward it
+    DeferredList* deferred = deferred_list(link);
+    if (! bundle->is_queued_on(deferred->list())) {
         BundleRef bref(bundle, "TableBasedRouter::fwd_to_nexthop");
-        link->add_to_deferred(bref);
-        log_debug("adding TRANSMIT_DEFERRED forwarding log entry "
-                  "for bundle *%p on link *%p ",
-                  bundle, link.object());
-        bundle->fwdlog_.add_entry(link, route->action(),
-                                  ForwardingInfo::TRANSMIT_DEFERRED,
-                                  route->custody_spec());
+        ForwardingInfo info(ForwardingInfo::NONE,
+                            route->action(),
+                            link->name_str(),
+                            link->remote_eid(),
+                            route->custody_spec());
+        deferred->add(bref, info);
     } else {
         log_warn("bundle *%p already exists on deferred list of link *%p",
                  bundle, link.object());
     }
     
-    // otherwise, we can't do anything, so just log a bundle of
-    // reasons why
     if (!link->isavailable()) {
         log_debug("can't forward *%p to *%p because link not available",
                   bundle, link.object());
@@ -466,16 +464,18 @@ TableBasedRouter::route_bundle(Bundle* bundle)
     unsigned int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
+        RouteEntry* route = *iter;
         log_debug("checking route entry %p link %s (%p)",
-                  *iter, (*iter)->link()->name(), (*iter)->link().object());
+                  *iter, route->link()->name(), route->link().object());
 
         if (! should_fwd(bundle, *iter)) {
             continue;
         }
 
-        if (bundle->is_queued_on((*iter)->link()->deferred())) {
-            log_debug("route_bundle bundle %d: ignoring link *%p since already deferred",
-                      bundle->bundleid_, (*iter)->link().object());
+        if (deferred_list(route->link())->list()->contains(bundle)) {
+            log_debug("route_bundle bundle %d: "
+                      "ignoring link *%p since already deferred",
+                      bundle->bundleid_, route->link().object());
             continue;
         }
 
@@ -484,7 +484,7 @@ TableBasedRouter::route_bundle(Bundle* bundle)
         // get them into the queue before trying to route the new
         // arrival, otherwise it might leapfrog the other deferred
         // bundles
-        check_next_hop((*iter)->link());
+        check_next_hop(route->link());
         
         if (!fwd_to_nexthop(bundle, *iter)) {
             continue;
@@ -521,15 +521,16 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
     log_debug("check_next_hop %s -> %s: checking deferred bundle list...",
               next_hop->name(), next_hop->nexthop());
 
-    oasys::ScopeLock l(next_hop->deferred()->lock(), 
-                       "TableBasedRouter::check_next_hop");
-
-    // because queue_bundle below will remove the current bundle from
+    // because the loop below will remove the current bundle from
     // the deferred list, invalidating any iterators pointing to its
     // position, make sure to advance the iterator before processing
     // the current bundle
-    BundleList::const_iterator iter = next_hop->deferred()->begin();
-    while (iter != next_hop->deferred()->end())
+    DeferredList* deferred = deferred_list(next_hop);
+
+    oasys::ScopeLock l(deferred->list()->lock(), 
+                       "TableBasedRouter::check_next_hop");
+    BundleList::const_iterator iter = deferred->list()->begin();
+    while (iter != deferred->list()->end())
     {
         if (next_hop->queue_is_full()) {
             log_debug("check_next_hop %s: link queue is full, stopping loop",
@@ -541,15 +542,8 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
         bundle = *iter;
         ++iter;
 
-        ForwardingInfo info;
-        bool ok = bundle->fwdlog_.get_latest_entry(next_hop, &info);
-        if (! ok || (info.state() != ForwardingInfo::TRANSMIT_DEFERRED)) {
-            log_warn("check_next_hop: "
-                     "*%p doesn't have deferred fwd log entry for *%p",
-                     bundle.object(), next_hop.object());
-            continue;
-        }
-        
+        ForwardingInfo info = deferred->info(bundle);
+
         // if should_fwd returns false, then the bundle was either
         // already transmitted or is in flight on another node. since
         // it's possible that one of the other transmissions will
@@ -573,6 +567,9 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
             actions_->open_link(next_hop);
         }
 
+        // remove the bundle from the deferred list
+        deferred->del(bundle);
+    
         log_debug("check_next_hop: sending *%p to *%p",
                   bundle.object(), next_hop.object());
         actions_->queue_bundle(bundle.object() , next_hop,
@@ -600,6 +597,83 @@ TableBasedRouter::reroute_all_bundles()
     {
         route_bundle(*iter);
     }
+}
+
+//----------------------------------------------------------------------
+TableBasedRouter::DeferredList::DeferredList(const char* logpath,
+                                             const LinkRef& link)
+    : RouterInfo(),
+      Logger("%s/deferred/%s", logpath, link->name()),
+      list_(link->name_str() + ":deferred"),
+      count_(0)
+{
+}
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::DeferredList::dump_stats(oasys::StringBuffer* buf)
+{
+    buf->appendf(" -- %zu bundles_deferred", count_);
+}
+
+//----------------------------------------------------------------------
+const ForwardingInfo&
+TableBasedRouter::DeferredList::info(const BundleRef& bundle)
+{
+    InfoMap::const_iterator iter = info_.find(bundle->bundleid_);
+    ASSERT(iter != info_.end());
+    return iter->second;
+}
+
+//----------------------------------------------------------------------
+bool
+TableBasedRouter::DeferredList::add(const BundleRef&      bundle,
+                                    const ForwardingInfo& info)
+{
+    if (list_.contains(bundle)) {
+        log_err("bundle *%p already in deferred list!",
+                bundle.object());
+        return false;
+    }
+    
+    log_debug("adding *%p to deferred (length %zu)",
+              bundle.object(), count_);
+
+    count_++;
+    list_.push_back(bundle);
+
+    info_.insert(InfoMap::value_type(bundle->bundleid_, info));
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+TableBasedRouter::DeferredList::del(const BundleRef& bundle)
+{
+    if (! list_.erase(bundle)) {
+        return false;
+    }
+    
+    ASSERT(count_ > 0);
+    count_--;
+    
+    log_debug("removed *%p from deferred (length %zu)",
+              bundle.object(), count_);
+
+    size_t n = info_.erase(bundle->bundleid_);
+    ASSERT(n == 1);
+    
+    return true;
+}
+
+//----------------------------------------------------------------------
+TableBasedRouter::DeferredList*
+TableBasedRouter::deferred_list(const LinkRef& link)
+{
+    DeferredList* dq = dynamic_cast<DeferredList*>(link->router_info());
+    ASSERT(dq != NULL);
+    return dq;
 }
 
 } // namespace dtn

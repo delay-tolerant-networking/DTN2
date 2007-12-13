@@ -21,6 +21,7 @@
 
 #include "BundleRouter.h"
 #include "DuplicateCache.h"
+#include "RouterInfo.h"
 
 namespace dtn {
 
@@ -170,6 +171,39 @@ protected:
     /// Table of reroute timers, indexed by the link name
     typedef oasys::StringMap<RerouteTimer*> RerouteTimerMap;
     RerouteTimerMap reroute_timers_;
+
+    /// Per-link class used to store deferred transmission bundles
+    /// that helps cache route computations
+    class DeferredList : public RouterInfo, public oasys::Logger {
+    public:
+        DeferredList(const char* logpath, const LinkRef& link);
+
+        /// Accessor for the bundle list
+        BundleList* list() { return &list_; }
+
+        /// Accessor for the forwarding info associated with the
+        /// bundle, which must be on the list
+        const ForwardingInfo& info(const BundleRef& bundle);
+
+        /// Add a new bundle/info pair to the deferred list
+        bool add(const BundleRef& bundle, const ForwardingInfo& info);
+
+        /// Remove the bundle and its associated forwarding info from
+        /// the list
+        bool del(const BundleRef& bundle);
+
+        /// Print out the stats, called from Link::dump_stats
+        void dump_stats(oasys::StringBuffer* buf);
+        
+    protected:
+        typedef std::map<u_int32_t, ForwardingInfo> InfoMap;
+        BundleList list_;
+        InfoMap    info_;
+        size_t     count_;
+    };
+
+    /// Helper accessor to return the deferred queue for a link
+    DeferredList* deferred_list(const LinkRef& link);
 };
 
 } // namespace dtn

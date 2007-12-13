@@ -36,6 +36,7 @@ class ConvergenceLayer;
 class CLInfo;
 class Contact;
 class Link;
+class RouterInfo;
 
 /**
  * Typedef for a reference on a link.
@@ -368,6 +369,22 @@ public:
     CLInfo* cl_info() const { return cl_info_; }
     
     /**
+     * Store router state associated with the link.
+     */
+    void set_router_info(RouterInfo* router_info)
+    {
+        ASSERT((router_info_ == NULL && router_info != NULL) ||
+               (router_info_ != NULL && router_info == NULL));
+        
+        router_info_ = router_info;
+    }
+
+    /**
+     * Accessor to the convergence layer state.
+     */
+    RouterInfo* router_info() const { return router_info_; }
+    
+    /**
      * Accessor to this contact's convergence layer.
      */
     ConvergenceLayer* clayer() const { return clayer_; }
@@ -443,12 +460,6 @@ public:
      * acknowledgement.
      */
     const BundleList* inflight() { return &inflight_; }
-    
-    /**
-     * Accessor for the link's list of deferred transmission bundles,
-     * due to the link being either busy or down.
-     */
-    const BundleList* deferred() { return &deferred_; }
 
     /// @{
     /**
@@ -460,8 +471,6 @@ public:
     bool del_from_queue(const BundleRef& bundle, size_t total_len);
     bool add_to_inflight(const BundleRef& bundle, size_t total_len);
     bool del_from_inflight(const BundleRef& bundle, size_t total_len);
-    bool add_to_deferred(const BundleRef& bundle);
-    bool del_from_deferred(const BundleRef& bundle);
     /// @}
     
     /**
@@ -598,7 +607,6 @@ public:
         u_int bytes_queued_; 
         u_int bundles_inflight_;
         u_int bytes_inflight_;
-        u_int bundles_deferred_;
         u_int bundles_transmitted_;
         u_int bytes_transmitted_;
         u_int bundles_cancelled_;
@@ -708,9 +716,6 @@ protected:
     /// Queue of bundles that have been sent but not yet acknowledged
     BundleList inflight_;
 
-    /// Queue of bundles that have deferred transmission
-    BundleList deferred_;
-
     /// Stats for the link
     mutable Stats stats_;
 
@@ -722,6 +727,9 @@ protected:
 
     /// Convergence layer specific info, if needed
     CLInfo* cl_info_;
+
+    /// Router specific info, if needed
+    RouterInfo* router_info_;
 
     /// Remote's endpoint ID (eg, dtn://hostname.dtn)
     EndpointID remote_eid_;

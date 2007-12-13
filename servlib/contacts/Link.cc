@@ -31,6 +31,7 @@
 #include "bundling/BundleEvent.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "naming/EndpointIDOpt.h"
+#include "routing/RouterInfo.h"
 
 namespace dtn {
 
@@ -117,10 +118,10 @@ Link::Link(const std::string& name, link_type_t type,
        reliable_(false),
        queue_(name + ":queue"),
        inflight_(name + ":inflight"),
-       deferred_(name + ":deferred"),
        contact_("Link"),
        clayer_(cl),
        cl_info_(NULL),
+       router_info_(NULL),
        remote_eid_(EndpointID::NULL_EID())
 {
     ASSERT(clayer_);
@@ -145,10 +146,10 @@ Link::Link(const oasys::Builder&)
       reliable_(false),
       queue_(""),
       inflight_(""),
-      deferred_(""),
       contact_("Link"),
       clayer_(NULL),
       cl_info_(NULL),
+      router_info_(NULL),
       remote_eid_(EndpointID::NULL_EID())
 {
 }
@@ -278,6 +279,8 @@ Link::serialize(oasys::SerializeAction* a)
             a->process("clinfo", contact_->cl_info());
     }
 
+    // XXX/demmer router_info_??
+
     a->process("remote_eid",         &remote_eid_);
     a->process("min_retry_interval", &params_.min_retry_interval_);
     a->process("max_retry_interval", &params_.max_retry_interval_);
@@ -353,6 +356,7 @@ Link::~Link()
         
     ASSERT(!isopen());
     ASSERT(cl_info_ == NULL);
+    ASSERT(router_info_ == NULL);
 }
 
 //----------------------------------------------------------------------
@@ -466,6 +470,8 @@ Link::queue_has_space() const
 bool
 Link::add_to_queue(const BundleRef& bundle, size_t total_len)
 {
+    oasys::ScopeLock l(&lock_, "Link::add_to_queue");
+    
     if (queue_.contains(bundle)) {
         log_err("add_to_queue: bundle *%p already in queue for link %s",
                 bundle.object(), name_.c_str());
@@ -485,6 +491,8 @@ Link::add_to_queue(const BundleRef& bundle, size_t total_len)
 bool
 Link::del_from_queue(const BundleRef& bundle, size_t total_len)
 {
+    oasys::ScopeLock l(&lock_, "Link::del_from_queue");
+    
     if (! queue_.erase(bundle)) {
         return false;
     }
@@ -510,7 +518,7 @@ Link::del_from_queue(const BundleRef& bundle, size_t total_len)
 bool
 Link::add_to_inflight(const BundleRef& bundle, size_t total_len)
 {
-    oasys::ScopeLock l(&lock_, "Link::put_inflight");
+    oasys::ScopeLock l(&lock_, "Link::add_to_inflight");
 
     if (bundle->is_queued_on(&inflight_)) {
         log_err("bundle *%p already in flight for link %s",
@@ -533,6 +541,8 @@ Link::add_to_inflight(const BundleRef& bundle, size_t total_len)
 bool
 Link::del_from_inflight(const BundleRef& bundle, size_t total_len)
 {
+    oasys::ScopeLock l(&lock_, "Link::del_from_inflight");
+
     if (! inflight_.erase(bundle)) {
         return false;
     }
@@ -552,42 +562,6 @@ Link::del_from_inflight(const BundleRef& bundle, size_t total_len)
     
     log_debug("removed *%p from inflight list (length %u)",
               bundle.object(), stats_.bundles_inflight_);
-    return true;
-}
-
-
-//----------------------------------------------------------------------
-bool
-Link::add_to_deferred(const BundleRef& bundle)
-{
-    if (deferred_.contains(bundle)) {
-        log_err("add_to_deferred: bundle *%p already in deferred for link %s",
-                bundle.object(), name_.c_str());
-        return false;
-    }
-    
-    log_debug("adding *%p to deferred (length %u)",
-              bundle.object(), stats_.bundles_deferred_);
-
-    stats_.bundles_deferred_++;
-    deferred_.push_back(bundle);
-
-    return true;
-}
-
-//----------------------------------------------------------------------
-bool
-Link::del_from_deferred(const BundleRef& bundle)
-{
-    if (! deferred_.erase(bundle)) {
-        return false;
-    }
-
-    ASSERT(stats_.bundles_deferred_ > 0);
-    stats_.bundles_deferred_--;
-    
-    log_debug("removed *%p from deferred (length %u)",
-              bundle.object(), stats_.bundles_deferred_);
     return true;
 }
 
@@ -674,7 +648,6 @@ Link::dump_stats(oasys::StringBuffer* buf)
                  "%u bytes_queued -- "
                  "%u bundles_inflight -- "
                  "%u bytes_inflight -- "
-                 "%u bundles_deferred -- "
                  "%u bundles_cancelled -- "
                  "%u uptime -- "
                  "%u throughput_bps",
@@ -686,10 +659,13 @@ Link::dump_stats(oasys::StringBuffer* buf)
                  stats_.bytes_queued_,
                  stats_.bundles_inflight_,
                  stats_.bytes_inflight_,
-                 stats_.bundles_deferred_,
                  stats_.bundles_cancelled_,
                  uptime,
                  throughput);
+
+    if (router_info_) {
+        router_info_->dump_stats(buf);
+    }
 }
 
 } // namespace dtn

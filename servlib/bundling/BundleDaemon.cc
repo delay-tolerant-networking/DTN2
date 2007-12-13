@@ -549,18 +549,20 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
 
     /*
-     * Check all BlockProcessors to validate the bundle.
+     * validate a bundle, including all bundle blocks, received from a peer
      */
-
-    // validate a bundle, including all bundle blocks, received from a peer
     if (event->source_ == EVENTSRC_PEER) { 
+
+        /*
+         * Check all BlockProcessors to validate the bundle.
+         */
         status_report_reason_t
             reception_reason = BundleProtocol::REASON_NO_ADDTL_INFO,
             deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
 
-        bool accept_bundle = BundleProtocol::validate(bundle,
-                                                      &reception_reason,
-                                                      &deletion_reason);
+        bool valid = BundleProtocol::validate(bundle,
+                                              &reception_reason,
+                                              &deletion_reason);
         
         /*
          * Send the reception receipt if requested within the primary
@@ -579,7 +581,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
          * If the bundle is valid, probe the router to see if it wants
          * to accept the bundle.
          */
-        if (accept_bundle) {
+        bool accept_bundle = false;
+        if (valid) {
             int reason = BundleProtocol::REASON_NO_ADDTL_INFO;
             accept_bundle = router_->accept_bundle(bundle, &reason);
             deletion_reason = static_cast<BundleProtocol::status_report_reason_t>(reason);
@@ -2237,8 +2240,7 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
         generate_status_report(bundle, BundleStatusReport::STATUS_DELETED, reason);
     }
 
-    // cancel the bundle on all links where it is queued, deferred, or
-    // in flight
+    // cancel the bundle on all links where it is queued or in flight
     oasys::Time now;
     now.get_time();
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::delete_bundle");
@@ -2248,12 +2250,14 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
         const LinkRef& link = *iter;
         
         if (link->queue()->contains(bundle) ||
-            link->deferred()->contains(bundle) ||
             link->inflight()->contains(bundle))
         {
             actions_->cancel_bundle(bundle, link);
         }
     }
+
+    // XXX/demmer there may be other lists where the bundle is still
+    // referenced so the router needs to be told what to do...
     
     log_debug("BundleDaemon: canceling deleted bundle on all links took %u ms",
                now.elapsed_ms());
