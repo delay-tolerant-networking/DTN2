@@ -710,6 +710,9 @@ protected:
     /// Default parameters of the link
     static Params default_params_;
 
+    /// Lock to protect internal data structures and state.
+    oasys::SpinLock lock_;
+    
     /// Queue of bundles currently active or pending transmission on the Link
     BundleList queue_;
 
@@ -734,9 +737,6 @@ protected:
     /// Remote's endpoint ID (eg, dtn://hostname.dtn)
     EndpointID remote_eid_;
 
-    /// Lock to protect internal data structures and state.
-    oasys::SpinLock lock_;
-    
     /// Destructor -- protected since links shouldn't be deleted
     virtual ~Link();
 };
