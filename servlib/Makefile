@@ -168,6 +168,7 @@ ROUTING_SRCS :=					\
 	routing/ProphetRouter.cc		\
 	routing/RouteEntry.cc			\
 	routing/RouteTable.cc			\
+	routing/RouterInfo.cc			\
 	routing/TableBasedRouter.cc		\
 	routing/TcaEndpointID.cc                \
 	routing/TcaControlBundle.cc             \
