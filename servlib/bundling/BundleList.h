@@ -84,7 +84,7 @@ public:
     /**
      * Constructor
      */
-    BundleList(const std::string& name);
+    BundleList(const std::string& name, oasys::SpinLock* lock = NULL);
 
     /**
      * Destructor -- clears the list.
@@ -327,10 +327,11 @@ protected:
      */
     Bundle* del_bundle(const iterator& pos, bool used_notifier);
     
-    std::string name_;
+    std::string      name_;
     oasys::SpinLock* lock_;
+    bool             own_lock_;
     oasys::Notifier* notifier_;
-    List list_;
+    List             list_;
 };
 
 /**

@@ -30,10 +30,17 @@
 namespace dtn {
 
 //----------------------------------------------------------------------
-BundleList::BundleList(const std::string& name)
+BundleList::BundleList(const std::string& name, oasys::SpinLock* lock)
     : Logger("BundleList", "/dtn/bundle/list/%s", name.c_str()),
-      name_(name), lock_(new oasys::SpinLock()), notifier_(NULL)
+      name_(name), notifier_(NULL)
 {
+    if (lock != NULL) {
+        lock_     = lock;
+        own_lock_ = false;
+    } else {
+        lock_     = new oasys::SpinLock();
+        own_lock_ = true;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -48,7 +55,10 @@ BundleList::set_name(const std::string& name)
 BundleList::~BundleList()
 {
     clear();
-    delete lock_;
+    if (own_lock_) {
+        delete lock_;
+    }
+    lock_ = NULL;
 }
 
 //----------------------------------------------------------------------
