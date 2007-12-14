@@ -157,7 +157,10 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
     log_debug("adding *%p to link %s's queue (length %u)",
               bundle, link->name(), link->bundles_queued());
 
-    link->add_to_queue(bref, total_len);
+    if (! link->add_to_queue(bref, total_len)) {
+        log_err("error adding bundle *%p to link *%p queue",
+                bundle, link.object());
+    }
     
     // finally, kick the convergence layer
     link->clayer()->bundle_queued(link, bref);
