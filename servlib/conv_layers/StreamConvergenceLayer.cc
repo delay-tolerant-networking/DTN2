@@ -1225,7 +1225,7 @@ StreamConvergenceLayer::Connection::check_completed(IncomingBundle* incoming)
                 rcvd_len, incoming->total_length_);
 
         // we pretend that we got nothing so the cleanup code in
-        // CLConnection::close_contact doesn't try to post a received
+        // ConnectionCL::close_contact doesn't try to post a received
         // event for the bundle
 protocol_err:
         incoming->rcvd_data_.clear();

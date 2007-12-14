@@ -61,16 +61,6 @@ public:
      */
     void set_contact(const ContactRef& contact) { contact_ = contact; }
 
-    /**
-     * Notification that one or more bundles may be queued on the link.
-     */
-    void bundles_queued();
-
-    /**
-     * Attempt to cancel the in-progress transmission of the given bundle.
-     */
-    void cancel_bundle(Bundle* bundle);
-
 protected:
     /**
      * Main run loop.
@@ -81,7 +71,6 @@ protected:
     /// Utility functions, all virtual so subclasses could override them
     virtual void contact_up();
     virtual void break_contact(ContactEvent::reason_t reason);
-    virtual void close_contact();
     virtual void process_command();
     virtual bool find_contact(const EndpointID& peer_eid);
     /// @}
@@ -182,9 +171,13 @@ protected:
             : type_(CLMSG_INVALID),
               bundle_("ConnectionConvergenceLayer::CLMsg") {}
         
-        CLMsg(clmsg_t type, Bundle* bundle = NULL)
+        CLMsg(clmsg_t type)
             : type_(type),
-              bundle_(bundle, "ConnectionConvergenceLayer::CLMsg") {}
+              bundle_("ConnectionConvergenceLayer::CLMsg") {}
+        
+        CLMsg(clmsg_t type, const BundleRef& bundle)
+            : type_(type),
+              bundle_(bundle.object(), "ConnectionConvergenceLayer::CLMsg") {}
         
         clmsg_t   type_;
         BundleRef bundle_;

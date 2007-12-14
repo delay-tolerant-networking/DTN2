@@ -263,6 +263,9 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
 {
     log_info("close_contact *%p", contact.object());
 
+    const LinkRef& link = contact->link();
+    ASSERT(link != NULL);
+    
     CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
     ASSERT(conn != NULL);
 
@@ -279,14 +282,99 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
         oasys::Thread::yield();
     }
 
-    conn->close_contact();
-    delete conn;
+    // now that the connection thread is stopped, clean up the in
+    // flight and incoming bundles
+    LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
+    ASSERT(params != NULL);
+    
+    while (! conn->inflight_.empty()) {
+        CLConnection::InFlightBundle* inflight = conn->inflight_.front();
+        u_int32_t sent_bytes  = inflight->sent_data_.num_contiguous();
+        u_int32_t acked_bytes = inflight->ack_data_.num_contiguous();
 
+        if ((! params->reactive_frag_enabled_) ||
+            (sent_bytes == 0) ||
+            (link->is_reliable() && acked_bytes == 0))
+        {
+            /*log_debug("posting transmission failed event "
+                      "(reactive fragmentation %s, %s link, acked_bytes %u)",
+                      params->reactive_frag_enabled_ ? "enabled" : "disabled",
+                      link->is_reliable() ? "reliable" : "unreliable",
+                      acked_bytes);
+            
+            BundleDaemon::post(
+                new BundleTransmitFailedEvent(inflight->bundle_.object(),
+                                              contact_, link));*/
+
+
+            // if we've started the bundle but not gotten anything
+            // out, we need to push the bundle back onto the link
+            // queue so it's there when the link re-opens
+            if (! link->del_from_inflight(inflight->bundle_,
+                                          inflight->total_length_) ||
+                ! link->add_to_queue(inflight->bundle_,
+                                     inflight->total_length_))
+            {
+                log_warn("inflight queue mismatch for bundle %d",
+                         inflight->bundle_->bundleid_);
+            }
+            
+        } else {
+            // otherwise, if part of the bundle has been transmitted,
+            // then post the event so that the core system can do
+            // reactive fragmentation
+            if (! inflight->transmit_event_posted_) {
+                BundleDaemon::post(
+                    new BundleTransmittedEvent(inflight->bundle_.object(),
+                                               contact, link,
+                                               sent_bytes, acked_bytes));
+            }
+        }
+
+        conn->inflight_.pop_front();
+        delete inflight;
+    }
+
+    // check the tail of the incoming queue to see if there's a
+    // partially-received bundle that we need to post a received event
+    // for (if reactive fragmentation is enabled)
+    if (! conn->incoming_.empty()) {
+        CLConnection::IncomingBundle* incoming = conn->incoming_.back();
+        if(!incoming->rcvd_data_.empty())
+        {  
+            size_t rcvd_len = incoming->rcvd_data_.last() + 1;
+            
+            size_t header_block_length =
+                BundleProtocol::payload_offset(&incoming->bundle_->recv_blocks_);
+        
+            if ((incoming->total_length_ == 0) && 
+                params->reactive_frag_enabled_ &&
+                (rcvd_len > header_block_length))
+            {
+                log_debug("partial arrival of bundle: "
+                          "got %zu bytes [hdr %zu payload %zu]",
+                          rcvd_len, header_block_length,
+                          incoming->bundle_->payload_.length());
+             
+                BundleDaemon::post(
+                    new BundleReceivedEvent(incoming->bundle_.object(),
+                                            EVENTSRC_PEER, rcvd_len,
+                                            contact.object()));
+            }
+        }
+    }
+
+    // drain the CLConnection incoming queue
+    while (! conn->incoming_.empty()) {
+        CLConnection::IncomingBundle* incoming = conn->incoming_.back();
+        conn->incoming_.pop_back();
+        delete incoming;
+    }
+    
+    delete conn;
+    
     contact->set_cl_info(NULL);
 
-    LinkRef link = contact->link();
-    ASSERT(link != NULL);
- 
     if (link->isdeleted()) {
         ASSERT(link->cl_info() != NULL);
         delete link->cl_info();
@@ -313,11 +401,16 @@ ConnectionConvergenceLayer::bundle_queued(const LinkRef& link,
     
     const ContactRef& contact = link->contact();
     ASSERT(contact != NULL);
-    
+
     CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
     ASSERT(conn != NULL);
     
-    conn->bundles_queued();
+    // the bundle is already on the link queue, so we just kick the
+    // connection thread in case it's idle
+    ASSERT(bundle->is_queued_on(link->queue()));
+
+    conn->cmdqueue_.push_back(
+        CLConnection::CLMsg(CLConnection::CLMSG_BUNDLES_QUEUED));
 }
 
 //----------------------------------------------------------------------
@@ -325,6 +418,8 @@ void
 ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
                                           const BundleRef& bundle)
 {
+    ASSERT(! link->isdeleted());
+    
     // the bundle should be on the inflight queue for cancel_bundle to
     // be called
     if (! bundle->is_queued_on(link->inflight())) {
@@ -356,11 +451,11 @@ ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
     ASSERT(conn != NULL);
 
     ASSERT(contact->link() == link);
-    ASSERT(! link->isdeleted());
-    
     log_debug("ConnectionConvergenceLayer::cancel_bundle: "
               "cancelling *%p on *%p", bundle.object(), link.object());
-    conn->cancel_bundle(bundle.object());
+
+    conn->cmdqueue_.push_back(
+        CLConnection::CLMsg(CLConnection::CLMSG_CANCEL_BUNDLE, bundle));
 }
 
 } // namespace dtn
