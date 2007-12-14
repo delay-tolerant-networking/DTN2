@@ -371,7 +371,7 @@ StreamConvergenceLayer::Connection::handle_bundles_queued()
     // message here. the point of the message is to kick the thread
     // out of poll() which forces the main loop to check the queue
     log_debug("handle_bundles_queued: %u bundles on link queue",
-              contact_->link()->stats()->bundles_queued_);
+              contact_->link()->bundles_queued());
 }
 
 //----------------------------------------------------------------------

@@ -591,26 +591,21 @@ public:
          * (equivalent to the number of times the link was open)
          */
         u_int contacts_;
-        
-        /** @{
-         *
-         * Data statistics about the link, both in terms of bundles
-         * and bytes. The stats correlate to state of the the
-         * link queue and inflight lists.
-         *
-         *    *_queued:       the link queue size
-         *    *_inflight:     transmitted but not yet acknowledged
-         *    *_transmitted:  successfully transmitted
-         *    *_cancelled:    cancelled
+
+        /**
+         * Number of bundles transmitted over the link.
          */
-        u_int bundles_queued_;
-        u_int bytes_queued_; 
-        u_int bundles_inflight_;
-        u_int bytes_inflight_;
         u_int bundles_transmitted_;
+
+        /**
+         * Total byte count transmitted over the link.
+         */
         u_int bytes_transmitted_;
+
+        /**
+         * Number of bundles with cancelled transmission.
+         */
         u_int bundles_cancelled_;
-        /// @}
 
         /**
          * The total uptime of the link, not counting the current
@@ -650,6 +645,13 @@ public:
      * Dump a printable version of the stats.
      */
     void dump_stats(oasys::StringBuffer* buf);
+
+    /// @{ Accessors for the link queue stats
+    u_int bundles_queued()   { return bundles_queued_; }
+    u_int bytes_queued()     { return bytes_queued_; }
+    u_int bundles_inflight() { return bundles_inflight_; }
+    u_int bytes_inflight()   { return bytes_inflight_; }
+    /// @}
 
     /**
      * Accessor for the Link state lock.
@@ -718,6 +720,20 @@ protected:
 
     /// Queue of bundles that have been sent but not yet acknowledged
     BundleList inflight_;
+    
+    /** @{
+         *
+     * Data counters about the link queues, both in terms of bundles
+     * and bytes.
+     *
+     *    *_queued:       the link queue size
+     *    *_inflight:     transmitted but not yet acknowledged
+     */
+    u_int bundles_queued_;
+    u_int bytes_queued_; 
+    u_int bundles_inflight_;
+    u_int bytes_inflight_;
+    /** @} */
 
     /// Stats for the link
     mutable Stats stats_;

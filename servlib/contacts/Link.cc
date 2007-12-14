@@ -119,6 +119,10 @@ Link::Link(const std::string& name, link_type_t type,
        lock_(),
        queue_(name + ":queue", &lock_),
        inflight_(name + ":inflight", &lock_),
+       bundles_queued_(0),
+       bytes_queued_(0),
+       bundles_inflight_(0),
+       bytes_inflight_(0),
        contact_("Link"),
        clayer_(cl),
        cl_info_(NULL),
@@ -148,6 +152,10 @@ Link::Link(const oasys::Builder&)
       lock_(),
       queue_("", &lock_),
       inflight_("", &lock_),
+      bundles_queued_(0),
+      bytes_queued_(0),
+      bundles_inflight_(0),
+      bytes_inflight_(0),
       contact_("Link"),
       clayer_(NULL),
       cl_info_(NULL),
@@ -456,16 +464,16 @@ Link::close()
 bool
 Link::queue_is_full() const
 {
-    return ((stats_.bundles_queued_ > params_.qlimit_bundles_high_) ||
-            (stats_.bytes_queued_   > params_.qlimit_bytes_high_));
+    return ((bundles_queued_ > params_.qlimit_bundles_high_) ||
+            (bytes_queued_   > params_.qlimit_bytes_high_));
 }
 
 //----------------------------------------------------------------------
 bool
 Link::queue_has_space() const
 {
-    return ((stats_.bundles_queued_ < params_.qlimit_bundles_low_) &&
-            (stats_.bytes_queued_   < params_.qlimit_bytes_low_));
+    return ((bundles_queued_ < params_.qlimit_bundles_low_) &&
+            (bytes_queued_   < params_.qlimit_bytes_low_));
 }
 
 //----------------------------------------------------------------------
@@ -481,9 +489,9 @@ Link::add_to_queue(const BundleRef& bundle, size_t total_len)
     }
     
     log_debug("adding *%p to queue (length %u)",
-              bundle.object(), stats_.bundles_queued_);
-    stats_.bundles_queued_++;
-    stats_.bytes_queued_ += total_len;
+              bundle.object(), bundles_queued_);
+    bundles_queued_++;
+    bytes_queued_ += total_len;
     queue_.push_back(bundle);
 
     return true;
@@ -499,21 +507,21 @@ Link::del_from_queue(const BundleRef& bundle, size_t total_len)
         return false;
     }
 
-    ASSERT(stats_.bundles_queued_ > 0);
-    stats_.bundles_queued_--;
+    ASSERT(bundles_queued_ > 0);
+    bundles_queued_--;
     
     // sanity checks
     ASSERT(total_len != 0);
-    if (stats_.bytes_queued_ >= total_len) {
-        stats_.bytes_queued_ -= total_len;
+    if (bytes_queued_ >= total_len) {
+        bytes_queued_ -= total_len;
 
     } else {
         log_err("del_from_queue: *%p bytes_queued %u < total_len %zu",
-                bundle.object(), stats_.bytes_queued_, total_len);
+                bundle.object(), bytes_queued_, total_len);
     }
     
     log_debug("removed *%p from queue (length %u)",
-              bundle.object(), stats_.bundles_queued_);
+              bundle.object(), bundles_queued_);
     return true;
 }
 //----------------------------------------------------------------------
@@ -533,8 +541,8 @@ Link::add_to_inflight(const BundleRef& bundle, size_t total_len)
     
     inflight_.push_back(bundle.object());
 
-    stats_.bundles_inflight_++;
-    stats_.bytes_inflight_ += total_len;
+    bundles_inflight_++;
+    bytes_inflight_ += total_len;
 
     return true;
 }
@@ -549,21 +557,21 @@ Link::del_from_inflight(const BundleRef& bundle, size_t total_len)
         return false;
     }
 
-    ASSERT(stats_.bundles_inflight_ > 0);
-    stats_.bundles_inflight_--;
+    ASSERT(bundles_inflight_ > 0);
+    bundles_inflight_--;
     
     // sanity checks
     ASSERT(total_len != 0);
-    if (stats_.bytes_inflight_ >= total_len) {
-        stats_.bytes_inflight_ -= total_len;
+    if (bytes_inflight_ >= total_len) {
+        bytes_inflight_ -= total_len;
 
     } else {
         log_err("del_from_inflight: *%p bytes_inflight %u < total_len %zu",
-                bundle.object(), stats_.bytes_inflight_, total_len);
+                bundle.object(), bytes_inflight_, total_len);
     }
     
     log_debug("removed *%p from inflight list (length %u)",
-              bundle.object(), stats_.bundles_inflight_);
+              bundle.object(), bundles_inflight_);
     return true;
 }
 
@@ -657,10 +665,10 @@ Link::dump_stats(oasys::StringBuffer* buf)
                  stats_.contacts_,
                  stats_.bundles_transmitted_,
                  stats_.bytes_transmitted_,
-                 stats_.bundles_queued_,
-                 stats_.bytes_queued_,
-                 stats_.bundles_inflight_,
-                 stats_.bytes_inflight_,
+                 bundles_queued_,
+                 bytes_queued_,
+                 bundles_inflight_,
+                 bytes_inflight_,
                  stats_.bundles_cancelled_,
                  uptime,
                  throughput);

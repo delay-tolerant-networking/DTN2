@@ -220,8 +220,8 @@ struct RoutePrioritySort {
     bool operator() (RouteEntry* a, RouteEntry* b) {
         if (a->priority() < b->priority()) return false;
         if (a->priority() > b->priority()) return true;
-        return (a->link()->stats()->bytes_queued_ <
-                b->link()->stats()->bytes_queued_);
+        return (a->link()->bytes_queued() <
+                b->link()->bytes_queued());
     }
 };
 

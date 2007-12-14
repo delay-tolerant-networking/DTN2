@@ -155,7 +155,7 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
                               custody_timer);
 
     log_debug("adding *%p to link %s's queue (length %u)",
-              bundle, link->name(), link->stats_.bundles_queued_);
+              bundle, link->name(), link->bundles_queued());
 
     link->add_to_queue(bref, total_len);
     

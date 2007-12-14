@@ -733,8 +733,8 @@ DTLSRRouter::generate_link_state(LinkState* ls,
 
     // XXX/demmer maybe the edge info should be tied to the link
     // itself somehow?
-    ls->params_.qcount_ = link->stats()->bundles_queued_;
-    ls->params_.qsize_  = link->stats()->bytes_queued_;
+    ls->params_.qcount_ = link->bundles_queued();
+    ls->params_.qsize_  = link->bytes_queued();
     
     if (edge->info().last_update_.sec_ != 0) {
         ls->elapsed_ = edge->info().last_update_.elapsed_ms();
