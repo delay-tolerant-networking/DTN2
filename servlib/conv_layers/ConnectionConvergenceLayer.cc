@@ -370,6 +370,10 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
         conn->incoming_.pop_back();
         delete incoming;
     }
+
+    // clear out the connection message queue
+    CLConnection::CLMsg msg;
+    while (conn->cmdqueue_.try_pop(&msg)) {}
     
     delete conn;
     
