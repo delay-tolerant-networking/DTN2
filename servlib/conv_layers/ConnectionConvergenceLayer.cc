@@ -405,10 +405,12 @@ ConnectionConvergenceLayer::bundle_queued(const LinkRef& link,
     CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
     ASSERT(conn != NULL);
     
-    // the bundle is already on the link queue, so we just kick the
-    // connection thread in case it's idle
-    ASSERT(bundle->is_queued_on(link->queue()));
-
+    // the bundle was previously put on the link queue, so we just
+    // kick the connection thread in case it's idle.
+    //
+    // note that it's possible the bundle was already picked up and
+    // taken off the link queue by the connection thread, so don't
+    // assert here.
     conn->cmdqueue_.push_back(
         CLConnection::CLMsg(CLConnection::CLMSG_BUNDLES_QUEUED));
 }
