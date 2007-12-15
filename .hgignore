@@ -23,6 +23,8 @@ configure-stamp
 
 run-*
 
+build*
+
 applib/python/build
 applib/python/dtnapi.pyc
 apps/tca_admin/tca_admin
