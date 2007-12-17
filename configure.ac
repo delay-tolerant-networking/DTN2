@@ -137,6 +137,7 @@ INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
 AC_SUBST(INCFLAGS)
 
 AC_CONFIG_FILES([Rules.make:$OASYS_ETCDIR/Rules.make.in])
+AC_CONFIG_FILES([System.make:$OASYS_ETCDIR/System.make])
 
 if test ! $SRCDIR = `pwd` ; then
    AC_CONFIG_FILES([Makefile:Makefile-Builddir.in])
