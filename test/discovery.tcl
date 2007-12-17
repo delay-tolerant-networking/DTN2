@@ -46,7 +46,14 @@ conf::add dtnd 1 "discovery announce tcp0 ipdisc0 tcp interval=$disc_interval \
 conf::add dtnd 2 "discovery announce tcp0 ipdisc0 tcp interval=$disc_interval \
         cl_port=[dtn::get_port tcp 2]"
 
+if {$opt(net) == "localhost"} {
+    testlog "Discovery test cannot be run on localhost net"
+    exit 0
+}
+
 test::script {
+    
+
     testlog "Running dtnds"
     dtn::run_dtnd *
 

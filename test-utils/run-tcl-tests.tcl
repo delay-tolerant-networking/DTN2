@@ -34,6 +34,7 @@ set tests(basic) {
     "api-poll.tcl"		""
     "bundle-status-reports.tcl"	""
     "custody-transfer.tcl"      ""
+    "discovery.tcl"             ""
     "dtlsr.tcl"			""
     "dtlsr-areas.tcl"		""
     "dtn-cp.tcl"		""
@@ -54,6 +55,7 @@ set tests(basic) {
     "multipath-forwarding.tcl"	""
     "multiple-registrations.tcl" ""
     "ondemand-links.tcl"	""
+    "prophet.tcl"               ""
     "no-duplicate-send.tcl"	""
     "reactive-fragmentation.tcl" ""
     "reroute-from-down-link.tcl" ""
@@ -70,12 +72,6 @@ set tests(basic) {
     "version-mismatch.tcl"	""
 }
 
-# Prophet router test group
-set tests(prophet) {
-    "prophet.tcl"   ""
-    "discovery.tcl"   ""
-}
-
 # BlueZ utils test group
 set tests(bluez) {
     "bluez-rfcomm.tcl"   ""
@@ -86,7 +82,6 @@ set tests(bluez) {
 
 # the stress test group
 set tests(stress) {
-    "api-leak-test.tcl"		""
     "bidirectional.tcl"         ""
     "many-bundles.tcl"		""
     "many-bundles.tcl"		"-storage_type berkeleydb-no-txn"
@@ -100,6 +95,11 @@ set tests(stress) {
     "dtn-perf.tcl"		"-payload_len 5MB  -file_payload -storage_type filesysdb"
     "dtn-perf.tcl"		"-payload_len 50MB -file_payload -storage_type filesysdb"
 }
+
+set tests(other) {
+    "api-leak-test.tcl"		""
+}
+
 
 # check test group
 set group [lindex $argv 0]
