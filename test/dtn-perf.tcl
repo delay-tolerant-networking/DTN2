@@ -115,9 +115,13 @@ test::script {
 }
 
 test::exit_script {
-    testlog "Stopping dtnperf-server (node $last_node server_pid $server_pid test pid [pid])"
-    run::kill_pid $last_node $server_pid 1
-    run::wait_for_pid_exit $last_node $server_pid
+    if {$server_pid == ""} {
+        testlog "ERROR: server_pid not set"
+    } else {
+        testlog "Stopping dtnperf-server (node $last_node server_pid $server_pid test pid [pid])"
+        run::kill_pid $last_node $server_pid 1
+        run::wait_for_pid_exit $last_node $server_pid
+    }
     
     testlog "Stopping all dtnds"
     dtn::stop_dtnd *
