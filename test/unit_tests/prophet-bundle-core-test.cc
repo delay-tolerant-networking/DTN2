@@ -107,6 +107,7 @@ DECLARE_TEST(CleanErUpper)
 {
     br = NULL;
     cl->delete_link(l);
+    l = NULL;
     return UNIT_TEST_PASSED;
 }
 
