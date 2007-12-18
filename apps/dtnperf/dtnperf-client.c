@@ -354,9 +354,8 @@ int main(int argc, char** argv)
             if (debug) printf("[debug] creating file %s...", file_name_src);
             fd = open(file_name_src, O_CREAT|O_TRUNC|O_WRONLY|O_APPEND, 0666);
             if (fd < 0) {
-                fprintf(stderr, "ERROR: couldn't create file %s [fd = %d].\n \
-                                 Maybe you don't have permissions\n",
-                        file_name_src, fd);
+                fprintf(stderr, "ERROR: couldn't create file %s [fd = %d]: %s\n",
+                        file_name_src, fd, strerror(errno));
                 exit(2);
             }
             if (debug) printf(" done\n");
