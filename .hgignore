@@ -3,6 +3,7 @@ syntax: glob
 .gdb_history
 .glimpse_*
 Rules.make
+System.make
 dtn-config.h
 autoscan.log
 config.cache
