@@ -106,6 +106,7 @@ MetadataBlockProcessor::prepare(const Bundle*    bundle,
                                 list_owner_t     list)
 {
     static const char* log = "/dtn/bundle/protocol";
+    (void)log;
 
     ASSERT(bundle != NULL);
     ASSERT(xmit_blocks != NULL);

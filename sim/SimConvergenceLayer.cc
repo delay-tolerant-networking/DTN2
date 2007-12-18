@@ -467,6 +467,8 @@ SimConvergenceLayer::open_contact(const ContactRef& contact)
 void 
 SimConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
 {
+    (void)bundle;
+    
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
 
