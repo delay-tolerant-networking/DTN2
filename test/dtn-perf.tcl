@@ -75,17 +75,16 @@ test::script {
     set last_node [expr $N - 1]
     set dest      dtn://host-${last_node}
 
-    # make sure we properly tell the client and server where to put things
-    set rundir [dist::get_rundir $net::host($last_node) $last_node]
-    regsub {dtnperf.snd} $delivery_opts "$rundir/dtnperf.snd" delivery_opts
-    
-    set server_opts "-v -a 100 -d $rundir "
+    set server_rundir [dist::get_rundir $net::host($last_node) $last_node]
+    set server_opts "-v -a 100 -d $server_rundir "
     if {$mode == "memory"} {
 	append server_opts "-m"
     }
     set server_pid [dtn::run_app $last_node dtnperf-server $server_opts]
     after 1000
-    
+
+    set client_rundir [dist::get_rundir $net::host(0) 0]
+    regsub {dtnperf.snd} $delivery_opts "$client_rundir/dtnperf.snd" delivery_opts
     testlog "Running dtnperf-client for $perftime seconds"
     set client_pid [dtn::run_app 0 dtnperf-client \
 			"-t $perftime $delivery_opts -d $dest" ]
