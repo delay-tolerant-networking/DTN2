@@ -539,17 +539,14 @@ StreamConvergenceLayer::Connection::start_next_bundle()
         return false;
     }
     
-    oasys::ScopeLock l(inflight_lock(),
-                       "StreamConvergenceLayer::Connection::start_next_bundle");
-    
     const LinkRef& link = contact_->link();
     BundleRef bundle("StreamCL::Connection::start_next_bundle");
 
     // try to pop the next bundle off the link queue and put it in
     // flight, making sure to hold the link queue lock until it's
     // safely on the link's inflight queue
-    oasys::ScopeLock qlock(link->queue()->lock(),
-                           "StreamCL::Connection::start_next_bundle");
+    oasys::ScopeLock l(link->queue()->lock(),
+                       "StreamCL::Connection::start_next_bundle");
 
     bundle = link->queue()->front();
     if (bundle == NULL) {
@@ -569,10 +566,9 @@ StreamConvergenceLayer::Connection::start_next_bundle()
     link->add_to_inflight(bundle, inflight->total_length_);
     link->del_from_queue(bundle, inflight->total_length_);
 
-    // release our locks before calling send_next_segment since it
+    // release the lock before calling send_next_segment since it
     // might take a while
     l.unlock();
-    qlock.unlock();
     
     // now send the first segment for the bundle
     return send_next_segment(current_inflight_);
@@ -738,9 +734,6 @@ StreamConvergenceLayer::Connection::check_completed(InFlightBundle* inflight)
         return;
     }
 
-    oasys::ScopeLock l(inflight_lock(),
-                       "StreamConvergenceLayer::Connection::check_completed");
-
     log_debug("check_completed: bundle %d transmission complete",
               inflight->bundle_->bundleid_);
     ASSERT(inflight == inflight_.front());
@@ -777,9 +770,6 @@ StreamConvergenceLayer::Connection::send_keepalive()
 void
 StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
 {
-    oasys::ScopeLock l(inflight_lock(), "StreamConvergenceLayer::"
-                       "Connection::handle_cancel_bundle");
-    
     // if the bundle is already actually in flight (i.e. we've already
     // sent all or part of it), we can't currently cancel it. however,
     // in the case where it's not already in flight, we can cancel it
@@ -1267,9 +1257,6 @@ StreamConvergenceLayer::Connection::handle_ack_segment(u_int8_t flags)
     }
 
     recvbuf_.consume(1 + sdnv_len);
-
-    oasys::ScopeLock l(inflight_lock(), "StreamConvergenceLayer::"
-                                        "Connection::handle_ack_segment");
 
     if (inflight_.empty()) {
         log_err("protocol error: got ack segment with no inflight bundle");

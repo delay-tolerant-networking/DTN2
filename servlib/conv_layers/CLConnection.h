@@ -223,12 +223,6 @@ protected:
     typedef std::list<InFlightBundle*> InFlightList;
 
     /**
-     * Lock to protect the access of the in-flight queue.
-     */
-    oasys::SpinLock inflight_lock_;
-    oasys::Lock* inflight_lock() { return &inflight_lock_; }
-
-    /**
      * Struct used to record bundles that are in the process of being
      * received along with their transmission state and relevant
      * acknowledgement data.
@@ -260,8 +254,10 @@ protected:
     
     ContactRef          contact_;	///< Ref to the Contact
     bool		contact_up_;	///< Has contact_up been called
-    oasys::MsgQueue<CLMsg> cmdqueue_;	///< Queue of commands from daemon
+    oasys::SpinLock     cmdqueue_lock_; ///< Lock for command queue
+    oasys::MsgQueue<CLMsg> cmdqueue_;	///< Daemon/CLConnection command queue
     ConnectionConvergenceLayer* cl_;	///< Pointer to the CL
+
     LinkParams*		params_;	///< Pointer to Link parameters, or
                                         ///< to defaults until Link is bound
     bool                active_connector_; ///< Should we connect() or accept()
