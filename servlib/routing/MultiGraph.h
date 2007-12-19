@@ -122,6 +122,10 @@ public:
         Node(const std::string& id, const _NodeInfo info)
             : id_(id), info_(info) {}
 
+        ~Node();
+
+        bool del_edge(Edge* edge);
+        
         const std::string& id() const { return id_; }
 
         const _NodeInfo& info() const { return info_; }

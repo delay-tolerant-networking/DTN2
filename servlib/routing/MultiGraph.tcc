@@ -129,9 +129,35 @@ inline bool
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::del_edge(Node* node, Edge* edge)
 {
+    return node->del_edge(edge);
+}
+
+
+//----------------------------------------------------------------------
+template <typename _NodeInfo, typename _EdgeInfo>
+inline
+MultiGraph<_NodeInfo,_EdgeInfo>
+::Node::~Node()
+{
+    while (! this->out_edges_.empty()) {
+        this->del_edge(*this->out_edges_.begin());
+    }
+
+    while (! this->in_edges_.empty()) {
+        Edge* edge = *this->in_edges_.begin();
+        edge->source()->del_edge(edge);
+    }
+}
+
+//----------------------------------------------------------------------
+template <typename _NodeInfo, typename _EdgeInfo>
+inline bool
+MultiGraph<_NodeInfo,_EdgeInfo>
+::Node::del_edge(Edge* edge)
+{
     class EdgeVector::iterator ei, ei2;
-    for (ei = node->out_edges_.begin();
-         ei != node->out_edges_.end(); ++ei)
+    for (ei = this->out_edges_.begin();
+         ei != this->out_edges_.end(); ++ei)
     {
         if (*ei == edge)
         {
@@ -146,7 +172,7 @@ MultiGraph<_NodeInfo,_EdgeInfo>
                 ++ei2;
             }
             
-            node->out_edges_.erase(ei);
+            this->out_edges_.erase(ei);
             edge->dest()->in_edges_.erase(ei2);
             delete edge;
             return true;
