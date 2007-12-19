@@ -294,7 +294,7 @@ public:
      */
     void set_name(const std::string& name);
     
-protected:
+private:
     /**
      * Helper routine to add a bundle at the indicated position.
      */
@@ -312,11 +312,13 @@ protected:
      */
     Bundle* del_bundle(const iterator& pos, bool used_notifier);
     
-    std::string      name_;
-    oasys::SpinLock* lock_;
-    bool             own_lock_;
-    oasys::Notifier* notifier_;
-    List             list_;
+    std::string      name_;	///< name of the list
+    List             list_;	///< underlying list data structure
+    
+protected:
+    oasys::SpinLock* lock_;	///< lock for notifier
+    bool             own_lock_; ///< bit to define lock ownership
+    oasys::Notifier* notifier_; ///< notifier for blocking list
 };
 
 /**

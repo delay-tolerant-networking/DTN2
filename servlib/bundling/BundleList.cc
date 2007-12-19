@@ -513,13 +513,12 @@ BlockingBundleList::pop_blocking(int timeout)
 {
     ASSERT(notifier_);
 
-    log_debug("pop_blocking on list %p [%s]", 
-              this, name_.c_str());
+    log_debug("pop_blocking on list %p [%s]", this, name().c_str());
     
     lock_->lock("BlockingBundleList::pop_blocking");
 
     bool used_wait;
-    if (list_.empty()) {
+    if (empty()) {
         used_wait = true;
         bool notified = notifier_->wait(lock_, timeout);
         ASSERT(lock_->is_locked_by_me());
@@ -538,7 +537,7 @@ BlockingBundleList::pop_blocking(int timeout)
     
     // This can't be empty if we got notified, unless there is another
     // thread waiting on the queue - which is an error.
-    ASSERT(!list_.empty());
+    ASSERT(!empty());
     
     BundleRef ret("BlockingBundleList::pop_blocking temporary");
     ret = pop_front(used_wait);
