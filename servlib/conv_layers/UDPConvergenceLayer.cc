@@ -343,9 +343,6 @@ UDPConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
         link->add_to_inflight(bundle, len);
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle.object(), contact, link, len, 0));
-    } else {
-        /*BundleDaemon::post(
-            new BundleTransmitFailedEvent(bundle, contact, link));*/
     }
 }
 

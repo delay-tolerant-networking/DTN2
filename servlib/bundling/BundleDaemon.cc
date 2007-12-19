@@ -870,56 +870,6 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 }
 
 //----------------------------------------------------------------------
-
-/*void
-BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
-{
-    
-    // The bundle was delivered to a next-hop contact.
-     
-    Bundle* bundle = event->bundleref_.object();
-
-    LinkRef link = event->link_;
-    ASSERT(link != NULL);
-    
-    log_debug("trying to find xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
-    
-    // Because a CL is running in another thread or process (External CLs),
-    // we cannot prevent all redundant transmit/cancel/transmit_failed messages.
-    // If an event about a bundle bound for particular link is posted after another,
-    // which it might contradict, the BundleDaemon need not reprocess the event.
-    // The router (DP) might, however, be interested in the new status of the send.
-    if(blocks == NULL)
-    {
-        log_info("received a redundant/conflicting bundle_transmit_failed event about bundle id:%d -> %s (%s)",
-             bundle->bundleid_,
-             link->name(),
-             link->nexthop());
-        return;
-    }
-    
-    log_debug("trying to delete xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
-    BundleProtocol::delete_blocks(bundle, link);
-    
-    log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",
-             bundle->bundleid_,
-             event->contact_->link()->name(),
-             event->contact_->link()->nexthop());
-    
-
-    // Update the forwarding log so routers know to try to retransmit
-    // on the next contact.
-    
-    bundle->fwdlog_.update(event->contact_->link(),
-                           ForwardingInfo::TRANSMIT_FAILED);
-
-    
-    // Fall through to notify the routers
-    
-}*/
-
-//----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
 {

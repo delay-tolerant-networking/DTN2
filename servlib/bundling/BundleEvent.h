@@ -46,7 +46,6 @@ class RouteEntry;
 typedef enum {
     BUNDLE_RECEIVED = 0x1,      ///< New bundle arrival
     BUNDLE_TRANSMITTED,         ///< Bundle or fragment successfully sent
-    BUNDLE_TRANSMIT_FAILED,     ///< Bundle or fragment successfully sent
     BUNDLE_DELIVERED,           ///< Bundle locally delivered
     BUNDLE_DELIVERY,            ///< Bundle delivery (with payload)
     BUNDLE_EXPIRED,             ///< Bundle expired
@@ -131,7 +130,6 @@ event_to_str(event_type_t event)
 
     case BUNDLE_RECEIVED:       return "BUNDLE_RECEIVED";
     case BUNDLE_TRANSMITTED:    return "BUNDLE_TRANSMITTED";
-    case BUNDLE_TRANSMIT_FAILED:return "BUNDLE_TRANSMIT_FAILED";
     case BUNDLE_DELIVERED:      return "BUNDLE_DELIVERED";
     case BUNDLE_DELIVERY:       return "BUNDLE_DELIVERY";
     case BUNDLE_EXPIRED:        return "BUNDLE_EXPIRED";
@@ -377,31 +375,6 @@ public:
     LinkRef link_;
 
 };
-
-/**
- * Event class for a failed transmission, which can occur if a link
- * closes after a router has issued a transmission request but before
- * the bundle is successfully sent.
- */
-/*class BundleTransmitFailedEvent : public BundleEvent {
-public:
-    BundleTransmitFailedEvent(Bundle* bundle, const ContactRef& contact,
-                              const LinkRef& link)
-        : BundleEvent(BUNDLE_TRANSMIT_FAILED),
-          bundleref_(bundle, "BundleTransmitFailedEvent"),
-          contact_(contact.object(), "BundleTransmitFailedEvent"),
-          link_(link.object(), "BundleTransmitFailedEvent") {}
-
-    /// The transmitted bundle
-    BundleRef bundleref_;
-
-    /// The contact where the bundle was attempted to be sent
-    ContactRef contact_;
-
-    /// The link over which the bundle was sent
-    /// (may not have a contact when the transmission result is reported)
-    LinkRef link_;
-};*/
 
 /**
  * Event class for local bundle delivery.

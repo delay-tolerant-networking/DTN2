@@ -228,8 +228,7 @@ private:
      * This is called by prepare_bundle_to_send() when something goes wrong
      * and by cleanup() when a module dies while it still has bundles waiting
      * to be sent. It will remove the bundle from the link's outgoing list (if
-     * erase_from_list is true), erase the bundle file from storage, and post
-     * a BundleTransmitFailedEvent to the BundleDaemon.
+     * erase_from_list is true), and erase the bundle file from storage.
      * 
      * @note The 'path' field of outgoing_bundle must be set before calling
      *       this method.
@@ -290,10 +289,8 @@ private:
      * canceling bundles.  All links will be made CLOSED with a
      * LinkStateChangeRequest. Any ECLResources that we own (in iface_list_ and
      * normal_links_) will be returned to ExternalConvergenceLayer's unclaimed
-     * resource list. Links in temp_links_ will be destroyed. For any bundle
-     * sitting in the outgoing list of a link, a BundleTransmitFailedEvent will
-     * be sent to the BundleDaemon. Finally, the incoming and outgoing bundle
-     * directories will be removed.
+     * resource list. Links in temp_links_ will be destroyed. Finally, the
+     * incoming and outgoing bundle directories will be removed.
      */
     void cleanup();
     

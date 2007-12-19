@@ -296,17 +296,6 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
             (sent_bytes == 0) ||
             (link->is_reliable() && acked_bytes == 0))
         {
-            /*log_debug("posting transmission failed event "
-                      "(reactive fragmentation %s, %s link, acked_bytes %u)",
-                      params->reactive_frag_enabled_ ? "enabled" : "disabled",
-                      link->is_reliable() ? "reliable" : "unreliable",
-                      acked_bytes);
-            
-            BundleDaemon::post(
-                new BundleTransmitFailedEvent(inflight->bundle_.object(),
-                                              contact_, link));*/
-
-
             // if we've started the bundle but not gotten anything
             // out, we need to push the bundle back onto the link
             // queue so it's there when the link re-opens

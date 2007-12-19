@@ -94,7 +94,6 @@ public:
     virtual void handle_event(BundleEvent *event);
     virtual void handle_bundle_received(BundleReceivedEvent *event);
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
-    //virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
     virtual void handle_bundle_delivered(BundleDeliveredEvent* event);
     virtual void handle_bundle_expired(BundleExpiredEvent* event);
     virtual void handle_bundle_cancelled(BundleSendCancelledEvent* event);

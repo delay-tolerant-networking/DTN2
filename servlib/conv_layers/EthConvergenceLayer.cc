@@ -590,9 +590,6 @@ EthConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
     bool ok;
     int total = sizeof(EthCLHeader) + sizeof(struct ether_header) + total_len;
     if (cc != total) {
-        /*BundleDaemon::post(new BundleTransmitFailedEvent(bundle,
-                                                         contact_,
-                                                         contact_->link()));*/
         log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
                 cc, total, strerror(errno));
         ok = false;

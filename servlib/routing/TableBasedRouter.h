@@ -56,7 +56,6 @@ protected:
     /// @{ Event handlers
     virtual void handle_bundle_received(BundleReceivedEvent* event);
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
-    //virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
     virtual void handle_bundle_cancelled(BundleSendCancelledEvent* event);
     virtual void handle_route_add(RouteAddEvent* event);
     virtual void handle_route_del(RouteDelEvent* event);

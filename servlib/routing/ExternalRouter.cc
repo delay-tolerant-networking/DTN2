@@ -164,19 +164,6 @@ ExternalRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
     SEND(data_transmitted_event, e)
 }
 
-// XXX/acaro Not in DP iface spec. 
-//       Leaving it w/ message name and params matching data_transmitted_event 
-/*void
-ExternalRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
-{
-    if (event->contact_ == NULL) return;
-
-    bpa::data_transmit_failed_event::type e(
-        event->bundleref_.object(),
-        event->link_.object()->name_str());
-    SEND(data_transmit_failed_event, e)
-}*/
-
 void
 ExternalRouter::handle_bundle_delivered(BundleDeliveredEvent* event)
 {

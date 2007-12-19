@@ -102,15 +102,6 @@ TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
     const LinkRef& link = event->contact_->link();
     check_next_hop(link);
 }
-    
-//----------------------------------------------------------------------
-/*void
-TableBasedRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
-{
-    Bundle* bundle = event->bundleref_.object();
-    log_debug("handle bundle transmit failed: *%p", bundle);
-    fwd_to_matching(bundle);
-}*/
 
 //----------------------------------------------------------------------
 void

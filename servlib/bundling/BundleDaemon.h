@@ -300,7 +300,6 @@ protected:
      */
     void handle_bundle_received(BundleReceivedEvent* event);
     void handle_bundle_transmitted(BundleTransmittedEvent* event);
-    //void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
     void handle_bundle_delivered(BundleDeliveredEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
     void handle_bundle_not_needed(BundleNotNeededEvent* event);
