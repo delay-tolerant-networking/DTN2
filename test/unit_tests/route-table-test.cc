@@ -100,6 +100,8 @@ DECLARE_TEST(GetMatching) {
     v.clear();
     CHECK_EQUAL(t.get_matching(EndpointID("dtn://d1/test"), &v), 2);
     v.clear();
+
+    t.clear();
                              
     return UNIT_TEST_PASSED;
 }
@@ -124,6 +126,8 @@ DECLARE_TEST(DelEntry) {
     CHECK(! t.del_entry(EndpointIDPattern("dtn://d1"), l1));
     CHECK(! t.del_entry(EndpointIDPattern("dtn://d2"), l1));
     CHECK(! t.del_entry(EndpointIDPattern("dtn://d3"), l2));
+
+    t.clear();
 
     return UNIT_TEST_PASSED;
 }
@@ -303,10 +307,18 @@ DECLARE_TEST(Recursive) {
     CHECK(v[0]->link() == l1);
     v.clear();
     
+    t.clear();
+    CHECK_EQUAL(t.size(), 0);
+    
     return UNIT_TEST_PASSED;
 }
 
 DECLARE_TEST(Cleanup) {
+
+    l1->delete_link();
+    l2->delete_link();
+    l3->delete_link();
+    
     l1 = NULL;
     l2 = NULL;
     l3 = NULL;
