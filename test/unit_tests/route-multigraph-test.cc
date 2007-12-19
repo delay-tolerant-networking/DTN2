@@ -237,6 +237,8 @@ DECLARE_TEST(ShortestPath) {
         DO(g.shortest_path(nodes[0], nodes[i], &path, &infinite_fn));
         CHECK_EQUAL(path.size(), 0);
     }
+
+    g.clear();
     
     return UNIT_TEST_PASSED;
 }
