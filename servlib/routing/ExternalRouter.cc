@@ -503,8 +503,8 @@ ExternalRouter::handle_bundle_report(BundleReportEvent *event)
 
     log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
     const BundleList *bundles = bd->pending_bundles();
-    BundleList::const_iterator i = bundles->begin();
-    BundleList::const_iterator end = bundles->end();
+    BundleList::iterator i = bundles->begin();
+    BundleList::iterator end = bundles->end();
 
     bundle_report report;
     bundle_report::bundle::container c;

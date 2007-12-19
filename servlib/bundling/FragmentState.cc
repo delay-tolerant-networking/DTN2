@@ -42,7 +42,7 @@ bool
 FragmentState::check_completed() const
 {
     Bundle* fragment;
-    BundleList::const_iterator iter;
+    BundleList::iterator iter;
     oasys::ScopeLock l(fragments_.lock(),
                        "FragmentState::check_completed");
     

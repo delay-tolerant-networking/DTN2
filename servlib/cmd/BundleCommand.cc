@@ -268,7 +268,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
     } else if (!strcmp(cmd, "list")) {
         Bundle* b;
-        BundleList::const_iterator iter;
+        BundleList::iterator iter;
         oasys::StringBuffer buf;
         BundleList* pending =
             BundleDaemon::instance()->pending_bundles();
@@ -290,7 +290,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         return TCL_OK;
         
     } else if (!strcmp(cmd, "ids")) {
-        BundleList::const_iterator iter;
+        BundleList::iterator iter;
         BundleList* pending =
             BundleDaemon::instance()->pending_bundles();
         

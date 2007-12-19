@@ -350,7 +350,7 @@ BundleList::find(u_int32_t bundle_id) const
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
-    for (const_iterator iter = begin(); iter != end(); ++iter) {
+    for (iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->bundleid_ == bundle_id) {
             ret = *iter;
             return ret;
@@ -368,7 +368,7 @@ BundleList::find(const EndpointID& source_eid,
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     
-    for (const_iterator iter = begin(); iter != end(); ++iter) {
+    for (iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->source_.equals(source_eid) &&
             (*iter)->creation_ts_.seconds_ == creation_ts.seconds_ &&
             (*iter)->creation_ts_.seqno_ == creation_ts.seqno_)
@@ -388,7 +388,7 @@ BundleList::find(GbofId& gbof_id) const
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     
-    for (const_iterator iter = begin(); iter != end(); ++iter) {
+    for (iterator iter = begin(); iter != end(); ++iter) {
         if (gbof_id.equals( (*iter)->source_,
                             (*iter)->creation_ts_,
                             (*iter)->is_fragment_,
@@ -410,7 +410,7 @@ BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id) cons
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     
-    for (const_iterator iter = begin(); iter != end(); ++iter) {
+    for (iterator iter = begin(); iter != end(); ++iter) {
         if (gbof_id.equals( (*iter)->source_,
                             (*iter)->creation_ts_,
                             (*iter)->is_fragment_,
@@ -471,43 +471,26 @@ BundleList::empty() const
 
 //----------------------------------------------------------------------
 BundleList::iterator
-BundleList::begin()
-{
-    if (!lock_->is_locked_by_me())
-        PANIC("Must lock BundleList before using iterator");
-    
-    return list_.begin();
-}
-
-//----------------------------------------------------------------------
-BundleList::iterator
-BundleList::end()
-{
-    if (!lock_->is_locked_by_me())
-        PANIC("Must lock BundleList before using iterator");
-    
-    return list_.end();
-}
-
-//----------------------------------------------------------------------
-BundleList::const_iterator
 BundleList::begin() const
 {
     if (!lock_->is_locked_by_me())
         PANIC("Must lock BundleList before using iterator");
-    
-    return list_.begin();
+
+    // since all list accesses are protected via the BundleList class
+    // const/non-const nature, there's no reason to use the stl
+    // const_iterator type, so we need to cast away constness
+    return const_cast<BundleList*>(this)->list_.begin();
 }
 
-
 //----------------------------------------------------------------------
-BundleList::const_iterator
+BundleList::iterator
 BundleList::end() const
 {
     if (!lock_->is_locked_by_me())
         PANIC("Must lock BundleList before using iterator");
-    
-    return list_.end();
+
+    // see above
+    return const_cast<BundleList*>(this)->list_.end();
 }
 
 //----------------------------------------------------------------------

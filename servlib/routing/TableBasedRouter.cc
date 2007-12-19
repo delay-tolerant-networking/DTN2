@@ -529,7 +529,7 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
 
     oasys::ScopeLock l(deferred->list()->lock(), 
                        "TableBasedRouter::check_next_hop");
-    BundleList::const_iterator iter = deferred->list()->begin();
+    BundleList::iterator iter = deferred->list()->begin();
     while (iter != deferred->list()->end())
     {
         if (next_hop->queue_is_full()) {

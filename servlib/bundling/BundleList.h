@@ -65,21 +65,20 @@ class BundleTimestamp;
  *
  */
 class BundleList : public oasys::Logger {
-public:
+private:
     /**
-     * Type for the list itself.
+     * Type for the list itself (private since it's irrelevant to the
+     * outside).
      */
     typedef std::list<Bundle*> List;
 
+public:
     /**
-     * Type for an iterator.
+     * Type for an iterator, which just wraps an stl iterator. We
+     * don't ever use the stl const_iterator type since list mutations
+     * are protected via this class' methods.
      */
     typedef List::iterator iterator;
-    
-    /**
-     * Type for a const iterator.
-     */
-    typedef List::const_iterator const_iterator;
 
     /**
      * Constructor
@@ -271,28 +270,14 @@ public:
      * completed while holding the list lock, and this method will
      * assert as such.
      */
-    iterator begin();
+    iterator begin() const;
     
     /**
      * Iterator used to mark the end of the list. Iterations _must_ be
      * completed while holding the list lock, and this method will
      * assert as such.
      */
-    iterator end();
-
-    /**
-     * Const iterator used to iterate through the list. Iterations
-     * _must_ be completed while holding the list lock, and this
-     * method will assert as such.
-     */
-    const_iterator begin() const;
-
-    /**
-     * Const iterator used to mark the end of the list. Iterations
-     * _must_ be completed while holding the list lock, and this
-     * method will assert as such.
-     */
-    const_iterator end() const;
+    iterator end() const;
 
     /**
      * Return the internal lock on this list.

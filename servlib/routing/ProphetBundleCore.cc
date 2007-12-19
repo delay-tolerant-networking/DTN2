@@ -63,7 +63,7 @@ ProphetBundleCore::load_dtn_bundles(const BundleList* bundles)
 {
     ASSERT(bundles != NULL);
     oasys::ScopeLock l(bundles->lock(),"ProphetBundleCore::constructor");
-    for (BundleList::const_iterator i = bundles->begin();
+    for (BundleList::iterator i = bundles->begin();
             i != bundles->end(); i++)
     {
         BundleRef ref("ProphetBundleCore");
