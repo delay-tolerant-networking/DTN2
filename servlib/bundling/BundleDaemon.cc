@@ -798,9 +798,9 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         log_debug("%s",buf.c_str());
     }
     ASSERTF(ok, "no forwarding log entry for transmission");
-    // ASSERT(fwdinfo.state() == ForwardingInfo::IN_FLIGHT);
-    if (fwdinfo.state() != ForwardingInfo::IN_FLIGHT) {
-        log_err("*%p fwdinfo state %s != expected IN_FLIGHT",
+    // ASSERT(fwdinfo.state() == ForwardingInfo::QUEUED);
+    if (fwdinfo.state() != ForwardingInfo::QUEUED) {
+        log_err("*%p fwdinfo state %s != expected QUEUED",
                 bundle, ForwardingInfo::state_to_str(fwdinfo.state()));
     }
     

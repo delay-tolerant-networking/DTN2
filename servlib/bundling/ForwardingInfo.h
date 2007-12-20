@@ -68,7 +68,7 @@ public:
      */
     typedef enum {
         NONE             = 0,      ///< Return value for no entry
-        IN_FLIGHT        = 1 << 0, ///< Currently being sent
+        QUEUED           = 1 << 0, ///< Currently queued or being sent
         TRANSMITTED      = 1 << 1, ///< Successfully transmitted
         TRANSMIT_FAILED  = 1 << 2, ///< Transmission failed
         CANCELLED        = 1 << 3, ///< Transmission cancelled
@@ -85,7 +85,7 @@ public:
     {
         switch(state) {
         case NONE:      	return "NONE";
-        case IN_FLIGHT: 	return "IN_FLIGHT";
+        case QUEUED: 		return "QUEUED";
         case TRANSMITTED:      	return "TRANSMITTED";
         case TRANSMIT_FAILED:  	return "TRANSMIT_FAILED";
         case CANCELLED: 	return "CANCELLED";

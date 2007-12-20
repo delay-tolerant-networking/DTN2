@@ -117,8 +117,9 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
               total_len);
 
     ForwardingInfo::state_t state = bundle->fwdlog_.get_latest_entry(link);
-    if (state == ForwardingInfo::IN_FLIGHT) {
-        log_err("queue bundle *%p on %s link %s (%s): already in flight",
+    if (state == ForwardingInfo::QUEUED) {
+        log_err("queue bundle *%p on %s link %s (%s): "
+                "already queued or in flight",
                 bundle, link->type_str(), link->name(), link->nexthop());
         return false;
     }
@@ -146,12 +147,12 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
         return false;
     }
 
-    log_debug("adding forward log entry for %s link %s "
+    log_debug("adding QUEUED forward log entry for %s link %s "
               "with nexthop %s and remote eid %s to *%p",
               link->type_str(), link->name(),
               link->nexthop(), link->remote_eid().c_str(), bundle);
     
-    bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
+    bundle->fwdlog_.add_entry(link, action, ForwardingInfo::QUEUED,
                               custody_timer);
 
     log_debug("adding *%p to link %s's queue (length %u)",

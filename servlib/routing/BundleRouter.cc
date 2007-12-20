@@ -109,7 +109,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     // check if we've already sent or are in the process of sending
     // the bundle on this link
     if (info.state() == ForwardingInfo::TRANSMITTED ||
-        info.state() == ForwardingInfo::IN_FLIGHT)
+        info.state() == ForwardingInfo::QUEUED)
     {
         log_debug("should_fwd bundle %d: "
                   "skip %s due to forwarding log entry %s",
@@ -132,11 +132,11 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
         return false;
     }
 
-    // check if we've already sent the bundle to the node via some
-    // other link
+    // check if we've already sent or are in the process of sending
+    // the bundle to the node via some other link
     size_t count = bundle->fwdlog_.get_count(
         link->remote_eid(),
-        ForwardingInfo::TRANSMITTED | ForwardingInfo::IN_FLIGHT);
+        ForwardingInfo::TRANSMITTED | ForwardingInfo::QUEUED);
 
     if (count > 0)
     {
@@ -154,7 +154,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     {
         size_t count = bundle->fwdlog_.get_count(
             ForwardingInfo::TRANSMITTED |
-            ForwardingInfo::IN_FLIGHT,
+            ForwardingInfo::QUEUED,
             action);
 
         if (count > 0) {
