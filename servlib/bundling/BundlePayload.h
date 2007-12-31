@@ -113,7 +113,7 @@ public:
     /**
      * Copy (or link) the payload to the given file client object
      */
-    void copy_file(oasys::FileIOClient* dst);
+    void copy_file(oasys::FileIOClient* dst) const;
 
     /**
      * Replace the underlying file with a hard link to the given path
@@ -134,6 +134,15 @@ public:
      * Get a pointer to the in-memory scratch buffer.
      */
     oasys::ScratchBuffer<u_char*>* memory_buf()
+    {
+        ASSERT(location_ == MEMORY);
+        return &data_;
+    }
+
+    /**
+     * Get a pointer to the in-memory scratch buffer (const variant
+     */
+    const oasys::ScratchBuffer<u_char*>* memory_buf() const
     {
         ASSERT(location_ == MEMORY);
         return &data_;

@@ -236,7 +236,7 @@ BundlePayload::truncate(size_t length)
 
 //----------------------------------------------------------------------
 void
-BundlePayload::copy_file(oasys::FileIOClient* dst)
+BundlePayload::copy_file(oasys::FileIOClient* dst) const
 {
     ASSERT(location_ == DISK);
     pin_file();
