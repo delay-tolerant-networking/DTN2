@@ -163,7 +163,7 @@ public:
      * @ return true if the given EndpointID is contained within
      *   this EndpointID; otherwise false.
      */
-    bool subsume(const EndpointID& other)
+    bool subsume(const EndpointID& other) const
              { return uri_.subsume(other.uri_); }
 
     /**
