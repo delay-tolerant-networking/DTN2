@@ -101,7 +101,7 @@ public:
     DataBuffer* writable_contents()          { return &contents_; }
     void        set_locals(BP_Local* l);
     void        add_eid(EndpointID e)        { return eid_list_.push_back(e); }
-    void        set_reloaded(bool t)         { reloaded_ = t; }
+    void        set_reloaded(bool t) const   { reloaded_ = t; }
     /// @}
 
     /// @{ These accessors need special case processing since the
@@ -125,7 +125,9 @@ protected:
     u_int32_t        data_length_; ///< Length of the block data (w/o preamble)
     u_int32_t        data_offset_; ///< Offset of first byte of the block data
     bool             complete_;    ///< Whether or not this block is complete
-    bool             reloaded_;    ///< Whether or not this block is reloaded from store
+    mutable bool     reloaded_;    ///< Whether or not this block is reloaded
+                                   ///  from store (set in ::reload_post_process
+                                   ///  of the BlockProcessor classes)
 };
 
 /**
@@ -224,7 +226,7 @@ public:
      *
      * @return Pointer to the BlockInfoVec or NULL if not found
      */
-    BlockInfoVec* find_blocks(const LinkRef& link);
+    BlockInfoVec* find_blocks(const LinkRef& link) const;
     
     /**
      * Remove the BlockInfoVec for the given link.
@@ -248,6 +250,7 @@ protected:
 
     typedef std::vector<Entry> Vector;
     typedef std::vector<Entry>::iterator iterator;
+    typedef std::vector<Entry>::const_iterator const_iterator;
     Vector entries_;
     oasys::Lock* lock_;
 

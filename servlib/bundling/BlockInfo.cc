@@ -244,11 +244,11 @@ LinkBlockSet::create_blocks(const LinkRef& link)
 
 //----------------------------------------------------------------------
 BlockInfoVec*
-LinkBlockSet::find_blocks(const LinkRef& link)
+LinkBlockSet::find_blocks(const LinkRef& link) const
 {
     oasys::ScopeLock l(lock_, "LinkBlockSet::find_blocks");
     
-    for (iterator iter = entries_.begin();
+    for (const_iterator iter = entries_.begin();
          iter != entries_.end();
          ++iter)
     {
