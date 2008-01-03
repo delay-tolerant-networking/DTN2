@@ -397,7 +397,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         }
 
         log_debug("process_data: new bundle id %d arrival, bundle length %zu",
-                  bundle->bundleid_, bundle_len);
+                  bundle->bundleid(), bundle_len);
         
         BundleDaemon::post(
             new BundleReceivedEvent(bundle, EVENTSRC_PEER, bundle_len));
@@ -551,10 +551,10 @@ EthConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 
     ethclhdr.version    = ETHCL_VERSION;
     ethclhdr.type       = ETHCL_BUNDLE;
-    ethclhdr.bundle_id  = htonl(bundle->bundleid_);    
+    ethclhdr.bundle_id  = htonl(bundle->bundleid());
 
     // iovec slot 2 for the bundle
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact_->link());
+    BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(contact_->link());
     ASSERT(blocks != NULL);
 
     bool complete = false;
