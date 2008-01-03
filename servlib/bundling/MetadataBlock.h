@@ -229,7 +229,7 @@ public:
     virtual ~LinkMetadataSet();
     
     MetadataVec* create_blocks(const LinkRef& link);
-    MetadataVec* find_blocks(const LinkRef& link);
+    MetadataVec* find_blocks(const LinkRef& link) const;
     void         delete_blocks(const LinkRef& link);
 
 private:
@@ -242,6 +242,7 @@ private:
 
     typedef std::vector<Entry> Vector;
     typedef std::vector<Entry>::iterator iterator;
+    typedef std::vector<Entry>::const_iterator const_iterator;
     Vector entries_;
 };
 

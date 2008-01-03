@@ -341,9 +341,10 @@ LinkMetadataSet::create_blocks(const LinkRef& link)
 
 //----------------------------------------------------------------------
 MetadataVec*
-LinkMetadataSet::find_blocks(const LinkRef& link)
+LinkMetadataSet::find_blocks(const LinkRef& link) const
 {
-    for (iterator iter = entries_.begin(); iter != entries_.end(); ++iter) {
+    for (const_iterator iter = entries_.begin();
+         iter != entries_.end(); ++iter) {
         if (iter->link_ == link) {
             return iter->blocks_;
         }
