@@ -30,6 +30,18 @@ namespace dtn {
 struct BundleTimestamp {
     u_int32_t seconds_; ///< Seconds since 1/1/2000
     u_int32_t seqno_;   ///< Sub-second sequence number
+
+    /**
+     * Default constructor
+     */
+    BundleTimestamp()
+        : seconds_(0), seqno_(0) {}
+    
+    /**
+     * Constructor by parts.
+     */
+    BundleTimestamp(u_int32_t seconds, u_int32_t seqno)
+        : seconds_(seconds), seqno_(seqno) {}
     
     /**
      * Return the current time in the correct format for the bundle
