@@ -263,8 +263,8 @@ Ciphersuite::parse(BlockInfo* block)
 //----------------------------------------------------------------------
 int
 Ciphersuite::reload_post_process(const Bundle* bundle,
-                                 BlockInfoVec* block_list,
-                                 BlockInfo*    block)
+                                 const BlockInfoVec* block_list,
+                                 const BlockInfo*    block)
 {
     (void)bundle;
     (void)block_list;

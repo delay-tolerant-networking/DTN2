@@ -126,8 +126,8 @@ public:
                         u_char* buf, size_t len) = 0;
 
     virtual int reload_post_process(const Bundle* bundle,
-                                    BlockInfoVec* block_list,
-                                    BlockInfo*    block);
+                                    const BlockInfoVec* block_list,
+                                    const BlockInfo*    block);
 
     /**
      * Validate the block. This is called after all blocks in the

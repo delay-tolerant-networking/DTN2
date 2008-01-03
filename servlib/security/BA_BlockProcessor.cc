@@ -65,8 +65,8 @@ BA_BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
 //----------------------------------------------------------------------
 int
 BA_BlockProcessor::reload_post_process(const Bundle* bundle,
-                                       BlockInfoVec* block_list,
-                                       BlockInfo*    block)
+                                       const BlockInfoVec* block_list,
+                                       const BlockInfo*    block)
 {
 
     // Received blocks might be stored and reloaded and
