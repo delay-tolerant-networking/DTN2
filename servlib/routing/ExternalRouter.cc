@@ -130,20 +130,20 @@ ExternalRouter::handle_bundle_received(BundleReceivedEvent *event)
 {
     bpa::bundle_received_event::type e(
         event->bundleref_.object(),
-        event->bundleref_.object()->dest_,
-        event->bundleref_.object()->custodian_,
-        event->bundleref_.object()->replyto_,
-        bundle_ts_to_long(event->bundleref_->extended_id_),
-        event->bundleref_.object()->expiration_,
+        event->bundleref_->dest(),
+        event->bundleref_->custodian(),
+        event->bundleref_->replyto(),
+        bundle_ts_to_long(event->bundleref_->extended_id()),
+        event->bundleref_->expiration(),
         event->bytes_received_);
 
     // optional param, so has to be added after constructor call
-    e.prevhop(event->bundleref_.object()->prevhop_);
+    e.prevhop(event->bundleref_->prevhop());
 
     LinkRef null_link("ExternalRouter::handle_bundle_received");
-    MetadataVec * gen_meta = event->bundleref_->generated_metadata_.
-                                                    find_blocks(null_link);
-    unsigned int num_meta_blocks = event->bundleref_->recv_metadata_.size() +
+    MetadataVec * gen_meta = event->bundleref_->generated_metadata().
+                             find_blocks(null_link);
+    unsigned int num_meta_blocks = event->bundleref_->recv_metadata().size() +
                                    ((gen_meta == NULL)? 0 : gen_meta->size());
     e.num_meta_blocks(num_meta_blocks);
 
@@ -157,7 +157,7 @@ ExternalRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 
     bpa::data_transmitted_event::type e(
         event->bundleref_.object(),
-        bundle_ts_to_long(event->bundleref_->extended_id_),
+        bundle_ts_to_long(event->bundleref_->extended_id()),
         event->link_.object()->name_str(),
         event->bytes_sent_,
         event->reliably_sent_);
@@ -169,7 +169,7 @@ ExternalRouter::handle_bundle_delivered(BundleDeliveredEvent* event)
 {
     bpa::bundle_delivered_event::type e(
         event->bundleref_.object(),
-        bundle_ts_to_long(event->bundleref_->extended_id_));
+        bundle_ts_to_long(event->bundleref_->extended_id()));
     SEND(bundle_delivered_event, e)
 }
 
@@ -178,7 +178,7 @@ ExternalRouter::handle_bundle_expired(BundleExpiredEvent* event)
 {
     bpa::bundle_expired_event::type e(
         event->bundleref_.object(),
-        bundle_ts_to_long(event->bundleref_->extended_id_));
+        bundle_ts_to_long(event->bundleref_->extended_id()));
     SEND(bundle_expired_event, e)
 }
 
@@ -188,7 +188,7 @@ ExternalRouter::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     bpa::bundle_send_cancelled_event::type e(
         event->bundleref_.object(),
         event->link_.object()->name_str(),
-        bundle_ts_to_long(event->bundleref_->extended_id_));
+        bundle_ts_to_long(event->bundleref_->extended_id()));
     SEND(bundle_send_cancelled_event, e)
 }
 
@@ -198,7 +198,7 @@ ExternalRouter::handle_bundle_injected(BundleInjectedEvent* event)
     bpa::bundle_injected_event::type e(
         event->request_id_,
         event->bundleref_.object(),
-        bundle_ts_to_long(event->bundleref_->extended_id_));
+        bundle_ts_to_long(event->bundleref_->extended_id()));
     SEND(bundle_injected_event, e)
 }
 
@@ -399,7 +399,7 @@ ExternalRouter::handle_custody_signal(CustodySignalEvent* event)
     bpa::custody_signal_event::type e(
         event->data_,
         attr,
-        bundle_ts_to_long(br->extended_id_));
+        bundle_ts_to_long(br->extended_id()));
 
     SEND(custody_signal_event, e)
 }
@@ -409,7 +409,7 @@ ExternalRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
     bpa::custody_timeout_event::type e(
         event->bundle_.object(),
-        bundle_ts_to_long(event->bundle_->extended_id_));
+        bundle_ts_to_long(event->bundle_->extended_id()));
     SEND(custody_timeout_event, e)
 }
 
@@ -517,52 +517,52 @@ ExternalRouter::handle_bundle_attributes_report(BundleAttributesReportEvent *eve
         const std::string& name = i->name();
 
         if (name == "bundleid")
-            response.bundleid( br->bundleid_ );
+            response.bundleid( br->bundleid() );
         else if (name == "is_admin")
-            response.is_admin( br->is_admin_ );
+            response.is_admin( br->is_admin() );
         else if (name == "do_not_fragment")
-            response.do_not_fragment( br->do_not_fragment_ );
+            response.do_not_fragment( br->do_not_fragment() );
         else if (name == "priority")
             response.priority(
-                bundlePriorityType(lowercase(br->prioritytoa(br->priority_))) );
+                bundlePriorityType(lowercase(br->prioritytoa(br->priority()))) );
         else if (name == "custody_requested")
-            response.custody_requested( br->custody_requested_ );
+            response.custody_requested( br->custody_requested() );
         else if (name == "local_custody")
-            response.local_custody( br->local_custody_ );
+            response.local_custody( br->local_custody() );
         else if (name == "singleton_dest")
-            response.singleton_dest( br->singleton_dest_ );
+            response.singleton_dest( br->singleton_dest() );
         else if (name == "custody_rcpt")
-            response.custody_rcpt( br->custody_rcpt_ );
+            response.custody_rcpt( br->custody_rcpt() );
         else if (name == "receive_rcpt")
-            response.receive_rcpt( br->receive_rcpt_ );
+            response.receive_rcpt( br->receive_rcpt() );
         else if (name == "forward_rcpt")
-            response.forward_rcpt( br->forward_rcpt_ );
+            response.forward_rcpt( br->forward_rcpt() );
         else if (name == "delivery_rcpt")
-            response.delivery_rcpt( br->delivery_rcpt_ );
+            response.delivery_rcpt( br->delivery_rcpt() );
         else if (name == "deletion_rcpt")
-            response.deletion_rcpt( br->deletion_rcpt_ );
+            response.deletion_rcpt( br->deletion_rcpt() );
         else if (name == "app_acked_rcpt")
-            response.app_acked_rcpt( br->app_acked_rcpt_ );
+            response.app_acked_rcpt( br->app_acked_rcpt() );
         else if (name == "expiration")
-            response.expiration( br->expiration_ );
+            response.expiration( br->expiration() );
         else if (name == "orig_length")
-            response.orig_length( br->orig_length_ );
+            response.orig_length( br->orig_length() );
         else if (name == "owner")
-            response.owner( br->owner_ );
+            response.owner( br->owner() );
         else if (name == "location")
             response.location(
                 bundleLocationType(
-                    bundleType::location_to_str(br->payload_.location())) );
+                    bundleType::location_to_str(br->payload().location())) );
         else if (name == "dest")
-            response.dest( br->dest_ );
+            response.dest( br->dest() );
         else if (name == "custodian")
-            response.custodian( br->custodian_ );
+            response.custodian( br->custodian() );
         else if (name == "replyto")
-            response.replyto( br->replyto_ );
+            response.replyto( br->replyto() );
         else if (name == "prevhop")
-            response.prevhop( br->prevhop_ );
+            response.prevhop( br->prevhop() );
         else if (name == "payload_file") {
-            response.payload_file( br->payload_.filename() );
+            response.payload_file( br->payload().filename() );
         }
     }
 
@@ -581,12 +581,12 @@ ExternalRouter::handle_bundle_attributes_report(BundleAttributesReportEvent *eve
             for (unsigned int i = 0; i < 2; ++i) {
                 MetadataVec * block_vec = NULL;
                 if (i == 0) {
-                    block_vec = &br->recv_metadata_;
+                    block_vec = br->mutable_recv_metadata();
                     ASSERT(block_vec != NULL);
                 } else if (i == 1) {
                     LinkRef null_link("ExternalRouter::"
                                       "handle_bundle_attributes_report");
-                    block_vec = br->generated_metadata_.find_blocks(null_link);
+                    block_vec = br->generated_metadata().find_blocks(null_link);
                     if (block_vec == NULL) {
                         continue;
                     }
@@ -922,7 +922,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                             BundleProtocol::METADATA_BLOCK));
                 ASSERT(meta_processor != NULL);
                 
-                oasys::ScopeLock bundle_lock(&br->lock_, "ExternalRouter");
+                oasys::ScopeLock bundle_lock(br->lock(), "ExternalRouter");
                 
                 MetaBlockSequence::const_iterator block_i;
                 for (block_i = in_request.metadata_block().begin();
@@ -933,10 +933,10 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
     
                         MetadataBlockRef existing("ExternalRouter metadata block search");
                         for (unsigned int i = 0;
-                             i < br->recv_metadata_.size(); ++i) {
-                            if (br->recv_metadata_[i]->id() ==
+                             i < br->recv_metadata().size(); ++i) {
+                            if (br->recv_metadata()[i]->id() ==
                                 block_i->identifier()) {
-                                existing = br->recv_metadata_[i];
+                                existing = br->recv_metadata()[i];
                                 break;
                             }
                         }
@@ -953,7 +953,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                                 existing->remove_outgoing_metadata(link_ref);                        
                                 log_info("Removing metadata block %u from bundle "
                                          "%u on link %s", block_i->identifier(),
-                                         br->bundleid_, link.c_str());
+                                         br->bundleid(), link.c_str());
                             }
                         
                             // Otherwise, if the new block size is non-zero, it
@@ -961,7 +961,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                             else {
                                 log_info("Modifying metadata block %u on bundle "
                                          "%u on link %s", block_i->identifier(),
-                                         br->bundleid_, link.c_str());
+                                         br->bundleid(), link.c_str());
                                 existing->modify_outgoing_metadata(
                                               link_ref,
                                               (u_char*)block_i->contents().data(),
@@ -973,7 +973,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                         ASSERT(existing == NULL);
     
                         LinkRef null_link("ExternalRouter::process_action");
-                        MetadataVec * nulldata = br->generated_metadata_.
+                        MetadataVec * nulldata = br->generated_metadata().
                                                          find_blocks(null_link);
                         if (nulldata != NULL) {
                             for (unsigned int i = 0; i < nulldata->size(); ++i) {
@@ -985,11 +985,11 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                         }
     
                         if (existing != NULL) {
-                            MetadataVec * link_vec = br->generated_metadata_.
-                                                             find_blocks(link_ref);
+                            MetadataVec * link_vec = br->generated_metadata().
+                                                     find_blocks(link_ref);
                             if (link_vec == NULL) {
-                                link_vec = br->generated_metadata_.
-                                                   create_blocks(link_ref);
+                                link_vec = br->mutable_generated_metadata()->
+                                           create_blocks(link_ref);
                             }
                             ASSERT(link_vec != NULL);
     
@@ -1006,20 +1006,20 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
     			link_vec->push_back(meta_block);
     
                             log_info("Adding a metadata block to bundle %u on "
-                                     "link %s", br->bundleid_, link.c_str());
+                                     "link %s", br->bundleid(), link.c_str());
                             continue;
                         }
     
                         log_err("bundle %u does not have a block %u",
-                                br->bundleid_, block_i->identifier());
+                                br->bundleid(), block_i->identifier());
     
                     } else {
                         ASSERT(block_i->generated());
     
                         MetadataVec* vec = 
-                                br->generated_metadata_.find_blocks(link_ref);
+                            br->generated_metadata().find_blocks(link_ref);
                         if (vec == NULL)
-                            vec = br->generated_metadata_.create_blocks(link_ref);
+                            vec = br->mutable_generated_metadata()->create_blocks(link_ref);
                         
                         MetadataBlock* meta_block = new MetadataBlock(
                                 block_i->type(),
@@ -1028,7 +1028,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                         
                         vec->push_back(meta_block);
                         log_info("Adding an metadata block to bundle %u on "
-                                 "link %s", br->bundleid_, link.c_str());
+                                 "link %s", br->bundleid(), link.c_str());
                     }
                  }
             }
@@ -1597,9 +1597,9 @@ void
 ExternalRouter::ERRegistration::deliver_bundle(Bundle *bundle)
 {
     bundle_delivery_event e(bundle, bundle,
-                            bundle_ts_to_long(bundle->extended_id_));
+                            bundle_ts_to_long(bundle->extended_id()));
 
-    e.bundle().payload_file( bundle->payload_.filename() );
+    e.bundle().payload_file( bundle->payload().filename() );
 
     bpa message;
     message.bundle_delivery_event(e);

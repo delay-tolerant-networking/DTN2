@@ -686,11 +686,11 @@ ECLModule::handle(const bundle_transmitted_event& message)
     // Take this off the outgoing bundle list for this link.
     if ( !resource->erase_outgoing_bundle( bundle.object() ) ) {
         log_err("Unable to remove bundle %d from the link's outgoing bundle list",
-                bundle->bundleid_);
+                bundle->bundleid());
     }
     
     // Figure out the absolute path to the file.
-    oasys::StringBuffer filename("bundle%d", bundle->bundleid_);
+    oasys::StringBuffer filename("bundle%d", bundle->bundleid());
     std::string abs_path = bundle_out_path_ + "/" + resource->link_->name_str() +
             "/" + filename.c_str();
     
@@ -964,7 +964,7 @@ ECLModule::read_bundle_file(const std::string& location,
                  strerror(errno) );
     }
     
-    if (bundle->recv_blocks_.size() < 1) {
+    if (bundle->recv_blocks().size() < 1) {
         log_err("Received bundle does not contain enough information");
         delete bundle;
         return;
@@ -1090,10 +1090,10 @@ ECLModule::prepare_bundle_to_send(cl_message* message)
     
     // Grab the bundle blocks for this bundle on this link.
     BlockInfoVec* blocks =
-            bundle->xmit_blocks_.find_blocks(link_resource->link_);
+        bundle->xmit_blocks()->find_blocks(link_resource->link_);
     if (!blocks) {
         log_err( "Bundle id %d on link %s has no block vectors",
-                 bundle->bundleid_, request.link_name().c_str() );
+                 bundle->bundleid(), request.link_name().c_str() );
         return 0;
     }
     
@@ -1165,7 +1165,7 @@ ECLModule::bundle_send_failed(ECLLinkResource* link_resource,
         link_resource->erase_outgoing_bundle(bundle);
     
     // Figure out the relative and absolute path to the file.
-    oasys::StringBuffer filename_buf("bundle%d", bundle->bundleid_);
+    oasys::StringBuffer filename_buf("bundle%d", bundle->bundleid());
 
     // Delete the bundle file.
     ::remove( (bundle_out_path_ + "/" + link_resource->link_->name_str() + "/" +

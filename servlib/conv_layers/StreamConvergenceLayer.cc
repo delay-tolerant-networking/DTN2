@@ -512,7 +512,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         (incoming->total_length_ == incoming->acked_length_))
     {
         log_debug("send_pending_acks: acked all %u bytes of bundle %d",
-                  incoming->total_length_, incoming->bundle_->bundleid_);
+                  incoming->total_length_, incoming->bundle_->bundleid());
         
         incoming_.pop_front();
         delete incoming;
@@ -556,8 +556,8 @@ StreamConvergenceLayer::Connection::start_next_bundle()
 
     InFlightBundle* inflight = new InFlightBundle(bundle.object());
     log_debug("trying to find xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_, link->name());
-    inflight->blocks_ = bundle->xmit_blocks_.find_blocks(contact_->link());
+              bundle->bundleid(), link->name());
+    inflight->blocks_ = bundle->xmit_blocks()->find_blocks(contact_->link());
     ASSERT(inflight->blocks_ != NULL);
     inflight->total_length_ = BundleProtocol::total_length(inflight->blocks_);
     inflight_.push_back(inflight);
@@ -722,20 +722,20 @@ StreamConvergenceLayer::Connection::check_completed(InFlightBundle* inflight)
 
     if (current_inflight_ == inflight) {
         log_debug("check_completed: bundle %d still waiting for finish_bundle",
-                  inflight->bundle_->bundleid_);
+                  inflight->bundle_->bundleid());
         return;
     }
 
     u_int32_t acked_len = inflight->ack_data_.num_contiguous();
     if (acked_len < inflight->total_length_) {
         log_debug("check_completed: bundle %d only acked %u/%u",
-                  inflight->bundle_->bundleid_,
+                  inflight->bundle_->bundleid(),
                   acked_len, inflight->total_length_);
         return;
     }
 
     log_debug("check_completed: bundle %d transmission complete",
-              inflight->bundle_->bundleid_);
+              inflight->bundle_->bundleid());
     ASSERT(inflight == inflight_.front());
     inflight_.pop_front();
     delete inflight;
@@ -782,7 +782,7 @@ StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
             if (inflight->sent_data_.empty()) {
                 log_debug("handle_cancel_bundle: "
                           "bundle %d not yet in flight, cancelling send",
-                          bundle->bundleid_);
+                          bundle->bundleid());
                 inflight_.erase(iter);
                 BundleDaemon::post(
                     new BundleSendCancelledEvent(bundle, contact_->link()));
@@ -790,14 +790,14 @@ StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
             } else {
                 log_debug("handle_cancel_bundle: "
                           "bundle %d already in flight, can't cancel send",
-                          bundle->bundleid_);
+                          bundle->bundleid());
                 return;
             }
         }
     }
 
     log_warn("handle_cancel_bundle: "
-             "can't find bundle %d in the in flight list", bundle->bundleid_);
+             "can't find bundle %d in the in flight list", bundle->bundleid());
 }
 
 //----------------------------------------------------------------------
@@ -1200,7 +1200,7 @@ StreamConvergenceLayer::Connection::check_completed(IncomingBundle* incoming)
     }
     
     u_int32_t formatted_len =
-        BundleProtocol::total_length(&incoming->bundle_->recv_blocks_);
+        BundleProtocol::total_length(&incoming->bundle_->recv_blocks());
     
     log_debug("check_completed: rcvd %u / %u (formatted length %u)",
               rcvd_len, incoming->total_length_, formatted_len);

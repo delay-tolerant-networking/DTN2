@@ -173,12 +173,12 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)
-    size_t payload_len = b->payload_.length();
+    size_t payload_len = b->payload().length();
     oasys::ScratchBuffer<u_char*> payload_buf;
     const u_char* payload_data = (const u_char*)"";
     if (payload_len != 0) {
-        payload_data = b->payload_.read_data(0, payload_len, 
-                                             payload_buf.buf(payload_len));
+        payload_data = b->payload().read_data(0, payload_len, 
+                                              payload_buf.buf(payload_len));
     }
 
     char tmp_buf[128];              // used for sprintf strings
@@ -199,11 +199,11 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
     // and a pretty formatted creation timestamp
     addElement(Tcl_NewStringObj("creation_ts", -1));
-    sprintf(tmp_buf, "%d.%d", b->creation_ts_.seconds_, b->creation_ts_.seqno_);
+    sprintf(tmp_buf, "%d.%d", b->creation_ts().seconds_, b->creation_ts().seqno_);
     addElement(Tcl_NewStringObj(tmp_buf, -1));
 
     // If we're not an admin bundle, we're done
-    if (!b->is_admin_) {
+    if (!b->is_admin()) {
         goto done;
     }
 

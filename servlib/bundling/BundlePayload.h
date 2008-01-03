@@ -107,7 +107,7 @@ public:
      * Writes len bytes of payload data from from another payload at
      * the given src_offset to the given dst_offset.
      */
-    void write_data(BundlePayload* src, size_t src_offset,
+    void write_data(const BundlePayload& src, size_t src_offset,
                     size_t len, size_t dst_offset);
 
     /**
@@ -124,7 +124,7 @@ public:
     /**
      * Return the filename.
      */
-    const std::string& filename()
+    const std::string& filename() const
     {
         ASSERT(location_ == DISK);
         return file_.path_str();
@@ -174,15 +174,15 @@ public:
     static bool test_no_remove_;    ///< test: don't rm payload files
 
 protected:
-    void pin_file();
-    void unpin_file();
+    void pin_file() const;
+    void unpin_file() const;
     void internal_write(const u_char* bp, size_t offset, size_t len);
 
     location_t location_;	///< location of the data 
     oasys::ScratchBuffer<u_char*> data_; ///< payload data if in memory
     size_t length_;     	///< the payload length
-    oasys::FileIOClient file_;	///< file handle
-    size_t cur_offset_;		///< cache of current fd position
+    mutable oasys::FileIOClient file_;	///< file handle
+    mutable size_t cur_offset_;	///< cache of current fd position
     size_t base_offset_;	///< for fragments, offset into the file (todo)
     oasys::SpinLock* lock_;	///< the lock for the given bundle
 };

@@ -379,7 +379,7 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     }
     
     log_debug("process_data: new bundle id %d arrival, length %zu (payload %zu)",
-              bundle->bundleid_, len, bundle->payload_.length());
+              bundle->bundleid(), len, bundle->payload().length());
     
     BundleDaemon::post(
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
@@ -473,7 +473,7 @@ UDPConvergenceLayer::Sender::init(Params* params,
 int
 UDPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 {
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact_->link());
+    BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(contact_->link());
     ASSERT(blocks != NULL);
 
     bool complete = false;

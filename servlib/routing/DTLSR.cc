@@ -80,11 +80,11 @@ DTLSR::format_lsa_bundle(Bundle* bundle, const LSA* lsa)
         return;
     }
 
-    bundle->payload_.set_length(1 + len);
+    bundle->mutable_payload()->set_length(1 + len);
 
     u_char type = MSG_LSA;
-    bundle->payload_.write_data(&type,     0, 1);
-    bundle->payload_.write_data(buf.buf(), 1, len);
+    bundle->mutable_payload()->write_data(&type,     0, 1);
+    bundle->mutable_payload()->write_data(buf.buf(), 1, len);
 }
 
 //----------------------------------------------------------------------
@@ -92,8 +92,8 @@ bool
 DTLSR::parse_lsa_bundle(const Bundle* bundle, LSA* lsa)
 {
     oasys::ScratchBuffer<u_char*, 256> buf;
-    size_t len = bundle->payload_.length();
-    bundle->payload_.read_data(0, len, buf.buf(len));
+    size_t len = bundle->payload().length();
+    bundle->payload().read_data(0, len, buf.buf(len));
 
     if (buf.buf()[0] != MSG_LSA) {
         log_warn_p("/dtn/route/dtlsr",

@@ -98,7 +98,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
                          ForwardingInfo::action_t action)
 {
     ForwardingInfo info;
-    bool found = bundle->fwdlog_.get_latest_entry(link, &info);
+    bool found = bundle->fwdlog()->get_latest_entry(link, &info);
 
     if (found) {
         ASSERT(info.state() != ForwardingInfo::NONE);
@@ -113,7 +113,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     {
         log_debug("should_fwd bundle %d: "
                   "skip %s due to forwarding log entry %s",
-                  bundle->bundleid_, link->name(),
+                  bundle->bundleid(), link->name(),
                   ForwardingInfo::state_to_str(info.state()));
         return false;
     }
@@ -122,19 +122,19 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     //
     // XXX/demmer this is bad -- some routing schemes might want to do
     // this
-    if (link->remote_eid() == bundle->prevhop_ &&
+    if (link->remote_eid() == bundle->prevhop() &&
         link->remote_eid() != EndpointID::NULL_EID())
     {
         log_debug("should_fwd bundle %d: "
                   "skip %s since remote eid %s == bundle prevhop",
-                  bundle->bundleid_, link->name(),
+                  bundle->bundleid(), link->name(),
                   link->remote_eid().c_str());
         return false;
     }
 
     // check if we've already sent or are in the process of sending
     // the bundle to the node via some other link
-    size_t count = bundle->fwdlog_.get_count(
+    size_t count = bundle->fwdlog()->get_count(
         link->remote_eid(),
         ForwardingInfo::TRANSMITTED | ForwardingInfo::QUEUED);
 
@@ -142,7 +142,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     {
         log_debug("should_fwd bundle %d: "
                   "skip %s since already sent %zu times to remote eid %s",
-                  bundle->bundleid_, link->name(),
+                  bundle->bundleid(), link->name(),
                   count, link->remote_eid().c_str());
         return false;
     }
@@ -150,9 +150,9 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     // if the bundle has a a singleton destination endpoint, then
     // check if we already forwarded it or are planning to forward it
     // somewhere else. if so, we shouldn't forward it again
-    if (bundle->singleton_dest_ && action == ForwardingInfo::FORWARD_ACTION)
+    if (bundle->singleton_dest() && action == ForwardingInfo::FORWARD_ACTION)
     {
-        size_t count = bundle->fwdlog_.get_count(
+        size_t count = bundle->fwdlog()->get_count(
             ForwardingInfo::TRANSMITTED |
             ForwardingInfo::QUEUED,
             action);
@@ -160,19 +160,19 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
         if (count > 0) {
             log_debug("should_fwd bundle %d: "
                       "skip %s since already transmitted (count %zu)",
-                      bundle->bundleid_, link->name(), count);
+                      bundle->bundleid(), link->name(), count);
             return false;
         } else {
             log_debug("should_fwd bundle %d: "
                       "link %s ok since transmission count=%zu",
-                      bundle->bundleid_, link->name(), count);
+                      bundle->bundleid(), link->name(), count);
         }
     }
 
     // otherwise log the reason why we should send it
     log_debug("should_fwd bundle %d: "
               "match %s: forwarding log entry %s",
-              bundle->bundleid_, link->name(),
+              bundle->bundleid(), link->name(),
               ForwardingInfo::state_to_str(info.state()));
 
     return true;
@@ -198,11 +198,11 @@ BundleRouter::accept_bundle(Bundle* bundle, int* errp)
     // statically-configured payload limit
     BundleStore* bs = BundleStore::instance();
     if (bs->payload_quota() != 0 &&
-        (bs->total_size() + bundle->payload_.length() > bs->payload_quota()))
+        (bs->total_size() + bundle->payload().length() > bs->payload_quota()))
     {
         log_info("accept_bundle: rejecting bundle *%p since "
                  "cur size %llu + bundle size %zu > quota %llu",
-                 bundle, U64FMT(bs->total_size()), bundle->payload_.length(),
+                 bundle, U64FMT(bs->total_size()), bundle->payload().length(),
                  U64FMT(bs->payload_quota()));
         *errp = BundleProtocol::REASON_DEPLETED_STORAGE;
         return false;

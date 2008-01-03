@@ -42,27 +42,27 @@ PrimaryBlockProcessor::format_bundle_flags(const Bundle* bundle)
 {
     u_int64_t flags = 0;
 
-    if (bundle->is_fragment_) {
+    if (bundle->is_fragment()) {
         flags |= BUNDLE_IS_FRAGMENT;
     }
 
-    if (bundle->is_admin_) {
+    if (bundle->is_admin()) {
         flags |= BUNDLE_IS_ADMIN;
     }
 
-    if (bundle->do_not_fragment_) {
+    if (bundle->do_not_fragment()) {
         flags |= BUNDLE_DO_NOT_FRAGMENT;
     }
 
-    if (bundle->custody_requested_) {
+    if (bundle->custody_requested()) {
         flags |= BUNDLE_CUSTODY_XFER_REQUESTED;
     }
 
-    if (bundle->singleton_dest_) {
+    if (bundle->singleton_dest()) {
         flags |= BUNDLE_SINGLETON_DESTINATION;
     }
     
-    if (bundle->app_acked_rcpt_) {
+    if (bundle->app_acked_rcpt()) {
         flags |= BUNDLE_ACK_BY_APP;
     }
     
@@ -74,39 +74,39 @@ void
 PrimaryBlockProcessor::parse_bundle_flags(Bundle* bundle, u_int64_t flags)
 {
     if (flags & BUNDLE_IS_FRAGMENT) {
-        bundle->is_fragment_ = true;
+        bundle->set_is_fragment(true);
     } else {
-        bundle->is_fragment_ = false;
+        bundle->set_is_fragment(false);
     }
 
     if (flags & BUNDLE_IS_ADMIN) {
-        bundle->is_admin_ = true;
+        bundle->set_is_admin(true);
     } else {
-        bundle->is_admin_ = false;
+        bundle->set_is_admin(false);
     }
 
     if (flags & BUNDLE_DO_NOT_FRAGMENT) {
-        bundle->do_not_fragment_ = true;
+        bundle->set_do_not_fragment(true);
     } else {
-        bundle->do_not_fragment_ = false;
+        bundle->set_do_not_fragment(false);
     }
 
     if (flags & BUNDLE_CUSTODY_XFER_REQUESTED) {
-        bundle->custody_requested_ = true;
+        bundle->set_custody_requested(true);
     } else {
-        bundle->custody_requested_ = false;
+        bundle->set_custody_requested(false);
     }
 
     if (flags & BUNDLE_SINGLETON_DESTINATION) {
-        bundle->singleton_dest_ = true;
+        bundle->set_singleton_dest(true);
     } else {
-        bundle->singleton_dest_ = false;
+        bundle->set_singleton_dest(false);
     }
     
     if (flags & BUNDLE_ACK_BY_APP) {
-        bundle->app_acked_rcpt_ = true;
+        bundle->set_app_acked_rcpt(true);
     } else {
-        bundle->app_acked_rcpt_ = false;
+        bundle->set_app_acked_rcpt(false);
     }
 }
 
@@ -116,7 +116,7 @@ PrimaryBlockProcessor::format_cos_flags(const Bundle* b)
 {
     u_int64_t cos_flags = 0;
 
-    cos_flags = ((b->priority_ & 0x3) << 7);
+    cos_flags = ((b->priority() & 0x3) << 7);
 
     return cos_flags;
 }
@@ -125,7 +125,7 @@ PrimaryBlockProcessor::format_cos_flags(const Bundle* b)
 void
 PrimaryBlockProcessor::parse_cos_flags(Bundle* b, u_int64_t cos_flags)
 {
-    b->priority_ = ((cos_flags >> 7) & 0x3);
+    b->set_priority((cos_flags >> 7) & 0x3);
 }
 
 //----------------------------------------------------------------------
@@ -134,19 +134,19 @@ PrimaryBlockProcessor::format_srr_flags(const Bundle* b)
 {
     u_int64_t srr_flags = 0;
     
-    if (b->receive_rcpt_)
+    if (b->receive_rcpt())
         srr_flags |= BundleProtocol::STATUS_RECEIVED;
 
-    if (b->custody_rcpt_)
+    if (b->custody_rcpt())
         srr_flags |= BundleProtocol::STATUS_CUSTODY_ACCEPTED;
 
-    if (b->forward_rcpt_)
+    if (b->forward_rcpt())
         srr_flags |= BundleProtocol::STATUS_FORWARDED;
 
-    if (b->delivery_rcpt_)
+    if (b->delivery_rcpt())
         srr_flags |= BundleProtocol::STATUS_DELIVERED;
 
-    if (b->deletion_rcpt_)
+    if (b->deletion_rcpt())
         srr_flags |= BundleProtocol::STATUS_DELETED;
 
     return srr_flags;
@@ -157,19 +157,19 @@ void
 PrimaryBlockProcessor::parse_srr_flags(Bundle* b, u_int64_t srr_flags)
 {
     if (srr_flags & BundleProtocol::STATUS_RECEIVED)
-        b->receive_rcpt_ = true;
+        b->set_receive_rcpt(true);
 
     if (srr_flags & BundleProtocol::STATUS_CUSTODY_ACCEPTED)
-        b->custody_rcpt_ = true;
+        b->set_custody_rcpt(true);
 
     if (srr_flags & BundleProtocol::STATUS_FORWARDED)
-        b->forward_rcpt_ = true;
+        b->set_forward_rcpt(true);
 
     if (srr_flags & BundleProtocol::STATUS_DELIVERED)
-        b->delivery_rcpt_ = true;
+        b->set_delivery_rcpt(true);
 
     if (srr_flags & BundleProtocol::STATUS_DELETED)
-        b->deletion_rcpt_ = true;
+        b->set_deletion_rcpt(true);
 }
 
 //----------------------------------------------------------------------
@@ -193,25 +193,25 @@ PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
      * remembering their offsets and summing up their lengths
      * (including the null terminator for each).
      */
-    dict->get_offsets(bundle->dest_, 
+    dict->get_offsets(bundle->dest(), 
                       &primary->dest_scheme_offset,
                       &primary->dest_ssp_offset);
     primary->block_length += SDNV::encoding_len(primary->dest_scheme_offset);
     primary->block_length += SDNV::encoding_len(primary->dest_ssp_offset);
     
-    dict->get_offsets(bundle->source_, 
+    dict->get_offsets(bundle->source(), 
                       &primary->source_scheme_offset,
                       &primary->source_ssp_offset);
     primary->block_length += SDNV::encoding_len(primary->source_scheme_offset);
     primary->block_length += SDNV::encoding_len(primary->source_ssp_offset);
 
-    dict->get_offsets(bundle->replyto_, 
+    dict->get_offsets(bundle->replyto(),
                       &primary->replyto_scheme_offset,
                       &primary->replyto_ssp_offset);
     primary->block_length += SDNV::encoding_len(primary->replyto_scheme_offset);
     primary->block_length += SDNV::encoding_len(primary->replyto_ssp_offset);
 
-    dict->get_offsets(bundle->custodian_, 
+    dict->get_offsets(bundle->custodian(), 
                       &primary->custodian_scheme_offset,
                       &primary->custodian_ssp_offset);
     primary->block_length += SDNV::encoding_len(primary->custodian_scheme_offset);
@@ -223,9 +223,9 @@ PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
     log_debug_p(log, "generated dictionary length %llu",
                 U64FMT(primary->dictionary_length));
     
-    primary->block_length += SDNV::encoding_len(bundle->creation_ts_.seconds_);
-    primary->block_length += SDNV::encoding_len(bundle->creation_ts_.seqno_);
-    primary->block_length += SDNV::encoding_len(bundle->expiration_);
+    primary->block_length += SDNV::encoding_len(bundle->creation_ts().seconds_);
+    primary->block_length += SDNV::encoding_len(bundle->creation_ts().seqno_);
+    primary->block_length += SDNV::encoding_len(bundle->expiration());
 
     primary->block_length += SDNV::encoding_len(primary->dictionary_length);
     primary->block_length += primary->dictionary_length;
@@ -238,9 +238,9 @@ PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
      * FragmentManager since it depends on this length when
      * calculating fragment sizes.
      */
-    if (bundle->is_fragment_) {
-        primary->block_length += SDNV::encoding_len(bundle->frag_offset_);
-        primary->block_length += SDNV::encoding_len(bundle->orig_length_);
+    if (bundle->is_fragment()) {
+        primary->block_length += SDNV::encoding_len(bundle->frag_offset());
+        primary->block_length += SDNV::encoding_len(bundle->orig_length());
     }
     
     // Format the processing flags.
@@ -257,14 +257,14 @@ PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
                   primary->block_length;
     
     log_debug_p(log, "get_primary_len(bundle %d): %zu",
-                bundle->bundleid_, primary_len);
+                bundle->bundleid(), primary_len);
     
     // Fill in the remaining values of 'primary' just for the sake of returning
     // a complete data structure.
     primary->version = BundleProtocol::CURRENT_VERSION;
-    primary->creation_time = bundle->creation_ts_.seconds_;
-    primary->creation_sequence = bundle->creation_ts_.seqno_;
-    primary->lifetime = bundle->expiration_;
+    primary->creation_time = bundle->creation_ts().seconds_;
+    primary->creation_sequence = bundle->creation_ts().seqno_;
+    primary->lifetime = bundle->expiration();
     
     return primary_len;
 }
@@ -285,10 +285,10 @@ PrimaryBlockProcessor::prepare(const Bundle*    bundle,
     ASSERT(xmit_blocks->size() == 0);
         
     // Add EIDs to start off the dictionary
-    xmit_blocks->dict()->add_eid(bundle->dest_);
-    xmit_blocks->dict()->add_eid(bundle->source_);
-    xmit_blocks->dict()->add_eid(bundle->replyto_);
-    xmit_blocks->dict()->add_eid(bundle->custodian_);
+    xmit_blocks->dict()->add_eid(bundle->dest());
+    xmit_blocks->dict()->add_eid(bundle->source());
+    xmit_blocks->dict()->add_eid(bundle->replyto());
+    xmit_blocks->dict()->add_eid(bundle->custodian());
 
     // make sure to add the primary to the front
     xmit_blocks->insert(xmit_blocks->begin(), BlockInfo(this, source));
@@ -309,7 +309,7 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
     
     ASSERT(! block->complete());
     
-    Dictionary* dict = bundle->recv_blocks_.dict();
+    Dictionary* dict = bundle->mutable_recv_blocks()->dict();
     memset(&primary, 0, sizeof(primary));
     
     /*
@@ -408,9 +408,9 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
         return -1;
     }
     
-    bundle->creation_ts_.seconds_ = (u_int32_t)primary.creation_time;
-    bundle->creation_ts_.seqno_ = (u_int32_t)primary.creation_sequence;
-    bundle->expiration_ = (u_int32_t)primary.lifetime;
+    bundle->set_creation_ts(BundleTimestamp(primary.creation_time,
+                                            primary.creation_sequence));
+    bundle->set_expiration(primary.lifetime);
 
     /*
      * Verify that we have the whole dictionary.
@@ -440,33 +440,34 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
     len -= primary.dictionary_length;
 
     dict->set_dict(dictionary, primary.dictionary_length);
-    dict->extract_eid(&bundle->source_, 
+    dict->extract_eid(bundle->mutable_source(),
                       primary.source_scheme_offset,
                       primary.source_ssp_offset);
     
-    dict->extract_eid(&bundle->dest_, 
+    dict->extract_eid(bundle->mutable_dest(),
                       primary.dest_scheme_offset,
                       primary.dest_ssp_offset);
     
-    dict->extract_eid(&bundle->replyto_, 
+    dict->extract_eid(bundle->mutable_replyto(),
                       primary.replyto_scheme_offset,
                       primary.replyto_ssp_offset);
     
-    dict->extract_eid(&bundle->custodian_, 
+    dict->extract_eid(bundle->mutable_custodian(),
                       primary.custodian_scheme_offset,
                       primary.custodian_ssp_offset);
     
     // If the bundle is a fragment, grab the fragment offset and original
     // bundle size (and make sure they fit in a 32 bit integer).
-    if (bundle->is_fragment_) {
+    if (bundle->is_fragment()) {
         u_int64_t sdnv_buf = 0;
         PBP_READ_SDNV(&sdnv_buf);
         if (sdnv_buf > 0xffffffff) {
-            log_err_p(log, "fragment offset is too large: %llu", U64FMT(sdnv_buf));
+            log_err_p(log, "fragment offset is too large: %llu",
+                      U64FMT(sdnv_buf));
             return -1;
         }
         
-        bundle->frag_offset_ = (u_int32_t)sdnv_buf;
+        bundle->set_frag_offset(sdnv_buf);
         sdnv_buf = 0;
         
         PBP_READ_SDNV(&sdnv_buf);
@@ -476,12 +477,12 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
             return -1;
         }
         
-        bundle->orig_length_ = (u_int32_t)sdnv_buf;
+        bundle->set_orig_length(sdnv_buf);
 
-        log_debug_p(log, "parsed fragmentation info: offset %u, orig_len %u",
-                    bundle->frag_offset_, bundle->orig_length_);
+        log_debug_p(log, "parsed fragmentation info: offset %u orig_len %u",
+                    bundle->frag_offset(), bundle->orig_length());
     }
-
+    
 #undef PBP_READ_SDNV
     
     return consumed;
@@ -502,10 +503,10 @@ PrimaryBlockProcessor::validate(const Bundle*           bundle,
     
     // Make sure all four EIDs are valid.
     bool eids_valid = true;
-    eids_valid &= bundle->source_.valid();
-    eids_valid &= bundle->dest_.valid();
-    eids_valid &= bundle->custodian_.valid();
-    eids_valid &= bundle->replyto_.valid();
+    eids_valid &= bundle->source().valid();
+    eids_valid &= bundle->dest().valid();
+    eids_valid &= bundle->custodian().valid();
+    eids_valid &= bundle->replyto().valid();
     
     if (!eids_valid) {
         log_err_p(log, "bad value for one or more EIDs");
@@ -516,50 +517,55 @@ PrimaryBlockProcessor::validate(const Bundle*           bundle,
     // According to BP section 3.3, there are certain things that a bundle
     // with a null source EID should not try to do. Check for these cases
     // and reject the bundle if any is true.
-    if (bundle->source_ == EndpointID::NULL_EID()) {
-        if (bundle->receipt_requested() || bundle->app_acked_rcpt_) { 
-            log_err_p(log, "bundle with null source eid has requested a "
-                      "report; rejection it");
+    if (bundle->source() == EndpointID::NULL_EID()) {
+        if (bundle->receipt_requested() || bundle->app_acked_rcpt()) { 
+            log_err_p(log,
+                      "bundle with null source eid has requested a "
+                      "report; reject it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
         }
     
-        if (bundle->custody_requested_) {
-            log_err_p(log, "bundle with null source eid has requested custody "
-                      "transfer; rejection it");
+        if (bundle->custody_requested()) {
+            log_err_p(log,
+                      "bundle with null source eid has requested custody "
+                      "transfer; reject it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
         }
 
-        if (!bundle->do_not_fragment_) {
-            log_err_p(log, "bundle with null source eid has not set "
-                      "'do-not-fragment' flag; rejection it");
+        if (!bundle->do_not_fragment()) {
+            log_err_p(log,
+                      "bundle with null source eid has not set "
+                      "'do-not-fragment' flag; reject it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
         }
     }
     
     // Admin bundles cannot request custody transfer.
-    if (bundle->is_admin_) {
-        if (bundle->custody_requested_) {
-            log_err_p(log, "admin bundle requested custody transfer; "
-                      "rejection it");
+    if (bundle->is_admin()) {
+        if (bundle->custody_requested()) {
+            log_err_p(log,
+                      "admin bundle requested custody transfer; "
+                      "reject it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
         }
 
-        if ( bundle->receive_rcpt_ ||
-             bundle->custody_rcpt_ ||
-             bundle->forward_rcpt_ ||
-             bundle->delivery_rcpt_ ||
-             bundle->deletion_rcpt_ ||
-             bundle->app_acked_rcpt_ ) {
-            log_err_p(log, "admin bundle has requested a report; rejection it");
+        if ( bundle->receive_rcpt() ||
+             bundle->custody_rcpt() ||
+             bundle->forward_rcpt() ||
+             bundle->delivery_rcpt() ||
+             bundle->deletion_rcpt() ||
+             bundle->app_acked_rcpt() )
+        {
+            log_err_p(log, "admin bundle has requested a report; reject it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
         }
     }
-
+    
     return true;
 }
 
@@ -637,9 +643,9 @@ PrimaryBlockProcessor::generate_primary(const Bundle* bundle,
     PBP_WRITE_SDNV(primary.replyto_ssp_offset);
     PBP_WRITE_SDNV(primary.custodian_scheme_offset);
     PBP_WRITE_SDNV(primary.custodian_ssp_offset);
-    PBP_WRITE_SDNV(bundle->creation_ts_.seconds_);
-    PBP_WRITE_SDNV(bundle->creation_ts_.seqno_);
-    PBP_WRITE_SDNV(bundle->expiration_);
+    PBP_WRITE_SDNV(bundle->creation_ts().seconds_);
+    PBP_WRITE_SDNV(bundle->creation_ts().seqno_);
+    PBP_WRITE_SDNV(bundle->expiration());
     PBP_WRITE_SDNV(primary.dictionary_length);
     
     // Add the dictionary.
@@ -647,14 +653,13 @@ PrimaryBlockProcessor::generate_primary(const Bundle* bundle,
     buf += dict->length();
     len -= dict->length();
     
-    
     /*
      * If the bundle is a fragment, stuff in SDNVs for the fragment
      * offset and original length.
      */
-    if (bundle->is_fragment_) {
-        PBP_WRITE_SDNV(bundle->frag_offset_);
-        PBP_WRITE_SDNV(bundle->orig_length_);
+    if (bundle->is_fragment()) {
+        PBP_WRITE_SDNV(bundle->frag_offset());
+        PBP_WRITE_SDNV(bundle->orig_length());
     }
     
 #undef PBP_WRITE_SDNV

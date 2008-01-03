@@ -47,9 +47,9 @@ static const std::string BL = "tca://localhost/bundlelayer";
 static std::string
 get_payload_str(const Bundle* b)
 {
-    size_t len = b->payload_.length();
+    size_t len = b->payload().length();
     u_char data[len+1];
-    const u_char* p = b->payload_.read_data(0, len, data);
+    const u_char* p = b->payload().read_data(0, len, data);
     return (const char*)p;
 }
 
@@ -77,11 +77,11 @@ log_bundle(const std::string& comment, const Bundle* b, bool include_payload)
     
     if (include_payload)
         log_debug_p("/dtn/tca", "%s [%s] -> [%s] : '%s'", comment.c_str(),
-                    b->source_.str().c_str(), b->dest_.c_str(),
+                    b->source().str().c_str(), b->dest().c_str(),
                     get_payload_str(b).c_str());
     else
         log_debug_p("/dtn/tca", "%s [%s] -> [%s]", comment.c_str(),
-                    b->source_.str().c_str(), b->dest_.c_str());
+                    b->source().str().c_str(), b->dest().c_str());
 } 
     
 
@@ -152,7 +152,7 @@ TcaRouter::handle_bundle_received(BundleReceivedEvent* event)
     // TCA control bundles are the following:
     // Check for control bundles here (REG, COA, ASK, ADV)
 
-    EndpointID dest = bundle->dest_;
+    const EndpointID& dest = bundle->dest();
 
     if (dest.scheme_str() == "tca")
     {
@@ -203,7 +203,7 @@ TcaRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
     Bundle* b = event->bundleref_.object();
     log_debug("TcaRouter: handle bundle transmitted: *%p", b);
 
-    EndpointID dest = b->dest_;
+    const EndpointID& dest = b->dest();
 
     if (dest.scheme_str() == "tca")
     {
@@ -320,7 +320,7 @@ TcaRouter::fwd_to_all(Bundle* bundle)
     }
 
     log_debug("TcaRouter::fwd_to_all dest='%s': %d matches",
-                bundle->dest_.c_str(), count);
+              bundle->dest().c_str(), count);
     return count;
 }
 
@@ -347,7 +347,7 @@ TcaRouter::fwd_to_matching_r(Bundle* bundle, const LinkRef& next_hop,
                              ForwardingRule fwd_rule)
 {
     log_debug("TcaRouter::fwd_to_matching_r: owner='%s'",
-            bundle->owner_.c_str());
+              bundle->owner().c_str());
     log_debug("TcaRouter::fwd_to_matching_r: fwd_rule=%d", fwd_rule);
 
     if (fwd_rule == FWD_NEVER) return 0;    // no matches
@@ -355,7 +355,7 @@ TcaRouter::fwd_to_matching_r(Bundle* bundle, const LinkRef& next_hop,
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
 
-    route_table_->get_matching(bundle->dest_, &matches);
+    route_table_->get_matching(bundle->dest(), &matches);
 
     // First step - split out the default route
     RouteEntry*     default_route = NULL;   
@@ -406,13 +406,13 @@ TcaRouter::fwd_to_matching_r(Bundle* bundle, const LinkRef& next_hop,
         {
             log_debug("fwd_to_matching_r dest='%s': "
                       "ignoring match %s since next_hop link %s set",
-                      bundle->dest_.c_str(), (*iter)->link()->name(),
+                      bundle->dest().c_str(), (*iter)->link()->name(),
                       next_hop->name());
         }
     }
 
     log_debug("fwd_to_matching_r dest='%s': %d matches",
-                bundle->dest_.c_str(), count);
+              bundle->dest().c_str(), count);
 
     return count;
 }
@@ -426,14 +426,14 @@ TcaRouter::on_coa_transmitted(Bundle* b, const TcaControlBundle& cb)
     TcaWrappedBundle wb(cb);
     
     log_debug("    coa: source=%s, dest=%s",
-                b->source_.c_str(),
-                b->dest_.c_str());
+                b->source().c_str(),
+                b->dest().c_str());
     
     // todo: use a WrappedBundle here
     std::string coa_sent_payload = "coa_sent:";
-    coa_sent_payload += b->source_.str();
+    coa_sent_payload += b->source().str();
     coa_sent_payload += "\t";
-    coa_sent_payload += b->dest_.str();
+    coa_sent_payload += b->dest().str();
     coa_sent_payload += "\t";
     coa_sent_payload += cb.args_[0]; // link_addr of mobile, from body of coa
 
@@ -453,9 +453,9 @@ TcaRouter::on_ask_transmitted(Bundle* b, const TcaControlBundle& cb)
 
     // todo: use a WrappedBundle here
     std::string ask_sent= "ask_sent:";
-    ask_sent += b->source_.str();
+    ask_sent += b->source().str();
     ask_sent += "\t";
-    ask_sent += b->dest_.str();
+    ask_sent += b->dest().str();
     ask_sent += "\t";
     ask_sent += cb.args_[0];
 
@@ -475,9 +475,9 @@ TcaRouter::on_adv_transmitted(Bundle* b, const TcaControlBundle& cb)
 
     // todo: use a WrappedBundle here
     std::string adv_sent= "adv_sent:";
-    adv_sent += b->source_.str();
+    adv_sent += b->source().str();
     adv_sent += "\t";
-    adv_sent += b->dest_.str();
+    adv_sent += b->dest().str();
     adv_sent += "\t";
     adv_sent += cb.args_[0];
     adv_sent += "\t";
@@ -498,7 +498,7 @@ TcaRouter::handle_register(Bundle* b)
     // 1) A client application (zero args, source eid important), or
     // 2) An admin app (2 args)
     
-    if (b->source_.str() == admin_app_.str())
+    if (b->source().str() == admin_app_.str())
     {
         // The local admin app sent this bundle. Just forward it to the
         // default route:
@@ -513,7 +513,7 @@ TcaRouter::handle_register(Bundle* b)
         TcaControlBundle cb(get_payload_str(b));
 
         TcaWrappedBundle reg_received("reg_received",
-                b->source_.str(), b->dest_.str());
+                b->source().str(), b->dest().str());
 
         log_debug("TcaRouter::handle_register:");
         log_controlbundle(cb);
@@ -529,7 +529,7 @@ TcaRouter::handle_register(Bundle* b)
         {
             // This bundle came from an app on the local node
             // so fill in mobile_eid and NULL last_hop
-            reg_received.append_arg(b->source_.str());
+            reg_received.append_arg(b->source().str());
             reg_received.append_arg("NULL");
         }
         
@@ -562,7 +562,7 @@ TcaRouter::handle_anonymous_bundle(Bundle* b)
     // with tca://anonymous
     // so far, the "ask" bundle is the only one of its kind
 
-    TcaEndpointID dest(b->dest_);
+    TcaEndpointID dest(b->dest());
 
     TcaControlBundle cb(get_payload_str(b));
 
@@ -595,9 +595,9 @@ TcaRouter::handle_ask(Bundle* b, const TcaControlBundle& cb)
     
         // generate ask_received for local admin app
         std::string payload = "ask_received:";
-        payload += b->source_.str();
+        payload += b->source().str();
         payload += "\t";
-        payload += b->dest_.str();
+        payload += b->dest().str();
         payload += "\t";
         payload += cb.args_[0];
 
@@ -647,7 +647,7 @@ TcaRouter::handle_bl_ask(Bundle* b, const TcaControlBundle& cb)
     (void)cb;
     // Note: We should never get here! asks should be addressed to the
     // control app, not bundle layer.
-    return post_bundle(BL, b->source_,
+    return post_bundle(BL, b->source(),
         "adv:Don\'t ASK me. You should probably ASK the Control App,"
         " not the Bundle Layer.");
 }
@@ -674,7 +674,7 @@ TcaRouter::handle_get_routes(Bundle* b, const TcaControlBundle& cb)
         response += "\t";
     }
 
-    post_bundle(BL, b->source_, response);
+    post_bundle(BL, b->source(), response);
 
     return true;
 }
@@ -742,7 +742,7 @@ TcaRouter::handle_tca_unbound_bundle(Bundle* bundle)
             // If I'm a router, this is an error! All tca bundles must have
             // a default route up to a gateway.
             log_err("TcaRouter: Error. TCA_ROUTER has no route to dest %s",
-                    bundle->dest_.c_str());
+                    bundle->dest().c_str());
             return false;
         }
         else if (role_ == TCA_GATEWAY)
@@ -752,7 +752,7 @@ TcaRouter::handle_tca_unbound_bundle(Bundle* bundle)
             // to the control app, which will get registration and create a
             // route if possible.
             std::string payload = "unb:";
-            payload += bundle->dest_.str();
+            payload += bundle->dest().str();
             post_bundle(BL, admin_app_, payload);
         }
     }
@@ -764,7 +764,7 @@ TcaRouter::handle_tca_unbound_bundle(Bundle* bundle)
 bool
 TcaRouter::is_local_source(Bundle* b)
 {
-    TcaEndpointID src(b->source_);
+    TcaEndpointID src(b->source());
     return src.get_hostid() == admin_app_.get_hostid();
 }
 
@@ -773,15 +773,15 @@ TcaRouter::ForwardingRule
 TcaRouter::get_forwarding_rule(Bundle* b)
 {
     // all non-tca bundles should always be forwarded to all routes
-    if (b->dest_.scheme_str() != "tca") return FWD_UDR_ALWAYS;
+    if (b->dest().scheme_str() != "tca") return FWD_UDR_ALWAYS;
     
-    TcaEndpointID dest(b->dest_);
+    TcaEndpointID dest(b->dest());
 
     if (dest.ssp() == "//registry")
     {
         // forward to default route (exclusively) iff sent by the local
         // admin app
-        if (b->source_.str() == admin_app_.str()) return FWD_UDR_EXCLUSIVELY;
+        if (b->source().str() == admin_app_.str()) return FWD_UDR_EXCLUSIVELY;
         else return FWD_NEVER;
     }
 
@@ -930,19 +930,19 @@ TcaRouter::post_bundle(const EndpointID& src, const EndpointID& dest,
 
     // if source is unspecified, use bundlelayer
     if (src.length() == 0)
-            b->source_ = EndpointID("tca://localhost/bundlelayer");
+        b->mutable_source()->assign("tca://localhost/bundlelayer");
     else
-            b->source_ = src;
+        b->mutable_source()->assign(src);
 
-    b->dest_ = dest;
-    b->custodian_ = BundleDaemon::instance()->local_eid();
-    b->replyto_ = BundleDaemon::instance()->local_eid();
+    b->mutable_dest()->assign(dest);
+    b->mutable_custodian()->assign(BundleDaemon::instance()->local_eid());
+    b->mutable_replyto()->assign(BundleDaemon::instance()->local_eid());
 
-    b->payload_.set_data(payload);
+    b->mutable_payload()->set_data(payload);
 
     // We need to set non-zero expiration or else the bundle
     // expires as soon as it arrives.
-    b->expiration_ = 3600;
+    b->set_expiration(3600);
 
     // The default values are ok for the rest of the bundle fields.
 

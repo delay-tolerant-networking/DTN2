@@ -24,6 +24,7 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 void
 CustodySignal::create_custody_signal(Bundle*           bundle,
                                      const Bundle*     orig_bundle,
@@ -31,20 +32,20 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
                                      bool              succeeded,
                                      reason_t          reason)
 {
-    bundle->source_.assign(source_eid);
-    if (orig_bundle->custodian_.equals(EndpointID::NULL_EID())) {
+    bundle->mutable_source()->assign(source_eid);
+    if (orig_bundle->custodian().equals(EndpointID::NULL_EID())) {
         PANIC("create_custody_signal(*%p): "
               "custody signal cannot be generated to null eid",
               orig_bundle);
     }
-    bundle->dest_.assign(orig_bundle->custodian_);
-    bundle->replyto_.assign(EndpointID::NULL_EID());
-    bundle->custodian_.assign(EndpointID::NULL_EID());
-    bundle->is_admin_ = true;
+    bundle->mutable_dest()->assign(orig_bundle->custodian());
+    bundle->mutable_replyto()->assign(EndpointID::NULL_EID());
+    bundle->mutable_custodian()->assign(EndpointID::NULL_EID());
+    bundle->set_is_admin(true);
 
     // use the expiration time from the original bundle
     // XXX/demmer maybe something more clever??
-    bundle->expiration_ = orig_bundle->expiration_;
+    bundle->set_expiration(orig_bundle->expiration());
 
     int sdnv_encoding_len = 0;
     int signal_len = 0;
@@ -71,23 +72,23 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     signal_len =  1 + 1;
 
     // the 2 SDNV fragment fields:
-    if (orig_bundle->is_fragment_) {
-        signal_len += SDNV::encoding_len(orig_bundle->frag_offset_);
-        signal_len += SDNV::encoding_len(orig_bundle->orig_length_);
+    if (orig_bundle->is_fragment()) {
+        signal_len += SDNV::encoding_len(orig_bundle->frag_offset());
+        signal_len += SDNV::encoding_len(orig_bundle->orig_length());
     }
     
     // Time field, set to the current time:
     BundleTimestamp now;
     now.seconds_ = BundleTimestamp::get_current_time();
     now.seqno_   = 0;
-    signal_len += BundleProtocol::ts_encoding_len(&now);
+    signal_len += BundleProtocol::ts_encoding_len(now);
     
     // The bundle's creation timestamp:
-    signal_len += BundleProtocol::ts_encoding_len(&orig_bundle->creation_ts_);
+    signal_len += BundleProtocol::ts_encoding_len(orig_bundle->creation_ts());
 
     // the Source Endpoint ID length and value
-    signal_len += SDNV::encoding_len(orig_bundle->source_.length()) +
-                  orig_bundle->source_.length();
+    signal_len += SDNV::encoding_len(orig_bundle->source().length()) +
+                  orig_bundle->source().length();
 
     //
     // now format the buffer
@@ -97,7 +98,7 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     
     // Admin Payload Type and flags
     *bp = (BundleProtocol::ADMIN_CUSTODY_SIGNAL << 4);
-    if (orig_bundle->is_fragment_) {
+    if (orig_bundle->is_fragment()) {
         *bp |= BundleProtocol::ADMIN_IS_FRAGMENT;
     }
     bp++;
@@ -108,45 +109,46 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     len--;
     
     // The 2 Fragment Fields
-    if (orig_bundle->is_fragment_) {
-        sdnv_encoding_len = SDNV::encode(orig_bundle->frag_offset_, bp, len);
+    if (orig_bundle->is_fragment()) {
+        sdnv_encoding_len = SDNV::encode(orig_bundle->frag_offset(), bp, len);
         ASSERT(sdnv_encoding_len > 0);
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
         
-        sdnv_encoding_len = SDNV::encode(orig_bundle->orig_length_, bp, len);
+        sdnv_encoding_len = SDNV::encode(orig_bundle->orig_length(), bp, len);
         ASSERT(sdnv_encoding_len > 0);
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
     }
     
-    sdnv_encoding_len = BundleProtocol::set_timestamp(bp, len, &now);
+    sdnv_encoding_len = BundleProtocol::set_timestamp(bp, len, now);
     ASSERT(sdnv_encoding_len > 0);
     bp  += sdnv_encoding_len;
     len -= sdnv_encoding_len;
 
     // Copy of bundle X's Creation Timestamp
     sdnv_encoding_len = 
-            BundleProtocol::set_timestamp(bp, len, &orig_bundle->creation_ts_);
+        BundleProtocol::set_timestamp(bp, len, orig_bundle->creation_ts());
     ASSERT(sdnv_encoding_len > 0);
     bp  += sdnv_encoding_len;
     len -= sdnv_encoding_len;
 
     // The Endpoint ID length and data
-    sdnv_encoding_len = SDNV::encode(orig_bundle->source_.length(), bp, len);
+    sdnv_encoding_len = SDNV::encode(orig_bundle->source().length(), bp, len);
     ASSERT(sdnv_encoding_len > 0);
     len -= sdnv_encoding_len;
     bp  += sdnv_encoding_len;
     
-    ASSERT((u_int)len == orig_bundle->source_.length());
-    memcpy(bp, orig_bundle->source_.c_str(), orig_bundle->source_.length());
+    ASSERT((u_int)len == orig_bundle->source().length());
+    memcpy(bp, orig_bundle->source().c_str(), orig_bundle->source().length());
     
     // 
     // Finished generating the payload
     //
-    bundle->payload_.set_data(scratch.buf(), signal_len);
+    bundle->mutable_payload()->set_data(scratch.buf(), signal_len);
 }
 
+//----------------------------------------------------------------------
 bool
 CustodySignal::parse_custody_signal(data_t* data,
                                     const u_char* bp, u_int len)
@@ -214,6 +216,7 @@ CustodySignal::parse_custody_signal(data_t* data,
     return true;
 }
 
+//----------------------------------------------------------------------
 const char*
 CustodySignal::reason_to_str(u_int8_t reason)
 {

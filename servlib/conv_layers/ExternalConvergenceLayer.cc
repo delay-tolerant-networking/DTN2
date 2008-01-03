@@ -846,11 +846,11 @@ ExternalConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bu
         return;
     }
     
-    log_debug( "Sending bundle %d on link %s", bundle->bundleid_,
+    log_debug( "Sending bundle %d on link %s", bundle->bundleid(),
                link->name() );
     
     // Figure out the relative and absolute path to the file.
-    oasys::StringBuffer filename_buf("bundle%d", bundle->bundleid_);
+    oasys::StringBuffer filename_buf("bundle%d", bundle->bundleid());
     std::string filename = link->name_str() + "/" +
             std::string( filename_buf.c_str() );
     
@@ -909,7 +909,7 @@ ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, const BundleRef& bu
         return;
     }
     
-    log_info( "Cancelling bundle %d on link %s", bundle->bundleid_,
+    log_info( "Cancelling bundle %d on link %s", bundle->bundleid(),
                link->name() );
     
     // Create the request message.
@@ -1179,19 +1179,19 @@ void
 ExternalConvergenceLayer::fill_bundle_attributes(const BundleRef& bundle,
                                                  bundle_attributes& attribs)
 {
-    attribs.source_eid( bundle->source_.str() );
-    attribs.is_fragment(bundle->is_fragment_);
+    attribs.source_eid( bundle->source().str() );
+    attribs.is_fragment(bundle->is_fragment());
     
     // The timestamp in the XML element is two longs, rather than the
     // struct timeval used in DTN2 or the SDNV specified in the BP.
-    attribs.timestamp_seconds(bundle->creation_ts_.seconds_);
-    attribs.timestamp_sequence(bundle->creation_ts_.seqno_);
+    attribs.timestamp_seconds(bundle->creation_ts().seconds_);
+    attribs.timestamp_sequence(bundle->creation_ts().seqno_);
     
     // fragment_offset and fragment_length are required only if is_fragment
     // is true.
-    if (bundle->is_fragment_) {
-        attribs.fragment_offset(bundle->frag_offset_);
-        attribs.fragment_length(bundle->payload_.length());
+    if (bundle->is_fragment()) {
+        attribs.fragment_offset(bundle->frag_offset());
+        attribs.fragment_length(bundle->payload().length());
     }
 }
 

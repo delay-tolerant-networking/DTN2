@@ -36,19 +36,19 @@ PingRegistration::PingRegistration(const EndpointID& eid)
 void
 PingRegistration::deliver_bundle(Bundle* bundle)
 {
-    size_t payload_len = bundle->payload_.length();
+    size_t payload_len = bundle->payload().length();
     log_debug("%zu byte ping from %s",
-              payload_len, bundle->source_.c_str());
+              payload_len, bundle->source().c_str());
     
     Bundle* reply = new Bundle();
-    reply->source_.assign(endpoint_);
-    reply->dest_.assign(bundle->source_);
-    reply->replyto_.assign(EndpointID::NULL_EID());
-    reply->custodian_.assign(EndpointID::NULL_EID());
-    reply->expiration_ = bundle->expiration_;
+    reply->mutable_source()->assign(endpoint_);
+    reply->mutable_dest()->assign(bundle->source());
+    reply->mutable_replyto()->assign(EndpointID::NULL_EID());
+    reply->mutable_custodian()->assign(EndpointID::NULL_EID());
+    reply->set_expiration(bundle->expiration());
 
-    reply->payload_.set_length(payload_len);
-    reply->payload_.write_data(&bundle->payload_, 0, payload_len, 0);
+    reply->mutable_payload()->set_length(payload_len);
+    reply->mutable_payload()->write_data(bundle->payload(), 0, payload_len, 0);
     
     BundleDaemon::post(new BundleReceivedEvent(reply, EVENTSRC_ADMIN));
     BundleDaemon::post(new BundleDeliveredEvent(bundle, this));

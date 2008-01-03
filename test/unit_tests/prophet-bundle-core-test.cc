@@ -36,24 +36,23 @@ DECLARE_TEST(ProphetBundleCore)
 DECLARE_TEST(ProphetBundleWrapper)
 {
     b = new dtn::Bundle(oasys::Builder::builder());
-    b->bundleid_ = 0;
-    b->payload_.init(0, dtn::BundlePayload::NODATA);
+    b->test_set_bundleid(0);
+    b->mutable_payload()->init(0, dtn::BundlePayload::NODATA);
     b->add_ref("test");
-    b->dest_.assign("dtn://dtn.howdy.dtn");
-    b->source_.assign("dtn://dtn.mysrc.dtn");
-    b->creation_ts_.seconds_ = 98765;
-    b->creation_ts_.seqno_ = 4321;
-    b->expiration_ = 123;
-    b->custody_requested_ = true;
+    b->mutable_dest()->assign("dtn://dtn.howdy.dtn");
+    b->mutable_source()->assign("dtn://dtn.mysrc.dtn");
+    b->set_creation_ts(dtn::BundleTimestamp(98765, 4321));
+    b->set_expiration(123);
+    b->set_custody_requested(true);
 
     br = b;
     CHECK(br.object() != NULL);
     dtn::ProphetBundle p(br);
-    CHECK_EQUALSTR(b->dest_.c_str(), p.destination_id().c_str());
-    CHECK_EQUALSTR(b->source_.c_str(), p.source_id().c_str());
-    CHECK_EQUAL(b->creation_ts_.seconds_, p.creation_ts());
-    CHECK_EQUAL(b->creation_ts_.seqno_, p.sequence_num());
-    CHECK_EQUAL(b->payload_.length(), p.size());
+    CHECK_EQUALSTR(b->dest().c_str(), p.destination_id().c_str());
+    CHECK_EQUALSTR(b->source().c_str(), p.source_id().c_str());
+    CHECK_EQUAL(b->creation_ts().seconds_, p.creation_ts());
+    CHECK_EQUAL(b->creation_ts().seqno_, p.sequence_num());
+    CHECK_EQUAL(b->payload().length(), p.size());
     CHECK_EQUAL(p.num_forward(), 0);
     CHECK(p.custody_requested());
 

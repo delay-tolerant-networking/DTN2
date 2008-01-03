@@ -142,7 +142,7 @@ public:
      * Store a DTN timestamp into a 64-bit value suitable for
      * transmission over the network.
      */
-    static int set_timestamp(u_char* bp, size_t len, const BundleTimestamp* tv);
+    static int set_timestamp(u_char* bp, size_t len, const BundleTimestamp& tv);
 
     /**
      * Retrieve a DTN timestamp from a 64-bit value that was
@@ -150,8 +150,11 @@ public:
      * timestamp to be word-aligned.
      */
     static int get_timestamp(BundleTimestamp* tv, const u_char* bp, size_t len);
-    
-    static size_t ts_encoding_len(const BundleTimestamp* tv);
+
+    /**
+     * Return the length required to encode the timestamp as two SDNVs
+     */
+    static size_t ts_encoding_len(const BundleTimestamp& tv);
 
     /**
      * The current version of the bundling protocol.

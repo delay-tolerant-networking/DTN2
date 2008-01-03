@@ -432,25 +432,25 @@ TableBasedRouter::route_bundle(Bundle* bundle)
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
 
-    log_debug("route_bundle: checking bundle %d", bundle->bundleid_);
+    log_debug("route_bundle: checking bundle %d", bundle->bundleid());
 
     // XXX/demmer fix this
-    if (bundle->owner_ == "DO_NOT_FORWARD") {
+    if (bundle->owner() == "DO_NOT_FORWARD") {
         log_notice("route_bundle: "
                    "ignoring bundle %d since owner is DO_NOT_FORWARD",
-                   bundle->bundleid_);
+                   bundle->bundleid());
         return 0;
     }
 
     LinkRef null_link("TableBasedRouter::route_bundle");
-    route_table_->get_matching(bundle->dest_, null_link, &matches);
+    route_table_->get_matching(bundle->dest(), null_link, &matches);
 
     // sort the matching routes by priority, allowing subclasses to
     // override the way in which the sorting occurs
     sort_routes(bundle, &matches);
 
     log_debug("route_bundle bundle id %d: checking %zu route entry matches",
-              bundle->bundleid_, matches.size());
+              bundle->bundleid(), matches.size());
     
     unsigned int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter)
@@ -466,7 +466,7 @@ TableBasedRouter::route_bundle(Bundle* bundle)
         if (deferred_list(route->link())->list()->contains(bundle)) {
             log_debug("route_bundle bundle %d: "
                       "ignoring link *%p since already deferred",
-                      bundle->bundleid_, route->link().object());
+                      bundle->bundleid(), route->link().object());
             continue;
         }
 
@@ -485,7 +485,7 @@ TableBasedRouter::route_bundle(Bundle* bundle)
     }
 
     log_debug("route_bundle bundle id %d: forwarded on %u links",
-              bundle->bundleid_, count);
+              bundle->bundleid(), count);
     return count;
 }
 
@@ -611,7 +611,7 @@ TableBasedRouter::DeferredList::dump_stats(oasys::StringBuffer* buf)
 const ForwardingInfo&
 TableBasedRouter::DeferredList::info(const BundleRef& bundle)
 {
-    InfoMap::const_iterator iter = info_.find(bundle->bundleid_);
+    InfoMap::const_iterator iter = info_.find(bundle->bundleid());
     ASSERT(iter != info_.end());
     return iter->second;
 }
@@ -633,7 +633,7 @@ TableBasedRouter::DeferredList::add(const BundleRef&      bundle,
     count_++;
     list_.push_back(bundle);
 
-    info_.insert(InfoMap::value_type(bundle->bundleid_, info));
+    info_.insert(InfoMap::value_type(bundle->bundleid(), info));
 
     return true;
 }
@@ -652,7 +652,7 @@ TableBasedRouter::DeferredList::del(const BundleRef& bundle)
     log_debug("removed *%p from deferred (length %zu)",
               bundle.object(), count_);
 
-    size_t n = info_.erase(bundle->bundleid_);
+    size_t n = info_.erase(bundle->bundleid());
     ASSERT(n == 1);
     
     return true;

@@ -51,7 +51,7 @@ FragmentState::check_completed() const
     size_t f_offset;
     size_t f_origlen;
 
-    size_t total_len = bundle_->payload_.length();
+    size_t total_len = bundle_->payload().length();
     
     int fragi = 0;
     int fragn = fragments_.size();
@@ -63,11 +63,11 @@ FragmentState::check_completed() const
     {
         fragment = *iter;
 
-        f_len = fragment->payload_.length();
-        f_offset = fragment->frag_offset_;
-        f_origlen = fragment->orig_length_;
+        f_len = fragment->payload().length();
+        f_offset = fragment->frag_offset();
+        f_origlen = fragment->orig_length();
         
-        ASSERT(fragment->is_fragment_);
+        ASSERT(fragment->is_fragment());
         
         if (f_origlen != total_len) {
             PANIC("check_completed: error fragment orig len %zu != total %zu",

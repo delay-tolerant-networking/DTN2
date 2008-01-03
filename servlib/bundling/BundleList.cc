@@ -94,12 +94,12 @@ void
 BundleList::add_bundle(Bundle* b, const iterator& pos)
 {
     ASSERT(lock_->is_locked_by_me());
-    ASSERT(b->lock_.is_locked_by_me());
+    ASSERT(b->lock()->is_locked_by_me());
     
     if (b->is_queued_on(this)) {
         log_err("ERROR in add bundle: "
                 "bundle id %d already on list [%s]",
-                b->bundleid_, name_.c_str());
+                b->bundleid(), name_.c_str());
         
         return;
     }
@@ -113,7 +113,7 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
     }
 
     log_debug("bundle id %d add mapping [%s] to list %p",
-              b->bundleid_, name_.c_str(), this);
+              b->bundleid(), name_.c_str(), this);
 }
 
 //----------------------------------------------------------------------
@@ -121,7 +121,7 @@ void
 BundleList::push_front(Bundle* b)
 {
     oasys::ScopeLock l(lock_, "BundleList::push_front");
-    oasys::ScopeLock bl(&b->lock_, "BundleList::push_front");
+    oasys::ScopeLock bl(b->lock(), "BundleList::push_front");
     add_bundle(b, list_.begin());
 }
 
@@ -130,7 +130,7 @@ void
 BundleList::push_back(Bundle* b)
 {
     oasys::ScopeLock l(lock_, "BundleList::push_back");
-    oasys::ScopeLock bl(&b->lock_, "BundleList::push_back");
+    oasys::ScopeLock bl(b->lock(), "BundleList::push_back");
     add_bundle(b, list_.end());
 }
         
@@ -140,7 +140,7 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
 {
     iterator iter;
     oasys::ScopeLock l(lock_, "BundleList::insert_sorted");
-    oasys::ScopeLock bl(&b->lock_, "BundleList::insert_sorted");
+    oasys::ScopeLock bl(b->lock(), "BundleList::insert_sorted");
 
     // scan through the list until the iterator either a) reaches the
     // end of the list or b) reaches the bundle that should follow the
@@ -154,7 +154,7 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
     for (iter = list_.begin(); iter != list_.end(); ++iter)
     {
         if (sort_order == SORT_FRAG_OFFSET) {
-            if ((*iter)->frag_offset_ > b->frag_offset_) {
+            if ((*iter)->frag_offset() > b->frag_offset()) {
                 break;
             }
 
@@ -175,7 +175,7 @@ BundleList::insert_random(Bundle* b)
 {
     iterator iter;
     oasys::ScopeLock l(lock_, "BundleList::insert_random");
-    oasys::ScopeLock bl(&b->lock_, "BundleList::insert_random");
+    oasys::ScopeLock bl(b->lock(), "BundleList::insert_random");
 
     iter = begin();
     int location = 0;
@@ -204,12 +204,12 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
 
     // remove the mapping
     log_debug("bundle id %d del_bundle: deleting mapping [%s]",
-              b->bundleid_, name_.c_str());
+              b->bundleid(), name_.c_str());
     BundleMappings::iterator mapping = b->mappings()->find(this);
     if (mapping == b->mappings()->end()) {
         log_err("ERROR in del bundle: "
                 "bundle id %d has no mapping for list [%s]",
-                b->bundleid_, name_.c_str());
+                b->bundleid(), name_.c_str());
     } else {
         ASSERT(mapping->list() == this);
         ASSERT(mapping->position() == pos);
@@ -280,7 +280,7 @@ BundleList::erase(Bundle* bundle, bool used_notifier)
 
     // The bundle list lock must always be taken before the
     // to-be-erased bundle lock.
-    ASSERTF(!bundle->lock_.is_locked_by_me(),
+    ASSERTF(!bundle->lock()->is_locked_by_me(),
             "bundle cannot be locked before calling erase "
             "due to potential deadlock");
     
@@ -313,7 +313,7 @@ void
 BundleList::erase(iterator& iter, bool used_notifier)
 {
     Bundle* bundle = *iter;
-    ASSERTF(!bundle->lock_.is_locked_by_me(),
+    ASSERTF(!bundle->lock()->is_locked_by_me(),
             "bundle cannot be locked in erase due to potential deadlock");
     
     oasys::ScopeLock l(lock_, "BundleList::erase");
@@ -351,7 +351,7 @@ BundleList::find(u_int32_t bundle_id) const
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     for (iterator iter = begin(); iter != end(); ++iter) {
-        if ((*iter)->bundleid_ == bundle_id) {
+        if ((*iter)->bundleid() == bundle_id) {
             ret = *iter;
             return ret;
         }
@@ -369,9 +369,9 @@ BundleList::find(const EndpointID& source_eid,
     BundleRef ret("BundleList::find() temporary");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
-        if ((*iter)->source_.equals(source_eid) &&
-            (*iter)->creation_ts_.seconds_ == creation_ts.seconds_ &&
-            (*iter)->creation_ts_.seqno_ == creation_ts.seqno_)
+        if ((*iter)->source().equals(source_eid) &&
+            (*iter)->creation_ts().seconds_ == creation_ts.seconds_ &&
+            (*iter)->creation_ts().seqno_ == creation_ts.seqno_)
         {
             ret = *iter;
             return ret;
@@ -389,12 +389,12 @@ BundleList::find(GbofId& gbof_id) const
     BundleRef ret("BundleList::find() temporary");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
-        if (gbof_id.equals( (*iter)->source_,
-                            (*iter)->creation_ts_,
-                            (*iter)->is_fragment_,
-                            (*iter)->payload_.length(),
-                            (*iter)->frag_offset_) )
-        {
+        if (gbof_id.equals( (*iter)->source(),
+                            (*iter)->creation_ts(),
+                            (*iter)->is_fragment(),
+                            (*iter)->payload().length(),
+                            (*iter)->frag_offset() ))
+            {
             ret = *iter;
             return ret;
         }
@@ -411,12 +411,12 @@ BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id) cons
     BundleRef ret("BundleList::find() temporary");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
-        if (gbof_id.equals( (*iter)->source_,
-                            (*iter)->creation_ts_,
-                            (*iter)->is_fragment_,
-                            (*iter)->payload_.length(),
-                            (*iter)->frag_offset_ )
-            && extended_id == (*iter)->extended_id_)
+        if (gbof_id.equals( (*iter)->source(),
+                            (*iter)->creation_ts(),
+                            (*iter)->is_fragment(),
+                            (*iter)->payload().length(),
+                            (*iter)->frag_offset() )
+            && extended_id == (*iter)->extended_id())
         {
             ret = *iter;
             return ret;

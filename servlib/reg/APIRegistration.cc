@@ -52,7 +52,7 @@ APIRegistration::deliver_bundle(Bundle* bundle)
     if (!active() && (failure_action_ == DROP)) {
         log_info("deliver_bundle: "
                  "dropping bundle id %d for passive registration %d (%s)",
-                 bundle->bundleid_, regid_, endpoint_.c_str());
+                 bundle->bundleid(), regid_, endpoint_.c_str());
         
         // post an event saying we "delivered" it
         BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
@@ -71,7 +71,7 @@ APIRegistration::deliver_bundle(Bundle* bundle)
     }
 
     log_info("deliver_bundle: queuing bundle id %d for %s delivery to %s",
-             bundle->bundleid_,
+             bundle->bundleid(),
              active() ? "active" : "deferred",
              endpoint_.c_str());
 

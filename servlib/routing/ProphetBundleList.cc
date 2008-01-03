@@ -55,8 +55,9 @@ void
 ProphetBundleList::del(const BundleRef& b)
 {
     const_iterator i;
-    if (find(b->dest_.str(),b->creation_ts_.seconds_,
-             b->creation_ts_.seqno_, i))
+    if (find(b->dest().str(),
+             b->creation_ts().seconds_,
+             b->creation_ts().seqno_, i))
     {
         prophet::Bundle* bundle = const_cast<prophet::Bundle*>(*i);
         list_.del(*i);

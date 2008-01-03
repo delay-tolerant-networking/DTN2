@@ -263,7 +263,7 @@ DTLSRRouter::handle_bundle_expired(BundleExpiredEvent* e)
     {
         if (*iter == bundle) {
             log_notice("current lsa for %s expired... kicking links",
-                       bundle->source_.c_str());
+                       bundle->source().c_str());
 //             oasys::StringBuffer buf;
 //             bundle->format_verbose(&buf);
 //             log_multiline(oasys::LOG_NOTICE, buf.c_str());
@@ -510,7 +510,7 @@ void
 DTLSRRouter::Reg::deliver_bundle(Bundle* bundle)
 {
     u_char type;
-    bundle->payload_.read_data(0, 1, &type);
+    bundle->payload().read_data(0, 1, &type);
 
     if (type == DTLSR::MSG_LSA) {
         log_info("got LSA bundle *%p",bundle);
@@ -537,18 +537,18 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
 {
     bool found_stale_lsa = false;
     if (seqno <= node->info().last_lsa_seqno_ &&
-        bundle->creation_ts_.seconds_ < node->info().last_lsa_creation_ts_)
+        bundle->creation_ts().seconds_ < node->info().last_lsa_creation_ts_)
     {
         log_info("update_current_lsa: "
                  "ignoring stale LSA (seqno %u <= last %u, "
                  "creation_ts %u <= last %u)",
                  seqno, node->info().last_lsa_seqno_,
-                 bundle->creation_ts_.seconds_,
+                 bundle->creation_ts().seconds_,
                  node->info().last_lsa_creation_ts_);
         
         // XXX/demmer this is a big gross hack to make sure the stale
         // lsa isn't forwarded.
-        bundle->owner_ = "DO_NOT_FORWARD";
+        bundle->set_owner("DO_NOT_FORWARD");
         
         return false;
     }
@@ -558,7 +558,7 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
     for (BundleList::iterator iter = current_lsas_.begin();
          iter != current_lsas_.end(); ++iter)
     {
-        if ((*iter)->source_ == node->id()) {
+        if ((*iter)->source() == node->id()) {
             // be careful not to let the bundle reference count drop
             // to zero by keeping a local reference until we can make
             // sure it's at least in the NotNeededEvent
@@ -571,7 +571,7 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
             // XXX/demmer need a better way to cancel transmissions
             log_debug("cancelling pending transmissions for *%p",
                       stale_lsa.object());
-            stale_lsa->owner_ = "DO_NOT_FORWARD";
+            stale_lsa->set_owner("DO_NOT_FORWARD");
             
             BundleDaemon::post_at_head(new BundleNotNeededEvent(stale_lsa.object()));
             found_stale_lsa = true;
@@ -600,7 +600,7 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
     }
 
     node->mutable_info().last_lsa_seqno_ = seqno;
-    node->mutable_info().last_lsa_creation_ts_ = bundle->creation_ts_.seconds_;
+    node->mutable_info().last_lsa_creation_ts_ = bundle->creation_ts().seconds_;
     current_lsas_.push_back(bundle);
     return true;
 }
@@ -611,17 +611,17 @@ DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
 {
     // First check the LSA bundle destination to see if the sender is
     // in a different area
-    std::string lsa_area = bundle->dest_.uri().query_value("area");
+    std::string lsa_area = bundle->dest().uri().query_value("area");
     if (config()->area_ != lsa_area) {
         log_debug("handle_lsa: ignoring LSA since area %s != local area %s",
                   lsa_area.c_str(), config()->area_.c_str());
 
         // XXX/demmer this is also an ugly hack
-        bundle->owner_ = "DO_NOT_FORWARD";
+        bundle->set_owner("DO_NOT_FORWARD");
         return;
     }
     
-    const EndpointID& source = bundle->source_;
+    const EndpointID& source = bundle->source();
     
     RoutingGraph::Node* a = graph_.find_node(source.str());
     if (a == NULL) {
@@ -791,13 +791,13 @@ DTLSRRouter::send_lsa()
         snprintf(tmp, sizeof(tmp), "dtn://*/%s?lsa_seqno=%u",
                  announce_tag_, lsa.seqno_);
     }
-    bundle->dest_.assign(tmp);
+    bundle->mutable_dest()->assign(tmp);
     
-    bundle->source_         = BundleDaemon::instance()->local_eid();
-    bundle->replyto_        = EndpointID::NULL_EID();
-    bundle->custodian_      = EndpointID::NULL_EID();
-    bundle->expiration_     = config()->lsa_lifetime_; // one year?
-    bundle->singleton_dest_ = false;
+    bundle->mutable_source()->assign(BundleDaemon::instance()->local_eid());
+    bundle->mutable_replyto()->assign(EndpointID::NULL_EID());
+    bundle->mutable_custodian()->assign(EndpointID::NULL_EID());
+    bundle->set_expiration(config()->lsa_lifetime_);
+    bundle->set_singleton_dest(false);
     DTLSR::format_lsa_bundle(bundle, &lsa);
 
     update_current_lsa(local_node_, bundle, lsa.seqno_);

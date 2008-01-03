@@ -287,7 +287,7 @@ BlockProcessor::consume(Bundle*    bundle,
     size_t consumed = 0;
 
     ASSERT(! block->complete());
-    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
+    BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
 
     // Check if we still need to consume the preamble by checking if
     // the data_offset_ field is initialized in the block info
@@ -368,7 +368,7 @@ BlockProcessor::validate(const Bundle*           bundle,
     // An administrative bundle MUST NOT contain an extension block
     // with a processing flag that requires a reception status report
     // be transmitted in the case of an error
-    if (bundle->is_admin_ &&
+    if (bundle->is_admin() &&
         block->type() != BundleProtocol::PRIMARY_BLOCK &&
         block->flags() & BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) {
         log_err_p(log, "invalid block flag 0x%x for received admin bundle",
@@ -383,8 +383,8 @@ BlockProcessor::validate(const Bundle*           bundle,
 //----------------------------------------------------------------------
 int
 BlockProcessor::reload_post_process(const Bundle* bundle,
-                                    BlockInfoVec* block_list,
-                                    BlockInfo*    block)
+                                    const BlockInfoVec* block_list,
+                                    const BlockInfo*    block)
 {
     (void)bundle;
     (void)block_list;
@@ -431,7 +431,7 @@ BlockProcessor::finalize(const Bundle*  bundle,
     (void)xmit_blocks;
     (void)link;
         
-    if (bundle->is_admin_ && block->type() != BundleProtocol::PRIMARY_BLOCK) {
+    if (bundle->is_admin() && block->type() != BundleProtocol::PRIMARY_BLOCK) {
         ASSERT((block->flags() &
                 BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) == 0);
     }

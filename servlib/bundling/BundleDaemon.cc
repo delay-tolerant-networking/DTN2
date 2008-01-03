@@ -256,13 +256,13 @@ void
 BundleDaemon::generate_custody_signal(Bundle* bundle, bool succeeded,
                                       custody_signal_reason_t reason)
 {
-    if (bundle->local_custody_) {
+    if (bundle->local_custody()) {
         log_err("send_custody_signal(*%p): already have local custody",
                 bundle);
         return;
     }
 
-    if (bundle->custodian_.equals(EndpointID::NULL_EID())) {
+    if (bundle->custodian().equals(EndpointID::NULL_EID())) {
         log_err("send_custody_signal(*%p): current custodian is NULL_EID",
                 bundle);
         return;
@@ -280,11 +280,11 @@ BundleDaemon::generate_custody_signal(Bundle* bundle, bool succeeded,
 void
 BundleDaemon::cancel_custody_timers(Bundle* bundle)
 {
-    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::cancel_custody_timers");
+    oasys::ScopeLock l(bundle->lock(), "BundleDaemon::cancel_custody_timers");
     
     CustodyTimerVec::iterator iter;
-    for (iter =  bundle->custody_timers_.begin();
-         iter != bundle->custody_timers_.end();
+    for (iter =  bundle->custody_timers()->begin();
+         iter != bundle->custody_timers()->end();
          ++iter)
     {
         bool ok = (*iter)->cancel();
@@ -297,7 +297,7 @@ BundleDaemon::cancel_custody_timers(Bundle* bundle)
         // timer queue
     }
     
-    bundle->custody_timers_.clear();
+    bundle->custody_timers()->clear();
 }
 
 //----------------------------------------------------------------------
@@ -306,13 +306,13 @@ BundleDaemon::accept_custody(Bundle* bundle)
 {
     log_info("accept_custody *%p", bundle);
     
-    if (bundle->local_custody_) {
+    if (bundle->local_custody()) {
         log_err("accept_custody(*%p): already have local custody",
                 bundle);
         return;
     }
 
-    if (bundle->custodian_.equals(local_eid_)) {
+    if (bundle->custodian().equals(local_eid_)) {
         log_err("send_custody_signal(*%p): "
                 "current custodian is already local_eid",
                 bundle);
@@ -321,21 +321,21 @@ BundleDaemon::accept_custody(Bundle* bundle)
     
     // send a custody acceptance signal to the current custodian (if
     // it is someone, and not the null eid)
-    if (! bundle->custodian_.equals(EndpointID::NULL_EID())) {
+    if (! bundle->custodian().equals(EndpointID::NULL_EID())) {
         generate_custody_signal(bundle, true, BundleProtocol::CUSTODY_NO_ADDTL_INFO);
     }
 
     // now we mark the bundle to indicate that we have custody and add
     // it to the custody bundles list
-    bundle->custodian_.assign(local_eid_);
-    bundle->local_custody_ = true;
+    bundle->mutable_custodian()->assign(local_eid_);
+    bundle->set_local_custody(true);
     actions_->store_update(bundle);
     
     custody_bundles_->push_back(bundle);
 
     // finally, if the bundle requested custody acknowledgements,
     // deliver them now
-    if (bundle->custody_rcpt_) {
+    if (bundle->custody_rcpt()) {
         generate_status_report(bundle, 
                                BundleStatusReport::STATUS_CUSTODY_ACCEPTED);
     }
@@ -347,7 +347,7 @@ BundleDaemon::release_custody(Bundle* bundle)
 {
     log_info("release_custody *%p", bundle);
     
-    if (!bundle->local_custody_) {
+    if (!bundle->local_custody()) {
         log_err("release_custody(*%p): don't have local custody",
                 bundle);
         return;
@@ -355,8 +355,8 @@ BundleDaemon::release_custody(Bundle* bundle)
 
     cancel_custody_timers(bundle);
 
-    bundle->custodian_.assign(EndpointID::NULL_EID());
-    bundle->local_custody_ = false;
+    bundle->mutable_custodian()->assign(EndpointID::NULL_EID());
+    bundle->set_local_custody(false);
     actions_->store_update(bundle);
 
     custody_bundles_->erase(bundle);
@@ -367,11 +367,11 @@ void
 BundleDaemon::deliver_to_registration(Bundle* bundle,
                                       Registration* registration)
 {
-    ASSERT(!bundle->is_fragment_);
+    ASSERT(!bundle->is_fragment());
 
     // tells routers that this Bundle has been taken care of
     // by the daemon already
-    bundle->owner_ = "daemon";
+    bundle->set_owner("daemon");
 
     log_debug("delivering bundle *%p to registration %d (%s)",
               bundle, registration->regid(),
@@ -389,17 +389,17 @@ BundleDaemon::check_local_delivery(Bundle* bundle, bool deliver)
     RegistrationList matches;
     RegistrationList::iterator iter;
 
-    reg_table_->get_matching(bundle->dest_, &matches);
+    reg_table_->get_matching(bundle->dest(), &matches);
 
     if (deliver) {
-        ASSERT(!bundle->is_fragment_);
+        ASSERT(!bundle->is_fragment());
         for (iter = matches.begin(); iter != matches.end(); ++iter) {
             Registration* registration = *iter;
             deliver_to_registration(bundle, registration);
         }
     }
 
-    return (matches.size() > 0) || bundle->dest_.subsume(local_eid_);
+    return (matches.size() > 0) || bundle->dest().subsume(local_eid_);
 }
 
 //----------------------------------------------------------------------
@@ -503,18 +503,18 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     // log a warning if the bundle doesn't have any expiration time or
     // has a creation time that's in the future. in either case, we
     // proceed as normal
-    if (bundle->expiration_ == 0) {
+    if (bundle->expiration() == 0) {
         log_warn("bundle id %d arrived with zero expiration time",
-                 bundle->bundleid_);
+                 bundle->bundleid());
     }
 
     u_int32_t now = BundleTimestamp::get_current_time();
-    if ((bundle->creation_ts_.seconds_ > now) &&
-        (bundle->creation_ts_.seconds_ - now > 30000))
+    if ((bundle->creation_ts().seconds_ > now) &&
+        (bundle->creation_ts().seconds_ - now > 30000))
     {
         log_warn("bundle id %d arrived with creation time in the future "
                  "(%u > %u)",
-                 bundle->bundleid_, bundle->creation_ts_.seconds_, now);
+                 bundle->bundleid(), bundle->creation_ts().seconds_, now);
     }
 
     /*
@@ -524,17 +524,17 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      */
     if (event->source_ == EVENTSRC_PEER)
     {
-        if (bundle->prevhop_       == EndpointID::NULL_EID() ||
-            bundle->prevhop_.str() == "")
+        if (bundle->prevhop()       == EndpointID::NULL_EID() ||
+            bundle->prevhop().str() == "")
         {
-            bundle->prevhop_.assign(event->prevhop_);
+            bundle->mutable_prevhop()->assign(event->prevhop_);
         }
 
-        if (bundle->prevhop_ != event->prevhop_)
+        if (bundle->prevhop() != event->prevhop_)
         {
             log_warn("previous hop mismatch: prevhop header contains '%s' but "
                      "convergence layer indicates prevhop is '%s'",
-                     bundle->prevhop_.c_str(),
+                     bundle->prevhop().c_str(),
                      event->prevhop_.c_str());
         }
     }
@@ -570,7 +570,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
          * status report but may or may not require deleting the whole
          * bundle.
          */
-        if (bundle->receive_rcpt_ ||
+        if (bundle->receive_rcpt() ||
             reception_reason != BundleProtocol::REASON_NO_ADDTL_INFO)
         {
             generate_status_report(bundle, BundleStatusReport::STATUS_RECEIVED,
@@ -608,14 +608,14 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     Bundle* duplicate = find_duplicate(bundle);
     if (duplicate != NULL) {
         log_notice("got duplicate bundle: %s -> %s creation %u.%u",
-                   bundle->source_.c_str(),
-                   bundle->dest_.c_str(),
-                   bundle->creation_ts_.seconds_,
-                   bundle->creation_ts_.seqno_);
+                   bundle->source().c_str(),
+                   bundle->dest().c_str(),
+                   bundle->creation_ts().seconds_,
+                   bundle->creation_ts().seqno_);
 
         stats_.duplicate_bundles_++;
         
-        if (bundle->custody_requested_ && duplicate->local_custody_)
+        if (bundle->custody_requested() && duplicate->local_custody())
         {
             generate_custody_signal(bundle, false,
                                     BundleProtocol::CUSTODY_REDUNDANT_RECEPTION);
@@ -653,12 +653,12 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * reload from the data store, then if we have local custody, make
      * sure it's added to the custody bundles list.
      */
-    if (bundle->custody_requested_ && params_.accept_custody_)
+    if (bundle->custody_requested() && params_.accept_custody_)
     {
         if (event->source_ != EVENTSRC_STORE) {
             accept_custody(bundle);
         
-        } else if (bundle->local_custody_) {
+        } else if (bundle->local_custody()) {
             custody_bundles_->push_back(bundle);
         }
     }
@@ -671,12 +671,12 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     bool is_local =
         check_local_delivery(bundle,
                              (event->source_       != EVENTSRC_ROUTER) &&
-                             (bundle->is_fragment_ == false));
+                             (bundle->is_fragment() == false));
     
     /*
      * Re-assemble bundle fragments that are destined to the local node.
      */
-    if (bundle->is_fragment_ && is_local) {
+    if (bundle->is_fragment() && is_local) {
         log_debug("deferring delivery of bundle *%p "
                   "since bundle is a fragment", bundle);
         fragmentmgr_->process_for_reassembly(bundle);
@@ -698,8 +698,8 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     ASSERT(link != NULL);
     
     log_debug("trying to find xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_,link->name());
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+              bundle->bundleid(),link->name());
+    BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(link);
     
     // Because a CL is running in another thread or process (External CLs),
     // we cannot prevent all redundant transmit/cancel/transmit_failed messages.
@@ -710,7 +710,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     {
         log_info("received a redundant/conflicting bundle_transmit event about "
                  "bundle id:%d -> %s (%s)",
-                 bundle->bundleid_,
+                 bundle->bundleid(),
                  link->name(),
                  link->nexthop());
         return;
@@ -733,23 +733,23 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     // remove the bundle from the link's in flight queue
     if (link->del_from_inflight(event->bundleref_, total_len)) {
         log_debug("removed bundle id:%d from link %s inflight queue",
-                 bundle->bundleid_,
+                 bundle->bundleid(),
                  link->name());
     } else {
         log_warn("bundle id:%d not on link %s inflight queue",
-                 bundle->bundleid_,
+                 bundle->bundleid(),
                  link->name());
     }
     
     // verify that the bundle is not on the link's to-be-sent queue
     if (link->del_from_queue(event->bundleref_, total_len)) {
         log_warn("bundle id:%d unexpectedly on link %s queue in transmitted event",
-                 bundle->bundleid_,
+                 bundle->bundleid(),
                  link->name());
     }
     
     log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> %s (%s)",
-             bundle->bundleid_,
+             bundle->bundleid(),
              event->bytes_sent_,
              event->reliably_sent_,
              link->name(),
@@ -775,9 +775,9 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         (event->bytes_sent_ != event->reliably_sent_) &&
         (event->reliably_sent_ == 0))
     {
-        bundle->fwdlog_.update(link, ForwardingInfo::TRANSMIT_FAILED);
+        bundle->fwdlog()->update(link, ForwardingInfo::TRANSMIT_FAILED);
         log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
-                  bundle->bundleid_,link->name());
+                  bundle->bundleid(),link->name());
         BundleProtocol::delete_blocks(bundle, link);
 
         log_warn("XXX/demmer fixme transmitted special case");
@@ -790,11 +790,11 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * timer information (if any).
      */
     ForwardingInfo fwdinfo;
-    bool ok = bundle->fwdlog_.get_latest_entry(link, &fwdinfo);
+    bool ok = bundle->fwdlog()->get_latest_entry(link, &fwdinfo);
     if(!ok)
     {
         oasys::StringBuffer buf;
-        bundle->fwdlog_.dump(&buf);
+        bundle->fwdlog()->dump(&buf);
         log_debug("%s",buf.c_str());
     }
     ASSERTF(ok, "no forwarding log entry for transmission");
@@ -810,7 +810,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     log_debug("updating forwarding log entry on *%p for *%p to TRANSMITTED",
               bundle, link.object());
-    bundle->fwdlog_.update(link, ForwardingInfo::TRANSMITTED);
+    bundle->fwdlog()->update(link, ForwardingInfo::TRANSMITTED);
                             
     /*
      * Check for reactive fragmentation. If the bundle was only
@@ -833,22 +833,22 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * need it any more.
      */
     log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_,link->name());
+              bundle->bundleid(),link->name());
     BundleProtocol::delete_blocks(bundle, link);
     blocks = NULL;
 
     /*
      * Generate the forwarding status report if requested
      */
-    if (bundle->forward_rcpt_) {
+    if (bundle->forward_rcpt()) {
         generate_status_report(bundle, BundleStatusReport::STATUS_FORWARDED);
     }
     
     /*
      * Schedule a custody timer if we have custody.
      */
-    if (bundle->local_custody_) {
-        bundle->custody_timers_.push_back(
+    if (bundle->local_custody()) {
+        bundle->custody_timers()->push_back(
             new CustodyTimer(fwdinfo.timestamp(),
                              fwdinfo.custody_spec(),
                              bundle, link));
@@ -882,14 +882,14 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
     Bundle* bundle = event->bundleref_.object();
 
     log_info("BUNDLE_DELIVERED id:%d (%zu bytes) -> regid %d (%s)",
-             bundle->bundleid_, bundle->payload_.length(),
+             bundle->bundleid(), bundle->payload().length(),
              event->registration_->regid(),
              event->registration_->endpoint().c_str());
 
     /*
      * Generate the delivery status report if requested.
      */
-    if (bundle->delivery_rcpt_)
+    if (bundle->delivery_rcpt())
     {
         generate_status_report(bundle, BundleStatusReport::STATUS_DELIVERED);
     }
@@ -901,12 +901,12 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
      * successfully delivered, unless there is no current custodian
      * (the eid is still dtn:none).
      */
-    if (bundle->custody_requested_)
+    if (bundle->custody_requested())
     {
-        if (bundle->local_custody_) {
+        if (bundle->local_custody()) {
             release_custody(bundle);
 
-        } else if (bundle->custodian_.equals(EndpointID::NULL_EID())) {
+        } else if (bundle->custodian().equals(EndpointID::NULL_EID())) {
             log_info("custodial bundle *%p delivered before custody accepted",
                      bundle);
 
@@ -996,7 +996,7 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
             return;
         }
 
-        log_info("BUNDLE_CANCEL bundle %d on link %s", br->bundleid_,
+        log_info("BUNDLE_CANCEL bundle %d on link %s", br->bundleid(),
                 event->link_.c_str());
         
         actions_->cancel_bundle(br.object(), link);
@@ -1017,13 +1017,13 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     LinkRef link = event->link_;
     
     log_info("BUNDLE_CANCELLED id:%d -> %s (%s)",
-            bundle->bundleid_,
+            bundle->bundleid(),
             link->name(),
             link->nexthop());
     
     log_debug("trying to find xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_, link->name());
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+              bundle->bundleid(), link->name());
+    BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(link);
     
     // Because a CL is running in another thread or process (External CLs),
     // we cannot prevent all redundant transmit/cancel/transmit_failed 
@@ -1035,7 +1035,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     {
         log_info("received a redundant/conflicting bundle_cancelled event "
                  "about bundle id:%d -> %s (%s)",
-                 bundle->bundleid_,
+                 bundle->bundleid(),
                  link->name(),
                  link->nexthop());
         return;
@@ -1048,7 +1048,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     if (link->queue()->contains(bundle))
     {
         log_warn("cancelled bundle id:%d still on link %s queue",
-                 bundle->bundleid_, link->name());
+                 bundle->bundleid(), link->name());
     }
 
     /*
@@ -1058,7 +1058,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     if (link->inflight()->contains(bundle))
     {
         log_warn("cancelled bundle id:%d still on link %s inflight list",
-                 bundle->bundleid_, link->name());
+                 bundle->bundleid(), link->name());
     }
 
     /*
@@ -1072,7 +1072,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
      * need it any more.
      */
     log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_, link->name());
+              bundle->bundleid(), link->name());
     BundleProtocol::delete_blocks(bundle, link);
     blocks = NULL;
 
@@ -1081,8 +1081,8 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
      */
     log_debug("trying to update the forwarding log for "
               "bundle id:%d on link %s to state CANCELLED",
-              bundle->bundleid_, link->name());
-    bundle->fwdlog_.update(link, ForwardingInfo::CANCELLED);
+              bundle->bundleid(), link->name());
+    bundle->fwdlog()->update(link, ForwardingInfo::CANCELLED);
 }
 
 //----------------------------------------------------------------------
@@ -1117,32 +1117,33 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
     
     // The new bundle is placed on the pending queue but not
     // in durable storage (no call to BundleActions::inject_bundle)
-    Bundle *bundle = new Bundle(params_.injected_bundles_in_memory_ ? 
+    Bundle* bundle = new Bundle(params_.injected_bundles_in_memory_ ? 
                                 BundlePayload::MEMORY : BundlePayload::DISK);
-
-    bundle->source_.assign(src);
-    bundle->dest_.assign(dest);
     
-    if (! bundle->replyto_.assign(event->replyto_))
-        bundle->replyto_.assign(EndpointID::NULL_EID());
+    bundle->mutable_source()->assign(src);
+    bundle->mutable_dest()->assign(dest);
+    
+    if (! bundle->mutable_replyto()->assign(event->replyto_))
+        bundle->mutable_replyto()->assign(EndpointID::NULL_EID());
 
-    if (! bundle->custodian_.assign(event->custodian_))
-        bundle->custodian_.assign(EndpointID::NULL_EID()); 
+    if (! bundle->mutable_custodian()->assign(event->custodian_))
+        bundle->mutable_custodian()->assign(EndpointID::NULL_EID()); 
 
     // bundle COS defaults to COS_BULK
-    bundle->priority_ = event->priority_;
+    bundle->set_priority(event->priority_);
 
     // bundle expiration on remote dtn nodes
     // defaults to 5 minutes
     if(event->expiration_ == 0)
-        bundle->expiration_ = 300;
+        bundle->set_expiration(300);
     else
-        bundle->expiration_ = event->expiration_;
+        bundle->set_expiration(event->expiration_);
     
     // set the payload (by hard linking, then removing original)
-    bundle->payload_.replace_with_file(event->payload_file_.c_str());
+    bundle->mutable_payload()->
+        replace_with_file(event->payload_file_.c_str());
     log_debug("bundle payload size after replace_with_file(): %zd", 
-              bundle->payload_.length());
+              bundle->payload().length());
     oasys::IO::unlink(event->payload_file_.c_str(), logpath_);
 
     /*
@@ -1150,12 +1151,12 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
      * unless it's generated by the router or is a bundle fragment.
      * Delivery of bundle fragments is deferred until after re-assembly.
      */
-    bool is_local = check_local_delivery(bundle, !bundle->is_fragment_);
+    bool is_local = check_local_delivery(bundle, !bundle->is_fragment());
     
     /*
      * Re-assemble bundle fragments that are destined to the local node.
      */
-    if (bundle->is_fragment_ && is_local) {
+    if (bundle->is_fragment() && is_local) {
         log_debug("deferring delivery of injected bundle *%p "
                   "since bundle is a fragment", bundle);
         fragmentmgr_->process_for_reassembly(bundle);
@@ -1238,8 +1239,8 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
     {
         Bundle* bundle = *iter;
 
-        if (!bundle->is_fragment_ &&
-            registration->endpoint().match(bundle->dest_)) {
+        if (!bundle->is_fragment() &&
+            registration->endpoint().match(bundle->dest())) {
             deliver_to_registration(bundle, registration);
         }
     }
@@ -1792,7 +1793,7 @@ void
 BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 {
     log_info("REASSEMBLY_COMPLETED bundle id %d",
-             event->bundle_->bundleid_);
+             event->bundle_->bundleid());
 
     // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
@@ -1889,13 +1890,13 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
     log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link.object());
     
     // remove and delete the expired timer from the bundle
-    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::handle_custody_timeout");
+    oasys::ScopeLock l(bundle->lock(), "BundleDaemon::handle_custody_timeout");
 
     bool found = false;
     CustodyTimer* timer = NULL;
     CustodyTimerVec::iterator iter;
-    for (iter = bundle->custody_timers_.begin();
-         iter != bundle->custody_timers_.end();
+    for (iter = bundle->custody_timers()->begin();
+         iter != bundle->custody_timers()->end();
          ++iter)
     {
         timer = *iter;
@@ -1908,7 +1909,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
             }
             
             found = true;
-            bundle->custody_timers_.erase(iter);
+            bundle->custody_timers()->erase(iter);
             break;
         }
     }
@@ -1930,7 +1931,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
     // that we got a custody timeout. then when the routers go through
     // to figure out whether the bundle needs to be re-sent, the
     // TRANSMITTED entry is no longer in there
-    bool ok = bundle->fwdlog_.update(link, ForwardingInfo::CUSTODY_TIMEOUT);
+    bool ok = bundle->fwdlog()->update(link, ForwardingInfo::CUSTODY_TIMEOUT);
     if (!ok) {
         log_err("custody timeout can't find ForwardingLog entry for link *%p",
                 link.object());
@@ -2012,7 +2013,7 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     pending_bundles_->push_back(bundle);
     
     if (add_to_store) {
-        bundle->in_datastore_ = true;
+        bundle->set_in_datastore(true);
         actions_->store_add(bundle);
     }
 
@@ -2023,8 +2024,8 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     struct timeval expiration_time;
     expiration_time.tv_sec =
         BundleTimestamp::TIMEVAL_CONVERSION +
-        bundle->creation_ts_.seconds_ + 
-        bundle->expiration_;
+        bundle->creation_ts().seconds_ + 
+        bundle->expiration();
     
     expiration_time.tv_usec = now.tv_usec;
     
@@ -2036,24 +2037,24 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
         log_debug_p("/dtn/bundle/expiration",
                     "scheduling expiration for bundle id %d at %u.%u "
                     "(in %lu seconds)",
-                    bundle->bundleid_,
+                    bundle->bundleid(),
                     (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec,
                     when);
     } else {
         log_warn_p("/dtn/bundle/expiration",
                    "scheduling IMMEDIATE expiration for bundle id %d: "
                    "[expiration %u, creation time %u.%u, offset %u, now %u.%u]",
-                   bundle->bundleid_, bundle->expiration_,
-                   (u_int)bundle->creation_ts_.seconds_,
-                   (u_int)bundle->creation_ts_.seqno_,
+                   bundle->bundleid(), bundle->expiration(),
+                   (u_int)bundle->creation_ts().seconds_,
+                   (u_int)bundle->creation_ts().seqno_,
                    BundleTimestamp::TIMEVAL_CONVERSION,
                    (u_int)now.tv_sec, (u_int)now.tv_usec);
         expiration_time = now;
         ok_to_route = false;
     }
 
-    bundle->expiration_timer_ = new ExpirationTimer(bundle);
-    bundle->expiration_timer_->schedule_at(&expiration_time);
+    bundle->set_expiration_timer(new ExpirationTimer(bundle));
+    bundle->expiration_timer()->schedule_at(&expiration_time);
 
     return ok_to_route;
 }
@@ -2066,18 +2067,18 @@ BundleDaemon::delete_from_pending(Bundle* bundle)
 
     // first try to cancel the expiration timer if it's still
     // around
-    if (bundle->expiration_timer_) {
+    if (bundle->expiration_timer()) {
         log_debug("cancelling expiration timer for bundle id %d",
-                  bundle->bundleid_);
+                  bundle->bundleid());
         
-        bool cancelled = bundle->expiration_timer_->cancel();
+        bool cancelled = bundle->expiration_timer()->cancel();
         if (!cancelled) {
            log_crit("unexpected error cancelling expiration timer "
                      "for bundle *%p", bundle);
         }
         
-        bundle->expiration_timer_->bundleref_.release();
-        bundle->expiration_timer_ = NULL;
+        bundle->expiration_timer()->bundleref_.release();
+        bundle->set_expiration_timer(NULL);
     }
 
     // XXX/demmer the whole BundleDaemon core should be changed to use
@@ -2161,12 +2162,12 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     // send a bundle deletion status report if we have custody or the
     // bundle's deletion status report request flag is set and a reason
     // for deletion is provided
-    bool send_status = (bundle->local_custody_ ||
-                       (bundle->deletion_rcpt_ &&
+    bool send_status = (bundle->local_custody() ||
+                       (bundle->deletion_rcpt() &&
                         reason != BundleProtocol::REASON_NO_ADDTL_INFO));
         
     // check if we have custody, if so, remove it
-    if (bundle->local_custody_) {
+    if (bundle->local_custody()) {
         release_custody(bundle);
     }
 
@@ -2175,7 +2176,7 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     // should send a custody failed signal here
 
     // check if bundle is a fragment, if so, remove any fragmentation state
-    if (bundle->is_fragment_) {
+    if (bundle->is_fragment()) {
         fragmentmgr_->delete_fragment(bundle);
     }
 
@@ -2229,13 +2230,13 @@ BundleDaemon::find_duplicate(Bundle* b)
     {
         Bundle* b2 = *iter;
         
-        if ((b->source_.equals(b2->source_)) &&
-            (b->creation_ts_.seconds_ == b2->creation_ts_.seconds_) &&
-            (b->creation_ts_.seqno_   == b2->creation_ts_.seqno_) &&
-            (b->is_fragment_          == b2->is_fragment_) &&
-            (b->frag_offset_          == b2->frag_offset_) &&
-            (b->orig_length_          == b2->orig_length_) &&
-            (b->payload_.length()     == b2->payload_.length()))
+        if ((b->source().equals(b2->source())) &&
+            (b->creation_ts().seconds_ == b2->creation_ts().seconds_) &&
+            (b->creation_ts().seqno_   == b2->creation_ts().seqno_) &&
+            (b->is_fragment()          == b2->is_fragment()) &&
+            (b->frag_offset()          == b2->frag_offset()) &&
+            (b->orig_length()          == b2->orig_length()) &&
+            (b->payload().length()     == b2->payload().length()))
         {
             return b2;
         }
@@ -2252,9 +2253,9 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     event->bundle_ = NULL;
     ASSERT(bundle->refcount() == 0);
     
-    bundle->lock_.lock("BundleDaemon::handle_bundle_free");
+    bundle->lock()->lock("BundleDaemon::handle_bundle_free");
 
-    if (bundle->in_datastore_) {
+    if (bundle->in_datastore()) {
         log_debug("removing freed bundle from data store");
         actions_->store_del(bundle);
     }
@@ -2352,7 +2353,7 @@ BundleDaemon::load_bundles()
         // if the bundle payload file is missing, we need to kill the
         // bundle, but we can't do so while holding the durable
         // iterator or it may deadlock, so cleanup is deferred 
-        if (bundle->payload_.location() != BundlePayload::DISK) {
+        if (bundle->payload().location() != BundlePayload::DISK) {
             log_err("error loading payload for *%p from data store",
                     bundle);
             doa_bundles.push_back(bundle);

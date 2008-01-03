@@ -171,7 +171,7 @@ BundlePayload::set_length(size_t length)
 
 //----------------------------------------------------------------------
 void
-BundlePayload::pin_file()
+BundlePayload::pin_file() const
 {
     if (location_ != DISK) {
         return;
@@ -201,7 +201,7 @@ BundlePayload::pin_file()
 
 //----------------------------------------------------------------------
 void
-BundlePayload::unpin_file()
+BundlePayload::unpin_file() const
 {
     if (location_ != DISK) {
         return;
@@ -387,7 +387,7 @@ BundlePayload::write_data(const u_char* bp, size_t offset, size_t len)
 
 //----------------------------------------------------------------------
 void
-BundlePayload::write_data(BundlePayload* src, size_t src_offset,
+BundlePayload::write_data(const BundlePayload& src, size_t src_offset,
                           size_t len, size_t dst_offset)
 {
     oasys::ScopeLock l(lock_, "BundlePayload::write_data");
@@ -398,7 +398,7 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
               length_, src_offset, dst_offset, len);
 
     ASSERT(length_       >= dst_offset + len);
-    ASSERT(src->length() >= src_offset + len);
+    ASSERT(src.length() >= src_offset + len);
 
     // XXX/mho: todo - for cases where we're creating a fragment from
     // an existing bundle, make a hard link for the new fragment and
@@ -407,7 +407,7 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
     // XXX/demmer todo -- we should copy the payload in max-length chunks
     
     oasys::ScratchBuffer<u_char*, 1024> buf(len);
-    const u_char* bp = src->read_data(src_offset, len, buf.buf());
+    const u_char* bp = src.read_data(src_offset, len, buf.buf());
 
     pin_file();
     internal_write(bp, dst_offset, len);

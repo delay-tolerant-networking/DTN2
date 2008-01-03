@@ -136,7 +136,7 @@ NullConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle
         return;
     }
     
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    const BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(link);
     ASSERT(blocks != NULL);
     size_t total_len = BundleProtocol::total_length(blocks);
     

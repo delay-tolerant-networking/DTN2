@@ -63,8 +63,9 @@ public:
 
     const prophet::Bundle* find(const Bundle* b) const
     {
-        return find(b->dest_.str(),b->creation_ts_.seconds_,
-                b->creation_ts_.seqno_);
+        return find(b->dest().str(),
+                    b->creation_ts().seconds_,
+                    b->creation_ts().seqno_);
     }
 
     /**

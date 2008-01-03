@@ -652,14 +652,14 @@ APIClient::handle_send()
                            (char*)&payload);
     
     // assign the addressing fields
-    b->source_.assign(&spec.source);
-    b->dest_.assign(&spec.dest);
+    b->mutable_source()->assign(&spec.source);
+    b->mutable_dest()->assign(&spec.dest);
     if (spec.replyto.uri[0] == '\0') {
-        b->replyto_.assign(EndpointID::NULL_EID());
+        b->mutable_replyto()->assign(EndpointID::NULL_EID());
     } else {
-        b->replyto_.assign(&spec.replyto);
+        b->mutable_replyto()->assign(&spec.replyto);
     }
-    b->custodian_.assign(EndpointID::NULL_EID());
+    b->mutable_custodian()->assign(EndpointID::NULL_EID());
 
     // set the is_singleton bit, first checking if the application
     // specified a value, then seeing if the scheme is known and can
@@ -667,18 +667,18 @@ APIClient::handle_send()
     // global default
     if (spec.dopts & DOPTS_SINGLETON_DEST)
     {
-        b->singleton_dest_ = true;
+        b->set_singleton_dest(true);
     }
     else if (spec.dopts & DOPTS_MULTINODE_DEST)
     {
-        b->singleton_dest_ = false;
+        b->set_singleton_dest(false);
     }
     else 
     {
         EndpointID::singleton_info_t info;
         
-        if (b->dest_.known_scheme()) {
-            info = b->dest_.is_singleton();
+        if (b->dest().known_scheme()) {
+            info = b->dest().is_singleton();
 
             // all schemes must make a decision one way or the other
             ASSERT(info != EndpointID::UNKNOWN);
@@ -690,22 +690,22 @@ APIClient::handle_send()
         case EndpointID::UNKNOWN:
             log_err("bundle destination %s in unknown scheme and "
                     "app did not assert singleton/multipoint",
-                    b->dest_.c_str());
+                    b->dest().c_str());
             return DTN_EINVAL;
 
         case EndpointID::SINGLETON:
-            b->singleton_dest_ = true;
+            b->set_singleton_dest(true);
             break;
 
         case EndpointID::MULTINODE:
-            b->singleton_dest_ = false;
+            b->set_singleton_dest(false);
             break;
         }
     }
     
     // the priority code
     switch (spec.priority) {
-#define COS(_cos) case _cos: b->priority_ = Bundle::_cos; break;
+#define COS(_cos) case _cos: b->set_priority(Bundle::_cos); break;
         COS(COS_BULK);
         COS(COS_NORMAL);
         COS(COS_EXPEDITED);
@@ -718,14 +718,14 @@ APIClient::handle_send()
     
     // Bundles with a null source EID are not allowed to request reports or
     // custody transfer, and must not be fragmented.
-    if (b->source_ == EndpointID::NULL_EID()) {
+    if (b->source() == EndpointID::NULL_EID()) {
         if (spec.dopts) {
             log_err("bundle with null source EID requested reports and/or "
                     "custody transfer");
             return DTN_EINVAL;
         }
         
-        b->do_not_fragment_ = true;
+        b->set_do_not_fragment(true);
     }
     
     else {
@@ -733,48 +733,48 @@ APIClient::handle_send()
         // at this node.
         const RegistrationTable* reg_table = 
                 BundleDaemon::instance()->reg_table();
-        std::string base_reg_str = b->source_.uri().scheme() + "://" + 
-                b->source_.uri().host();
+        std::string base_reg_str = b->source().uri().scheme() + "://" + 
+                b->source().uri().host();
         
         if (!reg_table->get(EndpointIDPattern(base_reg_str)) &&
-            !reg_table->get(EndpointIDPattern(b->source_))) {
+            !reg_table->get(EndpointIDPattern(b->source()))) {
             log_err("this node is not a member of the bundle's source EID (%s)",
-                    b->source_.str().c_str());
+                    b->source().str().c_str());
             return DTN_EINVAL;
         }
     }
 
     // delivery options
     if (spec.dopts & DOPTS_CUSTODY)
-        b->custody_requested_ = true;
+        b->set_custody_requested(true);
     
     if (spec.dopts & DOPTS_DELIVERY_RCPT)
-        b->delivery_rcpt_ = true;
+        b->set_delivery_rcpt(true);
 
     if (spec.dopts & DOPTS_RECEIVE_RCPT)
-        b->receive_rcpt_ = true;
+        b->set_receive_rcpt(true);
 
     if (spec.dopts & DOPTS_FORWARD_RCPT)
-        b->forward_rcpt_ = true;
+        b->set_forward_rcpt(true);
 
     if (spec.dopts & DOPTS_CUSTODY_RCPT)
-        b->custody_rcpt_ = true;
+        b->set_custody_rcpt(true);
 
     if (spec.dopts & DOPTS_DELETE_RCPT)
-        b->deletion_rcpt_ = true;
+        b->set_deletion_rcpt(true);
 
     if (spec.dopts & DOPTS_DO_NOT_FRAGMENT)
-        b->do_not_fragment_ = true;
+        b->set_do_not_fragment(true);
 
     // expiration time
-    b->expiration_ = spec.expiration;
+    b->set_expiration(spec.expiration);
 
     // extension blocks
     for (u_int i = 0; i < spec.blocks.blocks_len; i++) {
         dtn_extension_block_t* block = &spec.blocks.blocks_val[i];
 
         BlockInfo* info =
-            b->api_blocks_.append_block(APIBlockProcessor::instance());
+            b->api_blocks()->append_block(APIBlockProcessor::instance());
         APIBlockProcessor::instance()->
             init_block(info, block->type, block->flags,
                        (u_char*)block->data.data_val,
@@ -786,9 +786,9 @@ APIClient::handle_send()
         dtn_extension_block_t* block = &spec.metadata.metadata_val[i];
 
         LinkRef null_link("APIServer::handle_send");
-        MetadataVec * vec = b->generated_metadata_.find_blocks(null_link);
+        MetadataVec * vec = b->generated_metadata().find_blocks(null_link);
         if (vec == NULL) {
-            vec = b->generated_metadata_.create_blocks(null_link);
+            vec = b->mutable_generated_metadata()->create_blocks(null_link);
         }
         ASSERT(vec != NULL);
 
@@ -804,7 +804,7 @@ APIClient::handle_send()
         // it's conveyed to local applications. this should really be
         // cleaned up...
         vec->push_back(meta_block);
-        b->recv_metadata_.push_back(meta_block);
+        b->mutable_recv_metadata()->push_back(meta_block);
     }
 
     // validate the bundle metadata
@@ -845,7 +845,7 @@ APIClient::handle_send()
         return DTN_EINVAL;
     }
     
-    b->payload_.set_length(payload_len);
+    b->mutable_payload()->set_length(payload_len);
 
     // before filling in the payload, we first probe the router to
     // determine if there's sufficient storage for the bundle
@@ -869,8 +869,8 @@ APIClient::handle_send()
 
     switch (payload.location) {
     case DTN_PAYLOAD_MEM:
-        b->payload_.set_data((u_char*)payload.buf.buf_val,
-                             payload.buf.buf_len);
+        b->mutable_payload()->set_data((u_char*)payload.buf.buf_val,
+                                       payload.buf.buf_len);
         break;
         
     case DTN_PAYLOAD_FILE:
@@ -894,7 +894,7 @@ APIClient::handle_send()
             
             if (r)
             {
-                b->payload_.write_data(buffer, offset, r);
+                b->mutable_payload()->write_data(buffer, offset, r);
                 left   -= r;
                 offset += r;
             }
@@ -908,7 +908,7 @@ APIClient::handle_send()
         break;
         
     case DTN_PAYLOAD_TEMP_FILE:
-        if (! b->payload_.replace_with_file(filename)) {
+        if (! b->mutable_payload()->replace_with_file(filename)) {
             log_err("payload file %s can't be linked or copied",
                     filename);
             return DTN_EINVAL;
@@ -924,8 +924,8 @@ APIClient::handle_send()
     //  before posting the received event, fill in the bundle id struct
     dtn_bundle_id_t id;
     memcpy(&id.source, &spec.source, sizeof(dtn_endpoint_id_t));
-    id.creation_ts.secs  = b->creation_ts_.seconds_;
-    id.creation_ts.seqno = b->creation_ts_.seqno_;
+    id.creation_ts.secs  = b->creation_ts().seconds_;
+    id.creation_ts.seqno = b->creation_ts().seqno_;
     id.frag_offset = 0;
     id.orig_length = 0;
     
@@ -1047,33 +1047,33 @@ APIClient::handle_recv()
 
     // copyto will malloc string buffer space that needs to be freed
     // at the end of the fn
-    b->source_.copyto(&spec.source);
-    b->dest_.copyto(&spec.dest);
-    b->replyto_.copyto(&spec.replyto);
+    b->source().copyto(&spec.source);
+    b->dest().copyto(&spec.dest);
+    b->replyto().copyto(&spec.replyto);
 
     spec.dopts = 0;
-    if (b->custody_requested_) spec.dopts |= DOPTS_CUSTODY;
-    if (b->delivery_rcpt_)     spec.dopts |= DOPTS_DELIVERY_RCPT;
-    if (b->receive_rcpt_)      spec.dopts |= DOPTS_RECEIVE_RCPT;
-    if (b->forward_rcpt_)      spec.dopts |= DOPTS_FORWARD_RCPT;
-    if (b->custody_rcpt_)      spec.dopts |= DOPTS_CUSTODY_RCPT;
-    if (b->deletion_rcpt_)     spec.dopts |= DOPTS_DELETE_RCPT;
+    if (b->custody_requested()) spec.dopts |= DOPTS_CUSTODY;
+    if (b->delivery_rcpt())     spec.dopts |= DOPTS_DELIVERY_RCPT;
+    if (b->receive_rcpt())      spec.dopts |= DOPTS_RECEIVE_RCPT;
+    if (b->forward_rcpt())      spec.dopts |= DOPTS_FORWARD_RCPT;
+    if (b->custody_rcpt())      spec.dopts |= DOPTS_CUSTODY_RCPT;
+    if (b->deletion_rcpt())     spec.dopts |= DOPTS_DELETE_RCPT;
 
-    spec.expiration = b->expiration_;
-    spec.creation_ts.secs = b->creation_ts_.seconds_;
-    spec.creation_ts.seqno = b->creation_ts_.seqno_;
+    spec.expiration = b->expiration();
+    spec.creation_ts.secs = b->creation_ts().seconds_;
+    spec.creation_ts.seqno = b->creation_ts().seqno_;
 
     // copy extension blocks
     unsigned int blocks_found = 0;
     unsigned int data_len = 0;
-    for (unsigned int i = 0; i < b->recv_blocks_.size(); ++i) {
-        if ((b->recv_blocks_[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
-            (b->recv_blocks_[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
-            (b->recv_blocks_[i].type() == BundleProtocol::METADATA_BLOCK)) {
+    for (unsigned int i = 0; i < b->recv_blocks().size(); ++i) {
+        if ((b->recv_blocks()[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
+            (b->recv_blocks()[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
+            (b->recv_blocks()[i].type() == BundleProtocol::METADATA_BLOCK)) {
             continue;
         }
         blocks_found++;
-        data_len += b->recv_blocks_[i].data_length();
+        data_len += b->recv_blocks()[i].data_length();
     }
 
     if (blocks_found > 0) {
@@ -1084,18 +1084,18 @@ APIClient::handle_recv()
 
         dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
         char * dp = (char*)buf + (blocks_found * sizeof(dtn_extension_block_t));
-        for (unsigned int i = 0; i < b->recv_blocks_.size(); ++i) {
-            if ((b->recv_blocks_[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
-                (b->recv_blocks_[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
-                (b->recv_blocks_[i].type() == BundleProtocol::METADATA_BLOCK)) {
+        for (unsigned int i = 0; i < b->recv_blocks().size(); ++i) {
+            if ((b->recv_blocks()[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
+                (b->recv_blocks()[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
+                (b->recv_blocks()[i].type() == BundleProtocol::METADATA_BLOCK)) {
                 continue;
             }
 
-            bp->type          = b->recv_blocks_[i].type();
-            bp->flags         = b->recv_blocks_[i].flags();
-            bp->data.data_len = b->recv_blocks_[i].data_length();
+            bp->type          = b->recv_blocks()[i].type();
+            bp->flags         = b->recv_blocks()[i].flags();
+            bp->data.data_len = b->recv_blocks()[i].data_length();
             bp->data.data_val = dp;
-            memcpy(dp, b->recv_blocks_[i].data(), bp->data.data_len);
+            memcpy(dp, b->recv_blocks()[i].data(), bp->data.data_len);
 
             bp++;
             dp += bp->data.data_len;
@@ -1108,9 +1108,9 @@ APIClient::handle_recv()
     // copy metadata extension blocks
     blocks_found = 0;
     data_len = 0;
-    for (unsigned int i = 0; i < b->recv_metadata_.size(); ++i) {
+    for (unsigned int i = 0; i < b->recv_metadata().size(); ++i) {
         blocks_found++;
-        data_len += b->recv_metadata_[i]->metadata_len();
+        data_len += b->recv_metadata()[i]->metadata_len();
     }
 
     if (blocks_found > 0) {
@@ -1121,12 +1121,12 @@ APIClient::handle_recv()
 
         dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
         char * dp = (char*)buf + (blocks_found * sizeof(dtn_extension_block_t));
-        for (unsigned int i = 0; i < b->recv_metadata_.size(); ++i) {
-            bp->type          = b->recv_metadata_[i]->ontology();
-            bp->flags         = b->recv_metadata_[i]->flags();
-            bp->data.data_len = b->recv_metadata_[i]->metadata_len();
+        for (unsigned int i = 0; i < b->recv_metadata().size(); ++i) {
+            bp->type          = b->recv_metadata()[i]->ontology();
+            bp->flags         = b->recv_metadata()[i]->flags();
+            bp->data.data_len = b->recv_metadata()[i]->metadata_len();
             bp->data.data_val = dp;
-            memcpy(dp, b->recv_metadata_[i]->metadata(), bp->data.data_len);
+            memcpy(dp, b->recv_metadata()[i]->metadata(), bp->data.data_len);
             dp += bp->data.data_len;
             bp++;
         }
@@ -1142,12 +1142,12 @@ APIClient::handle_recv()
         // the app wants the payload in memory
         // XXX/demmer verify bounds
 
-        size_t payload_len = b->payload_.length();
+        size_t payload_len = b->payload().length();
         payload.buf.buf_len = payload_len;
         if (payload_len != 0) {
             buf.reserve(payload_len);
             payload.buf.buf_val =
-                (char*)b->payload_.read_data(0, payload_len, buf.buf());
+                (char*)b->payload().read_data(0, payload_len, buf.buf());
         } else {
             payload.buf.buf_val = 0;
         }
@@ -1177,12 +1177,12 @@ APIClient::handle_recv()
                      strerror(errno));
         }
         
-        if (b->payload_.location() == BundlePayload::MEMORY) {
-            tmpfile.writeall((char*)b->payload_.memory_buf()->buf(),
-                             b->payload_.length());
+        if (b->payload().location() == BundlePayload::MEMORY) {
+            tmpfile.writeall((char*)b->payload().memory_buf()->buf(),
+                             b->payload().length());
             
         } else {
-            b->payload_.copy_file(&tmpfile);
+            b->payload().copy_file(&tmpfile);
         }
 
         payload.filename.filename_val = (char*)tmpfile.path();
@@ -1244,7 +1244,7 @@ APIClient::handle_recv()
     
     log_info("DTN_RECV: "
              "successfully delivered bundle %d to registration %d",
-             b->bundleid_, reg->regid());
+             b->bundleid(), reg->regid());
     
     BundleDaemon::post(new BundleDeliveredEvent(b, reg));
 

@@ -70,37 +70,37 @@ public:
     ///@{ Virtual from prophet::Bundle
     virtual const std::string& destination_id() const
     {
-        return (ref_ == NULL) ? str_ : ref()->dest_.str();
+        return (ref_ == NULL) ? str_ : ref()->dest().str();
     }
     virtual const std::string& source_id() const
     {
-        return (ref_ == NULL) ? str_ : ref()->source_.str();
+        return (ref_ == NULL) ? str_ : ref()->source().str();
     }
     virtual u_int32_t creation_ts() const
     {
-        return (ref_ == NULL) ? 0 : ref()->creation_ts_.seconds_;
+        return (ref_ == NULL) ? 0 : ref()->creation_ts().seconds_;
     }
     virtual u_int32_t sequence_num() const
     {
-        return (ref_ == NULL) ? 0 : ref()->creation_ts_.seqno_;
+        return (ref_ == NULL) ? 0 : ref()->creation_ts().seqno_;
     }
     virtual u_int32_t expiration_ts() const
     {
-        return (ref_ == NULL) ? 0 : ref()->expiration_;
+        return (ref_ == NULL) ? 0 : ref()->expiration();
     }
     virtual u_int size() const
     {
-        return (ref_ == NULL) ? 0 : ref()->payload_.length();
+        return (ref_ == NULL) ? 0 : ref()->payload().length();
     }
     virtual u_int num_forward() const
     {
         return (ref_ == NULL) ? 0 :
-            ref()->fwdlog_.get_count(ForwardingInfo::TRANSMITTED,
+            ref()->fwdlog()->get_count(ForwardingInfo::TRANSMITTED,
                 ForwardingInfo::COPY_ACTION);
     }
     virtual bool custody_requested() const
     {
-        return (ref_ == NULL) ? false : ref()->custody_requested_;
+        return (ref_ == NULL) ? false : ref()->custody_requested();
     }
     ///@}
 

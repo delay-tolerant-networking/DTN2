@@ -90,9 +90,9 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
     }
     
     log_debug("trying to find xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_, link->name());
+              bundle->bundleid(), link->name());
 
-    if (bundle->xmit_blocks_.find_blocks(link) != NULL) {
+    if (bundle->xmit_blocks()->find_blocks(link) != NULL) {
         log_err("BundleActions::queue_bundle: "
                 "link not ready to handle bundle (block vector already exists), "
                 "dropping send request");
@@ -108,7 +108,7 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
     // with the DP pushing (firewall-like) policies and keys down via
     // a PF_KEY-like interface.
     log_debug("trying to create xmit blocks for bundle id:%d on link %s",
-              bundle->bundleid_, link->name());
+              bundle->bundleid(), link->name());
     BlockInfoVec* blocks = BundleProtocol::prepare_blocks(bundle, link);
     size_t total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
 
@@ -116,7 +116,7 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
               bundle, link->type_str(), link->name(), link->nexthop(),
               total_len);
 
-    ForwardingInfo::state_t state = bundle->fwdlog_.get_latest_entry(link);
+    ForwardingInfo::state_t state = bundle->fwdlog()->get_latest_entry(link);
     if (state == ForwardingInfo::QUEUED) {
         log_err("queue bundle *%p on %s link %s (%s): "
                 "already queued or in flight",
@@ -152,8 +152,8 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
               link->type_str(), link->name(),
               link->nexthop(), link->remote_eid().c_str(), bundle);
     
-    bundle->fwdlog_.add_entry(link, action, ForwardingInfo::QUEUED,
-                              custody_timer);
+    bundle->fwdlog()->add_entry(link, action, ForwardingInfo::QUEUED,
+                                custody_timer);
 
     log_debug("adding *%p to link %s's queue (length %u)",
               bundle, link->name(), link->bundles_queued());
@@ -194,7 +194,7 @@ BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
     // transmission, in which case it's responsible for posting the
     // send cancelled event.
     
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(link);
     if (blocks == NULL) {
         log_warn("BundleActions::cancel_bundle: "
                  "cancel *%p but no blocks queued or inflight on *%p",
@@ -247,10 +247,10 @@ BundleActions::delete_bundle(Bundle* bundle,
 void
 BundleActions::store_add(Bundle* bundle)
 {
-    log_debug("adding bundle %d to data store", bundle->bundleid_);
+    log_debug("adding bundle %d to data store", bundle->bundleid());
     bool added = BundleStore::instance()->add(bundle);
     if (! added) {
-        log_crit("error adding bundle %d to data store!!", bundle->bundleid_);
+        log_crit("error adding bundle %d to data store!!", bundle->bundleid());
     }
 }
 
@@ -258,10 +258,10 @@ BundleActions::store_add(Bundle* bundle)
 void
 BundleActions::store_update(Bundle* bundle)
 {
-    log_debug("updating bundle %d in data store", bundle->bundleid_);
+    log_debug("updating bundle %d in data store", bundle->bundleid());
     bool updated = BundleStore::instance()->update(bundle);
     if (! updated) {
-        log_crit("error updating bundle %d in data store!!", bundle->bundleid_);
+        log_crit("error updating bundle %d in data store!!", bundle->bundleid());
     }
 }
 
@@ -269,11 +269,11 @@ BundleActions::store_update(Bundle* bundle)
 void
 BundleActions::store_del(Bundle* bundle)
 {
-    log_debug("removing bundle %d from data store", bundle->bundleid_);
+    log_debug("removing bundle %d from data store", bundle->bundleid());
     bool removed = BundleStore::instance()->del(bundle);
     if (! removed) {
         log_crit("error removing bundle %d from data store!!",
-                 bundle->bundleid_);
+                 bundle->bundleid());
     }
 }
 

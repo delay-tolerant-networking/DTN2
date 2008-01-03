@@ -59,12 +59,12 @@ SimLog::log_entry(const char* what, Node* node, Bundle* bundle)
                  Simulator::time(),
                  node->name(),
                  what,
-                 bundle->source_.c_str(),
-                 bundle->dest_.c_str(),
-                 bundle->creation_ts_.seconds_,
-                 bundle->creation_ts_.seqno_,
-                 bundle->payload_.length(),
-                 now - bundle->creation_ts_.seconds_);
+                 bundle->source().c_str(),
+                 bundle->dest().c_str(),
+                 bundle->creation_ts().seconds_,
+                 bundle->creation_ts().seqno_,
+                 bundle->payload().length(),
+                 now - bundle->creation_ts().seconds_);
 
     file_->write(buf_.data(), buf_.length());
     buf_.trim(buf_.length());

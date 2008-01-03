@@ -106,34 +106,34 @@ TrAgent::send_bundle()
     //b->format_verbose(&buf);
     //log_multiline(oasys::LOG_DEBUG, buf.c_str());
         
-    b->source_.assign(src_);
-    b->replyto_.assign(src_);
-    b->custodian_.assign(EndpointID::NULL_EID());
-    b->dest_.assign(dst_);
-    b->payload_.set_length(size_);
+    b->mutable_source()->assign(src_);
+    b->mutable_replyto()->assign(src_);
+    b->mutable_custodian()->assign(EndpointID::NULL_EID());
+    b->mutable_dest()->assign(dst_);
+    b->mutable_payload()->set_length(size_);
         
-    b->priority_ = 0;
-    b->custody_requested_ = false;
-    b->local_custody_ = false;
-    b->singleton_dest_ = false;
-    b->receive_rcpt_ = false;
-    b->custody_rcpt_ = false;
-    b->forward_rcpt_ = false;
-    b->delivery_rcpt_ = false;
-    b->deletion_rcpt_ = false;
-    b->app_acked_rcpt_ = false;
-    b->creation_ts_.seconds_ = BundleTimestamp::get_current_time();
-    b->creation_ts_.seqno_ = b->bundleid_;
-    b->expiration_ = expiration_;
-    b->is_fragment_	= false;
-    b->is_admin_ = false;
-    b->do_not_fragment_ = false;
-    b->in_datastore_ = false;
+    b->set_priority(0);
+    b->set_custody_requested(false);
+    b->set_local_custody(false);
+    b->set_singleton_dest(false);
+    b->set_receive_rcpt(false);
+    b->set_custody_rcpt(false);
+    b->set_forward_rcpt(false);
+    b->set_delivery_rcpt(false);
+    b->set_deletion_rcpt(false);
+    b->set_app_acked_rcpt(false);
+    b->set_creation_ts(BundleTimestamp(BundleTimestamp::get_current_time(),
+                                       b->bundleid()));
+    b->set_expiration(expiration_);
+    b->set_is_fragment(false);
+    b->set_is_admin(false);
+    b->set_do_not_fragment(false);
+    b->set_in_datastore(false);
     //b->orig_length_   = 0;
     //b->frag_offset_   = 0;    
     
     log_info("N[%s]: GEN id:%d %s -> %s size:%llu",
-             Node::active_node()->name(), b->bundleid_,
+             Node::active_node()->name(), b->bundleid(),
              src_.c_str(), dst_.c_str(), U64FMT(size_));
 
     SimLog::instance()->log_gen(Node::active_node(), b);

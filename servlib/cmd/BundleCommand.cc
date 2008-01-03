@@ -125,24 +125,24 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
         bool eids_valid = true;
         Bundle* b = new Bundle();
-        eids_valid &= b->source_.assign(Tcl_GetStringFromObj(objv[2], 0));
-        eids_valid &= b->replyto_.assign(Tcl_GetStringFromObj(objv[2], 0));
-        b->custodian_.assign(EndpointID::NULL_EID());
-        eids_valid &= b->dest_.assign(Tcl_GetStringFromObj(objv[3], 0));
+        eids_valid &= b->mutable_source()->assign(Tcl_GetStringFromObj(objv[2], 0));
+        eids_valid &= b->mutable_replyto()->assign(Tcl_GetStringFromObj(objv[2], 0));
+        eids_valid &= b->mutable_dest()->assign(Tcl_GetStringFromObj(objv[3], 0));
+        b->mutable_custodian()->assign(EndpointID::NULL_EID());
 
-        EndpointID::singleton_info_t info = b->dest_.known_scheme() ?
-                                            b->dest_.is_singleton() :
+        EndpointID::singleton_info_t info = b->dest().known_scheme() ?
+                                            b->dest().is_singleton() :
                                             EndpointID::is_singleton_default_;
         switch (info) {
         case EndpointID::SINGLETON:
-            b->singleton_dest_ = true;
+            b->set_singleton_dest(true);
             break;
         case EndpointID::MULTINODE:
-            b->singleton_dest_ = false;
+            b->set_singleton_dest(false);
             break;
         case EndpointID::UNKNOWN:
             resultf("can't determine is_singleton for destination %s",
-                    b->dest_.c_str());
+                    b->dest().c_str());
             delete b;
             return TCL_ERROR;
         }
@@ -166,27 +166,28 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        b->custody_requested_ = options.custody_xfer_;
-        b->receive_rcpt_      = options.receive_rcpt_;
-        b->custody_rcpt_      = options.custody_rcpt_;
-        b->forward_rcpt_      = options.forward_rcpt_;
-        b->delivery_rcpt_     = options.delivery_rcpt_;
-        b->deletion_rcpt_     = options.deletion_rcpt_;
-        b->expiration_        = options.expiration_;
+        b->set_custody_requested(options.custody_xfer_);
+        b->set_receive_rcpt(options.receive_rcpt_);
+        b->set_custody_rcpt(options.custody_rcpt_);
+        b->set_forward_rcpt(options.forward_rcpt_);
+        b->set_delivery_rcpt(options.delivery_rcpt_);
+        b->set_deletion_rcpt(options.deletion_rcpt_);
+        b->set_expiration(options.expiration_);
         
         // Bundles with a null source EID are not allowed to request reports or
         // custody transfer, and must not be fragmented.
-        if (b->source_ == EndpointID::NULL_EID()) {
-            if ( b->custody_requested_ ||
+        if (b->source() == EndpointID::NULL_EID()) {
+            if ( b->custody_requested() ||
                  b->receipt_requested() ||
-                 b->app_acked_rcpt_) {
+                 b->app_acked_rcpt() )
+            {
                 log_err("bundle with null source EID cannot request reports or "
                         "custody transfer");
                 delete b;
                 return TCL_ERROR;
             }
             
-            b->do_not_fragment_ = true;
+            b->set_do_not_fragment(true);
         }
         
         else {
@@ -194,13 +195,14 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             // registered at this node.
             const RegistrationTable* reg_table = 
                     BundleDaemon::instance()->reg_table();
-            std::string base_reg_str = b->source_.uri().scheme() + "://" + 
-                    b->source_.uri().host();
+            std::string base_reg_str = b->source().uri().scheme() + "://" + 
+                                       b->source().uri().host();
             
             if (!reg_table->get(EndpointIDPattern(base_reg_str)) &&
-                !reg_table->get(EndpointIDPattern(b->source_))) { 
+                !reg_table->get(EndpointIDPattern(b->source())))
+            {
                 log_err("this node is not a member of the bundle's source EID (%s)",
-                        b->source_.str().c_str());
+                        b->source().str().c_str());
                 delete b;
                 return TCL_ERROR;
             }
@@ -209,25 +211,25 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         if (options.length_ != 0) {
             // explicit length but some of the data may just be left
             // as garbage. 
-            b->payload_.set_length(options.length_);
+            b->mutable_payload()->set_length(options.length_);
             if (payload_len != 0) {
-                b->payload_.write_data(payload_data, payload_len, 0);
+                b->mutable_payload()->write_data(payload_data, payload_len, 0);
             }
 
             // make sure to write a byte at the end of the payload to
             // properly fool the BundlePayload into thinking that we
             // actually got all the data
             u_char byte = 0;
-            b->payload_.write_data(&byte, options.length_ - 1, 1);
+            b->mutable_payload()->write_data(&byte, options.length_ - 1, 1);
             
             payload_len = options.length_;
         } else {
             // use the object length
-            b->payload_.set_data(payload_data, payload_len);
+            b->mutable_payload()->set_data(payload_data, payload_len);
         }
         
         if (options.replyto_ != "") {
-            b->replyto_.assign(options.replyto_.c_str());
+            b->mutable_replyto()->assign(options.replyto_.c_str());
         }
 
         oasys::StringBuffer error;
@@ -237,13 +239,13 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         }
         
         log_debug("inject %d byte bundle %s->%s", payload_len,
-                  b->source_.c_str(), b->dest_.c_str());
+                  b->source().c_str(), b->dest().c_str());
 
         BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP));
 
         // return the creation timestamp (can use with source EID to
         // create a globally unique bundle identifier
-        resultf("%u.%u", b->creation_ts_.seconds_, b->creation_ts_.seqno_);
+        resultf("%u.%u", b->creation_ts().seconds_, b->creation_ts().seqno_);
         return TCL_OK;
         
     } else if (!strcmp(cmd, "stats")) {
@@ -279,10 +281,10 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         for (iter = pending->begin(); iter != pending->end(); ++iter) {
             b = *iter;
             buf.appendf("\t%-3d: %s -> %s length %zu\n",
-                        b->bundleid_,
-                        b->source_.c_str(),
-                        b->dest_.c_str(),
-                        b->payload_.length());
+                        b->bundleid(),
+                        b->source().c_str(),
+                        b->dest().c_str(),
+                        b->payload().length());
         }
         
         set_result(buf.c_str());
@@ -297,7 +299,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         oasys::ScopeLock l(pending->lock(), "BundleCommand::exec");
     
         for (iter = pending->begin(); iter != pending->end(); ++iter) {
-            append_resultf("%d ", (*iter)->bundleid_);
+            append_resultf("%d ", (*iter)->bundleid());
         }
         
         return TCL_OK;
@@ -345,19 +347,19 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return ok;
             
         } else if (strcmp(cmd, "dump_ascii") == 0) {
-            size_t len = bundle->payload_.length();
+            size_t len = bundle->payload().length();
             oasys::StringBuffer buf(len);
             const u_char* bp = 
-                    bundle->payload_.read_data(0, len, (u_char*)buf.data());
+                bundle->payload().read_data(0, len, (u_char*)buf.data());
             
             buf.append((const char*)bp, len);            
             set_result(buf.c_str());
             
         } else if (strcmp(cmd, "dump") == 0) {
-            size_t len = bundle->payload_.length();
+            size_t len = bundle->payload().length();
             oasys::HexDumpBuffer buf(len);
             
-            bundle->payload_.read_data(0, len, (u_char*)buf.tail_buf(len));
+            bundle->payload().read_data(0, len, (u_char*)buf.tail_buf(len));
             buf.incr_len(len);
             
             set_result(buf.hexify().c_str());

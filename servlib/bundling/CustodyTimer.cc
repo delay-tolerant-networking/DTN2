@@ -42,7 +42,7 @@ u_int32_t
 CustodyTimerSpec::calculate_timeout(const Bundle* bundle) const
 {
     u_int32_t timeout = min_;
-    timeout += (u_int32_t)((double)lifetime_pct_ * bundle->expiration_ / 100.0);
+    timeout += (u_int32_t)((double)lifetime_pct_ * bundle->expiration() / 100.0);
 
     if (max_ != 0) {
         timeout = std::min(timeout, max_);
@@ -50,7 +50,7 @@ CustodyTimerSpec::calculate_timeout(const Bundle* bundle) const
     
     log_debug_p("/dtn/bundle/custody_timer", "calculate_timeout: "
                 "min %u, lifetime_pct %u, expiration %u, max %u: timeout %u",
-                min_, lifetime_pct_, bundle->expiration_, max_, timeout);
+                min_, lifetime_pct_, bundle->expiration(), max_, timeout);
     return timeout;
 }
 

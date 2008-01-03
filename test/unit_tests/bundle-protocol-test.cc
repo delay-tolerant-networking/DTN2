@@ -35,28 +35,27 @@ new_bundle()
     static int next_bundleid = 10;
     
     Bundle* b = new Bundle(oasys::Builder::builder());
-    b->bundleid_		= next_bundleid++;
-    b->is_fragment_		= false;
-    b->is_admin_		= false;
-    b->do_not_fragment_		= false;
-    b->in_datastore_       	= false;
-    b->custody_requested_	= false;
-    b->local_custody_      	= false;
-    b->singleton_dest_     	= true;
-    b->priority_		= 0;
-    b->receive_rcpt_		= false;
-    b->custody_rcpt_		= false;
-    b->forward_rcpt_		= false;
-    b->delivery_rcpt_		= false;
-    b->deletion_rcpt_		= false;
-    b->app_acked_rcpt_		= false;
-    b->orig_length_		= 0;
-    b->frag_offset_		= 0;
-    b->expiration_		= 0;
-    b->owner_              	= "";
-    b->creation_ts_.seconds_ 	= 0;
-    b->creation_ts_.seqno_   	= 0;
-    b->payload_.init(b->bundleid_);
+    b->test_set_bundleid(next_bundleid++);
+    b->set_is_fragment(false);
+    b->set_is_admin(false);
+    b->set_do_not_fragment(false);
+    b->set_in_datastore(false);
+    b->set_custody_requested(false);
+    b->set_local_custody(false);
+    b->set_singleton_dest(true);
+    b->set_priority(0);
+    b->set_receive_rcpt(false);
+    b->set_custody_rcpt(false);
+    b->set_forward_rcpt(false);
+    b->set_delivery_rcpt(false);
+    b->set_deletion_rcpt(false);
+    b->set_app_acked_rcpt(false);
+    b->set_orig_length(0);
+    b->set_frag_offset(0);
+    b->set_expiration(0);
+    b->set_owner("");
+    b->set_creation_ts(BundleTimestamp(0,0));
+    b->mutable_payload()->init(b->bundleid());
     return b;
 }
 
@@ -118,7 +117,7 @@ protocol_test(Bundle* b1, int chunks)
     CHECK(encode_len > 0);
     
     // extract the payload before we swing the payload directory
-    b1->payload_.read_data(0, b1->payload_.length(), payload1);
+    b1->payload().read_data(0, b1->payload().length(), payload1);
         
     b2 = new_bundle();
 
@@ -156,31 +155,31 @@ protocol_test(Bundle* b1, int chunks)
 
     CHECK_EQUAL(decode_len, encode_len);
 
-    CHECK_EQUALSTR(b1->source_.c_str(),    b2->source_.c_str());
-    CHECK_EQUALSTR(b1->dest_.c_str(),      b2->dest_.c_str());
-    CHECK_EQUALSTR(b1->custodian_.c_str(), b2->custodian_.c_str());
-    CHECK_EQUALSTR(b1->replyto_.c_str(),   b2->replyto_.c_str());
-    CHECK_EQUAL(b1->is_fragment_,          b2->is_fragment_);
-    CHECK_EQUAL(b1->is_admin_,             b2->is_admin_);
-    CHECK_EQUAL(b1->do_not_fragment_,      b2->do_not_fragment_);
-    CHECK_EQUAL(b1->custody_requested_,    b2->custody_requested_);
-    CHECK_EQUAL(b1->priority_,             b2->priority_);
-    CHECK_EQUAL(b1->receive_rcpt_,         b2->receive_rcpt_);
-    CHECK_EQUAL(b1->custody_rcpt_,         b2->custody_rcpt_);
-    CHECK_EQUAL(b1->forward_rcpt_,         b2->forward_rcpt_);
-    CHECK_EQUAL(b1->delivery_rcpt_,        b2->delivery_rcpt_);
-    CHECK_EQUAL(b1->deletion_rcpt_,        b2->deletion_rcpt_);
-    CHECK_EQUAL(b1->creation_ts_.seconds_, b2->creation_ts_.seconds_);
-    CHECK_EQUAL(b1->creation_ts_.seqno_,   b2->creation_ts_.seqno_);
-    CHECK_EQUAL(b1->expiration_,           b2->expiration_);
-    CHECK_EQUAL(b1->frag_offset_,          b2->frag_offset_);
-    CHECK_EQUAL(b1->orig_length_,          b2->orig_length_);
-    CHECK_EQUAL(b1->payload_.length(),     b2->payload_.length());
+    CHECK_EQUALSTR(b1->source().c_str(),    b2->source().c_str());
+    CHECK_EQUALSTR(b1->dest().c_str(),      b2->dest().c_str());
+    CHECK_EQUALSTR(b1->custodian().c_str(), b2->custodian().c_str());
+    CHECK_EQUALSTR(b1->replyto().c_str(),   b2->replyto().c_str());
+    CHECK_EQUAL(b1->is_fragment(),          b2->is_fragment());
+    CHECK_EQUAL(b1->is_admin(),             b2->is_admin());
+    CHECK_EQUAL(b1->do_not_fragment(),      b2->do_not_fragment());
+    CHECK_EQUAL(b1->custody_requested(),    b2->custody_requested());
+    CHECK_EQUAL(b1->priority(),             b2->priority());
+    CHECK_EQUAL(b1->receive_rcpt(),         b2->receive_rcpt());
+    CHECK_EQUAL(b1->custody_rcpt(),         b2->custody_rcpt());
+    CHECK_EQUAL(b1->forward_rcpt(),         b2->forward_rcpt());
+    CHECK_EQUAL(b1->delivery_rcpt(),        b2->delivery_rcpt());
+    CHECK_EQUAL(b1->deletion_rcpt(),        b2->deletion_rcpt());
+    CHECK_EQUAL(b1->creation_ts().seconds_, b2->creation_ts().seconds_);
+    CHECK_EQUAL(b1->creation_ts().seqno_,   b2->creation_ts().seqno_);
+    CHECK_EQUAL(b1->expiration(),           b2->expiration());
+    CHECK_EQUAL(b1->frag_offset(),          b2->frag_offset());
+    CHECK_EQUAL(b1->orig_length(),          b2->orig_length());
+    CHECK_EQUAL(b1->payload().length(),     b2->payload().length());
 
-    b2->payload_.read_data(0, b2->payload_.length(), payload2);
+    b2->payload().read_data(0, b2->payload().length(), payload2);
 
     bool payload_ok = true;
-    for (u_int i = 0; i < b2->payload_.length(); ++i) {
+    for (u_int i = 0; i < b2->payload().length(); ++i) {
         if (payload1[i] != payload2[i]) {
             log_err_p("/test", "payload mismatch at byte %d: 0x%x != 0x%x",
                       i, payload1[i], payload2[i]);
@@ -191,10 +190,10 @@ protocol_test(Bundle* b1, int chunks)
 
     // check extension blocks
     b1->lock()->lock("protocol_test");
-    if (b1->recv_blocks_.size() != 0)
+    if (b1->recv_blocks().size() != 0)
     {
-        for (BlockInfoVec::iterator iter = b1->recv_blocks_.begin();
-             iter != b1->recv_blocks_.end();
+        for (BlockInfoVec::const_iterator iter = b1->recv_blocks().begin();
+             iter != b1->recv_blocks().end();
              ++iter)
         {
             if (iter->type() == BundleProtocol::PRIMARY_BLOCK ||
@@ -204,7 +203,7 @@ protocol_test(Bundle* b1, int chunks)
             }
 
             const BlockInfo* block1 = &*iter;
-            const BlockInfo* block2 = b2->recv_blocks_.find_block(iter->type());
+            const BlockInfo* block2 = b2->recv_blocks().find_block(iter->type());
             CHECK_EQUAL(block1->type(), block2->type());
             CHECK_EQUAL(block1->data_offset(), block2->data_offset());
             CHECK_EQUAL(block1->data_length(), block2->data_length());
@@ -271,15 +270,14 @@ ADD_TEST(_what ## RandomChunks);
 Bundle* init_Basic()
 {
     Bundle* bundle = new_bundle();
-    bundle->payload_.set_data("test payload");
+    bundle->mutable_payload()->set_data("test payload");
     
-    bundle->source_.assign("dtn://source.dtn/test");
-    bundle->dest_.assign("dtn://dest.dtn/test");
-    bundle->custodian_.assign("dtn:none");
-    bundle->replyto_.assign("dtn:none");
-    bundle->expiration_ = 1000;
-    bundle->creation_ts_.seconds_ = 10101010;
-    bundle->creation_ts_.seqno_ = 44556677;
+    bundle->mutable_source()->assign("dtn://source.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
+    bundle->set_expiration(1000);
+    bundle->set_creation_ts(BundleTimestamp(10101010, 44556677));
 
     return bundle;
 }
@@ -289,17 +287,17 @@ DECLARE_BP_TESTS(Basic);
 Bundle* init_Fragment()
 {
     Bundle* bundle = new_bundle();
-    bundle->payload_.set_data("test payload");
+    bundle->mutable_payload()->set_data("test payload");
     
-    bundle->source_.assign("dtn://frag.dtn/test");
-    bundle->dest_.assign("dtn://dest.dtn/test");
-    bundle->custodian_.assign("dtn:none");
-    bundle->replyto_.assign("dtn:none");
+    bundle->mutable_source()->assign("dtn://frag.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
     
-    bundle->expiration_ = 30;
-    bundle->is_fragment_ = 1;
-    bundle->frag_offset_ = 123456789;
-    bundle->orig_length_ = 1234567890;
+    bundle->set_expiration(30);
+    bundle->set_is_fragment(1);
+    bundle->set_frag_offset(123456789);
+    bundle->set_orig_length(1234567890);
     
     return bundle;
 }
@@ -309,26 +307,25 @@ DECLARE_BP_TESTS(Fragment);
 Bundle* init_AllFlags()
 {
     Bundle* bundle = new_bundle();
-    bundle->payload_.set_data("test payload");
+    bundle->mutable_payload()->set_data("test payload");
     
-    bundle->source_.assign("dtn://source.dtn/test");
-    bundle->dest_.assign("dtn://dest.dtn/test");
-    bundle->custodian_.assign("dtn:none");
-    bundle->replyto_.assign("dtn:none");
+    bundle->mutable_source()->assign("dtn://source.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
 
-    bundle->is_admin_ = true;
-    bundle->do_not_fragment_ = true;
-    bundle->custody_requested_ = true;
-    bundle->priority_ = 3;
-    bundle->receive_rcpt_ = true;
-    bundle->custody_rcpt_ = true;
-    bundle->forward_rcpt_ = true;
-    bundle->delivery_rcpt_ = true;
-    bundle->deletion_rcpt_ = true;
+    bundle->set_is_admin(true);
+    bundle->set_do_not_fragment(true);
+    bundle->set_custody_requested(true);
+    bundle->set_priority(3);
+    bundle->set_receive_rcpt(true);
+    bundle->set_custody_rcpt(true);
+    bundle->set_forward_rcpt(true);
+    bundle->set_delivery_rcpt(true);
+    bundle->set_deletion_rcpt(true);
     
-    bundle->expiration_ = 1000;
-    bundle->creation_ts_.seconds_  = 10101010;
-    bundle->creation_ts_.seqno_ = 44556677;
+    bundle->set_expiration(1000);
+    bundle->set_creation_ts(BundleTimestamp(10101010, 44556677));
 
     return bundle;
 }
@@ -343,12 +340,12 @@ Bundle* init_RandomPayload()
     for (u_int i = 0; i < sizeof(payload); ++i) {
         payload[i] = oasys::Random::rand(26) + 'a';
     }
-    bundle->payload_.set_data(payload, sizeof(payload));
+    bundle->mutable_payload()->set_data(payload, sizeof(payload));
     
-    bundle->source_.assign("dtn://source.dtn/test");
-    bundle->dest_.assign("dtn://dest.dtn/test");
-    bundle->custodian_.assign("dtn:none");
-    bundle->replyto_.assign("dtn:none");
+    bundle->mutable_source()->assign("dtn://source.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
 
     return bundle;
 }
@@ -358,12 +355,12 @@ DECLARE_BP_TESTS(RandomPayload);
 Bundle* init_UnknownBlocks()
 {
     Bundle* bundle = new_bundle();
-    bundle->payload_.set_data("test payload");
+    bundle->mutable_payload()->set_data("test payload");
     
-    bundle->source_.assign("dtn://source.dtn/test");
-    bundle->dest_.assign("dtn://dest.dtn/test");
-    bundle->custodian_.assign("dtn:none");
-    bundle->replyto_.assign("dtn:none");
+    bundle->mutable_source()->assign("dtn://source.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
 
     // fake some blocks arriving off the wire
     BlockProcessor* primary_bp =
@@ -381,26 +378,26 @@ Bundle* init_UnknownBlocks()
     BlockInfo *primary, *payload, *unknown1, *unknown2, *unknown3;
     
     // initialize all blocks other than the primary
-    primary  = bundle->recv_blocks_.append_block(primary_bp);
+    primary  = bundle->mutable_recv_blocks()->append_block(primary_bp);
     
-    unknown1 = bundle->recv_blocks_.append_block(unknown1_bp);
+    unknown1 = bundle->mutable_recv_blocks()->append_block(unknown1_bp);
     const char* contents = "this is an extension block";
     UnknownBlockProcessor::instance()->
         init_block(unknown1, 0xaa, 0x0,
                    (const u_char*)contents, strlen(contents));
     
-    unknown2 = bundle->recv_blocks_.append_block(unknown2_bp);
+    unknown2 = bundle->mutable_recv_blocks()->append_block(unknown2_bp);
     UnknownBlockProcessor::instance()->
         init_block(unknown2, 0xbb,
                    BundleProtocol::BLOCK_FLAG_REPLICATE, 0, 0);
     
-    payload  = bundle->recv_blocks_.append_block(payload_bp);
+    payload  = bundle->mutable_recv_blocks()->append_block(payload_bp);
     UnknownBlockProcessor::instance()->
         init_block(payload,
                    BundleProtocol::PAYLOAD_BLOCK,
                    0, (const u_char*)"test payload", strlen("test payload"));
 
-    unknown3 = bundle->recv_blocks_.append_block(unknown3_bp);
+    unknown3 = bundle->mutable_recv_blocks()->append_block(unknown3_bp);
     UnknownBlockProcessor::instance()->
         init_block(unknown3, 0xcc,
                    BundleProtocol::BLOCK_FLAG_REPLICATE |

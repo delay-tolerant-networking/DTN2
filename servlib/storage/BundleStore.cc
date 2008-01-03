@@ -78,7 +78,7 @@ BundleStore::update(Bundle* bundle)
 bool
 BundleStore::del(Bundle* bundle)
 {
-    bool ret = bundles_.del(bundle->bundleid_);
+    bool ret = bundles_.del(bundle->bundleid());
     if (ret) {
         ASSERT(total_size_ >= bundle->durable_size());
         total_size_ -= bundle->durable_size();

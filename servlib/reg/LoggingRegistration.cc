@@ -52,13 +52,13 @@ LoggingRegistration::deliver_bundle(Bundle* b)
     // now dump a short chunk of the payload data, either in ascii or
     // hexified string output
     size_t len = 128;
-    size_t payload_len = b->payload_.length();
+    size_t payload_len = b->payload().length();
     if (payload_len < len) {
         len = payload_len;
     }
 
     u_char payload_buf[payload_len];
-    const u_char* data = b->payload_.read_data(0, len, payload_buf);
+    const u_char* data = b->payload().read_data(0, len, payload_buf);
 
     if (oasys::str_isascii(data, len)) {
         log_always("        payload (ascii): length %zu '%.*s'",

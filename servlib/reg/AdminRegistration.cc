@@ -44,10 +44,10 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
 {
     u_char typecode;
 
-    size_t payload_len = bundle->payload_.length();
+    size_t payload_len = bundle->payload().length();
     oasys::ScratchBuffer<u_char*, 256> scratch(payload_len);
     const u_char* payload_buf = 
-        bundle->payload_.read_data(0, payload_len, scratch.buf(payload_len));
+        bundle->payload().read_data(0, payload_len, scratch.buf(payload_len));
     
     log_debug("got %zu byte bundle", payload_len);
         
@@ -56,7 +56,7 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
         goto done;
     }
 
-    if (!bundle->is_admin_) {
+    if (!bundle->is_admin()) {
         log_warn("non-admin *%p sent to local eid", bundle);
         goto done;
     }
@@ -99,7 +99,7 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
     }
     case BundleProtocol::ADMIN_ANNOUNCE:
     {
-        log_info("ADMIN_ANNOUNCE from %s", bundle->source_.c_str());
+        log_info("ADMIN_ANNOUNCE from %s", bundle->source().c_str());
         break;
     }
         

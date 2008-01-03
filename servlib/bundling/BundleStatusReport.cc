@@ -33,23 +33,23 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
                                          flag_t            status_flags,
                                          reason_t          reason)
 {
-    bundle->source_.assign(source);
-    if (orig_bundle->replyto_.equals(EndpointID::NULL_EID())){
-        bundle->dest_.assign(orig_bundle->source_);
+    bundle->mutable_source()->assign(source);
+    if (orig_bundle->replyto().equals(EndpointID::NULL_EID())){
+        bundle->mutable_dest()->assign(orig_bundle->source());
     } else {
-        bundle->dest_.assign(orig_bundle->replyto_);
+        bundle->mutable_dest()->assign(orig_bundle->replyto());
     }
-    bundle->replyto_.assign(EndpointID::NULL_EID());
-    bundle->custodian_.assign(EndpointID::NULL_EID());
+    bundle->mutable_replyto()->assign(EndpointID::NULL_EID());
+    bundle->mutable_custodian()->assign(EndpointID::NULL_EID());
     
-    bundle->is_admin_ = true;
+    bundle->set_is_admin(true);
 
     // use the expiration time from the original bundle
     // XXX/demmer maybe something more clever??
-    bundle->expiration_ = orig_bundle->expiration_;
+    bundle->set_expiration(orig_bundle->expiration());
 
     // store the original bundle's source eid
-    EndpointID orig_source(orig_bundle->source_);
+    EndpointID orig_source(orig_bundle->source());
 
     int sdnv_encoding_len = 0;  // use an int to handle -1 return values
     int report_length = 0;
@@ -81,9 +81,9 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     report_length = 1 + 1 + 1;
 
     // the 2 SDNV fragment fields:
-    if (orig_bundle->is_fragment_) {
-        report_length += SDNV::encoding_len(orig_bundle->frag_offset_);
-        report_length += SDNV::encoding_len(orig_bundle->orig_length_);
+    if (orig_bundle->is_fragment()) {
+        report_length += SDNV::encoding_len(orig_bundle->frag_offset());
+        report_length += SDNV::encoding_len(orig_bundle->orig_length());
     }
 
     // Time field, set to the current time (with no sub-second
@@ -91,24 +91,24 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     BundleTimestamp now;
     now.seconds_ = BundleTimestamp::get_current_time();
     now.seqno_   = 0;
-    report_length += BundleProtocol::ts_encoding_len(&now);
+    report_length += BundleProtocol::ts_encoding_len(now);
     
     // The bundle's creation timestamp:
-    report_length += BundleProtocol::ts_encoding_len(&orig_bundle->creation_ts_);
+    report_length += BundleProtocol::ts_encoding_len(orig_bundle->creation_ts());
 
     // the Source Endpoint ID:
-    report_length += SDNV::encoding_len(orig_source.length()) + orig_source.length();
+    report_length += SDNV::encoding_len(orig_source.length()) +
+                     orig_source.length();
 
     //
     // Done calculating length, now create the report payload
     //
-    
     u_char* bp = scratch.buf(report_length);
     int len = report_length;
     
     // Admin Payload Type and flags
     *bp = BundleProtocol::ADMIN_STATUS_REPORT << 4;
-    if (orig_bundle->is_fragment_) {
+    if (orig_bundle->is_fragment()) {
         *bp |= BundleProtocol::ADMIN_IS_FRAGMENT;
     }
     bp++;
@@ -123,26 +123,26 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     len--;
     
     // The 2 Fragment Fields
-    if (orig_bundle->is_fragment_) {
-        sdnv_encoding_len = SDNV::encode(orig_bundle->frag_offset_, bp, len);
+    if (orig_bundle->is_fragment()) {
+        sdnv_encoding_len = SDNV::encode(orig_bundle->frag_offset(), bp, len);
         ASSERT(sdnv_encoding_len > 0);
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
         
-        sdnv_encoding_len = SDNV::encode(orig_bundle->orig_length_, bp, len);
+        sdnv_encoding_len = SDNV::encode(orig_bundle->orig_length(), bp, len);
         ASSERT(sdnv_encoding_len > 0);
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
     }   
 
-    sdnv_encoding_len = BundleProtocol::set_timestamp(bp, len, &now);
+    sdnv_encoding_len = BundleProtocol::set_timestamp(bp, len, now);
     ASSERT(sdnv_encoding_len > 0);
     bp  += sdnv_encoding_len;
     len -= sdnv_encoding_len;
 
     // Copy of bundle X's Creation Timestamp
     sdnv_encoding_len = 
-            BundleProtocol::set_timestamp(bp, len, &orig_bundle->creation_ts_);
+        BundleProtocol::set_timestamp(bp, len, orig_bundle->creation_ts());
     ASSERT(sdnv_encoding_len > 0);
     bp  += sdnv_encoding_len;
     len -= sdnv_encoding_len;
@@ -159,7 +159,7 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     // 
     // Finished generating the payload
     //
-    bundle->payload_.set_data(scratch.buf(), report_length);
+    bundle->mutable_payload()->set_data(scratch.buf(), report_length);
 }
 
 //----------------------------------------------------------------------
@@ -300,7 +300,7 @@ BundleStatusReport::parse_status_report(data_t* data,
         return false;
     }
 
-    size_t payload_len = bundle->payload_.length();
+    size_t payload_len = bundle->payload().length();
     if (payload_len > 16384) {
         log_err_p("/dtn/bundle/protocol",
                   "status report length %zu too big to be parsed!!",
@@ -310,7 +310,7 @@ BundleStatusReport::parse_status_report(data_t* data,
 
     oasys::ScratchBuffer<u_char*, 256> buf;
     buf.reserve(payload_len);
-    const u_char* bp = bundle->payload_.read_data(0, payload_len, buf.buf());
+    const u_char* bp = bundle->payload().read_data(0, payload_len, buf.buf());
     return parse_status_report(data, bp, payload_len);
 }
 

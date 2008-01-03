@@ -159,13 +159,14 @@ MetadataBlockProcessor::prepare_generated_metadata(Bundle*        bundle,
     ASSERT(bundle != NULL);
     ASSERT(blocks != NULL);
     
-    oasys::ScopeLock bundle_lock(&bundle->lock_, 
+    oasys::ScopeLock bundle_lock(bundle->lock(), 
                       "MetadataBlockProcessor::prepare_generated_metadata");
 
     // Include metadata generated specifically for the outgoing link.
-    MetadataVec* metadata = bundle->generated_metadata_.find_blocks(link);
+    const MetadataVec* metadata =
+        bundle->generated_metadata().find_blocks(link);
     if (metadata != NULL) {
-        MetadataVec::iterator iter;
+        MetadataVec::const_iterator iter;
         for (iter = metadata->begin(); iter != metadata->end(); ++iter) {
             if ((*iter)->metadata_len() > 0) {
                 blocks->push_back(BlockInfo(this));
@@ -176,13 +177,15 @@ MetadataBlockProcessor::prepare_generated_metadata(Bundle*        bundle,
 
     // Include metadata generated for all outgoing links.
     LinkRef null_link("MetadataBlockProcessor::prepare_generated_metadata");
-    MetadataVec * nulldata = bundle->generated_metadata_.find_blocks(null_link);
+    const MetadataVec*
+        nulldata = bundle->generated_metadata().find_blocks(null_link);
+
     if (nulldata != NULL) {
-        MetadataVec::iterator iter;
+        MetadataVec::const_iterator iter;
         for (iter = nulldata->begin(); iter != nulldata->end(); ++iter) {
             bool link_specific = false;
             if (metadata != NULL) {
-                MetadataVec::iterator liter = metadata->begin();
+                MetadataVec::const_iterator liter = metadata->begin();
                 for ( ; liter != metadata->end(); ++liter) {
                     if ((*liter)->source() &&
                        ((*liter)->source_id() == (*iter)->id())) {
@@ -345,7 +348,7 @@ MetadataBlockProcessor::parse_metadata(Bundle* bundle, BlockInfo* block)
     // Generate metadata block state that is maintained by
     // the bundle and referenced by the generic block state.
     MetadataBlock* metadata = new MetadataBlock(block);
-    bundle->recv_metadata_.push_back(metadata);
+    bundle->mutable_recv_metadata()->push_back(metadata);
 
     block->set_locals(metadata);
 
@@ -421,10 +424,12 @@ MetadataBlockProcessor::delete_generated_metadata(Bundle*        bundle,
 {
     ASSERT(bundle != NULL);
 
-    bundle->generated_metadata_.delete_blocks(link);
+    bundle->mutable_generated_metadata()->delete_blocks(link);
 
-    MetadataVec::iterator iter = bundle->recv_metadata_.begin();
-    for ( ; iter != bundle->recv_metadata_.end(); ++iter) {
+    MetadataVec::const_iterator iter;
+    for (iter = bundle->recv_metadata().begin();
+         iter != bundle->recv_metadata().end(); ++iter)
+    {
         (*iter)->delete_outgoing_metadata(link);
     }
 }

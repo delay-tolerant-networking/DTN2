@@ -156,9 +156,9 @@ public:
                 ::xml_schema::flags = 0,
                 ::xml_schema::type* = 0);
 
-    eidType (dtn::EndpointID&);
+    eidType (const dtn::EndpointID&);
 
-    eidType (std::string&);
+    eidType (const std::string&);
 
     virtual eidType*
     _clone (::xml_schema::flags = 0,
@@ -182,7 +182,7 @@ public:
                 ::xml_schema::flags = 0,
                 ::xml_schema::type* = 0);
 
-    gbofIdType (dtn::Bundle*);
+    gbofIdType (const dtn::Bundle*);
 
     gbofIdType (dtn::CustodySignal::data_t);
 

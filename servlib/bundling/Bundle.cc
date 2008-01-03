@@ -94,9 +94,8 @@ Bundle::Bundle(const oasys::Builder&)
     // value and make sure the expiration timer is NULL, since the
     // fields are set and the payload initialized when loading from
     // the database
-    refcount_	      = 0;
-    //bundleid_ 	      = 0xffffffff;
     init(0xffffffff);
+    refcount_	      = 0;
     expiration_timer_ = NULL;
     freed_	      = false;
 }

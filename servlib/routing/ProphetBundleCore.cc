@@ -255,7 +255,7 @@ ProphetBundleCore::write_bundle(const prophet::Bundle* bundle,
     Bundle* b = const_cast<Bundle*>(get_bundle(bundle));
     if (b != NULL)
     {
-        b->payload_.append_data(buffer,len);
+        b->mutable_payload()->append_data(buffer,len);
         return true;
     }
     return false;
@@ -269,10 +269,10 @@ ProphetBundleCore::read_bundle(const prophet::Bundle* bundle,
     const Bundle* b = get_bundle(bundle);
     if (b != NULL)
     {
-        size_t blen = b->payload_.length();
+        size_t blen = b->payload().length();
         if (blen < len)
             return false;
-        b->payload_.read_data(0,blen,buffer);
+        b->payload().read_data(0,blen,buffer);
         len = blen;
         return true;
     }
@@ -285,11 +285,11 @@ ProphetBundleCore::create_bundle(const std::string& src,
 {
     LOG("create_bundle");
     Bundle* b = new Bundle();
-    b->source_.assign(src);
-    b->dest_.assign(dst);
-    b->replyto_.assign(EndpointID::NULL_EID());
-    b->custodian_.assign(EndpointID::NULL_EID());
-    b->expiration_ = expiration;
+    b->mutable_source()->assign(src);
+    b->mutable_dest()->assign(dst);
+    b->mutable_replyto()->assign(EndpointID::NULL_EID());
+    b->mutable_custodian()->assign(EndpointID::NULL_EID());
+    b->set_expiration(expiration);
     BundleRef tmp("create_bundle");
     tmp = b;
     add(tmp);

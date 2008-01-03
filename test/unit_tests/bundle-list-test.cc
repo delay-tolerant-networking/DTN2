@@ -40,8 +40,8 @@ BundleList *l1, *l2, *l3;
 DECLARE_TEST(Init) {
     for (int i = 0; i < MANY; ++i) {
         bundles[i] = new Bundle(oasys::Builder::builder());
-        bundles[i]->bundleid_ = i;
-        bundles[i]->payload_.init(i, BundlePayload::NODATA);
+        bundles[i]->test_set_bundleid(i);
+        bundles[i]->mutable_payload()->init(i, BundlePayload::NODATA);
         bundles[i]->add_ref("test");
     }
 
@@ -209,7 +209,7 @@ DECLARE_TEST(MultipleLists) {
 
     b = bundles[0];
     CHECK_EQUAL(b->num_mappings(), 3);
-    b->lock_.lock("test lock");
+    b->lock()->lock("test lock");
     for (map_iter = b->mappings()->begin();
          map_iter != b->mappings()->end();
          ++map_iter)
@@ -221,13 +221,13 @@ DECLARE_TEST(MultipleLists) {
 
     while (b->num_mappings() != 0) {
         l = b->mappings()->front().list();
-        b->lock_.unlock();
+        b->lock()->unlock();
         CHECK(l->erase(b));
-        b->lock_.lock("test lock");
+        b->lock()->lock("test lock");
         CHECK(! l->contains(b));
     }
 
-    b->lock_.unlock();
+    b->lock()->unlock();
     CHECK_EQUAL(b->num_mappings(), 0);
 
     // list contents fall through to next test
@@ -244,20 +244,20 @@ DECLARE_TEST(MultipleListRemoval) {
         b = *iter;
         ++iter; // increment before removal
 
-        b->lock_.lock("test lock");
+        b->lock()->lock("test lock");
         CHECK_EQUAL(b->num_mappings(), 3);
 
         while (b->num_mappings() != 0) {
             l = b->mappings()->front().list();
             
             CHECK(l->contains(b));
-            b->lock_.unlock();
+            b->lock()->unlock();
             CHECK(l->erase(b));
-            b->lock_.lock("test lock");
+            b->lock()->lock("test lock");
             CHECK(! l->contains(b));
         }
         
-        b->lock_.unlock();
+        b->lock()->unlock();
     }
     l3->lock()->unlock();
 

@@ -196,18 +196,91 @@ public:
         }
     }
 
-    /// @{ Accessors (should eventually be for all fields)
-    oasys::Lock* lock()    const { return &lock_; }
-    bool         expired() const { return expiration_timer_ == NULL; }
+    /// @{ Accessors
+    u_int32_t         bundleid()          const { return bundleid_; }
+    oasys::Lock*      lock()              const { return &lock_; }
+    bool              expired()           const { return expiration_timer_ == NULL; }
+    const EndpointID& source()            const { return source_; }
+    const EndpointID& dest()              const { return dest_; }
+    const EndpointID& custodian()         const { return custodian_; }
+    const EndpointID& replyto()           const { return replyto_; }
+    const EndpointID& prevhop()           const { return prevhop_; }
+    bool              is_fragment()       const { return is_fragment_; }
+    bool              is_admin()          const { return is_admin_; }
+    bool              do_not_fragment()   const { return do_not_fragment_; }
+    bool              custody_requested() const { return custody_requested_; }
+    bool              singleton_dest()    const { return singleton_dest_; }
+    u_int8_t          priority()          const { return priority_; }
+    bool              receive_rcpt()      const { return receive_rcpt_; }
+    bool              custody_rcpt()      const { return custody_rcpt_; }
+    bool              forward_rcpt()      const { return forward_rcpt_; }
+    bool              delivery_rcpt()     const { return delivery_rcpt_; }
+    bool              deletion_rcpt()     const { return deletion_rcpt_; }
+    bool              app_acked_rcpt()    const { return app_acked_rcpt_; }
+    u_int32_t         expiration()        const { return expiration_; }
+    u_int32_t         frag_offset()       const { return frag_offset_; }
+    u_int32_t         orig_length()       const { return orig_length_; }
+    bool              in_datastore()      const { return in_datastore_; }
+    bool              local_custody()     const { return local_custody_; }
+    const std::string& owner()            const { return owner_; }
+    bool              fragmented_incoming() const { return fragmented_incoming_; }
+    const BundlePayload& payload()        const { return payload_; }
+    const ForwardingLog* fwdlog()         const { return &fwdlog_; }
+    const BundleTimestamp& creation_ts()  const { return creation_ts_; }
+    const BundleTimestamp& extended_id()  const { return extended_id_; }
+    const BlockInfoVec& recv_blocks()     const { return recv_blocks_; }
+    const MetadataVec& recv_metadata()    const { return recv_metadata_; }
+    const LinkMetadataSet& generated_metadata() const { return generated_metadata_; }
+    /// @}
+
+    /// @{ Setters and mutable accessors
+    EndpointID* mutable_source()       { return &source_; }
+    EndpointID* mutable_dest()         { return &dest_; }
+    EndpointID* mutable_replyto()      { return &replyto_; }
+    EndpointID* mutable_custodian()    { return &custodian_; }
+    EndpointID* mutable_prevhop()      { return &prevhop_; }
+    void set_is_fragment(bool t)       { is_fragment_ = t; }
+    void set_is_admin(bool t)          { is_admin_ = t; }
+    void set_do_not_fragment(bool t)   { do_not_fragment_ = t; }
+    void set_custody_requested(bool t) { custody_requested_ = t; }
+    void set_singleton_dest(bool t)    { singleton_dest_ = t; }
+    void set_priority(u_int8_t p)      { priority_ = p; }
+    void set_receive_rcpt(bool t)      { receive_rcpt_ = t; }
+    void set_custody_rcpt(bool t)      { custody_rcpt_ = t; }
+    void set_forward_rcpt(bool t)      { forward_rcpt_ = t; }
+    void set_delivery_rcpt(bool t)     { delivery_rcpt_ = t; }
+    void set_deletion_rcpt(bool t)     { deletion_rcpt_ = t; }
+    void set_app_acked_rcpt(bool t)    { app_acked_rcpt_ = t; }
+    void set_expiration(u_int32_t e)   { expiration_ = e; }
+    void set_frag_offset(u_int32_t o)  { frag_offset_ = o; }
+    void set_orig_length(u_int32_t l)  { orig_length_ = l; }
+    void set_in_datastore(bool t)      { in_datastore_ = t; }
+    void set_local_custody(bool t)     { local_custody_ = t; }
+    void set_owner(const std::string& s) { owner_ = s; }
+    void set_fragmented_incoming(bool t) { fragmented_incoming_ = t; }
+    void set_creation_ts(const BundleTimestamp& ts) { creation_ts_ = ts; }
+    void test_set_bundleid(u_int32_t id) { bundleid_ = id; }
+
+    BundlePayload*   mutable_payload() { return &payload_; }
+    ForwardingLog*   fwdlog()          { return &fwdlog_; }
+    ExpirationTimer* expiration_timer(){ return expiration_timer_; }
+    CustodyTimerVec* custody_timers()  { return &custody_timers_; }
+    BlockInfoVec*    api_blocks()      { return &api_blocks_; }
+    LinkBlockSet*    xmit_blocks()     { return &xmit_blocks_; }
+    BlockInfoVec*    mutable_recv_blocks() { return &recv_blocks_; }
+    MetadataVec*     mutable_recv_metadata() { return &recv_metadata_; }
+    LinkMetadataSet* mutable_generated_metadata() {
+        return &generated_metadata_;
+    }
+    void set_expiration_timer(ExpirationTimer* e) {
+        expiration_timer_ = e;
+    }
     /// @}
     
+private:
     /*
      * Bundle data fields that correspond to data transferred between
-     * nodes according to the bundle protocol (all public to avoid the
-     * need for accessor functions).
-     *
-     * XXX/demmer this is a bad and lazy design and we should actually
-     * make these protected
+     * nodes according to the bundle protocol.
      */
     EndpointID source_;		///< Source eid
     EndpointID dest_;		///< Destination eid
@@ -228,7 +301,7 @@ public:
     bool app_acked_rcpt_;	///< Acknowlege by application reporting
     BundleTimestamp creation_ts_; ///< Creation timestamp
     u_int32_t expiration_;	///< Bundle expiration time
-    u_int32_t frag_offset_;	///< Offset of fragment in the original bundle
+    u_int32_t frag_offset_;	///< Offset of fragment in original bundle
     u_int32_t orig_length_;	///< Length of original bundle
     BundlePayload payload_;	///< Reference to the payload
 
@@ -236,40 +309,35 @@ public:
      * Internal fields and structures for managing the bundle that are
      * not transmitted over the network.
      */
-    u_int32_t bundleid_;	///< Local bundle identifier
+    u_int32_t bundleid_;	   ///< Local bundle identifier
     mutable oasys::SpinLock lock_; ///< Lock for bundle data that can be
-                                ///  updated by multiple threads
-    bool in_datastore_;		///< Is the bundle in the persistent store
-    bool local_custody_;	///< Local node has custody
-    std::string owner_;         ///< Declared router that "owns" this
-                                ///  bundle, which could be empty
-    BundleTimestamp extended_id_; ///< Identifier for external routers to
-                                  ///  refer to duplicate bundles
-    ForwardingLog fwdlog_;	///< Log of bundle forwarding records
+                                   ///  updated by multiple threads
+    bool in_datastore_;		   ///< Is bundle in persistent store
+    bool local_custody_;	   ///< Does local node have custody
+    std::string owner_;            ///< Declared entity that "owns" this
+                                   ///  bundle, which could be empty
+    BundleTimestamp extended_id_;  ///< Identifier for external routers to
+                                   ///  refer to duplicate bundles
+    ForwardingLog fwdlog_;	   ///< Log of bundle forwarding records
     ExpirationTimer* expiration_timer_;	///< The expiration timer
-    CustodyTimerVec custody_timers_; ///< Live custody timers for this bundle
-    bool fragmented_incoming_;  ///< Is the bundle an incoming reactive
-                                ///  fragment
+    CustodyTimerVec custody_timers_; ///< Live custody timers for the bundle
+    bool fragmented_incoming_;     ///< Is the bundle an incoming reactive
+                                   ///  fragment
 
-    BlockInfoVec recv_blocks_;	///< BP blocks as they arrived off the wire
-    BlockInfoVec api_blocks_;	///< BP blocks as they arrived from API
-    LinkBlockSet xmit_blocks_;	///< Block vector for each link
+    BlockInfoVec recv_blocks_;	   ///< BP blocks as arrived off the wire
+    BlockInfoVec api_blocks_;	   ///< BP blocks given from local API
+    LinkBlockSet xmit_blocks_;	   ///< Block vector for each link
 
     MetadataVec     recv_metadata_;      ///< Metadata as arrived in bundle 
-    LinkMetadataSet generated_metadata_; ///< Metadata to be included in bundle
+    LinkMetadataSet generated_metadata_; ///< Metadata to be in bundle
 
-protected:
-    /*
-     * Protected fields.
-     */
-    BundleMappings mappings_;   ///< The set of BundleLists that
-                               	///  contain the Bundle.
+    BundleMappings mappings_;      ///< The set of BundleLists that
+                               	   ///  contain the Bundle.
     
-    int  refcount_;		///< Bundle reference count
-    bool freed_;		///< Bit to indicate whether or not a bundle
-                                ///  free event has been posted for us
+    int  refcount_;		   ///< Bundle reference count
+    bool freed_;		   ///< Bit indicating whether a bundle
+                                   ///  free event has been posted
 
-private:
     /**
      * Initialization helper function.
      */

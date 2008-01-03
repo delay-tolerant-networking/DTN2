@@ -32,11 +32,11 @@ DuplicateCache::DuplicateCache(size_t capacity)
 bool
 DuplicateCache::is_duplicate(Bundle* bundle)
 {
-    GbofId k(bundle->source_,
-             bundle->creation_ts_,
-             bundle->is_fragment_,
-             bundle->payload_.length(),
-             bundle->frag_offset_);
+    GbofId k(bundle->source(),
+             bundle->creation_ts(),
+             bundle->is_fragment(),
+             bundle->payload().length(),
+             bundle->frag_offset());
     Val v;
     if (cache_.get(k, &v)) {
         return true;

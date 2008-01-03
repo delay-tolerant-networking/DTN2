@@ -215,33 +215,33 @@ bundleType::bundleType (const bundleType& a,
 
 bundleType::bundleType (Bundle* b)
     : bundleType_base(
-        eidType(b->source_.str()),
-        eidType(b->dest_.str()),
-        eidType(b->custodian_.str()),
-        eidType(b->replyto_.str()),
-        eidType(b->prevhop_.str()),
-        b->payload_.length(),
-        bundleLocationType(location_to_str(b->payload_.location())),
-        b->bundleid_,
-        b->is_fragment_,
-        b->is_admin_,
-        b->do_not_fragment_,
-        bundlePriorityType(lowercase(b->prioritytoa(b->priority_))),
-        b->custody_requested_,
-        b->local_custody_,
-        b->singleton_dest_,
-        b->custody_rcpt_,
-        b->receive_rcpt_,
-        b->forward_rcpt_,
-        b->delivery_rcpt_,
-        b->deletion_rcpt_,
-        b->app_acked_rcpt_,
-        b->creation_ts_.seconds_,
-        b->creation_ts_.seqno_,
-        b->expiration_,
-        b->orig_length_,
-        b->frag_offset_,
-        b->owner_)
+        eidType(b->source().str()),
+        eidType(b->dest().str()),
+        eidType(b->custodian().str()),
+        eidType(b->replyto().str()),
+        eidType(b->prevhop().str()),
+        b->payload().length(),
+        bundleLocationType(location_to_str(b->payload().location())),
+        b->bundleid(),
+        b->is_fragment(),
+        b->is_admin(),
+        b->do_not_fragment(),
+        bundlePriorityType(lowercase(b->prioritytoa(b->priority()))),
+        b->custody_requested(),
+        b->local_custody(),
+        b->singleton_dest(),
+        b->custody_rcpt(),
+        b->receive_rcpt(),
+        b->forward_rcpt(),
+        b->delivery_rcpt(),
+        b->deletion_rcpt(),
+        b->app_acked_rcpt(),
+        b->creation_ts().seconds_,
+        b->creation_ts().seqno_,
+        b->expiration(),
+        b->orig_length(),
+        b->frag_offset(),
+        b->owner())
 {
 }
 
@@ -331,12 +331,12 @@ eidType::eidType (const eidType& a,
 {
 }
 
-eidType::eidType (dtn::EndpointID& e)
+eidType::eidType (const dtn::EndpointID& e)
     : eidType_base (e.str())
 {
 }
 
-eidType::eidType (std::string& a)
+eidType::eidType (const std::string& a)
     : eidType_base (a)
 {
 }
@@ -373,13 +373,13 @@ gbofIdType::gbofIdType (const gbofIdType& a,
 {
 }
 
-gbofIdType::gbofIdType (dtn::Bundle* b)
+gbofIdType::gbofIdType (const dtn::Bundle* b)
     : gbofIdType_base (
-        eidType(b->source_.str()),
-        bundle_ts_to_long(b->creation_ts_),
-        b->is_fragment_,
-        b->is_fragment_ ? b->payload_.length() : 0,
-        b->is_fragment_ ? b->frag_offset_ : 0)
+        eidType(b->source().str()),
+        bundle_ts_to_long(b->creation_ts()),
+        b->is_fragment(),
+        b->is_fragment() ? b->payload().length() : 0,
+        b->is_fragment() ? b->frag_offset() : 0)
 {
 }
 

@@ -305,7 +305,7 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
                                      inflight->total_length_))
             {
                 log_warn("inflight queue mismatch for bundle %d",
-                         inflight->bundle_->bundleid_);
+                         inflight->bundle_->bundleid());
             }
             
         } else {
@@ -329,12 +329,12 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
     // for (if reactive fragmentation is enabled)
     if (! conn->incoming_.empty()) {
         CLConnection::IncomingBundle* incoming = conn->incoming_.back();
-        if(!incoming->rcvd_data_.empty())
+        if (!incoming->rcvd_data_.empty())
         {  
             size_t rcvd_len = incoming->rcvd_data_.last() + 1;
             
             size_t header_block_length =
-                BundleProtocol::payload_offset(&incoming->bundle_->recv_blocks_);
+                BundleProtocol::payload_offset(&incoming->bundle_->recv_blocks());
         
             if ((incoming->total_length_ == 0) && 
                 params->reactive_frag_enabled_ &&
@@ -343,7 +343,7 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
                 log_debug("partial arrival of bundle: "
                           "got %zu bytes [hdr %zu payload %zu]",
                           rcvd_len, header_block_length,
-                          incoming->bundle_->payload_.length());
+                          incoming->bundle_->payload().length());
              
                 BundleDaemon::post(
                     new BundleReceivedEvent(incoming->bundle_.object(),

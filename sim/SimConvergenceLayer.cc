@@ -163,13 +163,13 @@ SimLink::start_next_bundle()
     BundleRef src_bundle("SimLink::start_next_bundle");
     src_bundle = link_->queue()->front();
     
-    BlockInfoVec* blocks = src_bundle->xmit_blocks_.find_blocks(link_);
+    BlockInfoVec* blocks = src_bundle->xmit_blocks()->find_blocks(link_);
     ASSERT(blocks != NULL);
 
     // since we don't really have any payload to send, we find the
     // payload block and overwrite the data_length to be zero, then
     // adjust the payload_ on the new bundle
-    if (src_bundle->payload_.location() == BundlePayload::NODATA) {
+    if (src_bundle->payload().location() == BundlePayload::NODATA) {
         BlockInfo* payload = const_cast<BlockInfo*>(
             blocks->find_block(BundleProtocol::PAYLOAD_BLOCK));
         ASSERT(payload != NULL);
@@ -185,17 +185,17 @@ SimLink::start_next_bundle()
 
     size_t total_len = len;
 
-    if (src_bundle->payload_.location() == BundlePayload::NODATA)
-        total_len += src_bundle->payload_.length();
+    if (src_bundle->payload().location() == BundlePayload::NODATA)
+        total_len += src_bundle->payload().length();
 
     complete = false;
-    Bundle* dst_bundle = new Bundle(src_bundle->payload_.location());
+    Bundle* dst_bundle = new Bundle(src_bundle->payload().location());
     int cc = BundleProtocol::consume(dst_bundle, buf_, len, &complete);
     ASSERT(cc == (int)len);
     ASSERT(complete);
 
-    if (src_bundle->payload_.location() == BundlePayload::NODATA) {
-        dst_bundle->payload_.set_length(src_bundle->payload_.length());
+    if (src_bundle->payload().location() == BundlePayload::NODATA) {
+        dst_bundle->mutable_payload()->set_length(src_bundle->payload().length());
     }
             
     tb_.drain(total_len * 8);
@@ -215,7 +215,7 @@ SimLink::start_next_bundle()
     
     log_debug("send_bundle src %d dst %d: total len %zu, "
               "inflight_time %u.%u arrival_time %u.%u transmitted_time %u.%u",
-              src_bundle->bundleid_, dst_bundle->bundleid_, total_len,
+              src_bundle->bundleid(), dst_bundle->bundleid(), total_len,
               inflight_time.sec_, inflight_time.usec_,
               arrival_time.sec_, arrival_time.usec_,
               transmitted_time.sec_, transmitted_time.usec_);

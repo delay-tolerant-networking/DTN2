@@ -84,15 +84,15 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
     // create a new block list for the outgoing link by first calling
     // prepare on all the BlockProcessor classes for the blocks that
     // arrived on the link
-    BlockInfoVec* xmit_blocks = bundle->xmit_blocks_.create_blocks(link);
-    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
-    BlockInfoVec* api_blocks = &bundle->api_blocks_;
+    BlockInfoVec* xmit_blocks = bundle->xmit_blocks()->create_blocks(link);
+    const BlockInfoVec* recv_blocks = &bundle->recv_blocks();
+    BlockInfoVec* api_blocks  = bundle->api_blocks();
 
     if (recv_blocks->size() > 0) {
         // if there is a received block, the first one better be the primary
         ASSERT(recv_blocks->front().type() == PRIMARY_BLOCK);
     
-        for (BlockInfoVec::iterator iter = recv_blocks->begin();
+        for (BlockInfoVec::const_iterator iter = recv_blocks->begin();
              iter != recv_blocks->end();
              ++iter)
         {
@@ -103,14 +103,14 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
             // XXX/demmer it seems to me like this should just break
             // out of the loop once it's processed the PAYLOAD_BLOCK
             // if fragmented_incoming_ is true
-            if (bundle->fragmented_incoming_
+            if (bundle->fragmented_incoming()
                 && xmit_blocks->find_block(BundleProtocol::PAYLOAD_BLOCK)) {
                 continue;
             }
             
             // allow BlockProcessors [and Ciphersuites] a chance to re-do things 
             // needed after a possible load-from-store
-            iter->owner()->reload_post_process(bundle, recv_blocks, &*iter);     
+            iter->owner()->reload_post_process(bundle, recv_blocks, &*iter);
             
             iter->owner()->prepare(bundle, xmit_blocks, &*iter,link,  BlockInfo::LIST_RECEIVED);
         }
@@ -230,7 +230,7 @@ BundleProtocol::delete_blocks(Bundle* bundle, const LinkRef& link)
 {
     ASSERT(bundle != NULL);
 
-    bundle->xmit_blocks_.delete_blocks(link);
+    bundle->xmit_blocks()->delete_blocks(link);
 
     BlockProcessor* metadata_processor = find_processor(METADATA_BLOCK);
     ASSERT(metadata_processor != NULL);
@@ -358,27 +358,29 @@ BundleProtocol::consume(Bundle* bundle,
 {
     size_t origlen = len;
     *last = false;
+
+    BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
     
     // special case for first time we get called, since we need to
     // create a BlockInfo struct for the primary block without knowing
     // the typecode or the length
-    if (bundle->recv_blocks_.empty()) {
+    if (recv_blocks->empty()) {
         log_debug_p(LOG, "consume: got first block... "
                     "creating primary block info");
-        bundle->recv_blocks_.append_block(find_processor(PRIMARY_BLOCK));
+        recv_blocks->append_block(find_processor(PRIMARY_BLOCK));
     }
 
     // loop as long as there is data left to process
     while (len != 0) {
         log_debug_p(LOG, "consume: %zu bytes left to process", len);
-        BlockInfo* info = &bundle->recv_blocks_.back();
+        BlockInfo* info = &recv_blocks->back();
 
         // if the last received block is complete, create a new one
         // and push it onto the vector. at this stage we consume all
         // blocks, even if there's no BlockProcessor that understands
         // how to parse it
         if (info->complete()) {
-            info = bundle->recv_blocks_.append_block(find_processor(*data));
+            info = recv_blocks->append_block(find_processor(*data));
             log_debug_p(LOG, "consume: previous block complete, "
                         "created new BlockInfo type 0x%x",
                         info->owner()->block_type());
@@ -432,7 +434,7 @@ BundleProtocol::validate(Bundle* bundle,
                          status_report_reason_t* deletion_reason)
 {
     int primary_blocks = 0, payload_blocks = 0;
-    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
+    BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
  
     // a bundle must include at least two blocks (primary and payload)
     if (recv_blocks->size() < 2) {
@@ -495,7 +497,7 @@ BundleProtocol::validate(Bundle* bundle,
         if (iter == last_block) {
             if (!iter->last_block()) {
                 // this may be okay, if it is a reactive fragment
-                if (!bundle->fragmented_incoming_) {
+                if (!bundle->fragmented_incoming()) {
                     log_err_p(LOG, "bundle's last block not flagged");
                     *deletion_reason
                         = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
@@ -544,13 +546,13 @@ BundleProtocol::validate(Bundle* bundle,
 
 //----------------------------------------------------------------------
 int
-BundleProtocol::set_timestamp(u_char* ts, size_t len, const BundleTimestamp* tv)
+BundleProtocol::set_timestamp(u_char* ts, size_t len, const BundleTimestamp& tv)
 {
-    int sec_size = SDNV::encode(tv->seconds_, ts, len);
+    int sec_size = SDNV::encode(tv.seconds_, ts, len);
     if (sec_size < 0)
         return -1;
-
-    int seqno_size = SDNV::encode(tv->seqno_, ts + sec_size, len - sec_size);
+    
+    int seqno_size = SDNV::encode(tv.seqno_, ts + sec_size, len - sec_size);
     if (seqno_size < 0)
         return -1;
     
@@ -578,22 +580,23 @@ BundleProtocol::get_timestamp(BundleTimestamp* tv, const u_char* ts, size_t len)
     return sec_size + seqno_size;
 }
 
+//----------------------------------------------------------------------
 size_t
-BundleProtocol::ts_encoding_len(const BundleTimestamp* tv)
+BundleProtocol::ts_encoding_len(const BundleTimestamp& tv)
 {
-    return SDNV::encoding_len(tv->seconds_) + SDNV::encoding_len(tv->seqno_);    
+    return SDNV::encoding_len(tv.seconds_) + SDNV::encoding_len(tv.seqno_);
 }
 
 //----------------------------------------------------------------------
 bool
 BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
 {
-    if (! bundle->is_admin_) {
+    if (! bundle->is_admin()) {
         return false;
     }
 
     u_char buf[16];
-    const u_char* bp = bundle->payload_.read_data(0, sizeof(buf), buf);
+    const u_char* bp = bundle->payload().read_data(0, sizeof(buf), buf);
 
     switch (bp[0] >> 4)
     {

@@ -40,7 +40,7 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
     static const char* log = "/dtn/bundle/protocol";
     (void)log;
     
-    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
+    BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
     size_t consumed = 0;
     if (block->data_offset() == 0) {
         int cc = consume_preamble(recv_blocks, block, buf, len);
@@ -53,7 +53,7 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
 
         consumed += cc;
 
-        ASSERT(bundle->payload_.length() == 0);
+        ASSERT(bundle->payload().length() == 0);
     }
     
     // If we still don't know the data offset, we must have consumed
@@ -65,7 +65,7 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
 
     // Special case for the simulator -- if the payload location is
     // NODATA, then we're done.
-    if (bundle->payload_.location() == BundlePayload::NODATA) {
+    if (bundle->payload().location() == BundlePayload::NODATA) {
         block->set_complete(true);
         return consumed;
     }
@@ -89,9 +89,9 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
 
     // Now make sure there's still something left to do for the block,
     // otherwise it should have been marked as complete
-    ASSERT(block->data_length() > bundle->payload_.length());
+    ASSERT(block->data_length() > bundle->payload().length());
 
-    size_t rcvd      = bundle->payload_.length();
+    size_t rcvd      = bundle->payload().length();
     size_t remainder = block->data_length() - rcvd;
     size_t tocopy;
 
@@ -102,8 +102,8 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
         tocopy = len;
     }
 
-    bundle->payload_.set_length(rcvd + tocopy);
-    bundle->payload_.write_data(buf, rcvd, tocopy);
+    bundle->mutable_payload()->set_length(rcvd + tocopy);
+    bundle->mutable_payload()->write_data(buf, rcvd, tocopy);
 
     consumed += tocopy;
 
@@ -135,13 +135,16 @@ PayloadBlockProcessor::validate(const Bundle*           bundle,
         // able to reactively fragment it, but we must have at least
         // the full preamble to do so.
         if (block->data_offset() == 0
+            
             // There is not much value in a 0-byte payload fragment so
             // discard those as well.
-            || (block->data_length() != 0 && bundle->payload_.length() == 0)
+            || (block->data_length() != 0 &&
+                bundle->payload().length() == 0)
+            
             // If the bundle should not be fragmented and the payload
             // block is not complete, we must discard the bundle.
-            || bundle->do_not_fragment_) {
-
+            || bundle->do_not_fragment())
+        {
             log_err_p(log, "payload incomplete and cannot be fragmented");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
             return false;
@@ -168,7 +171,7 @@ PayloadBlockProcessor::generate(const Bundle*  bundle,
                       block,
                       BundleProtocol::PAYLOAD_BLOCK,
                       last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0,
-                      bundle->payload_.length());
+                      bundle->payload().length());
 
     return BP_SUCCESS;
 }
@@ -196,8 +199,8 @@ PayloadBlockProcessor::produce(const Bundle*    bundle,
     // Adjust offset to account for the preamble
     size_t payload_offset = offset - block->data_offset();
 
-    size_t tocopy = std::min(len, bundle->payload_.length() - payload_offset);
-    bundle->payload_.read_data(payload_offset, tocopy, buf);
+    size_t tocopy = std::min(len, bundle->payload().length() - payload_offset);
+    bundle->payload().read_data(payload_offset, tocopy, buf);
     
     return;
 }
@@ -240,7 +243,7 @@ PayloadBlockProcessor::process(process_func*    func,
 
     // Adjust offset to account for the preamble
     size_t payload_offset = offset - target_block->data_offset();
-    size_t  remaining = std::min(len, bundle->payload_.length() - payload_offset);
+    size_t  remaining = std::min(len, bundle->payload().length() - payload_offset);
     size_t  outlen; 
 
     buf = work;     // use local buffer
@@ -248,7 +251,7 @@ PayloadBlockProcessor::process(process_func*    func,
     while ( remaining > 0 ) {        
         outlen = 0; 
         len_to_do = std::min(remaining, sizeof(work));   
-        buf = bundle->payload_.read_data(payload_offset, len_to_do, work);
+        buf = bundle->payload().read_data(payload_offset, len_to_do, work);
         
         // call the processing function to do the work
         (*func)(bundle, caller_block, target_block, buf, len_to_do, context);
@@ -295,7 +298,7 @@ PayloadBlockProcessor::mutate(mutate_func*     func,
 
     // Adjust offset to account for the preamble
     size_t payload_offset = offset - target_block->data_offset();
-    size_t remaining = std::min(len, bundle->payload_.length() - payload_offset);
+    size_t remaining = std::min(len, bundle->payload().length() - payload_offset);
     size_t outlen; 
 
     buf = work;     // use local buffer
@@ -303,7 +306,7 @@ PayloadBlockProcessor::mutate(mutate_func*     func,
     while ( remaining > 0 ) {        
         outlen = 0; 
         len_to_do = std::min(remaining, sizeof(work));   
-        bundle->payload_.read_data(payload_offset, len_to_do, buf);
+        bundle->payload().read_data(payload_offset, len_to_do, buf);
         
         // call the processing function to do the work
         bool chunk_changed =
@@ -311,7 +314,8 @@ PayloadBlockProcessor::mutate(mutate_func*     func,
         
         // if we need to flush changed content back to disk, do it 
         if ( chunk_changed )            
-            bundle->payload_.write_data(buf, payload_offset, len_to_do);
+            bundle->mutable_payload()->
+                write_data(buf, payload_offset, len_to_do);
         
         changed |= chunk_changed;
                    
