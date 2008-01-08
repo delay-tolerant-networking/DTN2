@@ -219,7 +219,7 @@ BlockProcessor::generate_preamble(BlockInfoVec* xmit_blocks,
         sdnv_len = SDNV::encode(eid_count, ptr, len);
         ptr += sdnv_len;
         len -= sdnv_len;
-        BlockInfo::EID_list_const_iterator iter = block->eid_list().begin();
+        EndpointIDVector::const_iterator iter = block->eid_list().begin();
         for ( ; iter < block->eid_list().end(); ++iter ) {
             dict->add_eid(*iter);
             dict->get_offsets(*iter, &scheme_offset, &ssp_offset);

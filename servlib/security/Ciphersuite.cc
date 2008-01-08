@@ -128,7 +128,7 @@ Ciphersuite::parse(BlockInfo* block)
     bool            has_params;    
     bool            has_correlator;
     bool            has_result;   
-    BlockInfo::EID_list_const_iterator iter;
+    EndpointIDVector::const_iterator iter;
     
 // XXX/pl todo  think about a "const" version of parse() since there
 //              are several callers who need parsing but have a const block

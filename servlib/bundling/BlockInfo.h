@@ -52,13 +52,6 @@ public:
     /// Copy constructor to increment refcount for locals_
     BlockInfo(const BlockInfo& bi);
     
-    /// List of EIDs corresponding to EID-reference list
-    /// in the preamble. BlockProcessors should interact
-    /// with this list and not deal with the references.
-    typedef oasys::SerializableVector<EndpointID> EID_list;
-    typedef oasys::SerializableVector<EndpointID>::iterator EID_list_iterator;
-    typedef oasys::SerializableVector<EndpointID>::const_iterator EID_list_const_iterator;
-
     /**
      * Virtual destructor.
      */
@@ -78,7 +71,7 @@ public:
     /// @{ Accessors
     BlockProcessor*   owner()          const { return owner_; }
     const BlockInfo*  source()         const { return source_; }
-    const EID_list&   eid_list()       const { return eid_list_; }
+    const EndpointIDVector& eid_list() const { return eid_list_; }
     const DataBuffer& contents()       const { return contents_; }
     BP_Local*         locals()         const { return locals_.object(); }
     u_int32_t         data_length()    const { return data_length_; }
@@ -94,7 +87,7 @@ public:
 
     /// @{ Mutating accessors
     void        set_owner(BlockProcessor* o) { owner_ = o; }
-    void        set_eid_list(const EID_list& l)    { eid_list_ = l; }
+    void        set_eid_list(const EndpointIDVector& l) { eid_list_ = l; }
     void        set_complete(bool t)         { complete_ = t; }
     void        set_data_length(u_int32_t l) { data_length_ = l; }
     void        set_data_offset(u_int32_t o) { data_offset_ = o; }
@@ -118,7 +111,7 @@ protected:
     BlockProcessor*  owner_;       ///< Owner of this block
     u_int16_t        owner_type_;  ///< Extracted from owner
     const BlockInfo* source_;      ///< Owner of this block
-    EID_list         eid_list_;    ///< List of EIDs used in this block
+    EndpointIDVector eid_list_;    ///< List of EIDs used in this block
     DataBuffer       contents_;    ///< Block contents with length set to
                                    ///  the amount currently in the buffer
     BP_LocalRef      locals_;      ///< Local variable storage for block processor
