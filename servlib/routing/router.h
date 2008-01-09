@@ -8190,6 +8190,27 @@ namespace dtn
         typedef ::xml_schema::type base_;
       };
 
+      // gbof_id
+      // 
+      public:
+      struct gbof_id
+      {
+        typedef ::dtn::rtrmessage::gbofIdType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const gbof_id::type&
+      gbof_id () const;
+
+      gbof_id::type&
+      gbof_id ();
+
+      void
+      gbof_id (const gbof_id::type&);
+
+      void
+      gbof_id (::std::auto_ptr< gbof_id::type >);
+
       // request_id
       // 
       public:
@@ -8279,7 +8300,8 @@ namespace dtn
       public:
       intentional_name_resolution_request ();
 
-      intentional_name_resolution_request (const request_id::type&,
+      intentional_name_resolution_request (const gbof_id::type&,
+                                           const request_id::type&,
                                            const router_eid::type&,
                                            const intentional_name::type&,
                                            const grain_state::type&);
@@ -8302,6 +8324,7 @@ namespace dtn
       void
       parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
 
+      ::xsd::cxx::tree::one< gbof_id::type > _xsd_gbof_id_;
       ::xsd::cxx::tree::one< request_id::type > _xsd_request_id_;
       ::xsd::cxx::tree::one< router_eid::type > _xsd_router_eid_;
       ::xsd::cxx::tree::one< intentional_name::type > _xsd_intentional_name_;

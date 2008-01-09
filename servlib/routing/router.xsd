@@ -1471,6 +1471,7 @@ Pass-through request to intentional name resolver.
         </xs:annotation>
         <xs:complexType>
         <xs:sequence>
+            <xs:element name="gbof_id" type="gbofIdType" minOccurs="1" maxOccurs="1"/>
             <xs:element name="request_id" type="xs:string" minOccurs="1" maxOccurs="1"/>
             <xs:element name="router_eid" type="eidType" minOccurs="1" maxOccurs="1"/>
             <xs:element name="intentional_name" type="eidType" minOccurs="1" maxOccurs="1"/>

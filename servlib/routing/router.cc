@@ -6173,6 +6173,30 @@ namespace dtn
     // intentional_name_resolution_request
     // 
 
+    const intentional_name_resolution_request::gbof_id::type& intentional_name_resolution_request::
+    gbof_id () const
+    {
+      return this->_xsd_gbof_id_.get ();
+    }
+
+    intentional_name_resolution_request::gbof_id::type& intentional_name_resolution_request::
+    gbof_id ()
+    {
+      return this->_xsd_gbof_id_.get ();
+    }
+
+    void intentional_name_resolution_request::
+    gbof_id (const gbof_id::type& gbof_id)
+    {
+      this->_xsd_gbof_id_.set (gbof_id);
+    }
+
+    void intentional_name_resolution_request::
+    gbof_id (::std::auto_ptr< gbof_id::type > gbof_id)
+    {
+      this->_xsd_gbof_id_.set (gbof_id);
+    }
+
     const intentional_name_resolution_request::request_id::type& intentional_name_resolution_request::
     request_id () const
     {
@@ -18032,6 +18056,7 @@ namespace dtn
     intentional_name_resolution_request::
     intentional_name_resolution_request ()
     : ::xml_schema::type (),
+    _xsd_gbof_id_ (::xml_schema::flags (), this),
     _xsd_request_id_ (::xml_schema::flags (), this),
     _xsd_router_eid_ (::xml_schema::flags (), this),
     _xsd_intentional_name_ (::xml_schema::flags (), this),
@@ -18040,11 +18065,15 @@ namespace dtn
     }
 
     intentional_name_resolution_request::
-    intentional_name_resolution_request (const request_id::type& _xsd_request_id,
+    intentional_name_resolution_request (const gbof_id::type& _xsd_gbof_id,
+                                         const request_id::type& _xsd_request_id,
                                          const router_eid::type& _xsd_router_eid,
                                          const intentional_name::type& _xsd_intentional_name,
                                          const grain_state::type& _xsd_grain_state)
     : ::xml_schema::type (),
+    _xsd_gbof_id_ (_xsd_gbof_id,
+                   ::xml_schema::flags (),
+                   this),
     _xsd_request_id_ (_xsd_request_id,
                       ::xml_schema::flags (),
                       this),
@@ -18065,6 +18094,9 @@ namespace dtn
                                          ::xml_schema::flags f,
                                          ::xml_schema::type* c)
     : ::xml_schema::type (_xsd_intentional_name_resolution_request, f, c),
+    _xsd_gbof_id_ (_xsd_intentional_name_resolution_request._xsd_gbof_id_,
+                   f | ::xml_schema::flags::not_root,
+                   this),
     _xsd_request_id_ (_xsd_intentional_name_resolution_request._xsd_request_id_,
                       f | ::xml_schema::flags::not_root,
                       this),
@@ -18085,6 +18117,7 @@ namespace dtn
                                          ::xml_schema::flags f,
                                          ::xml_schema::type* c)
     : ::xml_schema::type (e, f, c),
+    _xsd_gbof_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_request_id_ (f | ::xml_schema::flags::not_root, this),
     _xsd_router_eid_ (f | ::xml_schema::flags::not_root, this),
     _xsd_intentional_name_ (f | ::xml_schema::flags::not_root, this),
@@ -18101,6 +18134,24 @@ namespace dtn
       while (p.more_elements ())
       {
         const ::xsd::cxx::xml::dom::element< char > e (p.next_element ());
+
+        // gbof_id
+        //
+        {
+          if (e.name () == "gbof_id" && e.namespace_ ().empty ())
+          {
+            ::std::auto_ptr< gbof_id::type > r (
+              gbof_id::traits::create (
+                e.dom_element (),
+                f | ::xml_schema::flags::not_root,
+                this));
+
+            if (_xsd_gbof_id_.present ())
+              continue;
+            this->gbof_id (r);
+            continue;
+          }
+        }
 
         // request_id
         //
@@ -18173,6 +18224,13 @@ namespace dtn
             continue;
           }
         }
+      }
+
+      if (!_xsd_gbof_id_.present ())
+      {
+        throw ::xsd::cxx::tree::expected_element< char > (
+          "gbof_id",
+          "");
       }
 
       if (!_xsd_request_id_.present ())
@@ -23465,6 +23523,13 @@ namespace dtn
     {
       while (::xercesc::DOMNode* n = e.getFirstChild ())
         e.removeChild (n);
+
+      {
+        ::xsd::cxx::xml::dom::element< char > s (
+          "gbof_id",
+          e);
+        s.dom_element () << i.gbof_id ();
+      }
 
       {
         ::xsd::cxx::xml::dom::element< char > s (
