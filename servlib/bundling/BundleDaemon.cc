@@ -1260,7 +1260,7 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
         return;
     }
 
-    post_at_head(new RegistrationDeleteRequest(registration));
+    post(new RegistrationDeleteRequest(registration));
 }
 
 //----------------------------------------------------------------------
