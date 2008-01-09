@@ -78,18 +78,17 @@ GbofId::~GbofId()
 bool
 GbofId::equals(const GbofId& id) const
 {
-    if(source_.equals(id.source_) &&
-       creation_ts_.seconds_ == id.creation_ts_.seconds_ &&
-       creation_ts_.seqno_ == id.creation_ts_.seqno_ &&
-       is_fragment_ == id.is_fragment_ &&
-            (!is_fragment_ || 
-            (frag_length_ == id.frag_length_ &&
-             frag_offset_ == id.frag_offset_)))
+    if (creation_ts_.seconds_ == id.creation_ts_.seconds_ &&
+        creation_ts_.seqno_ == id.creation_ts_.seqno_ &&
+        is_fragment_ == id.is_fragment_ &&
+        (!is_fragment_ || 
+         (frag_length_ == id.frag_length_ && frag_offset_ == id.frag_offset_)) &&
+        source_.equals(id.source_)) 
     {
         return true;
-    }
-    else
+    } else {
         return false;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -103,6 +102,8 @@ GbofId::operator<(const GbofId& other) const
     if (creation_ts_ > other.creation_ts_) return false;
 
     if (is_fragment_) {
+	if (!other.is_fragment_) return false; // XXX is order defined here?
+
         if (frag_length_ < other.frag_length_) return true;
         if (other.frag_length_ < frag_length_) return false;
 
@@ -121,58 +122,33 @@ GbofId::equals(EndpointID source,
                u_int32_t frag_length,
                u_int32_t frag_offset) const
 {
-    if(source_.equals(source) &&
-       creation_ts_.seconds_ == creation_ts.seconds_ &&
-       creation_ts_.seqno_ == creation_ts.seqno_ &&
-       is_fragment_ == is_fragment &&
-            (!is_fragment || 
-            (frag_length_ == frag_length &&
-             frag_offset_ == frag_offset)))
+    if (creation_ts_.seconds_ == creation_ts.seconds_ &&
+	creation_ts_.seqno_ == creation_ts.seqno_ &&
+	is_fragment_ == is_fragment &&
+	(!is_fragment || 
+	 (frag_length_ == frag_length && frag_offset_ == frag_offset)) &&
+        source_.equals(source))
     {
         return true;
-    }
-    else
+    } else {
         return false;
+    }
 }
 
 //----------------------------------------------------------------------
 std::string
 GbofId::str() const
 {
-        std::string toReturn;
-        
-        toReturn.append(source_.c_str());
-        
-        toReturn.append(",");
-        
-        std::ostringstream oss1;
-        oss1<< creation_ts_.seconds_;
-        toReturn.append(oss1.str());
-        
-        toReturn.append(",");
-        
-        std::ostringstream oss2;
-        oss2<< creation_ts_.seqno_;
-        toReturn.append(oss2.str());
-        
-        toReturn.append(",");
-        
-        std::ostringstream oss3;
-        oss3<< is_fragment_;
-        toReturn.append(oss3.str());
-        
-        toReturn.append(",");
-        
-        std::ostringstream oss4;
-        oss4<< frag_length_;
-        toReturn.append(oss4.str());
-        
-        toReturn.append(",");
-        
-        std::ostringstream oss5;
-        oss5<< frag_offset_;
-        toReturn.append(oss5.str());
-        return toReturn;
+        std::ostringstream oss;
+
+        oss << source_.str() << ","
+            << creation_ts_.seconds_ << "," 
+            << creation_ts_.seqno_ << ","
+            << is_fragment_ << ","
+            << frag_length_ << ","
+            << frag_offset_;
+
+        return oss.str();
 }
 
 } // namespace dtn
