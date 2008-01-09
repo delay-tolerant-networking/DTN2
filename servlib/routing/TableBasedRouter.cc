@@ -313,7 +313,6 @@ TableBasedRouter::handle_link_deleted(LinkDeletedEvent* event)
 {
     LinkRef link = event->link_;
     ASSERT(link != NULL);
-    ASSERT(link->isdeleted());
 
     route_table_->del_entries_for_nexthop(link);
 
