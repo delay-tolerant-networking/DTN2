@@ -369,9 +369,9 @@ BundleList::find(const EndpointID& source_eid,
     BundleRef ret("BundleList::find() temporary");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
-        if ((*iter)->source().equals(source_eid) &&
-            (*iter)->creation_ts().seconds_ == creation_ts.seconds_ &&
-            (*iter)->creation_ts().seqno_ == creation_ts.seqno_)
+        if ((*iter)->creation_ts().seconds_ == creation_ts.seconds_ &&
+            (*iter)->creation_ts().seqno_ == creation_ts.seqno_ &&
+            (*iter)->source().equals(source_eid))
         {
             ret = *iter;
             return ret;
@@ -389,11 +389,11 @@ BundleList::find(GbofId& gbof_id) const
     BundleRef ret("BundleList::find() temporary");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
-        if (gbof_id.equals( (*iter)->source(),
-                            (*iter)->creation_ts(),
-                            (*iter)->is_fragment(),
-                            (*iter)->payload().length(),
-                            (*iter)->frag_offset() ))
+        if (gbof_id.equals((*iter)->source(),
+                           (*iter)->creation_ts(),
+                           (*iter)->is_fragment(),
+                           (*iter)->payload().length(),
+                           (*iter)->frag_offset()))
             {
             ret = *iter;
             return ret;
@@ -411,12 +411,12 @@ BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id) cons
     BundleRef ret("BundleList::find() temporary");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
-        if (gbof_id.equals( (*iter)->source(),
-                            (*iter)->creation_ts(),
-                            (*iter)->is_fragment(),
-                            (*iter)->payload().length(),
-                            (*iter)->frag_offset() )
-            && extended_id == (*iter)->extended_id())
+        if (extended_id == (*iter)->extended_id() &&
+            gbof_id.equals((*iter)->source(),
+                           (*iter)->creation_ts(),
+                           (*iter)->is_fragment(),
+                           (*iter)->payload().length(),
+                           (*iter)->frag_offset()))
         {
             ret = *iter;
             return ret;
