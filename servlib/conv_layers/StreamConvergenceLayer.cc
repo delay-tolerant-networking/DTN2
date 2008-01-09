@@ -757,6 +757,11 @@ StreamConvergenceLayer::Connection::send_keepalive()
     }
     ASSERT(sendbuf_.tailbytes() > 0);
 
+    // similarly, we must not send a keepalive if send_segment_todo_ is
+    // nonzero, because that would likely insert the keepalive in the middle
+    // of a bundle currently being sent -- verified in check_keepalive
+    ASSERT(send_segment_todo_ == 0);
+
     ::gettimeofday(&keepalive_sent_, 0);
 
     *(sendbuf_.end()) = KEEPALIVE;
@@ -780,10 +785,27 @@ StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
         if (inflight->bundle_ == bundle)
         {
             if (inflight->sent_data_.empty()) {
+                // this bundle might be current_inflight_ but with no
+                // data sent yet; check for this case so we do not have
+                // a dangling pointer
+                if (inflight == current_inflight_) {
+                    // we may have sent a segment length without any bundle
+                    // data; if so we must send the segment so we can't
+                    // cancel the send now
+                    if (send_segment_todo_ != 0) {
+                        log_debug("handle_cancel_bundle: bundle %d "
+                                  "already in flight, can't cancel send",
+                                  bundle->bundleid());
+                        return;
+                    }
+                    current_inflight_ = NULL;
+                }
+                
                 log_debug("handle_cancel_bundle: "
                           "bundle %d not yet in flight, cancelling send",
                           bundle->bundleid());
                 inflight_.erase(iter);
+                delete inflight;
                 BundleDaemon::post(
                     new BundleSendCancelledEvent(bundle, contact_->link()));
                 return;
