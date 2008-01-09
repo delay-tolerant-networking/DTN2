@@ -38,6 +38,7 @@ BINFILES :=					\
 	unit_tests/bundle-protocol-test		\
 	unit_tests/bundle-timestamp-test	\
 	unit_tests/endpoint-id-test		\
+	unit_tests/gbofid-test			\
 	unit_tests/prophet-bundle-core-test 	\
 	unit_tests/prophet-bundle-offer-test 	\
 	unit_tests/prophet-controller-test 	\
