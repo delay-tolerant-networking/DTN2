@@ -79,8 +79,8 @@ bool
 GbofId::equals(const GbofId& id) const
 {
     if (creation_ts_.seconds_ == id.creation_ts_.seconds_ &&
-        creation_ts_.seqno_ == id.creation_ts_.seqno_ &&
-        is_fragment_ == id.is_fragment_ &&
+        creation_ts_.seqno_   == id.creation_ts_.seqno_ &&
+        is_fragment_          == id.is_fragment_ &&
         (!is_fragment_ || 
          (frag_length_ == id.frag_length_ && frag_offset_ == id.frag_offset_)) &&
         source_.equals(id.source_)) 
@@ -101,9 +101,10 @@ GbofId::operator<(const GbofId& other) const
     if (creation_ts_ < other.creation_ts_) return true;
     if (creation_ts_ > other.creation_ts_) return false;
 
+    if (is_fragment_  && !other.is_fragment_) return true;
+    if (!is_fragment_ && other.is_fragment_) return false;
+    
     if (is_fragment_) {
-	if (!other.is_fragment_) return false; // XXX is order defined here?
-
         if (frag_length_ < other.frag_length_) return true;
         if (other.frag_length_ < frag_length_) return false;
 
