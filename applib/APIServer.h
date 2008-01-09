@@ -17,9 +17,12 @@
 #ifndef _APISERVER_H_
 #define _APISERVER_H_
 
+#include <list>
+
 #include <oasys/compat/rpc.h>
 #include <oasys/debug/Log.h>
 #include <oasys/thread/Thread.h>
+#include <oasys/thread/SpinLock.h>
 #include <oasys/io/TCPClient.h>
 #include <oasys/io/TCPServer.h>
 
@@ -29,6 +32,7 @@
 
 namespace dtn {
 
+class APIClient;
 class APIRegistration;
 class APIRegistrationList;
 
@@ -45,6 +49,9 @@ public:
      */
     APIServer();
 
+    // shutdown hook, clean up clients
+    virtual void shutdown_hook();
+
     // Virtual from TCPServerThread
     void accepted(int fd, in_addr_t addr, u_int16_t port);
 
@@ -57,10 +64,16 @@ public:
     u_int16_t  local_port() const { return local_port_; }
     u_int16_t* local_port_ptr() { return &local_port_; }
 
+    void register_client(APIClient *);
+    void unregister_client(APIClient *);
+
 protected:
     bool      enabled_;       ///< whether or not to enable it
     in_addr_t local_addr_;    ///< local address to bind to
     u_int16_t local_port_;    ///< local port to use for api
+
+    std::list<APIClient *> client_list; ///<  active clients
+    oasys::SpinLock client_list_lock;   ///< synchronizer
 };
 
 /**
@@ -68,7 +81,8 @@ protected:
  */
 class APIClient : public oasys::Thread, public oasys::TCPClient {
 public:
-    APIClient(int fd, in_addr_t remote_host, u_int16_t remote_port);
+    APIClient(int fd, in_addr_t remote_host, u_int16_t remote_port,
+              APIServer *parent);
     virtual ~APIClient();
     virtual void run();
 
@@ -108,6 +122,7 @@ protected:
     XDR xdr_decode_;
     APIRegistrationList* bindings_;
     oasys::Notifier notifier_;
+    APIServer* parent_;
 };
 
 } // namespace dtn

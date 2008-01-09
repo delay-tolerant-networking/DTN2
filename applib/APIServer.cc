@@ -51,7 +51,8 @@ namespace dtn {
 
 //----------------------------------------------------------------------
 APIServer::APIServer()
-    : TCPServerThread("APIServer", "/dtn/apiserver")
+      // DELETE_ON_EXIT flag is not set; see below.
+    : TCPServerThread("APIServer", "/dtn/apiserver", 0)	
 {
     enabled_    = true;
     local_addr_ = htonl(INADDR_LOOPBACK);
@@ -103,15 +104,86 @@ APIServer::APIServer()
 void
 APIServer::accepted(int fd, in_addr_t addr, u_int16_t port)
 {
-    APIClient* c = new APIClient(fd, addr, port);
+    APIClient* c = new APIClient(fd, addr, port, this);
+    register_client(c);
     c->start();
 }
 
 //----------------------------------------------------------------------
-APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
+
+// We keep a list of clients (register_client, unregister_client). As
+// each client shuts down it removes itself from the list. The server
+// sets should_stop to each of the clients, then spins waiting for the
+// list of clients to be emptied out. If we spin for a long time
+// (MAX_SPIN_TIME) without the list getting empty we give up.
+
+// note that the thread was created without DELETE_ON_EXIT so that the
+// thread object sticks around after the thread has died. This has the
+// upside of helping out APIClient objects that wake up after the
+// APIServer has given up on them (saving us from a core dump) but has
+// the downside of losing memory (one APIServer thread object). But
+// since the APIServer is shut down when we're about to exit, it's not
+// an issue. And only one APIServer is ever created.
+
+void
+APIServer::shutdown_hook()
+{
+    // tell the clients to shut down
+    std::list<APIClient *>::iterator ci;
+    client_list_lock.lock("APIServer::shutdown");
+    for (ci = client_list.begin(); ci != client_list.end();  ++ci) {
+        (*ci)->set_should_stop();
+    }
+    client_list_lock.unlock();
+
+#define MAX_SPIN_TIME (5 * 1000000) // max sleep in usec
+#define EACH_SPIN_TIME 10000	// sleep 10ms each time
+
+    // As clients exit they unregister themselves, so if a client is
+    // still on the list we assume that it is still alive.  So here we
+    // loop until the list is empty or MAX_SLEEP_TIME usecs have
+    // passed. (We have a time out in case a client thread is wedged
+    // or blocked waiting for a client. What we really want to catch
+    // here is clients in the middle of processing a request.)
+    int count = 0;
+    while (count++ < (MAX_SPIN_TIME / EACH_SPIN_TIME)) {
+        client_list_lock.lock("APIServer::shutdown");
+        bool empty = client_list.empty();
+        client_list_lock.unlock();
+        if (!empty)
+          usleep(EACH_SPIN_TIME);
+        else
+          break;
+    }
+    return;
+}
+
+
+//----------------------------------------------------------------------
+
+// manages a list of APIClient objects (threads) that have not exited yet.
+
+void
+APIServer::register_client(APIClient *c)
+{
+    oasys::ScopeLock l(&client_list_lock, "APIServer::register_client");
+    client_list.push_front(c);
+}
+
+void
+APIServer::unregister_client(APIClient *c)
+{
+    // remove c from the list of active clients
+    oasys::ScopeLock l(&client_list_lock, "APIServer::unregister_client");
+    client_list.remove(c);
+}
+
+//----------------------------------------------------------------------
+APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port, APIServer *parent)
     : Thread("APIClient", DELETE_ON_EXIT),
       TCPClient(fd, addr, port, "/dtn/apiclient"),
-      notifier_(logpath_)
+      notifier_(logpath_),
+      parent_(parent)
 {
     // note that we skip space for the message length and code/status
     xdrmem_create(&xdr_encode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_ENCODE);
@@ -145,6 +217,8 @@ APIClient::close_session()
             BundleDaemon::post(new RegistrationExpiredEvent(reg));
         }
     }
+
+    parent_->unregister_client(this);
 }
 
 //----------------------------------------------------------------------
@@ -208,6 +282,13 @@ APIClient::run()
     }
     
     while (true) {
+        // check if someone has told us to quit by setting the
+        // should_stop flag. if so, we're all done
+        if (should_stop()) {
+            close_session();
+            return;
+        }
+
         xdr_setpos(&xdr_encode_, 0);
         xdr_setpos(&xdr_decode_, 0);
 
@@ -251,6 +332,13 @@ APIClient::run()
                 close_session();
                 return;
             }
+        }
+
+        // check if someone has told us to quit by setting the
+        // should_stop flag. if so, we're all done
+        if (should_stop()) {
+          close_session();
+          return;
         }
 
         // dispatch to the handler routine

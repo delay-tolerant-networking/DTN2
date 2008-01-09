@@ -229,12 +229,15 @@ DTND::main(int argc, char* argv[])
     run_console();
 
     log_notice_p("/dtnd", "command loop exited... shutting down daemon");
+
+    apiserver->stop();
+    
     oasys::TclCommandInterp::shutdown();
     dtnserver->shutdown();
     
     // close out servers
     delete dtnserver;
-    delete apiserver;
+    // don't delete apiserver; keep it around so slow APIClients can finish
     
     // give other threads (like logging) a moment to catch up before exit
     oasys::Thread::yield();
