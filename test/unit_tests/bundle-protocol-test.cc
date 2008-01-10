@@ -204,28 +204,27 @@ protocol_test(Bundle* b1, int chunks)
 
             const BlockInfo* block1 = &*iter;
             const BlockInfo* block2 = b2->recv_blocks().find_block(iter->type());
-            CHECK_EQUAL(block1->type(), block2->type());
-            CHECK_EQUAL(block1->data_offset(), block2->data_offset());
-            CHECK_EQUAL(block1->data_length(), block2->data_length());
 
-            u_int8_t flags1 = block1->flags();
-            u_int8_t flags2 = block2->flags();
+            CHECK_EQUAL(block1->type(), block2->type());
+
+            u_int64_t flags1 = block1->flags();
+            u_int64_t flags2 = block2->flags();
             CHECK((flags2 & BundleProtocol::BLOCK_FLAG_FORWARDED_UNPROCESSED) != 0);
             flags2 &= ~BundleProtocol::BLOCK_FLAG_FORWARDED_UNPROCESSED;
-            CHECK_EQUAL(flags1, flags2);
+            CHECK_EQUAL_U64(flags1, flags2);
             
-            const u_char* contents1 = block1->contents().buf();
-            const u_char* contents2 = block2->contents().buf();
+            CHECK_EQUAL(block1->eid_list().size(), block2->eid_list().size());
+            for (size_t i = 0; i < block1->eid_list().size(); ++i) {
+                CHECK_EQUALSTR(block1->eid_list()[i].str(),
+                               block2->eid_list()[i].str());
+            }
+            
+            CHECK_EQUAL(block1->data_length(), block2->data_length());
+            const u_char* contents1 = block1->contents().buf() + block1->data_offset();
+            const u_char* contents2 = block2->contents().buf() + block2->data_offset();
             bool contents_ok = true;
             
-            if (block1->type() != block2->type()) {
-                log_err_p("/test", "extension block type mismatch: %d != %d",
-                          block1->type(), block2->type());
-                contents_ok = false;
-            }
-
-            // skip the type / flags bytes
-            for (u_int i = 2; i < block1->full_length(); ++i) {
+            for (u_int i = 0; i < block1->data_length(); ++i) {
                 if (contents1[i] != contents2[i]) {
                     log_err_p("/test", "extension block mismatch at byte %d: "
                               "0x%x != 0x%x",
@@ -375,31 +374,32 @@ Bundle* init_UnknownBlocks()
     ASSERT(unknown2_bp == UnknownBlockProcessor::instance());
     ASSERT(unknown3_bp == UnknownBlockProcessor::instance());
 
+    BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
     BlockInfo *primary, *payload, *unknown1, *unknown2, *unknown3;
     
     // initialize all blocks other than the primary
-    primary  = bundle->mutable_recv_blocks()->append_block(primary_bp);
+    primary  = recv_blocks->append_block(primary_bp);
     
-    unknown1 = bundle->mutable_recv_blocks()->append_block(unknown1_bp);
+    unknown1 = recv_blocks->append_block(unknown1_bp);
     const char* contents = "this is an extension block";
     UnknownBlockProcessor::instance()->
-        init_block(unknown1, 0xaa, 0x0,
+        init_block(unknown1, recv_blocks, 0xaa, 0x0,
                    (const u_char*)contents, strlen(contents));
     
-    unknown2 = bundle->mutable_recv_blocks()->append_block(unknown2_bp);
+    unknown2 = recv_blocks->append_block(unknown2_bp);
     UnknownBlockProcessor::instance()->
-        init_block(unknown2, 0xbb,
+        init_block(unknown2, recv_blocks, 0xbb,
                    BundleProtocol::BLOCK_FLAG_REPLICATE, 0, 0);
     
-    payload  = bundle->mutable_recv_blocks()->append_block(payload_bp);
+    payload  = recv_blocks->append_block(payload_bp);
     UnknownBlockProcessor::instance()->
-        init_block(payload,
+        init_block(payload, recv_blocks,
                    BundleProtocol::PAYLOAD_BLOCK,
                    0, (const u_char*)"test payload", strlen("test payload"));
 
-    unknown3 = bundle->mutable_recv_blocks()->append_block(unknown3_bp);
+    unknown3 = recv_blocks->append_block(unknown3_bp);
     UnknownBlockProcessor::instance()->
-        init_block(unknown3, 0xcc,
+        init_block(unknown3, recv_blocks, 0xcc,
                    BundleProtocol::BLOCK_FLAG_REPLICATE |
                    BundleProtocol::BLOCK_FLAG_LAST_BLOCK,
                    (const u_char*)contents, strlen(contents));
@@ -409,6 +409,62 @@ Bundle* init_UnknownBlocks()
 
 DECLARE_BP_TESTS(UnknownBlocks);
 
+Bundle* init_BigDictionary()
+{
+    Bundle* bundle = new_bundle();
+    bundle->mutable_payload()->set_data("test payload");
+    
+    bundle->mutable_source()->assign("dtn://source.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
+
+    // fake some blocks arriving off the wire
+    BlockProcessor* primary_bp =
+        BundleProtocol::find_processor(BundleProtocol::PRIMARY_BLOCK);
+    BlockProcessor* payload_bp =
+        BundleProtocol::find_processor(BundleProtocol::PAYLOAD_BLOCK);
+    BlockProcessor* unknown_bp = BundleProtocol::find_processor(0xaa);
+
+    ASSERT(unknown_bp == UnknownBlockProcessor::instance());
+
+    BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
+    BlockInfo *primary, *payload, *unknown;
+
+    primary = recv_blocks->append_block(primary_bp);
+    unknown = recv_blocks->append_block(unknown_bp);
+    
+    unknown->add_eid(EndpointID("dtn:none"));
+    unknown->add_eid(EndpointID("dtn://something"));
+    unknown->add_eid(EndpointID("dtn://host.com/bar"));
+    unknown->add_eid(EndpointID("dtn2://other.host.com/bar"));
+    unknown->add_eid(EndpointID("dtn3://www.dtnrg.org/code"));
+    unknown->add_eid(EndpointID("http://www.google.com/"));
+    unknown->add_eid(EndpointID("https://www.yahoo.com/"));
+    unknown->add_eid(EndpointID("smtp://mail.you.com/"));
+    unknown->add_eid(EndpointID("news://news.google.com/"));
+    unknown->add_eid(EndpointID("abcdef:ghijkl"));
+    unknown->add_eid(EndpointID("ghijkl:abcdef"));
+    unknown->add_eid(EndpointID("ghijklxxx:abcdefyyy"));
+    
+    const char* contents = "this is an extension block";
+    UnknownBlockProcessor::instance()->
+        init_block(unknown, recv_blocks, 0xaa,
+                   BundleProtocol::BLOCK_FLAG_EID_REFS,
+                   (const u_char*)contents, strlen(contents));
+
+    payload  = recv_blocks->append_block(payload_bp);
+    UnknownBlockProcessor::instance()->
+        init_block(payload, recv_blocks,
+                   BundleProtocol::PAYLOAD_BLOCK,
+                   BundleProtocol::BLOCK_FLAG_LAST_BLOCK,
+                   (const u_char*)"test payload", strlen("test payload"));
+
+    return bundle;
+}
+
+DECLARE_BP_TESTS(BigDictionary);
+
 DECLARE_TESTER(BundleProtocolTest) {
     ADD_TEST(Init);
     ADD_BP_TESTS(Basic);
@@ -416,6 +472,7 @@ DECLARE_TESTER(BundleProtocolTest) {
     ADD_BP_TESTS(AllFlags);
     ADD_BP_TESTS(RandomPayload);
     ADD_BP_TESTS(UnknownBlocks);
+    ADD_BP_TESTS(BigDictionary);
 
     // XXX/demmer add tests for malformed / mangled headers, too long
     // sdnv's, etc

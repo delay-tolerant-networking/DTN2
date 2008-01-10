@@ -229,6 +229,7 @@ public:
      * for testing generic extension blocks.
      */
     void init_block(BlockInfo*    block,
+                    BlockInfoVec* block_list,
                     u_int8_t      type,
                     u_int8_t      flags,
                     const u_char* bp,

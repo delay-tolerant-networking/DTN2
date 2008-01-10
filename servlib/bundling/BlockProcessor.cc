@@ -107,12 +107,18 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
 
     // Now we try decoding the EID-references field, if it is present.
     // As with the flags, if we don't finish then we have a partial
-    // preamble and will try again when we get more. 
+    // preamble and will try again when we get more, so we first
+    // construct a temporary eid list and then only assign it to the
+    // block if we've parsed the whole preamble.
+    //
     // We assert that the whole incoming buffer was consumed.
     u_int64_t eid_ref_count = 0LLU;
     u_int64_t scheme_offset;
     u_int64_t ssp_offset;
     
+    ASSERT(block->eid_list().empty());
+    EndpointIDVector eid_list;
+        
     if ( flags & BundleProtocol::BLOCK_FLAG_EID_REFS ) {
         sdnv_len = SDNV::decode(contents->buf() + buf_offset,
                                 contents->len() - buf_offset,
@@ -123,7 +129,6 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
         }
             
         buf_offset += sdnv_len;
-        ASSERT(block->eid_list().empty());
             
         for ( u_int32_t i = 0; i < eid_ref_count; ++i ) {
             // Now we try decoding the sdnv pair with the offsets
@@ -147,7 +152,7 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
                 
             EndpointID eid;
             dict->extract_eid(&eid, scheme_offset, ssp_offset);
-            block->add_eid(eid);
+            eid_list.push_back(eid);
         }
     }
     
@@ -179,6 +184,8 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
     block->set_data_length(static_cast<u_int32_t>(block_len));
     block->set_data_offset(buf_offset);
     contents->set_len(buf_offset);
+
+    block->set_eid_list(eid_list);
 
     log_debug_p(log, "BlockProcessor type 0x%x "
                 "consumed preamble %zu/%u for block: "
@@ -501,13 +508,14 @@ BlockProcessor::produce(const Bundle*    bundle,
 //----------------------------------------------------------------------
 void
 BlockProcessor::init_block(BlockInfo*    block,
+                           BlockInfoVec* block_list,
                            u_int8_t      type,
                            u_int8_t      flags,
                            const u_char* bp,
                            size_t        len)
 {
     ASSERT(block->owner() != NULL);
-    generate_preamble(NULL, block, type, flags, len);
+    generate_preamble(block_list, block, type, flags, len);
     ASSERT(block->data_offset() != 0);
     block->writable_contents()->reserve(block->full_length());
     block->writable_contents()->set_len(block->full_length());

@@ -864,7 +864,8 @@ APIClient::handle_send()
         BlockInfo* info =
             b->api_blocks()->append_block(APIBlockProcessor::instance());
         APIBlockProcessor::instance()->
-            init_block(info, block->type, block->flags,
+            init_block(info, b->api_blocks(),
+                       block->type, block->flags,
                        (u_char*)block->data.data_val,
                        block->data.data_len);
     }

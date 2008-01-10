@@ -104,13 +104,12 @@ UnknownBlockProcessor::generate(const Bundle*  bundle,
 
     generate_preamble(xmit_blocks, block, source->type(), flags,
                       source->data_length());
-    ASSERT(block->data_offset() == source->data_offset());
     ASSERT(block->data_length() == source->data_length());
     
     BlockInfo::DataBuffer* contents = block->writable_contents();
     contents->reserve(block->full_length());
     memcpy(contents->buf()          + block->data_offset(),
-           source->contents().buf() + block->data_offset(),
+           source->contents().buf() + source->data_offset(),
            block->data_length());
     contents->set_len(block->full_length());
 
