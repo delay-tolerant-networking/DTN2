@@ -200,14 +200,6 @@ public:
      */
     static u_int64_t create_correlator(const Bundle*        bundle, 
                                        const BlockInfoVec*  block_list);
-                                 
-    /**
-     * General hook to set up a block with the given contents. Used
-     * for testing generic extension blocks.
-     */
-    void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                    const u_char* bp, size_t len);
-    
 
     /**
      * Convenience methods to test if the security source/destination
