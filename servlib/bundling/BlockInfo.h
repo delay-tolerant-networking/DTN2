@@ -93,7 +93,7 @@ public:
     void        set_data_offset(u_int32_t o) { data_offset_ = o; }
     DataBuffer* writable_contents()          { return &contents_; }
     void        set_locals(BP_Local* l);
-    void        add_eid(EndpointID e)        { return eid_list_.push_back(e); }
+    void        add_eid(EndpointID e)        { eid_list_.push_back(e); }
     void        set_reloaded(bool t) const   { reloaded_ = t; }
     /// @}
 
