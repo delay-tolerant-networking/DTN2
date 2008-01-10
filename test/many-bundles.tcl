@@ -21,6 +21,7 @@ manifest::file apps/dtnrecv/dtnrecv dtnrecv
 set clayer       tcp
 set count        5000
 set length       10
+set wait_time    15
 set storage_type berkeleydb
 
 foreach {var val} $opt(opts) {
@@ -30,6 +31,8 @@ foreach {var val} $opt(opts) {
         set count $val	
     } elseif {$var == "-length" || $var == "length"} {
         set length $val	
+    } elseif {$var == "-wait_time" || $var == "wait_time"} {
+        set wait_time $val
     } elseif {$var == "-storage_type" } {
 	set storage_type $val
     } else {
@@ -78,8 +81,8 @@ test::script {
     testlog "Opening link to dtnd 1"
     dtn::tell_dtnd 0 link open $clayer-link:0-1
 
-    testlog "Waiting for all bundles to flow (up to 5 minutes)"
-    set timeout [expr 5 * 60 * 1000]
+    testlog "Waiting for all bundles to flow (up to $wait_time minutes)"
+    set timeout [expr $wait_time * 60 * 1000]
     
     dtn::wait_for_bundle_stats 0 "0 pending"       $timeout
     dtn::wait_for_bundle_stats 1 "$count pending"  $timeout
