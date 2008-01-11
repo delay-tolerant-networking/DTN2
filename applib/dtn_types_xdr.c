@@ -136,14 +136,21 @@ xdr_dtn_service_tag_t (XDR *xdrs, dtn_service_tag_t *objp)
  */
 
 /**
- * Registration delivery failure actions
+ * Registration flags are a bitmask of the following:
+
+ * Delivery failure actions (exactly one must be selected):
  *     DTN_REG_DROP   - drop bundle if registration not active
  *     DTN_REG_DEFER  - spool bundle for later retrieval
  *     DTN_REG_EXEC   - exec program on bundle arrival
+ *
+ * Session flags:
+ *     DTN_SESSION_CUSTODY   - app assumes custody for the session
+ *     DTN_SESSION_PUBLISH   - creates a publication point
+ *     DTN_SESSION_SUBSCRIBE - create subscription for the session
  */
 
 bool_t
-xdr_dtn_reg_failure_action_t (XDR *xdrs, dtn_reg_failure_action_t *objp)
+xdr_dtn_reg_flags_t (XDR *xdrs, dtn_reg_flags_t *objp)
 {
 	register int32_t *buf;
 
@@ -165,7 +172,7 @@ xdr_dtn_reg_info_t (XDR *xdrs, dtn_reg_info_t *objp)
 		 return FALSE;
 	 if (!xdr_dtn_reg_id_t (xdrs, &objp->regid))
 		 return FALSE;
-	 if (!xdr_dtn_reg_failure_action_t (xdrs, &objp->failure_action))
+	 if (!xdr_u_int (xdrs, &objp->flags))
 		 return FALSE;
 	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
 		 return FALSE;

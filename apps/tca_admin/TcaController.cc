@@ -136,7 +136,7 @@ TcaController::dtn_reg(dtn_endpoint_id_t& eid, dtn_reg_id_t& id)
 
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &eid);
-    reginfo.failure_action = DTN_REG_DEFER;
+    reginfo.flags = DTN_REG_DEFER;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.expiration = REG_EXPIRATION_TIME;
     if ((ret = dtn_register(handle_, &reginfo, &id)) != 0) {

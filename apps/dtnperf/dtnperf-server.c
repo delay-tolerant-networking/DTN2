@@ -161,7 +161,7 @@ int main(int argc, char** argv)
     if (debug) printf("[debug] registering to local daemon...");
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &local_eid);
-    reginfo.failure_action = DTN_REG_DEFER;
+    reginfo.flags = DTN_REG_DEFER;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.expiration = 0;
     if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {

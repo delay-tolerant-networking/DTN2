@@ -105,15 +105,25 @@ const DTN_REGID_NONE = 0;
 
 %
 %/**
-% * Registration delivery failure actions
+% * Registration flags are a bitmask of the following:
+%
+% * Delivery failure actions (exactly one must be selected):
 % *     DTN_REG_DROP   - drop bundle if registration not active
 % *     DTN_REG_DEFER  - spool bundle for later retrieval
 % *     DTN_REG_EXEC   - exec program on bundle arrival
+% *
+% * Session flags:
+% *     DTN_SESSION_CUSTODY   - app assumes custody for the session
+% *     DTN_SESSION_PUBLISH   - creates a publication point
+% *     DTN_SESSION_SUBSCRIBE - create subscription for the session
 % */
-enum dtn_reg_failure_action_t {
-    DTN_REG_DROP   = 1,
-    DTN_REG_DEFER  = 2,
-    DTN_REG_EXEC   = 3
+enum dtn_reg_flags_t {
+    DTN_REG_DROP      = 1,
+    DTN_REG_DEFER     = 2,
+    DTN_REG_EXEC      = 3,
+    DTN_REG_CUSTODY   = 4,
+    DTN_REG_PUBLISH   = 8,
+    DTN_REG_SUBSCRIBE = 16
 };
 
 %
@@ -121,12 +131,12 @@ enum dtn_reg_failure_action_t {
 % * Registration state.
 % */
 struct dtn_reg_info_t {
-    dtn_endpoint_id_t 		endpoint;
-    dtn_reg_id_t		regid;
-    dtn_reg_failure_action_t 	failure_action;
-    dtn_timeval_t		expiration;
-    bool			init_passive;
-    opaque			script<DTN_MAX_EXEC_LEN>;
+    dtn_endpoint_id_t 	endpoint;
+    dtn_reg_id_t	regid;
+    unsigned int	flags;
+    dtn_timeval_t	expiration;
+    bool		init_passive;
+    opaque		script<DTN_MAX_EXEC_LEN>;
 };
 
 %

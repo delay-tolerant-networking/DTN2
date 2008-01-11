@@ -84,7 +84,7 @@ dtn_build_local_eid(int handle, const char* service_tag)
 static int
 build_reginfo(dtn_reg_info_t* reginfo,
               const string&   endpoint,
-              unsigned int    action,
+              unsigned int    flags,
               unsigned int    expiration,
               bool            init_passive,
               const string&   script)
@@ -92,7 +92,7 @@ build_reginfo(dtn_reg_info_t* reginfo,
     memset(reginfo, 0, sizeof(dtn_reg_info_t));
     
     strcpy(reginfo->endpoint.uri, endpoint.c_str());
-    reginfo->failure_action    = (dtn_reg_failure_action_t)action;
+    reginfo->flags             = flags;
     reginfo->expiration        = expiration;
     reginfo->init_passive      = init_passive;
     reginfo->script.script_len = script.length();
@@ -105,7 +105,7 @@ build_reginfo(dtn_reg_info_t* reginfo,
 int
 dtn_register(int           handle,
              const string& endpoint,
-             unsigned int  action,
+             unsigned int  flags,
              int           expiration,
              bool          init_passive,
              const string& script)
@@ -114,7 +114,7 @@ dtn_register(int           handle,
     if (!h) return -1;
 
     dtn_reg_info_t reginfo;
-    build_reginfo(&reginfo, endpoint, action, expiration,
+    build_reginfo(&reginfo, endpoint, flags, expiration,
                   init_passive, script);
         
     dtn_reg_id_t regid = 0;
@@ -279,6 +279,32 @@ dtn_cancel(int handle, const dtn_bundle_id& id)
 }
 
 //----------------------------------------------------------------------
+struct dtn_status_report {
+    dtn_bundle_id bundle_id;
+    unsigned int  reason;
+    unsigned int  flags;
+    unsigned int  receipt_ts_secs;
+    unsigned int  receipt_ts_seqno;
+    unsigned int  custody_ts_secs;
+    unsigned int  custody_ts_seqno;
+    unsigned int  forwarding_ts_secs;
+    unsigned int  forwarding_ts_seqno;
+    unsigned int  delivery_ts_secs;
+    unsigned int  delivery_ts_seqno;
+    unsigned int  deletion_ts_secs;
+    unsigned int  deletion_ts_seqno;
+    unsigned int  ack_by_app_ts_secs;
+    unsigned int  ack_by_app_ts_seqno;
+};
+
+//----------------------------------------------------------------------
+string
+dtn_status_report_reason_to_str(unsigned int reason)
+{
+    return dtn_status_report_reason_to_str((dtn_status_report_reason_t)reason);
+}
+
+//----------------------------------------------------------------------
 struct dtn_bundle {
     string       source;
     string       dest;
@@ -289,6 +315,7 @@ struct dtn_bundle {
     unsigned int creation_secs;
     unsigned int creation_seqno;
     string       payload;
+    dtn_status_report* status_report;
 };
 
 //----------------------------------------------------------------------
@@ -312,7 +339,7 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
         return NULL;
     }
     
-    dtn_bundle* bundle = new dtn_bundle();
+    dtn_bundle* bundle     = new dtn_bundle();
     bundle->source         = spec.source.uri;
     bundle->dest           = spec.dest.uri;
     bundle->replyto        = spec.replyto.uri;
@@ -337,6 +364,89 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
         return NULL;
     }
 
+    if (payload.status_report) {
+        dtn_status_report* sr_dst = new dtn_status_report();
+        dtn_bundle_status_report_t* sr_src = payload.status_report;
+
+        sr_dst->bundle_id.source         = sr_src->bundle_id.source.uri;
+        sr_dst->bundle_id.creation_secs  = sr_src->bundle_id.creation_ts.secs;
+        sr_dst->bundle_id.creation_seqno = sr_src->bundle_id.creation_ts.seqno;
+        sr_dst->reason                   = sr_src->reason;
+        sr_dst->flags                    = sr_src->flags;
+        sr_dst->receipt_ts_secs          = sr_src->receipt_ts.secs;
+        sr_dst->receipt_ts_seqno         = sr_src->receipt_ts.seqno;
+        sr_dst->custody_ts_secs          = sr_src->custody_ts.secs;
+        sr_dst->custody_ts_seqno         = sr_src->custody_ts.seqno;
+        sr_dst->forwarding_ts_secs       = sr_src->forwarding_ts.secs;
+        sr_dst->forwarding_ts_seqno      = sr_src->forwarding_ts.seqno;
+        sr_dst->delivery_ts_secs         = sr_src->delivery_ts.secs;
+        sr_dst->delivery_ts_seqno        = sr_src->delivery_ts.seqno;
+        sr_dst->deletion_ts_secs         = sr_src->deletion_ts.secs;
+        sr_dst->deletion_ts_seqno        = sr_src->deletion_ts.seqno;
+        sr_dst->ack_by_app_ts_secs       = sr_src->ack_by_app_ts.secs;
+        sr_dst->ack_by_app_ts_seqno      = sr_src->ack_by_app_ts.seqno;
+
+        bundle->status_report = sr_dst;
+    }
+
     return bundle;
 }
 
+//----------------------------------------------------------------------
+struct dtn_session_info {
+    unsigned int status;
+    string       session;
+};
+
+//----------------------------------------------------------------------
+dtn_session_info*
+dtn_session_update(int handle, int timeout)
+{
+    dtn_handle_t h = find_handle(handle);
+    if (!h) return NULL;
+
+    unsigned int status = 0;
+    dtn_endpoint_id_t session;
+    memset(&session, 0, sizeof(session));
+    
+    int err = dtn_session_update(h, &status, &session, timeout);
+    if (err != DTN_SUCCESS) {
+        return NULL;
+    }
+
+    dtn_session_info* s = new dtn_session_info();
+    s->status = status;
+    s->session = session.uri;
+
+    return s;
+}
+
+//----------------------------------------------------------------------
+int
+dtn_poll_fd(int handle)
+{
+    dtn_handle_t h = find_handle(handle);
+    if (!h) return DTN_EINVAL;
+
+    return dtn_poll_fd(h);
+}
+
+//----------------------------------------------------------------------
+int
+dtn_begin_poll(int handle, int timeout)
+{
+    dtn_handle_t h = find_handle(handle);
+    if (!h) return DTN_EINVAL;
+
+    return dtn_begin_poll(h, timeout);
+}
+
+//----------------------------------------------------------------------
+int
+dtn_cancel_poll(int handle)
+{
+    dtn_handle_t h = find_handle(handle);
+    if (!h) return DTN_EINVAL;
+
+    return dtn_cancel_poll(h);
+}

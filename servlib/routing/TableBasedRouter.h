@@ -22,6 +22,7 @@
 #include "BundleRouter.h"
 #include "DuplicateCache.h"
 #include "RouterInfo.h"
+#include "session/SessionTable.h"
 
 namespace dtn {
 
@@ -65,6 +66,17 @@ protected:
     virtual void handle_link_created(LinkCreatedEvent* event);
     virtual void handle_link_deleted(LinkDeletedEvent* event);
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
+    virtual void handle_registration_added(RegistrationAddedEvent* event);
+    virtual void handle_registration_removed(RegistrationRemovedEvent* event);
+    virtual void handle_registration_expired(RegistrationExpiredEvent* event);
+    /// @}
+
+
+    /// @{ Session management helper functions
+    bool subscribe_to_session(Session* session);
+    bool find_session_upstream(Session* session);
+    void handle_session_bundle(BundleReceivedEvent* event);
+    bool fwd_to_session_peer(Bundle* bundle, const EndpointID& peer);
     /// @}
     
     /**
@@ -146,6 +158,9 @@ protected:
 
     /// The routing table
     RouteTable* route_table_;
+
+    /// Session state management table
+    SessionTable sessions_;
 
     /// Timer class used to cancel transmission on down links after
     /// waiting for them to potentially reopen

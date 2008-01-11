@@ -1584,11 +1584,11 @@ ExternalRouter::ERRegistration::ERRegistration(ExternalRouter *router)
     : Registration(Registration::EXTERNALROUTER_REGID,
                     EndpointID(BundleDaemon::instance()->local_eid().str() +
                         EXTERNAL_ROUTER_SERVICE_TAG),
-                    Registration::DEFER, 0),
+                   Registration::DEFER, 0, 0),
       router_(router)
 {
     logpathf("/reg/admin");
-
+    
     BundleDaemon::post(new RegistrationAddedEvent(this, EVENTSRC_ADMIN));
 }
 

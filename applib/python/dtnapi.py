@@ -97,6 +97,9 @@ DTN_REGID_NONE = _dtnapi.DTN_REGID_NONE
 DTN_REG_DROP = _dtnapi.DTN_REG_DROP
 DTN_REG_DEFER = _dtnapi.DTN_REG_DEFER
 DTN_REG_EXEC = _dtnapi.DTN_REG_EXEC
+DTN_SESSION_CUSTODY = _dtnapi.DTN_SESSION_CUSTODY
+DTN_SESSION_PUBLISH = _dtnapi.DTN_SESSION_PUBLISH
+DTN_SESSION_SUBSCRIBE = _dtnapi.DTN_SESSION_SUBSCRIBE
 class dtn_reg_info_t:
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, dtn_reg_info_t, name, value)
@@ -107,8 +110,8 @@ class dtn_reg_info_t:
     __swig_getmethods__["endpoint"] = _dtnapi.dtn_reg_info_t_endpoint_get
     __swig_setmethods__["regid"] = _dtnapi.dtn_reg_info_t_regid_set
     __swig_getmethods__["regid"] = _dtnapi.dtn_reg_info_t_regid_get
-    __swig_setmethods__["failure_action"] = _dtnapi.dtn_reg_info_t_failure_action_set
-    __swig_getmethods__["failure_action"] = _dtnapi.dtn_reg_info_t_failure_action_get
+    __swig_setmethods__["flags"] = _dtnapi.dtn_reg_info_t_flags_set
+    __swig_getmethods__["flags"] = _dtnapi.dtn_reg_info_t_flags_get
     __swig_setmethods__["expiration"] = _dtnapi.dtn_reg_info_t_expiration_set
     __swig_getmethods__["expiration"] = _dtnapi.dtn_reg_info_t_expiration_get
     __swig_setmethods__["init_passive"] = _dtnapi.dtn_reg_info_t_init_passive_set
@@ -409,7 +412,7 @@ xdr_dtn_reg_id_t = _dtnapi.xdr_dtn_reg_id_t
 xdr_dtn_timeval_t = _dtnapi.xdr_dtn_timeval_t
 xdr_dtn_timestamp_t = _dtnapi.xdr_dtn_timestamp_t
 xdr_dtn_service_tag_t = _dtnapi.xdr_dtn_service_tag_t
-xdr_dtn_reg_failure_action_t = _dtnapi.xdr_dtn_reg_failure_action_t
+xdr_dtn_reg_flags_t = _dtnapi.xdr_dtn_reg_flags_t
 xdr_dtn_reg_info_t = _dtnapi.xdr_dtn_reg_info_t
 xdr_dtn_bundle_priority_t = _dtnapi.xdr_dtn_bundle_priority_t
 xdr_dtn_bundle_delivery_opts_t = _dtnapi.xdr_dtn_bundle_delivery_opts_t
@@ -475,6 +478,52 @@ cvar = _dtnapi.cvar
 
 dtn_send = _dtnapi.dtn_send
 dtn_cancel = _dtnapi.dtn_cancel
+class dtn_status_report:
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, dtn_status_report, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, dtn_status_report, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["bundle_id"] = _dtnapi.dtn_status_report_bundle_id_set
+    __swig_getmethods__["bundle_id"] = _dtnapi.dtn_status_report_bundle_id_get
+    __swig_setmethods__["reason"] = _dtnapi.dtn_status_report_reason_set
+    __swig_getmethods__["reason"] = _dtnapi.dtn_status_report_reason_get
+    __swig_setmethods__["flags"] = _dtnapi.dtn_status_report_flags_set
+    __swig_getmethods__["flags"] = _dtnapi.dtn_status_report_flags_get
+    __swig_setmethods__["receipt_ts_secs"] = _dtnapi.dtn_status_report_receipt_ts_secs_set
+    __swig_getmethods__["receipt_ts_secs"] = _dtnapi.dtn_status_report_receipt_ts_secs_get
+    __swig_setmethods__["receipt_ts_seqno"] = _dtnapi.dtn_status_report_receipt_ts_seqno_set
+    __swig_getmethods__["receipt_ts_seqno"] = _dtnapi.dtn_status_report_receipt_ts_seqno_get
+    __swig_setmethods__["custody_ts_secs"] = _dtnapi.dtn_status_report_custody_ts_secs_set
+    __swig_getmethods__["custody_ts_secs"] = _dtnapi.dtn_status_report_custody_ts_secs_get
+    __swig_setmethods__["custody_ts_seqno"] = _dtnapi.dtn_status_report_custody_ts_seqno_set
+    __swig_getmethods__["custody_ts_seqno"] = _dtnapi.dtn_status_report_custody_ts_seqno_get
+    __swig_setmethods__["forwarding_ts_secs"] = _dtnapi.dtn_status_report_forwarding_ts_secs_set
+    __swig_getmethods__["forwarding_ts_secs"] = _dtnapi.dtn_status_report_forwarding_ts_secs_get
+    __swig_setmethods__["forwarding_ts_seqno"] = _dtnapi.dtn_status_report_forwarding_ts_seqno_set
+    __swig_getmethods__["forwarding_ts_seqno"] = _dtnapi.dtn_status_report_forwarding_ts_seqno_get
+    __swig_setmethods__["delivery_ts_secs"] = _dtnapi.dtn_status_report_delivery_ts_secs_set
+    __swig_getmethods__["delivery_ts_secs"] = _dtnapi.dtn_status_report_delivery_ts_secs_get
+    __swig_setmethods__["delivery_ts_seqno"] = _dtnapi.dtn_status_report_delivery_ts_seqno_set
+    __swig_getmethods__["delivery_ts_seqno"] = _dtnapi.dtn_status_report_delivery_ts_seqno_get
+    __swig_setmethods__["deletion_ts_secs"] = _dtnapi.dtn_status_report_deletion_ts_secs_set
+    __swig_getmethods__["deletion_ts_secs"] = _dtnapi.dtn_status_report_deletion_ts_secs_get
+    __swig_setmethods__["deletion_ts_seqno"] = _dtnapi.dtn_status_report_deletion_ts_seqno_set
+    __swig_getmethods__["deletion_ts_seqno"] = _dtnapi.dtn_status_report_deletion_ts_seqno_get
+    __swig_setmethods__["ack_by_app_ts_secs"] = _dtnapi.dtn_status_report_ack_by_app_ts_secs_set
+    __swig_getmethods__["ack_by_app_ts_secs"] = _dtnapi.dtn_status_report_ack_by_app_ts_secs_get
+    __swig_setmethods__["ack_by_app_ts_seqno"] = _dtnapi.dtn_status_report_ack_by_app_ts_seqno_set
+    __swig_getmethods__["ack_by_app_ts_seqno"] = _dtnapi.dtn_status_report_ack_by_app_ts_seqno_get
+    def __init__(self, *args): 
+        this = apply(_dtnapi.new_dtn_status_report, args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _dtnapi.delete_dtn_status_report
+    __del__ = lambda self : None;
+dtn_status_report_swigregister = _dtnapi.dtn_status_report_swigregister
+dtn_status_report_swigregister(dtn_status_report)
+
+dtn_status_report_reason_to_str = _dtnapi.dtn_status_report_reason_to_str
 class dtn_bundle:
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, dtn_bundle, name, value)
@@ -499,6 +548,8 @@ class dtn_bundle:
     __swig_getmethods__["creation_seqno"] = _dtnapi.dtn_bundle_creation_seqno_get
     __swig_setmethods__["payload"] = _dtnapi.dtn_bundle_payload_set
     __swig_getmethods__["payload"] = _dtnapi.dtn_bundle_payload_get
+    __swig_setmethods__["status_report"] = _dtnapi.dtn_bundle_status_report_set
+    __swig_getmethods__["status_report"] = _dtnapi.dtn_bundle_status_report_get
     def __init__(self, *args): 
         this = apply(_dtnapi.new_dtn_bundle, args)
         try: self.this.append(this)
@@ -509,5 +560,28 @@ dtn_bundle_swigregister = _dtnapi.dtn_bundle_swigregister
 dtn_bundle_swigregister(dtn_bundle)
 
 dtn_recv = _dtnapi.dtn_recv
+class dtn_session_info:
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, dtn_session_info, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, dtn_session_info, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["status"] = _dtnapi.dtn_session_info_status_set
+    __swig_getmethods__["status"] = _dtnapi.dtn_session_info_status_get
+    __swig_setmethods__["session"] = _dtnapi.dtn_session_info_session_set
+    __swig_getmethods__["session"] = _dtnapi.dtn_session_info_session_get
+    def __init__(self, *args): 
+        this = apply(_dtnapi.new_dtn_session_info, args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _dtnapi.delete_dtn_session_info
+    __del__ = lambda self : None;
+dtn_session_info_swigregister = _dtnapi.dtn_session_info_swigregister
+dtn_session_info_swigregister(dtn_session_info)
+
+dtn_session_update = _dtnapi.dtn_session_update
+dtn_poll_fd = _dtnapi.dtn_poll_fd
+dtn_begin_poll = _dtnapi.dtn_begin_poll
+dtn_cancel_poll = _dtnapi.dtn_cancel_poll
 
 

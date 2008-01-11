@@ -136,7 +136,7 @@ main(int argc, const char** argv)
     // now create a new registration based on the source
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &source_eid);
-    reginfo.failure_action = DTN_REG_DROP;
+    reginfo.flags = DTN_REG_DROP;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.expiration = 0;
     if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {

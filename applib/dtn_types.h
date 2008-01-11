@@ -111,18 +111,28 @@ typedef struct dtn_service_tag_t dtn_service_tag_t;
 #define DTN_REGID_NONE 0
 
 /**
- * Registration delivery failure actions
+ * Registration flags are a bitmask of the following:
+
+ * Delivery failure actions (exactly one must be selected):
  *     DTN_REG_DROP   - drop bundle if registration not active
  *     DTN_REG_DEFER  - spool bundle for later retrieval
  *     DTN_REG_EXEC   - exec program on bundle arrival
+ *
+ * Session flags:
+ *     DTN_SESSION_CUSTODY   - app assumes custody for the session
+ *     DTN_SESSION_PUBLISH   - creates a publication point
+ *     DTN_SESSION_SUBSCRIBE - create subscription for the session
  */
 
-enum dtn_reg_failure_action_t {
+enum dtn_reg_flags_t {
 	DTN_REG_DROP = 1,
 	DTN_REG_DEFER = 2,
 	DTN_REG_EXEC = 3,
+	DTN_SESSION_CUSTODY = 4,
+	DTN_SESSION_PUBLISH = 8,
+	DTN_SESSION_SUBSCRIBE = 16,
 };
-typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
+typedef enum dtn_reg_flags_t dtn_reg_flags_t;
 
 /**
  * Registration state.
@@ -131,7 +141,7 @@ typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
 struct dtn_reg_info_t {
 	dtn_endpoint_id_t endpoint;
 	dtn_reg_id_t regid;
-	dtn_reg_failure_action_t failure_action;
+	u_int flags;
 	dtn_timeval_t expiration;
 	bool_t init_passive;
 	struct {
@@ -363,7 +373,7 @@ extern  bool_t xdr_dtn_reg_id_t (XDR *, dtn_reg_id_t*);
 extern  bool_t xdr_dtn_timeval_t (XDR *, dtn_timeval_t*);
 extern  bool_t xdr_dtn_timestamp_t (XDR *, dtn_timestamp_t*);
 extern  bool_t xdr_dtn_service_tag_t (XDR *, dtn_service_tag_t*);
-extern  bool_t xdr_dtn_reg_failure_action_t (XDR *, dtn_reg_failure_action_t*);
+extern  bool_t xdr_dtn_reg_flags_t (XDR *, dtn_reg_flags_t*);
 extern  bool_t xdr_dtn_reg_info_t (XDR *, dtn_reg_info_t*);
 extern  bool_t xdr_dtn_bundle_priority_t (XDR *, dtn_bundle_priority_t*);
 extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t*);
@@ -383,7 +393,7 @@ extern bool_t xdr_dtn_reg_id_t ();
 extern bool_t xdr_dtn_timeval_t ();
 extern bool_t xdr_dtn_timestamp_t ();
 extern bool_t xdr_dtn_service_tag_t ();
-extern bool_t xdr_dtn_reg_failure_action_t ();
+extern bool_t xdr_dtn_reg_flags_t ();
 extern bool_t xdr_dtn_reg_info_t ();
 extern bool_t xdr_dtn_bundle_priority_t ();
 extern bool_t xdr_dtn_bundle_delivery_opts_t ();
