@@ -1605,13 +1605,14 @@ SWIG_Tcl_GetArgs(Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[], const char
 #define SWIGTYPE_p_dtn_reg_info_t swig_types[22]
 #define SWIGTYPE_p_dtn_reg_info_t_script swig_types[23]
 #define SWIGTYPE_p_dtn_service_tag_t swig_types[24]
-#define SWIGTYPE_p_dtn_status_report_flags_t swig_types[25]
-#define SWIGTYPE_p_dtn_status_report_reason_t swig_types[26]
-#define SWIGTYPE_p_dtn_timestamp_t swig_types[27]
-#define SWIGTYPE_p_mapTunsigned_int_dtn_handle_t_t swig_types[28]
-#define SWIGTYPE_p_u_int swig_types[29]
-static swig_type_info *swig_types[31];
-static swig_module_info swig_module = {swig_types, 30, 0, 0, 0, 0};
+#define SWIGTYPE_p_dtn_status_report swig_types[25]
+#define SWIGTYPE_p_dtn_status_report_flags_t swig_types[26]
+#define SWIGTYPE_p_dtn_status_report_reason_t swig_types[27]
+#define SWIGTYPE_p_dtn_timestamp_t swig_types[28]
+#define SWIGTYPE_p_mapTunsigned_int_dtn_handle_t_t swig_types[29]
+#define SWIGTYPE_p_u_int swig_types[30]
+static swig_type_info *swig_types[32];
+static swig_module_info swig_module = {swig_types, 31, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -6671,6 +6672,839 @@ fail:
 
 
 SWIGINTERN int
+_wrap_dtn_status_report_bundle_id_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  dtn_bundle_id *arg2 = (dtn_bundle_id *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_bundle_id_set self bundle_id ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_bundle_id_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_id, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "dtn_status_report_bundle_id_set" "', argument " "2"" of type '" "dtn_bundle_id *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_id * >(argp2);
+  if (arg1) (arg1)->bundle_id = *arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_bundle_id_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  dtn_bundle_id *result = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_bundle_id_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_bundle_id_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (dtn_bundle_id *)& ((arg1)->bundle_id);
+  Tcl_SetObjResult(interp, SWIG_NewInstanceObj( SWIG_as_voidptr(result), SWIGTYPE_p_dtn_bundle_id,0));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_reason_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_reason_set self reason ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_reason_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_reason_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->reason = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_reason_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_reason_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_reason_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->reason);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_flags_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_flags_set self flags ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_flags_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_flags_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->flags = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_flags_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_flags_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_flags_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->flags);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_receipt_ts_secs_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_receipt_ts_secs_set self receipt_ts_secs ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_receipt_ts_secs_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_receipt_ts_secs_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->receipt_ts_secs = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_receipt_ts_secs_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_receipt_ts_secs_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_receipt_ts_secs_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->receipt_ts_secs);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_receipt_ts_seqno_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_receipt_ts_seqno_set self receipt_ts_seqno ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_receipt_ts_seqno_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_receipt_ts_seqno_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->receipt_ts_seqno = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_receipt_ts_seqno_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_receipt_ts_seqno_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_receipt_ts_seqno_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->receipt_ts_seqno);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_custody_ts_secs_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_custody_ts_secs_set self custody_ts_secs ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_custody_ts_secs_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_custody_ts_secs_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->custody_ts_secs = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_custody_ts_secs_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_custody_ts_secs_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_custody_ts_secs_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->custody_ts_secs);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_custody_ts_seqno_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_custody_ts_seqno_set self custody_ts_seqno ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_custody_ts_seqno_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_custody_ts_seqno_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->custody_ts_seqno = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_custody_ts_seqno_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_custody_ts_seqno_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_custody_ts_seqno_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->custody_ts_seqno);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_forwarding_ts_secs_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_forwarding_ts_secs_set self forwarding_ts_secs ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_forwarding_ts_secs_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_forwarding_ts_secs_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->forwarding_ts_secs = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_forwarding_ts_secs_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_forwarding_ts_secs_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_forwarding_ts_secs_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->forwarding_ts_secs);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_forwarding_ts_seqno_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_forwarding_ts_seqno_set self forwarding_ts_seqno ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_forwarding_ts_seqno_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_forwarding_ts_seqno_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->forwarding_ts_seqno = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_forwarding_ts_seqno_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_forwarding_ts_seqno_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_forwarding_ts_seqno_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->forwarding_ts_seqno);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_delivery_ts_secs_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_delivery_ts_secs_set self delivery_ts_secs ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_delivery_ts_secs_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_delivery_ts_secs_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->delivery_ts_secs = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_delivery_ts_secs_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_delivery_ts_secs_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_delivery_ts_secs_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->delivery_ts_secs);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_delivery_ts_seqno_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_delivery_ts_seqno_set self delivery_ts_seqno ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_delivery_ts_seqno_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_delivery_ts_seqno_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->delivery_ts_seqno = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_delivery_ts_seqno_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_delivery_ts_seqno_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_delivery_ts_seqno_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->delivery_ts_seqno);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_deletion_ts_secs_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_deletion_ts_secs_set self deletion_ts_secs ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_deletion_ts_secs_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_deletion_ts_secs_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->deletion_ts_secs = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_deletion_ts_secs_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_deletion_ts_secs_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_deletion_ts_secs_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->deletion_ts_secs);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_deletion_ts_seqno_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_deletion_ts_seqno_set self deletion_ts_seqno ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_deletion_ts_seqno_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_deletion_ts_seqno_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->deletion_ts_seqno = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_deletion_ts_seqno_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_deletion_ts_seqno_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_deletion_ts_seqno_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->deletion_ts_seqno);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_ack_by_app_ts_secs_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_ack_by_app_ts_secs_set self ack_by_app_ts_secs ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_ack_by_app_ts_secs_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_ack_by_app_ts_secs_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->ack_by_app_ts_secs = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_ack_by_app_ts_secs_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_ack_by_app_ts_secs_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_ack_by_app_ts_secs_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->ack_by_app_ts_secs);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_ack_by_app_ts_seqno_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_status_report_ack_by_app_ts_seqno_set self ack_by_app_ts_seqno ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_ack_by_app_ts_seqno_set" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_status_report_ack_by_app_ts_seqno_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->ack_by_app_ts_seqno = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_status_report_ack_by_app_ts_seqno_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_ack_by_app_ts_seqno_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_status_report_ack_by_app_ts_seqno_get" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  result = (unsigned int) ((arg1)->ack_by_app_ts_seqno);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_new_dtn_status_report(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *result = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,":new_dtn_status_report ") == TCL_ERROR) SWIG_fail;
+  result = (dtn_status_report *)new dtn_status_report();
+  Tcl_SetObjResult(interp, SWIG_NewInstanceObj( SWIG_as_voidptr(result), SWIGTYPE_p_dtn_status_report,0));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_delete_dtn_status_report(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_status_report *arg1 = (dtn_status_report *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:delete_dtn_status_report self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_status_report, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_dtn_status_report" "', argument " "1"" of type '" "dtn_status_report *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_status_report * >(argp1);
+  delete arg1;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN void swig_delete_dtn_status_report(void *obj) {
+dtn_status_report *arg1 = (dtn_status_report *) obj;
+delete arg1;
+}
+static swig_method swig_dtn_status_report_methods[] = {
+    {0,0}
+};
+static swig_attribute swig_dtn_status_report_attributes[] = {
+    { "-bundle_id",_wrap_dtn_status_report_bundle_id_get, _wrap_dtn_status_report_bundle_id_set},
+    { "-reason",_wrap_dtn_status_report_reason_get, _wrap_dtn_status_report_reason_set},
+    { "-flags",_wrap_dtn_status_report_flags_get, _wrap_dtn_status_report_flags_set},
+    { "-receipt_ts_secs",_wrap_dtn_status_report_receipt_ts_secs_get, _wrap_dtn_status_report_receipt_ts_secs_set},
+    { "-receipt_ts_seqno",_wrap_dtn_status_report_receipt_ts_seqno_get, _wrap_dtn_status_report_receipt_ts_seqno_set},
+    { "-custody_ts_secs",_wrap_dtn_status_report_custody_ts_secs_get, _wrap_dtn_status_report_custody_ts_secs_set},
+    { "-custody_ts_seqno",_wrap_dtn_status_report_custody_ts_seqno_get, _wrap_dtn_status_report_custody_ts_seqno_set},
+    { "-forwarding_ts_secs",_wrap_dtn_status_report_forwarding_ts_secs_get, _wrap_dtn_status_report_forwarding_ts_secs_set},
+    { "-forwarding_ts_seqno",_wrap_dtn_status_report_forwarding_ts_seqno_get, _wrap_dtn_status_report_forwarding_ts_seqno_set},
+    { "-delivery_ts_secs",_wrap_dtn_status_report_delivery_ts_secs_get, _wrap_dtn_status_report_delivery_ts_secs_set},
+    { "-delivery_ts_seqno",_wrap_dtn_status_report_delivery_ts_seqno_get, _wrap_dtn_status_report_delivery_ts_seqno_set},
+    { "-deletion_ts_secs",_wrap_dtn_status_report_deletion_ts_secs_get, _wrap_dtn_status_report_deletion_ts_secs_set},
+    { "-deletion_ts_seqno",_wrap_dtn_status_report_deletion_ts_seqno_get, _wrap_dtn_status_report_deletion_ts_seqno_set},
+    { "-ack_by_app_ts_secs",_wrap_dtn_status_report_ack_by_app_ts_secs_get, _wrap_dtn_status_report_ack_by_app_ts_secs_set},
+    { "-ack_by_app_ts_seqno",_wrap_dtn_status_report_ack_by_app_ts_seqno_get, _wrap_dtn_status_report_ack_by_app_ts_seqno_set},
+    {0,0,0}
+};
+static swig_class *swig_dtn_status_report_bases[] = {0};
+static char *swig_dtn_status_report_base_names[] = {0};
+static swig_class _wrap_class_dtn_status_report = { "dtn_status_report", &SWIGTYPE_p_dtn_status_report,_wrap_new_dtn_status_report, swig_delete_dtn_status_report, swig_dtn_status_report_methods, swig_dtn_status_report_attributes, swig_dtn_status_report_bases,swig_dtn_status_report_base_names, &swig_module };
+SWIGINTERN int
+_wrap_dtn_status_report_reason_to_str(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  unsigned int arg1 ;
+  std::string result;
+  unsigned int val1 ;
+  int ecode1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_status_report_reason_to_str reason ",(void *)0) == TCL_ERROR) SWIG_fail;
+  ecode1 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[1], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_status_report_reason_to_str" "', argument " "1"" of type '" "unsigned int""'");
+  } 
+  arg1 = static_cast< unsigned int >(val1);
+  result = dtn_status_report_reason_to_str(arg1);
+  Tcl_SetObjResult(interp,SWIG_From_std_string(static_cast< std::string >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
 _wrap_dtn_bundle_source_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_bundle *arg1 = (dtn_bundle *) 0 ;
   std::string *arg2 = 0 ;
@@ -7161,6 +7995,56 @@ fail:
 
 
 SWIGINTERN int
+_wrap_dtn_bundle_status_report_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_bundle *arg1 = (dtn_bundle *) 0 ;
+  dtn_status_report *arg2 = (dtn_status_report *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_bundle_status_report_set self status_report ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_bundle, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_bundle_status_report_set" "', argument " "1"" of type '" "dtn_bundle *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_bundle * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_status_report, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "dtn_bundle_status_report_set" "', argument " "2"" of type '" "dtn_status_report *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_status_report * >(argp2);
+  if (arg1) (arg1)->status_report = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_bundle_status_report_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_bundle *arg1 = (dtn_bundle *) 0 ;
+  dtn_status_report *result = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_bundle_status_report_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_bundle, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_bundle_status_report_get" "', argument " "1"" of type '" "dtn_bundle *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_bundle * >(argp1);
+  result = (dtn_status_report *) ((arg1)->status_report);
+  Tcl_SetObjResult(interp, SWIG_NewInstanceObj( SWIG_as_voidptr(result), SWIGTYPE_p_dtn_status_report,0));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
 _wrap_new_dtn_bundle(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_bundle *result = 0 ;
   
@@ -7211,6 +8095,7 @@ static swig_attribute swig_dtn_bundle_attributes[] = {
     { "-creation_secs",_wrap_dtn_bundle_creation_secs_get, _wrap_dtn_bundle_creation_secs_set},
     { "-creation_seqno",_wrap_dtn_bundle_creation_seqno_get, _wrap_dtn_bundle_creation_seqno_set},
     { "-payload",_wrap_dtn_bundle_payload_get, _wrap_dtn_bundle_payload_set},
+    { "-status_report",_wrap_dtn_bundle_status_report_get, _wrap_dtn_bundle_status_report_set},
     {0,0,0}
 };
 static swig_class *swig_dtn_bundle_bases[] = {0};
@@ -7247,6 +8132,77 @@ _wrap_dtn_recv(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, T
   arg3 = static_cast< int >(val3);
   result = (dtn_bundle *)dtn_recv(arg1,arg2,arg3);
   Tcl_SetObjResult(interp, SWIG_NewInstanceObj( SWIG_as_voidptr(result), SWIGTYPE_p_dtn_bundle,0));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_poll_fd(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  int arg1 ;
+  int result;
+  int val1 ;
+  int ecode1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_poll_fd handle ",(void *)0) == TCL_ERROR) SWIG_fail;
+  ecode1 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[1], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_poll_fd" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  result = (int)dtn_poll_fd(arg1);
+  Tcl_SetObjResult(interp,SWIG_From_int(static_cast< int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_begin_poll(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  int arg1 ;
+  int arg2 ;
+  int result;
+  int val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_begin_poll handle timeout ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  ecode1 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[1], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_begin_poll" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  ecode2 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_begin_poll" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = static_cast< int >(val2);
+  result = (int)dtn_begin_poll(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_From_int(static_cast< int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_cancel_poll(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  int arg1 ;
+  int result;
+  int val1 ;
+  int ecode1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_cancel_poll handle ",(void *)0) == TCL_ERROR) SWIG_fail;
+  ecode1 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[1], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_cancel_poll" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  result = (int)dtn_cancel_poll(arg1);
+  Tcl_SetObjResult(interp,SWIG_From_int(static_cast< int >(result)));
   return TCL_OK;
 fail:
   return TCL_ERROR;
@@ -7438,6 +8394,40 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "dtn_bundle_id", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_bundle_id},
     { SWIG_prefix "dtn_send", (swig_wrapper_func) _wrap_dtn_send, NULL},
     { SWIG_prefix "dtn_cancel", (swig_wrapper_func) _wrap_dtn_cancel, NULL},
+    { SWIG_prefix "dtn_status_report_bundle_id_set", (swig_wrapper_func) _wrap_dtn_status_report_bundle_id_set, NULL},
+    { SWIG_prefix "dtn_status_report_bundle_id_get", (swig_wrapper_func) _wrap_dtn_status_report_bundle_id_get, NULL},
+    { SWIG_prefix "dtn_status_report_reason_set", (swig_wrapper_func) _wrap_dtn_status_report_reason_set, NULL},
+    { SWIG_prefix "dtn_status_report_reason_get", (swig_wrapper_func) _wrap_dtn_status_report_reason_get, NULL},
+    { SWIG_prefix "dtn_status_report_flags_set", (swig_wrapper_func) _wrap_dtn_status_report_flags_set, NULL},
+    { SWIG_prefix "dtn_status_report_flags_get", (swig_wrapper_func) _wrap_dtn_status_report_flags_get, NULL},
+    { SWIG_prefix "dtn_status_report_receipt_ts_secs_set", (swig_wrapper_func) _wrap_dtn_status_report_receipt_ts_secs_set, NULL},
+    { SWIG_prefix "dtn_status_report_receipt_ts_secs_get", (swig_wrapper_func) _wrap_dtn_status_report_receipt_ts_secs_get, NULL},
+    { SWIG_prefix "dtn_status_report_receipt_ts_seqno_set", (swig_wrapper_func) _wrap_dtn_status_report_receipt_ts_seqno_set, NULL},
+    { SWIG_prefix "dtn_status_report_receipt_ts_seqno_get", (swig_wrapper_func) _wrap_dtn_status_report_receipt_ts_seqno_get, NULL},
+    { SWIG_prefix "dtn_status_report_custody_ts_secs_set", (swig_wrapper_func) _wrap_dtn_status_report_custody_ts_secs_set, NULL},
+    { SWIG_prefix "dtn_status_report_custody_ts_secs_get", (swig_wrapper_func) _wrap_dtn_status_report_custody_ts_secs_get, NULL},
+    { SWIG_prefix "dtn_status_report_custody_ts_seqno_set", (swig_wrapper_func) _wrap_dtn_status_report_custody_ts_seqno_set, NULL},
+    { SWIG_prefix "dtn_status_report_custody_ts_seqno_get", (swig_wrapper_func) _wrap_dtn_status_report_custody_ts_seqno_get, NULL},
+    { SWIG_prefix "dtn_status_report_forwarding_ts_secs_set", (swig_wrapper_func) _wrap_dtn_status_report_forwarding_ts_secs_set, NULL},
+    { SWIG_prefix "dtn_status_report_forwarding_ts_secs_get", (swig_wrapper_func) _wrap_dtn_status_report_forwarding_ts_secs_get, NULL},
+    { SWIG_prefix "dtn_status_report_forwarding_ts_seqno_set", (swig_wrapper_func) _wrap_dtn_status_report_forwarding_ts_seqno_set, NULL},
+    { SWIG_prefix "dtn_status_report_forwarding_ts_seqno_get", (swig_wrapper_func) _wrap_dtn_status_report_forwarding_ts_seqno_get, NULL},
+    { SWIG_prefix "dtn_status_report_delivery_ts_secs_set", (swig_wrapper_func) _wrap_dtn_status_report_delivery_ts_secs_set, NULL},
+    { SWIG_prefix "dtn_status_report_delivery_ts_secs_get", (swig_wrapper_func) _wrap_dtn_status_report_delivery_ts_secs_get, NULL},
+    { SWIG_prefix "dtn_status_report_delivery_ts_seqno_set", (swig_wrapper_func) _wrap_dtn_status_report_delivery_ts_seqno_set, NULL},
+    { SWIG_prefix "dtn_status_report_delivery_ts_seqno_get", (swig_wrapper_func) _wrap_dtn_status_report_delivery_ts_seqno_get, NULL},
+    { SWIG_prefix "dtn_status_report_deletion_ts_secs_set", (swig_wrapper_func) _wrap_dtn_status_report_deletion_ts_secs_set, NULL},
+    { SWIG_prefix "dtn_status_report_deletion_ts_secs_get", (swig_wrapper_func) _wrap_dtn_status_report_deletion_ts_secs_get, NULL},
+    { SWIG_prefix "dtn_status_report_deletion_ts_seqno_set", (swig_wrapper_func) _wrap_dtn_status_report_deletion_ts_seqno_set, NULL},
+    { SWIG_prefix "dtn_status_report_deletion_ts_seqno_get", (swig_wrapper_func) _wrap_dtn_status_report_deletion_ts_seqno_get, NULL},
+    { SWIG_prefix "dtn_status_report_ack_by_app_ts_secs_set", (swig_wrapper_func) _wrap_dtn_status_report_ack_by_app_ts_secs_set, NULL},
+    { SWIG_prefix "dtn_status_report_ack_by_app_ts_secs_get", (swig_wrapper_func) _wrap_dtn_status_report_ack_by_app_ts_secs_get, NULL},
+    { SWIG_prefix "dtn_status_report_ack_by_app_ts_seqno_set", (swig_wrapper_func) _wrap_dtn_status_report_ack_by_app_ts_seqno_set, NULL},
+    { SWIG_prefix "dtn_status_report_ack_by_app_ts_seqno_get", (swig_wrapper_func) _wrap_dtn_status_report_ack_by_app_ts_seqno_get, NULL},
+    { SWIG_prefix "new_dtn_status_report", (swig_wrapper_func) _wrap_new_dtn_status_report, NULL},
+    { SWIG_prefix "delete_dtn_status_report", (swig_wrapper_func) _wrap_delete_dtn_status_report, NULL},
+    { SWIG_prefix "dtn_status_report", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_status_report},
+    { SWIG_prefix "dtn_status_report_reason_to_str", (swig_wrapper_func) _wrap_dtn_status_report_reason_to_str, NULL},
     { SWIG_prefix "dtn_bundle_source_set", (swig_wrapper_func) _wrap_dtn_bundle_source_set, NULL},
     { SWIG_prefix "dtn_bundle_source_get", (swig_wrapper_func) _wrap_dtn_bundle_source_get, NULL},
     { SWIG_prefix "dtn_bundle_dest_set", (swig_wrapper_func) _wrap_dtn_bundle_dest_set, NULL},
@@ -7456,10 +8446,15 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "dtn_bundle_creation_seqno_get", (swig_wrapper_func) _wrap_dtn_bundle_creation_seqno_get, NULL},
     { SWIG_prefix "dtn_bundle_payload_set", (swig_wrapper_func) _wrap_dtn_bundle_payload_set, NULL},
     { SWIG_prefix "dtn_bundle_payload_get", (swig_wrapper_func) _wrap_dtn_bundle_payload_get, NULL},
+    { SWIG_prefix "dtn_bundle_status_report_set", (swig_wrapper_func) _wrap_dtn_bundle_status_report_set, NULL},
+    { SWIG_prefix "dtn_bundle_status_report_get", (swig_wrapper_func) _wrap_dtn_bundle_status_report_get, NULL},
     { SWIG_prefix "new_dtn_bundle", (swig_wrapper_func) _wrap_new_dtn_bundle, NULL},
     { SWIG_prefix "delete_dtn_bundle", (swig_wrapper_func) _wrap_delete_dtn_bundle, NULL},
     { SWIG_prefix "dtn_bundle", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_bundle},
     { SWIG_prefix "dtn_recv", (swig_wrapper_func) _wrap_dtn_recv, NULL},
+    { SWIG_prefix "dtn_poll_fd", (swig_wrapper_func) _wrap_dtn_poll_fd, NULL},
+    { SWIG_prefix "dtn_begin_poll", (swig_wrapper_func) _wrap_dtn_begin_poll, NULL},
+    { SWIG_prefix "dtn_cancel_poll", (swig_wrapper_func) _wrap_dtn_cancel_poll, NULL},
     {0, 0, 0}
 };
 
@@ -7500,6 +8495,7 @@ static swig_type_info _swigt__p_dtn_reg_failure_action_t = {"_p_dtn_reg_failure_
 static swig_type_info _swigt__p_dtn_reg_info_t = {"_p_dtn_reg_info_t", "dtn_reg_info_t *", 0, 0, (void*)&_wrap_class_dtn_reg_info_t, 0};
 static swig_type_info _swigt__p_dtn_reg_info_t_script = {"_p_dtn_reg_info_t_script", "dtn_reg_info_t_script *", 0, 0, (void*)&_wrap_class_dtn_reg_info_t_script, 0};
 static swig_type_info _swigt__p_dtn_service_tag_t = {"_p_dtn_service_tag_t", "dtn_service_tag_t *", 0, 0, (void*)&_wrap_class_dtn_service_tag_t, 0};
+static swig_type_info _swigt__p_dtn_status_report = {"_p_dtn_status_report", "dtn_status_report *", 0, 0, (void*)&_wrap_class_dtn_status_report, 0};
 static swig_type_info _swigt__p_dtn_status_report_flags_t = {"_p_dtn_status_report_flags_t", "enum dtn_status_report_flags_t *|dtn_status_report_flags_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_status_report_reason_t = {"_p_dtn_status_report_reason_t", "enum dtn_status_report_reason_t *|dtn_status_report_reason_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_timestamp_t = {"_p_dtn_timestamp_t", "dtn_timestamp_t *", 0, 0, (void*)&_wrap_class_dtn_timestamp_t, 0};
@@ -7532,6 +8528,7 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_dtn_reg_info_t,
   &_swigt__p_dtn_reg_info_t_script,
   &_swigt__p_dtn_service_tag_t,
+  &_swigt__p_dtn_status_report,
   &_swigt__p_dtn_status_report_flags_t,
   &_swigt__p_dtn_status_report_reason_t,
   &_swigt__p_dtn_timestamp_t,
@@ -7564,6 +8561,7 @@ static swig_cast_info _swigc__p_dtn_reg_failure_action_t[] = {  {&_swigt__p_dtn_
 static swig_cast_info _swigc__p_dtn_reg_info_t[] = {  {&_swigt__p_dtn_reg_info_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_reg_info_t_script[] = {  {&_swigt__p_dtn_reg_info_t_script, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_service_tag_t[] = {  {&_swigt__p_dtn_service_tag_t, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_dtn_status_report[] = {  {&_swigt__p_dtn_status_report, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_status_report_flags_t[] = {  {&_swigt__p_dtn_status_report_flags_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_status_report_reason_t[] = {  {&_swigt__p_dtn_status_report_reason_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_timestamp_t[] = {  {&_swigt__p_dtn_timestamp_t, 0, 0, 0},{0, 0, 0, 0}};
@@ -7596,6 +8594,7 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_dtn_reg_info_t,
   _swigc__p_dtn_reg_info_t_script,
   _swigc__p_dtn_service_tag_t,
+  _swigc__p_dtn_status_report,
   _swigc__p_dtn_status_report_flags_t,
   _swigc__p_dtn_status_report_reason_t,
   _swigc__p_dtn_timestamp_t,

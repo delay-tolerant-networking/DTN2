@@ -475,6 +475,52 @@ cvar = _dtnapi.cvar
 
 dtn_send = _dtnapi.dtn_send
 dtn_cancel = _dtnapi.dtn_cancel
+class dtn_status_report:
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, dtn_status_report, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, dtn_status_report, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["bundle_id"] = _dtnapi.dtn_status_report_bundle_id_set
+    __swig_getmethods__["bundle_id"] = _dtnapi.dtn_status_report_bundle_id_get
+    __swig_setmethods__["reason"] = _dtnapi.dtn_status_report_reason_set
+    __swig_getmethods__["reason"] = _dtnapi.dtn_status_report_reason_get
+    __swig_setmethods__["flags"] = _dtnapi.dtn_status_report_flags_set
+    __swig_getmethods__["flags"] = _dtnapi.dtn_status_report_flags_get
+    __swig_setmethods__["receipt_ts_secs"] = _dtnapi.dtn_status_report_receipt_ts_secs_set
+    __swig_getmethods__["receipt_ts_secs"] = _dtnapi.dtn_status_report_receipt_ts_secs_get
+    __swig_setmethods__["receipt_ts_seqno"] = _dtnapi.dtn_status_report_receipt_ts_seqno_set
+    __swig_getmethods__["receipt_ts_seqno"] = _dtnapi.dtn_status_report_receipt_ts_seqno_get
+    __swig_setmethods__["custody_ts_secs"] = _dtnapi.dtn_status_report_custody_ts_secs_set
+    __swig_getmethods__["custody_ts_secs"] = _dtnapi.dtn_status_report_custody_ts_secs_get
+    __swig_setmethods__["custody_ts_seqno"] = _dtnapi.dtn_status_report_custody_ts_seqno_set
+    __swig_getmethods__["custody_ts_seqno"] = _dtnapi.dtn_status_report_custody_ts_seqno_get
+    __swig_setmethods__["forwarding_ts_secs"] = _dtnapi.dtn_status_report_forwarding_ts_secs_set
+    __swig_getmethods__["forwarding_ts_secs"] = _dtnapi.dtn_status_report_forwarding_ts_secs_get
+    __swig_setmethods__["forwarding_ts_seqno"] = _dtnapi.dtn_status_report_forwarding_ts_seqno_set
+    __swig_getmethods__["forwarding_ts_seqno"] = _dtnapi.dtn_status_report_forwarding_ts_seqno_get
+    __swig_setmethods__["delivery_ts_secs"] = _dtnapi.dtn_status_report_delivery_ts_secs_set
+    __swig_getmethods__["delivery_ts_secs"] = _dtnapi.dtn_status_report_delivery_ts_secs_get
+    __swig_setmethods__["delivery_ts_seqno"] = _dtnapi.dtn_status_report_delivery_ts_seqno_set
+    __swig_getmethods__["delivery_ts_seqno"] = _dtnapi.dtn_status_report_delivery_ts_seqno_get
+    __swig_setmethods__["deletion_ts_secs"] = _dtnapi.dtn_status_report_deletion_ts_secs_set
+    __swig_getmethods__["deletion_ts_secs"] = _dtnapi.dtn_status_report_deletion_ts_secs_get
+    __swig_setmethods__["deletion_ts_seqno"] = _dtnapi.dtn_status_report_deletion_ts_seqno_set
+    __swig_getmethods__["deletion_ts_seqno"] = _dtnapi.dtn_status_report_deletion_ts_seqno_get
+    __swig_setmethods__["ack_by_app_ts_secs"] = _dtnapi.dtn_status_report_ack_by_app_ts_secs_set
+    __swig_getmethods__["ack_by_app_ts_secs"] = _dtnapi.dtn_status_report_ack_by_app_ts_secs_get
+    __swig_setmethods__["ack_by_app_ts_seqno"] = _dtnapi.dtn_status_report_ack_by_app_ts_seqno_set
+    __swig_getmethods__["ack_by_app_ts_seqno"] = _dtnapi.dtn_status_report_ack_by_app_ts_seqno_get
+    def __init__(self, *args): 
+        this = apply(_dtnapi.new_dtn_status_report, args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _dtnapi.delete_dtn_status_report
+    __del__ = lambda self : None;
+dtn_status_report_swigregister = _dtnapi.dtn_status_report_swigregister
+dtn_status_report_swigregister(dtn_status_report)
+
+dtn_status_report_reason_to_str = _dtnapi.dtn_status_report_reason_to_str
 class dtn_bundle:
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, dtn_bundle, name, value)
@@ -499,6 +545,8 @@ class dtn_bundle:
     __swig_getmethods__["creation_seqno"] = _dtnapi.dtn_bundle_creation_seqno_get
     __swig_setmethods__["payload"] = _dtnapi.dtn_bundle_payload_set
     __swig_getmethods__["payload"] = _dtnapi.dtn_bundle_payload_get
+    __swig_setmethods__["status_report"] = _dtnapi.dtn_bundle_status_report_set
+    __swig_getmethods__["status_report"] = _dtnapi.dtn_bundle_status_report_get
     def __init__(self, *args): 
         this = apply(_dtnapi.new_dtn_bundle, args)
         try: self.this.append(this)
@@ -509,5 +557,8 @@ dtn_bundle_swigregister = _dtnapi.dtn_bundle_swigregister
 dtn_bundle_swigregister(dtn_bundle)
 
 dtn_recv = _dtnapi.dtn_recv
+dtn_poll_fd = _dtnapi.dtn_poll_fd
+dtn_begin_poll = _dtnapi.dtn_begin_poll
+dtn_cancel_poll = _dtnapi.dtn_cancel_poll
 
 
