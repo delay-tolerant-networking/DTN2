@@ -317,7 +317,6 @@ SimLink::handle_arrival_events(const oasys::Time& now)
                 new BundleReceivedEvent(bundle.object(),
                                         EVENTSRC_PEER,
                                         next->total_len_,
-                                        NULL,
                                         params_.set_prevhop_ ?
                                         Node::active_node()->local_eid() :
                                         EndpointID::NULL_EID());

@@ -376,7 +376,11 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
     log_debug("delivering bundle *%p to registration %d (%s)",
               bundle, registration->regid(),
               registration->endpoint().c_str());
-    
+
+    bundle->fwdlog()->add_entry(registration,
+                                ForwardingInfo::FORWARD_ACTION,
+                                ForwardingInfo::DELIVERED);
+                                
     registration->deliver_bundle(bundle);
 }
 

@@ -21,6 +21,8 @@
 extern "C" {
 #endif 
 
+#include <sys/types.h>
+
 /**
  * Return the number of bytes needed to encode the given value.
  */

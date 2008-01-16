@@ -32,8 +32,9 @@ ForwardingInfo::serialize(oasys::SerializeAction *a)
 {
     a->process("state", &state_);
     a->process("action", &action_);
-    a->process("linkName", &link_name_);
-    a->process("remoteEid", &remote_eid_);
+    a->process("link_name", &link_name_);
+    a->process("regid", &regid_);
+    a->process("remote_eid", &remote_eid_);
     a->process("timestamp_sec", &timestamp_.sec_);
     a->process("timestamp_usec", &timestamp_.usec_);
 }

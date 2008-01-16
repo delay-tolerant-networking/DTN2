@@ -1259,8 +1259,8 @@ protocol_err:
         new BundleReceivedEvent(incoming->bundle_.object(),
                                 EVENTSRC_PEER,
                                 incoming->total_length_,
-                                contact_.object(),
-                                contact_->link()->remote_eid()));
+                                contact_->link()->remote_eid(),
+                                contact_->link().object()));
 }
 
 //----------------------------------------------------------------------

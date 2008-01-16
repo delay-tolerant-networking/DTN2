@@ -307,21 +307,56 @@ protected:
 class BundleReceivedEvent : public BundleEvent {
 public:
     /*
-     * Constructor -- if the bytes_received is unspecified it is
-     * assumed to be the length of the bundle.
+     * Constructor for bundles arriving from a peer, named by the
+     * prevhop and optionally marked with the link it arrived on.
      */
-    BundleReceivedEvent(Bundle* bundle,
-                        event_source_t source,
-                        u_int32_t bytes_received = 0,
-                        Contact* originator = NULL,
-                        const EndpointID& prevhop = EndpointID::NULL_EID())
+    BundleReceivedEvent(Bundle*           bundle,
+                        event_source_t    source,
+                        u_int32_t         bytes_received,
+                        const EndpointID& prevhop,
+                        Link*             originator = NULL)
 
         : BundleEvent(BUNDLE_RECEIVED),
           bundleref_(bundle, "BundleReceivedEvent"),
           source_(source),
           bytes_received_(bytes_received),
-          contact_(originator, "BundleReceivedEvent"),
-          prevhop_(prevhop)
+          link_(originator, "BundleReceivedEvent"),
+          prevhop_(prevhop),
+          registration_(NULL)
+    {
+        ASSERT(source == EVENTSRC_PEER);
+    }
+
+    /*
+     * Constructor for bundles arriving from a local application
+     * identified by the given Registration.
+     */
+    BundleReceivedEvent(Bundle*        bundle,
+                        event_source_t source,
+                        Registration*  registration)
+        : BundleEvent(BUNDLE_RECEIVED),
+          bundleref_(bundle, "BundleReceivedEvent"),
+          source_(source),
+          bytes_received_(0),
+          link_("BundleReceivedEvent"),
+          prevhop_(EndpointID::NULL_EID()),
+          registration_(registration)
+    {
+    }
+
+    /*
+     * Constructor for other "arriving" bundles, including reloading
+     * from storage and generated signals.
+     */
+    BundleReceivedEvent(Bundle*        bundle,
+                        event_source_t source)
+        : BundleEvent(BUNDLE_RECEIVED),
+          bundleref_(bundle, "BundleReceivedEvent"),
+          source_(source),
+          bytes_received_(0),
+          link_("BundleReceivedEvent"),
+          prevhop_(EndpointID::NULL_EID()),
+          registration_(NULL)
     {
     }
 
@@ -334,11 +369,14 @@ public:
     /// The total bytes actually received
     u_int32_t bytes_received_;
 
-    /// Contact from which bundle was received, if applicable
-    ContactRef contact_;
+    /// Link from which bundle was received, if applicable
+    LinkRef link_;
 
     /// Previous hop endpoint id
     EndpointID prevhop_;
+
+    /// Registration where the bundle arrived
+    Registration* registration_;
 };
 
 /**

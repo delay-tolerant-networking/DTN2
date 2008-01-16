@@ -31,6 +31,7 @@ class StringBuffer;
 namespace dtn {
 
 class ForwardingLog;
+class Registration;
 
 /**
  * Class to maintain a log of informational records as to where and
@@ -69,6 +70,16 @@ public:
     state_t get_latest_entry(const LinkRef& link) const;
     
     /**
+     * Get the most recent entry for the given registration from the log.
+     */
+    bool get_latest_entry(const Registration* reg, ForwardingInfo* info) const;
+    
+    /**
+     * Get the most recent state for the given registration from the log.
+     */
+    state_t get_latest_entry(const Registration* reg) const;
+    
+    /**
      * Return the count of matching entries. The states and actions
      * parameters should contain a concatenation of the requested
      * states/actions to filter the count.
@@ -93,6 +104,13 @@ public:
                    ForwardingInfo::action_t action,
                    state_t state,
                    const CustodyTimerSpec& custody_timer);
+    
+    /**
+     * Add a new forwarding info entry for the given registration.
+     */
+    void add_entry(const Registration* reg,
+                   ForwardingInfo::action_t action,
+                   state_t state);
     
     /**
      * Update the state for the latest forwarding info entry for the

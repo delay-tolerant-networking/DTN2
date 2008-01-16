@@ -20,8 +20,9 @@
 
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/StringBuffer.h>
-#include "conv_layers/ConvergenceLayer.h"
 #include "ForwardingLog.h"
+#include "conv_layers/ConvergenceLayer.h"
+#include "reg/Registration.h"
 
 namespace dtn {
 
@@ -62,6 +63,45 @@ ForwardingLog::get_latest_entry(const LinkRef& link) const
 {
     ForwardingInfo info;
     if (! get_latest_entry(link, &info)) {
+        return ForwardingInfo::NONE;
+    }
+
+    return info.state();
+}
+
+//----------------------------------------------------------------------
+bool
+ForwardingLog::get_latest_entry(const Registration* reg,
+                                ForwardingInfo*     info) const
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::get_latest_state");
+
+    // iterate backwards through the vector to get the latest entry
+    Log::const_reverse_iterator iter;
+    for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
+    {
+        if (iter->regid() == reg->regid())
+        {
+            // This assertion holds as long as the mapping of
+            // registration id to registration eid is persistent,
+            // which will need to be revisited once the forwarding log
+            // is serialized to disk.
+            ASSERT(iter->remote_eid() == EndpointID::NULL_EID() ||
+                   iter->remote_eid() == reg->endpoint());
+            *info = *iter;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//----------------------------------------------------------------------
+ForwardingLog::state_t
+ForwardingLog::get_latest_entry(const Registration* reg) const
+{
+    ForwardingInfo info;
+    if (! get_latest_entry(reg, &info)) {
         return ForwardingInfo::NONE;
     }
 
@@ -147,8 +187,23 @@ ForwardingLog::add_entry(const LinkRef& link,
 {
     oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
     
-    log_.push_back(ForwardingInfo(state, action, link->name_str(),
+    log_.push_back(ForwardingInfo(state, action, link->name_str(), 0xffffffff,
                                   link->remote_eid(), custody_timer));
+}
+
+//----------------------------------------------------------------------
+void
+ForwardingLog::add_entry(const Registration* reg,
+                         ForwardingInfo::action_t action,
+                         state_t state)
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
+
+    oasys::StringBuffer name("registration-%d", reg->regid());
+    CustodyTimerSpec spec;
+    
+    log_.push_back(ForwardingInfo(state, action, name.c_str(), reg->regid(),
+                                  reg->endpoint(), spec));
 }
 
 //----------------------------------------------------------------------

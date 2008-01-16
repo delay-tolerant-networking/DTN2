@@ -417,6 +417,7 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
         ForwardingInfo info(ForwardingInfo::NONE,
                             route->action(),
                             link->name_str(),
+                            0xffffffff,
                             link->remote_eid(),
                             route->custody_spec());
         deferred->add(bref, info);

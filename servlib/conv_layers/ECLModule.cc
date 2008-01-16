@@ -979,8 +979,7 @@ ECLModule::read_bundle_file(const std::string& location,
     
     // Tell the BundleDaemon about this bundle.
     BundleReceivedEvent* b_event =
-            new BundleReceivedEvent(bundle, EVENTSRC_PEER, file_stat.st_size,
-                                    NULL, peer_eid);
+            new BundleReceivedEvent(bundle, EVENTSRC_PEER, file_stat.st_size, peer_eid);
     BundleDaemon::post(b_event);
 }
 

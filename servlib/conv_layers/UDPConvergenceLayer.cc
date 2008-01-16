@@ -382,7 +382,7 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
               bundle->bundleid(), len, bundle->payload().length());
     
     BundleDaemon::post(
-        new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
+        new BundleReceivedEvent(bundle, EVENTSRC_PEER, len, EndpointID::NULL_EID()));
 }
 
 //----------------------------------------------------------------------
