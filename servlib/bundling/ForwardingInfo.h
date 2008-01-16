@@ -73,6 +73,7 @@ public:
         TRANSMIT_FAILED  = 1 << 2, ///< Transmission failed
         CANCELLED        = 1 << 3, ///< Transmission cancelled
         CUSTODY_TIMEOUT  = 1 << 4, ///< Custody transfer timeout
+        DELIVERED        = 1 << 5, ///< Delivered to local registration
     } state_t;
 
     /**
@@ -90,6 +91,8 @@ public:
         case TRANSMIT_FAILED:  	return "TRANSMIT_FAILED";
         case CANCELLED: 	return "CANCELLED";
         case CUSTODY_TIMEOUT:	return "CUSTODY_TIMEOUT";
+        case DELIVERED:      	return "DELIVERED";
+
         default:
             NOTREACHED;
         }
@@ -102,6 +105,7 @@ public:
         : state_(NONE),
           action_(INVALID_ACTION),
           link_name_(""),
+          regid_(0xffffffff),
           remote_eid_(),
           custody_spec_() {}
 
@@ -112,20 +116,23 @@ public:
         : state_(NONE),
           action_(INVALID_ACTION),
           link_name_(""),
+          regid_(0xffffffff),
           remote_eid_(builder),
           custody_spec_() {}
     
     /**
      * Constructor used for new entries.
      */
-    ForwardingInfo(state_t state,
-                   action_t action,
-                   const std::string& link_name,
-                   const EndpointID& remote_eid,
+    ForwardingInfo(state_t                 state,
+                   action_t                action,
+                   const std::string&      link_name,
+                   u_int32_t               regid,
+                   const EndpointID&       remote_eid,
                    const CustodyTimerSpec& custody_spec)
         : state_(NONE),
           action_(action),
           link_name_(link_name),
+          regid_(regid),
           remote_eid_(remote_eid),
           custody_spec_(custody_spec)
     {
@@ -147,6 +154,7 @@ public:
     const state_t  state()  const { return static_cast<state_t>(state_); }
     const action_t action() const { return static_cast<action_t>(action_); }
     const std::string&      link_name()    const { return link_name_; }
+    const u_int32_t         regid()        const { return regid_; }
     const EndpointID&       remote_eid()   const { return remote_eid_; }
     const oasys::Time&      timestamp()    const { return timestamp_; }
     const CustodyTimerSpec& custody_spec() const { return custody_spec_; }
@@ -156,7 +164,8 @@ private:
     u_int32_t        state_;            ///< State of the transmission
     u_int32_t        action_;           ///< Forwarding action
     std::string      link_name_;        ///< The name of the link
-    EndpointID       remote_eid_;       ///< The EID of the next hop node
+    u_int32_t        regid_;            ///< The regid (DELIVERED only)
+    EndpointID       remote_eid_;       ///< The EID of the next hop node/reg
     oasys::Time      timestamp_;        ///< Timestamp of last state update
     CustodyTimerSpec custody_spec_;     ///< Custody timer information 
 };
