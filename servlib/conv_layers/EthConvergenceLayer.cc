@@ -400,7 +400,8 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
                   bundle->bundleid(), bundle_len);
         
         BundleDaemon::post(
-            new BundleReceivedEvent(bundle, EVENTSRC_PEER, bundle_len));
+            new BundleReceivedEvent(bundle, EVENTSRC_PEER, 
+                                    bundle_len, EndpointID::NULL_EID()));
     }
 }
 
