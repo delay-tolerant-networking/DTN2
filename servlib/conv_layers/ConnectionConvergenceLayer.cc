@@ -348,7 +348,8 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
                 BundleDaemon::post(
                     new BundleReceivedEvent(incoming->bundle_.object(),
                                             EVENTSRC_PEER, rcvd_len,
-                                            contact.object()));
+                                            contact->link()->remote_eid(),
+                                            contact->link().object()));
             }
         }
     }

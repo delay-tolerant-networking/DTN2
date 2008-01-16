@@ -184,16 +184,13 @@ ProphetRouter::handle_bundle_received(BundleReceivedEvent* e)
 	// The external CL does not set this field, which the Prophet
 	// implementation needs. We want to fail quickly if we're
 	// running with the ECL.
-	ASSERT(e->contact_ != NULL);
-
-        Link* link = e->contact_->link().object();
-        if (link == NULL) return;
+	ASSERT(e->link_ != NULL);
 
         // add DTN's Link to BundleCore facade
-        core_->add(e->contact_->link());
-
+        core_->add(e->link_);
+        
         // retrieve prophet's handle to Link metadata
-        l = core_->get_link(link); 
+        l = core_->get_link(e->link_.object());
 
         if (l == NULL) return;
     }

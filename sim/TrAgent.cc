@@ -138,7 +138,8 @@ TrAgent::send_bundle()
 
     SimLog::instance()->log_gen(Node::active_node(), b);
 		
-    BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP, size_));
+    BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP,
+                                               NULL /* registration? */));
 }
 
 
