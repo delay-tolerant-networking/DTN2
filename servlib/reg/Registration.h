@@ -92,17 +92,18 @@ public:
     
     //@{
     /// Accessors
-    u_int32_t	             durable_key()       { return regid_; }
-    u_int32_t	             regid()	         { return regid_; }
-    const EndpointIDPattern& endpoint()          { return endpoint_; } 
-    failure_action_t         failure_action()    { return static_cast<failure_action_t>
-                                                              (failure_action_); }
-    const std::string&       script()            { return script_; }
-    u_int32_t	             expiration()	 { return expiration_; }
-    bool                     active()            { return active_; }
-    void                     set_active(bool a)  { active_ = a; }
-    bool                     expired()           { return expired_; }
-    void                     set_expired(bool e) { expired_ = e; }
+    const u_int32_t          durable_key()       const { return regid_; }
+    const u_int32_t          regid()             const { return regid_; }
+    const EndpointIDPattern& endpoint()          const { return endpoint_; } 
+    const failure_action_t   failure_action()    const {
+        return static_cast<failure_action_t>(failure_action_); }
+    const std::string&       script()            const { return script_; }
+    const u_int32_t          expiration()        const { return expiration_; }
+    const bool               active()            const { return active_; }
+    const bool               expired()           const { return expired_; }
+
+    void set_active(bool a)  { active_ = a; }
+    void set_expired(bool e) { expired_ = e; }
     //@}
 
     /**
