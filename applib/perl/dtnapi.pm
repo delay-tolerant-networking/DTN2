@@ -54,7 +54,7 @@ package dtnapi;
 *xdr_dtn_timeval_t = *dtnapic::xdr_dtn_timeval_t;
 *xdr_dtn_timestamp_t = *dtnapic::xdr_dtn_timestamp_t;
 *xdr_dtn_service_tag_t = *dtnapic::xdr_dtn_service_tag_t;
-*xdr_dtn_reg_failure_action_t = *dtnapic::xdr_dtn_reg_failure_action_t;
+*xdr_dtn_reg_flags_t = *dtnapic::xdr_dtn_reg_flags_t;
 *xdr_dtn_reg_info_t = *dtnapic::xdr_dtn_reg_info_t;
 *xdr_dtn_bundle_priority_t = *dtnapic::xdr_dtn_bundle_priority_t;
 *xdr_dtn_bundle_delivery_opts_t = *dtnapic::xdr_dtn_bundle_delivery_opts_t;
@@ -84,6 +84,7 @@ package dtnapi;
 *dtn_cancel = *dtnapic::dtn_cancel;
 *dtn_status_report_reason_to_str = *dtnapic::dtn_status_report_reason_to_str;
 *dtn_recv = *dtnapic::dtn_recv;
+*dtn_session_update = *dtnapic::dtn_session_update;
 *dtn_poll_fd = *dtnapic::dtn_poll_fd;
 *dtn_begin_poll = *dtnapic::dtn_begin_poll;
 *dtn_cancel_poll = *dtnapic::dtn_cancel_poll;
@@ -218,8 +219,8 @@ use vars qw(@ISA %OWNER %ITERATORS %BLESSEDMEMBERS);
 *swig_endpoint_set = *dtnapic::dtn_reg_info_t_endpoint_set;
 *swig_regid_get = *dtnapic::dtn_reg_info_t_regid_get;
 *swig_regid_set = *dtnapic::dtn_reg_info_t_regid_set;
-*swig_failure_action_get = *dtnapic::dtn_reg_info_t_failure_action_get;
-*swig_failure_action_set = *dtnapic::dtn_reg_info_t_failure_action_set;
+*swig_flags_get = *dtnapic::dtn_reg_info_t_flags_get;
+*swig_flags_set = *dtnapic::dtn_reg_info_t_flags_set;
 *swig_expiration_get = *dtnapic::dtn_reg_info_t_expiration_get;
 *swig_expiration_set = *dtnapic::dtn_reg_info_t_expiration_set;
 *swig_init_passive_get = *dtnapic::dtn_reg_info_t_init_passive_get;
@@ -402,6 +403,8 @@ use vars qw(@ISA %OWNER %ITERATORS %BLESSEDMEMBERS);
 *swig_expiration_set = *dtnapic::dtn_bundle_spec_t_expiration_set;
 *swig_creation_ts_get = *dtnapic::dtn_bundle_spec_t_creation_ts_get;
 *swig_creation_ts_set = *dtnapic::dtn_bundle_spec_t_creation_ts_set;
+*swig_delivery_regid_get = *dtnapic::dtn_bundle_spec_t_delivery_regid_get;
+*swig_delivery_regid_set = *dtnapic::dtn_bundle_spec_t_delivery_regid_set;
 *swig_metadata_get = *dtnapic::dtn_bundle_spec_t_metadata_get;
 *swig_metadata_set = *dtnapic::dtn_bundle_spec_t_metadata_set;
 *swig_blocks_get = *dtnapic::dtn_bundle_spec_t_blocks_get;
@@ -878,6 +881,8 @@ use vars qw(@ISA %OWNER %ITERATORS %BLESSEDMEMBERS);
 *swig_creation_secs_set = *dtnapic::dtn_bundle_creation_secs_set;
 *swig_creation_seqno_get = *dtnapic::dtn_bundle_creation_seqno_get;
 *swig_creation_seqno_set = *dtnapic::dtn_bundle_creation_seqno_set;
+*swig_delivery_regid_get = *dtnapic::dtn_bundle_delivery_regid_get;
+*swig_delivery_regid_set = *dtnapic::dtn_bundle_delivery_regid_set;
 *swig_payload_get = *dtnapic::dtn_bundle_payload_get;
 *swig_payload_set = *dtnapic::dtn_bundle_payload_set;
 *swig_status_report_get = *dtnapic::dtn_bundle_status_report_get;
@@ -912,10 +917,52 @@ sub ACQUIRE {
 }
 
 
+############# Class : dtnapi::dtn_session_info ##############
+
+package dtnapi::dtn_session_info;
+use vars qw(@ISA %OWNER %ITERATORS %BLESSEDMEMBERS);
+@ISA = qw( dtnapi );
+%OWNER = ();
+%ITERATORS = ();
+*swig_status_get = *dtnapic::dtn_session_info_status_get;
+*swig_status_set = *dtnapic::dtn_session_info_status_set;
+*swig_session_get = *dtnapic::dtn_session_info_session_get;
+*swig_session_set = *dtnapic::dtn_session_info_session_set;
+sub new {
+    my $pkg = shift;
+    my $self = dtnapic::new_dtn_session_info(@_);
+    bless $self, $pkg if defined($self);
+}
+
+sub DESTROY {
+    return unless $_[0]->isa('HASH');
+    my $self = tied(%{$_[0]});
+    return unless defined $self;
+    delete $ITERATORS{$self};
+    if (exists $OWNER{$self}) {
+        dtnapic::delete_dtn_session_info($self);
+        delete $OWNER{$self};
+    }
+}
+
+sub DISOWN {
+    my $self = shift;
+    my $ptr = tied(%$self);
+    delete $OWNER{$ptr};
+}
+
+sub ACQUIRE {
+    my $self = shift;
+    my $ptr = tied(%$self);
+    $OWNER{$ptr} = 1;
+}
+
+
 # ------- VARIABLE STUBS --------
 
 package dtnapi;
 
+*RPCGEN_VERSION = *dtnapic::RPCGEN_VERSION;
 *DTN_MAX_ENDPOINT_ID = *dtnapic::DTN_MAX_ENDPOINT_ID;
 *DTN_MAX_AUTHDATA = *dtnapic::DTN_MAX_AUTHDATA;
 *DTN_MAX_REGION_LEN = *dtnapic::DTN_MAX_REGION_LEN;
@@ -926,6 +973,9 @@ package dtnapi;
 *DTN_REG_DROP = *dtnapic::DTN_REG_DROP;
 *DTN_REG_DEFER = *dtnapic::DTN_REG_DEFER;
 *DTN_REG_EXEC = *dtnapic::DTN_REG_EXEC;
+*DTN_SESSION_CUSTODY = *dtnapic::DTN_SESSION_CUSTODY;
+*DTN_SESSION_PUBLISH = *dtnapic::DTN_SESSION_PUBLISH;
+*DTN_SESSION_SUBSCRIBE = *dtnapic::DTN_SESSION_SUBSCRIBE;
 *COS_BULK = *dtnapic::COS_BULK;
 *COS_NORMAL = *dtnapic::COS_NORMAL;
 *COS_EXPEDITED = *dtnapic::COS_EXPEDITED;

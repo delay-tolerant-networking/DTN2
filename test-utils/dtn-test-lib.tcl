@@ -114,29 +114,69 @@ namespace eval dtn {
 	}
     }
 
-    proc run_app { id app_name {exec_args ""} } {
+    proc app_env {id} {
+        global net::listen_addr
+        
+        set exec_env {}
+        
+	lappend exec_env DTNAPI_ADDR $net::listen_addr($id)
+	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
+	lappend exec_env NETAPI_ADDR $net::listen_addr($id)
+	lappend exec_env NETAPI_PORT [dtn::get_port netapid $id]
+
+        return $exec_env
+    }
+
+    proc run_app { id app_name {exec_args ""} {exec_name ""}} {
 	global opt net::listen_addr net::portbase test::testname
 	
 	if {$id == "*"} {
 	    set pids ""
 	    foreach id [net::nodelist] {
-		lappend pids [run_app $id $app_name $exec_args]
+		lappend pids [run_app $id $app_name $exec_args $exec_name]
 	    }
 	    return $pids
 	}
 
-	lappend exec_env DTNAPI_ADDR $net::listen_addr($id)
-	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
+        set exec_env [app_env $id]
 	
 	return [run::run $id "$app_name" $exec_args \
 		    $test::testname-$app_name.conf \
-		    [conf::get $app_name $id] $exec_env]
-	
+		    [conf::get $app_name $id] $exec_env $exec_name]
     }
 
     proc run_app_and_wait { id app_name {exec_args ""} } {
         set pid [run_app $id $app_name $exec_args]
         run::wait_for_pid_exit $id $pid
+    }
+
+    proc run_netapid { id } {
+	if {$id == "*"} {
+	    set pids ""
+	    foreach id [net::nodelist] {
+		lappend pids [run_netapid $id]
+	    }
+	    return $pids
+	}
+
+        set exec_env [app_env $id]
+	
+	return [run::run $id "netapid" "" \
+		    netapi.conf [conf::get netapid $id] $exec_env]
+    }
+
+    proc run_netapi_shell { id } {
+	if {$id == "*"} {
+	    set pids ""
+	    foreach id [net::nodelist] {
+		lappend pids [run_netapi_shell $id]
+	    }
+	    return $pids
+	}
+
+        set exec_env [app_env $id]
+	
+	return [run::run_xterm $id $exec_env]
     }
 
     proc wait_for_dtnd {id} {

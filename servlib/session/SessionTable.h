@@ -1,5 +1,5 @@
 /*
- *    Copyright 2005-2007 Intel Corporation
+ *    Copyright 2007 Intel Corporation
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,14 +14,32 @@
  *    limitations under the License.
  */
 
-#ifndef _DTN_VERSION_H_
-#define _DTN_VERSION_H_
+#ifndef _SESSION_TABLE_H_
+#define _SESSION_TABLE_H_
 
-#define DTN_VERSION_MAJOR	2
-#define DTN_VERSION_MINOR	5
-#define DTN_VERSION_PATCH	1
-#define DTN_VERSION_STRING	"2.5.1"
+#include <map>
 
-extern const char* dtn_version;
+namespace dtn {
 
-#endif /* _DTN_VERSION_H_ */
+class EndpointID;
+class Session;
+
+/**
+ * Table to manage open sessions.
+ */
+class SessionTable {
+public:
+    SessionTable();
+    Session* lookup_session(const EndpointID& eid) const;
+    void     add_session(Session* s);
+    Session* get_session(const EndpointID& eid);
+
+protected:
+    typedef std::map<EndpointID, Session*> SessionMap;
+    SessionMap table_;
+};
+
+} // namespace dtn
+
+
+#endif /* _SESSION_TABLE_H_ */

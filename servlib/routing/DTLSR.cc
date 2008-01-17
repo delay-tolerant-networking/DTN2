@@ -53,6 +53,7 @@ void
 DTLSR::LSA::serialize(oasys::SerializeAction* a)
 {
     a->process("seqno",   &seqno_);
+    a->process("eids",    &eids_);
     a->process("links",   &links_);
 }
 

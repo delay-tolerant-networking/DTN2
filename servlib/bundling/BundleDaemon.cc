@@ -390,6 +390,11 @@ BundleDaemon::check_local_delivery(Bundle* bundle, bool deliver)
 {
     log_debug("checking for matching registrations for bundle *%p", bundle);
 
+    if (bundle->session_flags() != 0) {
+        log_debug("ignoring local delivery for session bundle *%p", bundle);
+        deliver = false;
+    }
+    
     RegistrationList matches;
     RegistrationList::iterator iter;
 

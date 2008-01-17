@@ -6,12 +6,9 @@
 #ifndef _DTN_TYPES_H_RPCGEN
 #define _DTN_TYPES_H_RPCGEN
 
+#define RPCGEN_VERSION	199506
+
 #include <rpc/rpc.h>
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /*
  *    Copyright 2004-2006 Intel Corporation
@@ -44,14 +41,14 @@ extern "C" {
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256 /* max endpoint_id size (bytes) */
-#define DTN_MAX_PATH_LEN PATH_MAX /* max path length */
-#define DTN_MAX_EXEC_LEN ARG_MAX /* length of string passed to exec() */
-#define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
-#define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
-#define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_BLOCK_LEN 1024 /* length of block data (currently 1K) */
-#define DTN_MAX_BLOCKS 256 /* number of blocks in bundle */
+#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
+#define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
+#define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
+#define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
+#define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
+#define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
+#define DTN_MAX_BLOCK_LEN 1024         /* length of block data (currently 1K) */
+#define DTN_MAX_BLOCKS 256             /* number of blocks in bundle */
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -66,18 +63,42 @@ struct dtn_endpoint_id_t {
 	char uri[DTN_MAX_ENDPOINT_ID];
 };
 typedef struct dtn_endpoint_id_t dtn_endpoint_id_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_endpoint_id_t(XDR *, dtn_endpoint_id_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_endpoint_id_t(XDR *, dtn_endpoint_id_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_endpoint_id_t();
+#endif /* Old Style C */
+
 
 /**
  * A registration cookie.
  */
 
 typedef u_int dtn_reg_id_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_reg_id_t(XDR *, dtn_reg_id_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_reg_id_t(XDR *, dtn_reg_id_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_reg_id_t();
+#endif /* Old Style C */
+
 
 /**
  * DTN timeouts are specified in seconds.
  */
 
 typedef u_int dtn_timeval_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_timeval_t(XDR *, dtn_timeval_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_timeval_t(XDR *, dtn_timeval_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_timeval_t();
+#endif /* Old Style C */
+
 
 /**
  * An infinite wait is a timeout of -1.
@@ -89,6 +110,14 @@ struct dtn_timestamp_t {
 	u_int seqno;
 };
 typedef struct dtn_timestamp_t dtn_timestamp_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_timestamp_t(XDR *, dtn_timestamp_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_timestamp_t(XDR *, dtn_timestamp_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_timestamp_t();
+#endif /* Old Style C */
+
 
 /**
  * Specification of a service tag used in building a local endpoint
@@ -103,6 +132,14 @@ struct dtn_service_tag_t {
 	char tag[DTN_MAX_ENDPOINT_ID];
 };
 typedef struct dtn_service_tag_t dtn_service_tag_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_service_tag_t(XDR *, dtn_service_tag_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_service_tag_t(XDR *, dtn_service_tag_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_service_tag_t();
+#endif /* Old Style C */
+
 
 /**
  * Value for an unspecified registration cookie (i.e. indication that
@@ -111,18 +148,36 @@ typedef struct dtn_service_tag_t dtn_service_tag_t;
 #define DTN_REGID_NONE 0
 
 /**
- * Registration delivery failure actions
+ * Registration flags are a bitmask of the following:
+
+ * Delivery failure actions (exactly one must be selected):
  *     DTN_REG_DROP   - drop bundle if registration not active
  *     DTN_REG_DEFER  - spool bundle for later retrieval
  *     DTN_REG_EXEC   - exec program on bundle arrival
+ *
+ * Session flags:
+ *     DTN_SESSION_CUSTODY   - app assumes custody for the session
+ *     DTN_SESSION_PUBLISH   - creates a publication point
+ *     DTN_SESSION_SUBSCRIBE - create subscription for the session
  */
 
-enum dtn_reg_failure_action_t {
+enum dtn_reg_flags_t {
 	DTN_REG_DROP = 1,
 	DTN_REG_DEFER = 2,
 	DTN_REG_EXEC = 3,
+	DTN_SESSION_CUSTODY = 4,
+	DTN_SESSION_PUBLISH = 8,
+	DTN_SESSION_SUBSCRIBE = 16,
 };
-typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
+typedef enum dtn_reg_flags_t dtn_reg_flags_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_reg_flags_t(XDR *, dtn_reg_flags_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_reg_flags_t(XDR *, dtn_reg_flags_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_reg_flags_t();
+#endif /* Old Style C */
+
 
 /**
  * Registration state.
@@ -131,7 +186,7 @@ typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
 struct dtn_reg_info_t {
 	dtn_endpoint_id_t endpoint;
 	dtn_reg_id_t regid;
-	dtn_reg_failure_action_t failure_action;
+	u_int flags;
 	dtn_timeval_t expiration;
 	bool_t init_passive;
 	struct {
@@ -140,6 +195,14 @@ struct dtn_reg_info_t {
 	} script;
 };
 typedef struct dtn_reg_info_t dtn_reg_info_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_reg_info_t(XDR *, dtn_reg_info_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_reg_info_t(XDR *, dtn_reg_info_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_reg_info_t();
+#endif /* Old Style C */
+
 
 /**
  * Bundle priority specifier.
@@ -156,6 +219,14 @@ enum dtn_bundle_priority_t {
 	COS_RESERVED = 3,
 };
 typedef enum dtn_bundle_priority_t dtn_bundle_priority_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_bundle_priority_t(XDR *, dtn_bundle_priority_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_bundle_priority_t(XDR *, dtn_bundle_priority_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_bundle_priority_t();
+#endif /* Old Style C */
+
 
 /**
  * Bundle delivery option flags. Note that multiple options may be
@@ -186,6 +257,14 @@ enum dtn_bundle_delivery_opts_t {
 	DOPTS_DO_NOT_FRAGMENT = 256,
 };
 typedef enum dtn_bundle_delivery_opts_t dtn_bundle_delivery_opts_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_bundle_delivery_opts_t(XDR *, dtn_bundle_delivery_opts_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_bundle_delivery_opts_t(XDR *, dtn_bundle_delivery_opts_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_bundle_delivery_opts_t();
+#endif /* Old Style C */
+
 
 /**
  * Extension block flags. Note that multiple flags may be selected
@@ -210,6 +289,14 @@ enum dtn_extension_block_flags_t {
 	BLOCK_FLAG_UNPROCESSED = 32,
 };
 typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_extension_block_flags_t(XDR *, dtn_extension_block_flags_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_extension_block_flags_t(XDR *, dtn_extension_block_flags_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_extension_block_flags_t();
+#endif /* Old Style C */
+
 
 /**
  * Extension block.
@@ -224,9 +311,19 @@ struct dtn_extension_block_t {
 	} data;
 };
 typedef struct dtn_extension_block_t dtn_extension_block_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_extension_block_t(XDR *, dtn_extension_block_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_extension_block_t(XDR *, dtn_extension_block_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_extension_block_t();
+#endif /* Old Style C */
+
 
 /**
- * Bundle metadata.
+ * Bundle metadata. The delivery_regid is ignored when sending
+ * bundles, but is filled in by the daemon with the registration
+ * id where the bundle was received.
  */
 
 struct dtn_bundle_spec_t {
@@ -237,6 +334,7 @@ struct dtn_bundle_spec_t {
 	int dopts;
 	dtn_timeval_t expiration;
 	dtn_timestamp_t creation_ts;
+	dtn_reg_id_t delivery_regid;
 	struct {
 		u_int blocks_len;
 		dtn_extension_block_t *blocks_val;
@@ -247,6 +345,14 @@ struct dtn_bundle_spec_t {
 	} metadata;
 };
 typedef struct dtn_bundle_spec_t dtn_bundle_spec_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_bundle_spec_t(XDR *, dtn_bundle_spec_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_bundle_spec_t(XDR *, dtn_bundle_spec_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_bundle_spec_t();
+#endif /* Old Style C */
+
 
 /**
  * Type definition for a unique bundle identifier. Returned from dtn_send
@@ -263,6 +369,14 @@ struct dtn_bundle_id_t {
 	u_int orig_length;
 };
 typedef struct dtn_bundle_id_t dtn_bundle_id_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_bundle_id_t(XDR *, dtn_bundle_id_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_bundle_id_t(XDR *, dtn_bundle_id_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_bundle_id_t();
+#endif /* Old Style C */
+
 /**
  * Bundle Status Report "Reason Code" flags
  */
@@ -279,6 +393,14 @@ enum dtn_status_report_reason_t {
 	REASON_BLOCK_UNINTELLIGIBLE = 0x08,
 };
 typedef enum dtn_status_report_reason_t dtn_status_report_reason_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_status_report_reason_t(XDR *, dtn_status_report_reason_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_status_report_reason_t(XDR *, dtn_status_report_reason_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_status_report_reason_t();
+#endif /* Old Style C */
+
 /**
  * Bundle Status Report status flags that indicate which timestamps in
  * the status report structure are valid.
@@ -293,6 +415,14 @@ enum dtn_status_report_flags_t {
 	STATUS_ACKED_BY_APP = 0x20,
 };
 typedef enum dtn_status_report_flags_t dtn_status_report_flags_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_status_report_flags_t(XDR *, dtn_status_report_flags_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_status_report_flags_t(XDR *, dtn_status_report_flags_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_status_report_flags_t();
+#endif /* Old Style C */
+
 
 /**
  * Type definition for a bundle status report.
@@ -310,6 +440,14 @@ struct dtn_bundle_status_report_t {
 	dtn_timestamp_t ack_by_app_ts;
 };
 typedef struct dtn_bundle_status_report_t dtn_bundle_status_report_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_bundle_status_report_t(XDR *, dtn_bundle_status_report_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_bundle_status_report_t(XDR *, dtn_bundle_status_report_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_bundle_status_report_t();
+#endif /* Old Style C */
+
 
 /**
  * The payload of a bundle can be sent or received either in a file,
@@ -340,6 +478,14 @@ enum dtn_bundle_payload_location_t {
 	DTN_PAYLOAD_TEMP_FILE = 2,
 };
 typedef enum dtn_bundle_payload_location_t dtn_bundle_payload_location_t;
+#ifdef __cplusplus
+extern "C" bool_t xdr_dtn_bundle_payload_location_t(XDR *, dtn_bundle_payload_location_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_bundle_payload_location_t(XDR *, dtn_bundle_payload_location_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_bundle_payload_location_t();
+#endif /* Old Style C */
+
 
 struct dtn_bundle_payload_t {
 	dtn_bundle_payload_location_t location;
@@ -354,53 +500,13 @@ struct dtn_bundle_payload_t {
 	dtn_bundle_status_report_t *status_report;
 };
 typedef struct dtn_bundle_payload_t dtn_bundle_payload_t;
-
-/* the xdr functions */
-
-#if defined(__STDC__) || defined(__cplusplus)
-extern  bool_t xdr_dtn_endpoint_id_t (XDR *, dtn_endpoint_id_t*);
-extern  bool_t xdr_dtn_reg_id_t (XDR *, dtn_reg_id_t*);
-extern  bool_t xdr_dtn_timeval_t (XDR *, dtn_timeval_t*);
-extern  bool_t xdr_dtn_timestamp_t (XDR *, dtn_timestamp_t*);
-extern  bool_t xdr_dtn_service_tag_t (XDR *, dtn_service_tag_t*);
-extern  bool_t xdr_dtn_reg_failure_action_t (XDR *, dtn_reg_failure_action_t*);
-extern  bool_t xdr_dtn_reg_info_t (XDR *, dtn_reg_info_t*);
-extern  bool_t xdr_dtn_bundle_priority_t (XDR *, dtn_bundle_priority_t*);
-extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t*);
-extern  bool_t xdr_dtn_extension_block_flags_t (XDR *, dtn_extension_block_flags_t*);
-extern  bool_t xdr_dtn_extension_block_t (XDR *, dtn_extension_block_t*);
-extern  bool_t xdr_dtn_bundle_spec_t (XDR *, dtn_bundle_spec_t*);
-extern  bool_t xdr_dtn_bundle_id_t (XDR *, dtn_bundle_id_t*);
-extern  bool_t xdr_dtn_status_report_reason_t (XDR *, dtn_status_report_reason_t*);
-extern  bool_t xdr_dtn_status_report_flags_t (XDR *, dtn_status_report_flags_t*);
-extern  bool_t xdr_dtn_bundle_status_report_t (XDR *, dtn_bundle_status_report_t*);
-extern  bool_t xdr_dtn_bundle_payload_location_t (XDR *, dtn_bundle_payload_location_t*);
-extern  bool_t xdr_dtn_bundle_payload_t (XDR *, dtn_bundle_payload_t*);
-
-#else /* K&R C */
-extern bool_t xdr_dtn_endpoint_id_t ();
-extern bool_t xdr_dtn_reg_id_t ();
-extern bool_t xdr_dtn_timeval_t ();
-extern bool_t xdr_dtn_timestamp_t ();
-extern bool_t xdr_dtn_service_tag_t ();
-extern bool_t xdr_dtn_reg_failure_action_t ();
-extern bool_t xdr_dtn_reg_info_t ();
-extern bool_t xdr_dtn_bundle_priority_t ();
-extern bool_t xdr_dtn_bundle_delivery_opts_t ();
-extern bool_t xdr_dtn_extension_block_flags_t ();
-extern bool_t xdr_dtn_extension_block_t ();
-extern bool_t xdr_dtn_bundle_spec_t ();
-extern bool_t xdr_dtn_bundle_id_t ();
-extern bool_t xdr_dtn_status_report_reason_t ();
-extern bool_t xdr_dtn_status_report_flags_t ();
-extern bool_t xdr_dtn_bundle_status_report_t ();
-extern bool_t xdr_dtn_bundle_payload_location_t ();
-extern bool_t xdr_dtn_bundle_payload_t ();
-
-#endif /* K&R C */
-
 #ifdef __cplusplus
-}
-#endif
+extern "C" bool_t xdr_dtn_bundle_payload_t(XDR *, dtn_bundle_payload_t*);
+#elif __STDC__
+extern  bool_t xdr_dtn_bundle_payload_t(XDR *, dtn_bundle_payload_t*);
+#else /* Old Style C */
+bool_t xdr_dtn_bundle_payload_t();
+#endif /* Old Style C */
+
 
 #endif /* !_DTN_TYPES_H_RPCGEN */

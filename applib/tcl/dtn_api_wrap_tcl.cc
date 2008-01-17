@@ -1601,18 +1601,19 @@ SWIG_Tcl_GetArgs(Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[], const char
 #define SWIGTYPE_p_dtn_extension_block_t swig_types[18]
 #define SWIGTYPE_p_dtn_extension_block_t_data swig_types[19]
 #define SWIGTYPE_p_dtn_handle_t swig_types[20]
-#define SWIGTYPE_p_dtn_reg_failure_action_t swig_types[21]
+#define SWIGTYPE_p_dtn_reg_flags_t swig_types[21]
 #define SWIGTYPE_p_dtn_reg_info_t swig_types[22]
 #define SWIGTYPE_p_dtn_reg_info_t_script swig_types[23]
 #define SWIGTYPE_p_dtn_service_tag_t swig_types[24]
-#define SWIGTYPE_p_dtn_status_report swig_types[25]
-#define SWIGTYPE_p_dtn_status_report_flags_t swig_types[26]
-#define SWIGTYPE_p_dtn_status_report_reason_t swig_types[27]
-#define SWIGTYPE_p_dtn_timestamp_t swig_types[28]
-#define SWIGTYPE_p_mapTunsigned_int_dtn_handle_t_t swig_types[29]
-#define SWIGTYPE_p_u_int swig_types[30]
-static swig_type_info *swig_types[32];
-static swig_module_info swig_module = {swig_types, 31, 0, 0, 0, 0};
+#define SWIGTYPE_p_dtn_session_info swig_types[25]
+#define SWIGTYPE_p_dtn_status_report swig_types[26]
+#define SWIGTYPE_p_dtn_status_report_flags_t swig_types[27]
+#define SWIGTYPE_p_dtn_status_report_reason_t swig_types[28]
+#define SWIGTYPE_p_dtn_timestamp_t swig_types[29]
+#define SWIGTYPE_p_mapTunsigned_int_dtn_handle_t_t swig_types[30]
+#define SWIGTYPE_p_u_int swig_types[31]
+static swig_type_info *swig_types[33];
+static swig_module_info swig_module = {swig_types, 32, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -1738,6 +1739,30 @@ SWIG_FromCharPtrAndSize(const char* carray, size_t size)
 }
 
 
+typedef struct {
+		u_int script_len;
+		char *script_val;
+	} dtn_reg_info_t_script;
+
+
+
+
+
+
+SWIGINTERNINLINE Tcl_Obj * 
+SWIG_FromCharPtr(const char *cptr)
+{ 
+  return SWIG_FromCharPtrAndSize(cptr, (cptr ? strlen(cptr) : 0));
+}
+
+
+typedef struct {
+		u_int data_len;
+		char *data_val;
+	} dtn_extension_block_t_data;
+
+
+
 SWIGINTERN int
 SWIG_AsVal_long SWIG_TCL_DECL_ARGS_2(Tcl_Obj *obj, long* val)
 {
@@ -1764,30 +1789,6 @@ SWIG_AsVal_int SWIG_TCL_DECL_ARGS_2(Tcl_Obj * obj, int *val)
   }  
   return res;
 }
-
-
-typedef struct {
-		u_int script_len;
-		char *script_val;
-	} dtn_reg_info_t_script;
-
-
-
-
-
-
-SWIGINTERNINLINE Tcl_Obj * 
-SWIG_FromCharPtr(const char *cptr)
-{ 
-  return SWIG_FromCharPtrAndSize(cptr, (cptr ? strlen(cptr) : 0));
-}
-
-
-typedef struct {
-		u_int data_len;
-		char *data_val;
-	} dtn_extension_block_t_data;
-
 
 
 typedef struct {
@@ -2059,6 +2060,93 @@ static swig_class *swig_dtn_endpoint_id_t_bases[] = {0};
 static char *swig_dtn_endpoint_id_t_base_names[] = {0};
 static swig_class _wrap_class_dtn_endpoint_id_t = { "dtn_endpoint_id_t", &SWIGTYPE_p_dtn_endpoint_id_t,_wrap_new_dtn_endpoint_id_t, swig_delete_dtn_endpoint_id_t, swig_dtn_endpoint_id_t_methods, swig_dtn_endpoint_id_t_attributes, swig_dtn_endpoint_id_t_bases,swig_dtn_endpoint_id_t_base_names, &swig_module };
 SWIGINTERN int
+_wrap_xdr_dtn_endpoint_id_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_endpoint_id_t *arg2 = (dtn_endpoint_id_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_endpoint_id_t XDR * dtn_endpoint_id_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_endpoint_id_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "2"" of type '" "dtn_endpoint_id_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_endpoint_id_t * >(argp2);
+  result = xdr_dtn_endpoint_id_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_reg_id_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_reg_id_t *arg2 = (dtn_reg_id_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_reg_id_t XDR * dtn_reg_id_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_u_int, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_id_t" "', argument " "2"" of type '" "dtn_reg_id_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_reg_id_t * >(argp2);
+  result = xdr_dtn_reg_id_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_timeval_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_timeval_t *arg2 = (dtn_timeval_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_timeval_t XDR * dtn_timeval_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timeval_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_u_int, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timeval_t" "', argument " "2"" of type '" "dtn_timeval_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_timeval_t * >(argp2);
+  result = xdr_dtn_timeval_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
 _wrap_dtn_timestamp_t_secs_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_timestamp_t *arg1 = (dtn_timestamp_t *) 0 ;
   u_int arg2 ;
@@ -2220,6 +2308,35 @@ static swig_class *swig_dtn_timestamp_t_bases[] = {0};
 static char *swig_dtn_timestamp_t_base_names[] = {0};
 static swig_class _wrap_class_dtn_timestamp_t = { "dtn_timestamp_t", &SWIGTYPE_p_dtn_timestamp_t,_wrap_new_dtn_timestamp_t, swig_delete_dtn_timestamp_t, swig_dtn_timestamp_t_methods, swig_dtn_timestamp_t_attributes, swig_dtn_timestamp_t_bases,swig_dtn_timestamp_t_base_names, &swig_module };
 SWIGINTERN int
+_wrap_xdr_dtn_timestamp_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_timestamp_t *arg2 = (dtn_timestamp_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_timestamp_t XDR * dtn_timestamp_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timestamp_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_timestamp_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timestamp_t" "', argument " "2"" of type '" "dtn_timestamp_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_timestamp_t * >(argp2);
+  result = xdr_dtn_timestamp_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
 _wrap_dtn_service_tag_t_tag_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_service_tag_t *arg1 = (dtn_service_tag_t *) 0 ;
   char *arg2 ;
@@ -2323,6 +2440,64 @@ static swig_attribute swig_dtn_service_tag_t_attributes[] = {
 static swig_class *swig_dtn_service_tag_t_bases[] = {0};
 static char *swig_dtn_service_tag_t_base_names[] = {0};
 static swig_class _wrap_class_dtn_service_tag_t = { "dtn_service_tag_t", &SWIGTYPE_p_dtn_service_tag_t,_wrap_new_dtn_service_tag_t, swig_delete_dtn_service_tag_t, swig_dtn_service_tag_t_methods, swig_dtn_service_tag_t_attributes, swig_dtn_service_tag_t_bases,swig_dtn_service_tag_t_base_names, &swig_module };
+SWIGINTERN int
+_wrap_xdr_dtn_service_tag_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_service_tag_t *arg2 = (dtn_service_tag_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_service_tag_t XDR * dtn_service_tag_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_service_tag_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_service_tag_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_service_tag_t" "', argument " "2"" of type '" "dtn_service_tag_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_service_tag_t * >(argp2);
+  result = xdr_dtn_service_tag_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_reg_flags_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_reg_flags_t *arg2 = (dtn_reg_flags_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_reg_flags_t XDR * dtn_reg_flags_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_reg_flags_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_flags_t" "', argument " "2"" of type '" "dtn_reg_flags_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_reg_flags_t * >(argp2);
+  result = xdr_dtn_reg_flags_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
 SWIGINTERN int
 _wrap_dtn_reg_info_t_endpoint_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_reg_info_t *arg1 = (dtn_reg_info_t *) 0 ;
@@ -2430,26 +2605,32 @@ fail:
 
 
 SWIGINTERN int
-_wrap_dtn_reg_info_t_failure_action_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+_wrap_dtn_reg_info_t_flags_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_reg_info_t *arg1 = (dtn_reg_info_t *) 0 ;
-  dtn_reg_failure_action_t arg2 ;
+  u_int arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  int val2 ;
-  int ecode2 = 0 ;
+  void *argp2 ;
+  int res2 = 0 ;
   
-  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_reg_info_t_failure_action_set self failure_action ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_reg_info_t_flags_set self flags ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
   res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_reg_info_t_failure_action_set" "', argument " "1"" of type '" "dtn_reg_info_t *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_reg_info_t_flags_set" "', argument " "1"" of type '" "dtn_reg_info_t *""'"); 
   }
   arg1 = reinterpret_cast< dtn_reg_info_t * >(argp1);
-  ecode2 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_reg_info_t_failure_action_set" "', argument " "2"" of type '" "dtn_reg_failure_action_t""'");
-  } 
-  arg2 = static_cast< dtn_reg_failure_action_t >(val2);
-  if (arg1) (arg1)->failure_action = arg2;
+  {
+    res2 = SWIG_ConvertPtr(objv[2], &argp2, SWIGTYPE_p_u_int,  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "dtn_reg_info_t_flags_set" "', argument " "2"" of type '" "u_int""'"); 
+    }  
+    if (!argp2) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "dtn_reg_info_t_flags_set" "', argument " "2"" of type '" "u_int""'");
+    } else {
+      arg2 = *(reinterpret_cast< u_int * >(argp2));
+    }
+  }
+  if (arg1) (arg1)->flags = arg2;
   
   
   return TCL_OK;
@@ -2459,20 +2640,20 @@ fail:
 
 
 SWIGINTERN int
-_wrap_dtn_reg_info_t_failure_action_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+_wrap_dtn_reg_info_t_flags_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_reg_info_t *arg1 = (dtn_reg_info_t *) 0 ;
-  dtn_reg_failure_action_t result;
+  u_int result;
   void *argp1 = 0 ;
   int res1 = 0 ;
   
-  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_reg_info_t_failure_action_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_reg_info_t_flags_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
   res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_reg_info_t_failure_action_get" "', argument " "1"" of type '" "dtn_reg_info_t *""'"); 
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_reg_info_t_flags_get" "', argument " "1"" of type '" "dtn_reg_info_t *""'"); 
   }
   arg1 = reinterpret_cast< dtn_reg_info_t * >(argp1);
-  result = (dtn_reg_failure_action_t) ((arg1)->failure_action);
-  Tcl_SetObjResult(interp,SWIG_From_int(static_cast< int >(result)));
+  result =  ((arg1)->flags);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new u_int(static_cast< const u_int& >(result))), SWIGTYPE_p_u_int, SWIG_POINTER_OWN | 0 ));
   return TCL_OK;
 fail:
   return TCL_ERROR;
@@ -2656,7 +2837,7 @@ static swig_method swig_dtn_reg_info_t_methods[] = {
 static swig_attribute swig_dtn_reg_info_t_attributes[] = {
     { "-endpoint",_wrap_dtn_reg_info_t_endpoint_get, _wrap_dtn_reg_info_t_endpoint_set},
     { "-regid",_wrap_dtn_reg_info_t_regid_get, _wrap_dtn_reg_info_t_regid_set},
-    { "-failure_action",_wrap_dtn_reg_info_t_failure_action_get, _wrap_dtn_reg_info_t_failure_action_set},
+    { "-flags",_wrap_dtn_reg_info_t_flags_get, _wrap_dtn_reg_info_t_flags_set},
     { "-expiration",_wrap_dtn_reg_info_t_expiration_get, _wrap_dtn_reg_info_t_expiration_set},
     { "-init_passive",_wrap_dtn_reg_info_t_init_passive_get, _wrap_dtn_reg_info_t_init_passive_set},
     { "-script",_wrap_dtn_reg_info_t_script_get, 0 },
@@ -2828,6 +3009,122 @@ static swig_attribute swig_dtn_reg_info_t_script_attributes[] = {
 static swig_class *swig_dtn_reg_info_t_script_bases[] = {0};
 static char *swig_dtn_reg_info_t_script_base_names[] = {0};
 static swig_class _wrap_class_dtn_reg_info_t_script = { "dtn_reg_info_t_script", &SWIGTYPE_p_dtn_reg_info_t_script,_wrap_new_dtn_reg_info_t_script, swig_delete_dtn_reg_info_t_script, swig_dtn_reg_info_t_script_methods, swig_dtn_reg_info_t_script_attributes, swig_dtn_reg_info_t_script_bases,swig_dtn_reg_info_t_script_base_names, &swig_module };
+SWIGINTERN int
+_wrap_xdr_dtn_reg_info_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_reg_info_t *arg2 = (dtn_reg_info_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_reg_info_t XDR * dtn_reg_info_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_info_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_info_t" "', argument " "2"" of type '" "dtn_reg_info_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_reg_info_t * >(argp2);
+  result = xdr_dtn_reg_info_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_bundle_priority_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_priority_t *arg2 = (dtn_bundle_priority_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_priority_t XDR * dtn_bundle_priority_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_priority_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "2"" of type '" "dtn_bundle_priority_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_priority_t * >(argp2);
+  result = xdr_dtn_bundle_priority_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_bundle_delivery_opts_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_delivery_opts_t *arg2 = (dtn_bundle_delivery_opts_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_delivery_opts_t XDR * dtn_bundle_delivery_opts_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_delivery_opts_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "2"" of type '" "dtn_bundle_delivery_opts_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_delivery_opts_t * >(argp2);
+  result = xdr_dtn_bundle_delivery_opts_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_extension_block_flags_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_extension_block_flags_t *arg2 = (dtn_extension_block_flags_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_extension_block_flags_t XDR * dtn_extension_block_flags_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_extension_block_flags_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "2"" of type '" "dtn_extension_block_flags_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_extension_block_flags_t * >(argp2);
+  result = xdr_dtn_extension_block_flags_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
 SWIGINTERN int
 _wrap_dtn_extension_block_t_type_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_extension_block_t *arg1 = (dtn_extension_block_t *) 0 ;
@@ -3174,6 +3471,35 @@ static swig_attribute swig_dtn_extension_block_t_data_attributes[] = {
 static swig_class *swig_dtn_extension_block_t_data_bases[] = {0};
 static char *swig_dtn_extension_block_t_data_base_names[] = {0};
 static swig_class _wrap_class_dtn_extension_block_t_data = { "dtn_extension_block_t_data", &SWIGTYPE_p_dtn_extension_block_t_data,_wrap_new_dtn_extension_block_t_data, swig_delete_dtn_extension_block_t_data, swig_dtn_extension_block_t_data_methods, swig_dtn_extension_block_t_data_attributes, swig_dtn_extension_block_t_data_bases,swig_dtn_extension_block_t_data_base_names, &swig_module };
+SWIGINTERN int
+_wrap_xdr_dtn_extension_block_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_extension_block_t *arg2 = (dtn_extension_block_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_extension_block_t XDR * dtn_extension_block_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_extension_block_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_t" "', argument " "2"" of type '" "dtn_extension_block_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_extension_block_t * >(argp2);
+  result = xdr_dtn_extension_block_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
 SWIGINTERN int
 _wrap_dtn_bundle_spec_t_source_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_bundle_spec_t *arg1 = (dtn_bundle_spec_t *) 0 ;
@@ -3531,6 +3857,62 @@ fail:
 
 
 SWIGINTERN int
+_wrap_dtn_bundle_spec_t_delivery_regid_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_bundle_spec_t *arg1 = (dtn_bundle_spec_t *) 0 ;
+  dtn_reg_id_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_bundle_spec_t_delivery_regid_set self delivery_regid ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_bundle_spec_t, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_bundle_spec_t_delivery_regid_set" "', argument " "1"" of type '" "dtn_bundle_spec_t *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_bundle_spec_t * >(argp1);
+  {
+    res2 = SWIG_ConvertPtr(objv[2], &argp2, SWIGTYPE_p_u_int,  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "dtn_bundle_spec_t_delivery_regid_set" "', argument " "2"" of type '" "dtn_reg_id_t""'"); 
+    }  
+    if (!argp2) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "dtn_bundle_spec_t_delivery_regid_set" "', argument " "2"" of type '" "dtn_reg_id_t""'");
+    } else {
+      arg2 = *(reinterpret_cast< dtn_reg_id_t * >(argp2));
+    }
+  }
+  if (arg1) (arg1)->delivery_regid = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_bundle_spec_t_delivery_regid_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_bundle_spec_t *arg1 = (dtn_bundle_spec_t *) 0 ;
+  dtn_reg_id_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_bundle_spec_t_delivery_regid_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_bundle_spec_t, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_bundle_spec_t_delivery_regid_get" "', argument " "1"" of type '" "dtn_bundle_spec_t *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_bundle_spec_t * >(argp1);
+  result =  ((arg1)->delivery_regid);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new dtn_reg_id_t(static_cast< const dtn_reg_id_t& >(result))), SWIGTYPE_p_u_int, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
 _wrap_dtn_bundle_spec_t_metadata_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_bundle_spec_t *arg1 = (dtn_bundle_spec_t *) 0 ;
   dtn_bundle_spec_t_metadata *result = 0 ;
@@ -3621,6 +4003,7 @@ static swig_attribute swig_dtn_bundle_spec_t_attributes[] = {
     { "-dopts",_wrap_dtn_bundle_spec_t_dopts_get, _wrap_dtn_bundle_spec_t_dopts_set},
     { "-expiration",_wrap_dtn_bundle_spec_t_expiration_get, _wrap_dtn_bundle_spec_t_expiration_set},
     { "-creation_ts",_wrap_dtn_bundle_spec_t_creation_ts_get, _wrap_dtn_bundle_spec_t_creation_ts_set},
+    { "-delivery_regid",_wrap_dtn_bundle_spec_t_delivery_regid_get, _wrap_dtn_bundle_spec_t_delivery_regid_set},
     { "-metadata",_wrap_dtn_bundle_spec_t_metadata_get, 0 },
     { "-blocks",_wrap_dtn_bundle_spec_t_blocks_get, 0 },
     {0,0,0}
@@ -3939,6 +4322,35 @@ static swig_class *swig_dtn_bundle_spec_t_blocks_bases[] = {0};
 static char *swig_dtn_bundle_spec_t_blocks_base_names[] = {0};
 static swig_class _wrap_class_dtn_bundle_spec_t_blocks = { "dtn_bundle_spec_t_blocks", &SWIGTYPE_p_dtn_bundle_spec_t_blocks,_wrap_new_dtn_bundle_spec_t_blocks, swig_delete_dtn_bundle_spec_t_blocks, swig_dtn_bundle_spec_t_blocks_methods, swig_dtn_bundle_spec_t_blocks_attributes, swig_dtn_bundle_spec_t_blocks_bases,swig_dtn_bundle_spec_t_blocks_base_names, &swig_module };
 SWIGINTERN int
+_wrap_xdr_dtn_bundle_spec_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_spec_t *arg2 = (dtn_bundle_spec_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_spec_t XDR * dtn_bundle_spec_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_spec_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "2"" of type '" "dtn_bundle_spec_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_spec_t * >(argp2);
+  result = xdr_dtn_bundle_spec_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
 _wrap_dtn_bundle_id_t_source_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_bundle_id_t *arg1 = (dtn_bundle_id_t *) 0 ;
   dtn_endpoint_id_t *arg2 = (dtn_endpoint_id_t *) 0 ;
@@ -4201,6 +4613,93 @@ static swig_attribute swig_dtn_bundle_id_t_attributes[] = {
 static swig_class *swig_dtn_bundle_id_t_bases[] = {0};
 static char *swig_dtn_bundle_id_t_base_names[] = {0};
 static swig_class _wrap_class_dtn_bundle_id_t = { "dtn_bundle_id_t", &SWIGTYPE_p_dtn_bundle_id_t,_wrap_new_dtn_bundle_id_t, swig_delete_dtn_bundle_id_t, swig_dtn_bundle_id_t_methods, swig_dtn_bundle_id_t_attributes, swig_dtn_bundle_id_t_bases,swig_dtn_bundle_id_t_base_names, &swig_module };
+SWIGINTERN int
+_wrap_xdr_dtn_bundle_id_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_id_t *arg2 = (dtn_bundle_id_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_id_t XDR * dtn_bundle_id_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_id_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_id_t" "', argument " "2"" of type '" "dtn_bundle_id_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_id_t * >(argp2);
+  result = xdr_dtn_bundle_id_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_status_report_reason_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_status_report_reason_t *arg2 = (dtn_status_report_reason_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_status_report_reason_t XDR * dtn_status_report_reason_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_status_report_reason_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "2"" of type '" "dtn_status_report_reason_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_status_report_reason_t * >(argp2);
+  result = xdr_dtn_status_report_reason_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_status_report_flags_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_status_report_flags_t *arg2 = (dtn_status_report_flags_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_status_report_flags_t XDR * dtn_status_report_flags_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_status_report_flags_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "2"" of type '" "dtn_status_report_flags_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_status_report_flags_t * >(argp2);
+  result = xdr_dtn_status_report_flags_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
 SWIGINTERN int
 _wrap_dtn_bundle_status_report_t_bundle_id_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_bundle_status_report_t *arg1 = (dtn_bundle_status_report_t *) 0 ;
@@ -4707,6 +5206,64 @@ static swig_attribute swig_dtn_bundle_status_report_t_attributes[] = {
 static swig_class *swig_dtn_bundle_status_report_t_bases[] = {0};
 static char *swig_dtn_bundle_status_report_t_base_names[] = {0};
 static swig_class _wrap_class_dtn_bundle_status_report_t = { "dtn_bundle_status_report_t", &SWIGTYPE_p_dtn_bundle_status_report_t,_wrap_new_dtn_bundle_status_report_t, swig_delete_dtn_bundle_status_report_t, swig_dtn_bundle_status_report_t_methods, swig_dtn_bundle_status_report_t_attributes, swig_dtn_bundle_status_report_t_bases,swig_dtn_bundle_status_report_t_base_names, &swig_module };
+SWIGINTERN int
+_wrap_xdr_dtn_bundle_status_report_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_status_report_t *arg2 = (dtn_bundle_status_report_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_status_report_t XDR * dtn_bundle_status_report_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_status_report_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "2"" of type '" "dtn_bundle_status_report_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_status_report_t * >(argp2);
+  result = xdr_dtn_bundle_status_report_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_xdr_dtn_bundle_payload_location_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_payload_location_t *arg2 = (dtn_bundle_payload_location_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_payload_location_t XDR * dtn_bundle_payload_location_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_payload_location_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "2"" of type '" "dtn_bundle_payload_location_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_payload_location_t * >(argp2);
+  result = xdr_dtn_bundle_payload_location_t(arg1,arg2);
+  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
 SWIGINTERN int
 _wrap_dtn_bundle_payload_t_location_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_bundle_payload_t *arg1 = (dtn_bundle_payload_t *) 0 ;
@@ -5227,499 +5784,6 @@ static swig_class *swig_dtn_bundle_payload_t_filename_bases[] = {0};
 static char *swig_dtn_bundle_payload_t_filename_base_names[] = {0};
 static swig_class _wrap_class_dtn_bundle_payload_t_filename = { "dtn_bundle_payload_t_filename", &SWIGTYPE_p_dtn_bundle_payload_t_filename,_wrap_new_dtn_bundle_payload_t_filename, swig_delete_dtn_bundle_payload_t_filename, swig_dtn_bundle_payload_t_filename_methods, swig_dtn_bundle_payload_t_filename_attributes, swig_dtn_bundle_payload_t_filename_bases,swig_dtn_bundle_payload_t_filename_base_names, &swig_module };
 SWIGINTERN int
-_wrap_xdr_dtn_endpoint_id_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_endpoint_id_t *arg2 = (dtn_endpoint_id_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_endpoint_id_t XDR * dtn_endpoint_id_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_endpoint_id_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "2"" of type '" "dtn_endpoint_id_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_endpoint_id_t * >(argp2);
-  result = xdr_dtn_endpoint_id_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_reg_id_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_reg_id_t *arg2 = (dtn_reg_id_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_reg_id_t XDR * dtn_reg_id_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_u_int, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_id_t" "', argument " "2"" of type '" "dtn_reg_id_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_reg_id_t * >(argp2);
-  result = xdr_dtn_reg_id_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_timeval_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_timeval_t *arg2 = (dtn_timeval_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_timeval_t XDR * dtn_timeval_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timeval_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_u_int, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timeval_t" "', argument " "2"" of type '" "dtn_timeval_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_timeval_t * >(argp2);
-  result = xdr_dtn_timeval_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_timestamp_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_timestamp_t *arg2 = (dtn_timestamp_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_timestamp_t XDR * dtn_timestamp_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timestamp_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_timestamp_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timestamp_t" "', argument " "2"" of type '" "dtn_timestamp_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_timestamp_t * >(argp2);
-  result = xdr_dtn_timestamp_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_service_tag_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_service_tag_t *arg2 = (dtn_service_tag_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_service_tag_t XDR * dtn_service_tag_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_service_tag_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_service_tag_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_service_tag_t" "', argument " "2"" of type '" "dtn_service_tag_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_service_tag_t * >(argp2);
-  result = xdr_dtn_service_tag_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_reg_failure_action_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_reg_failure_action_t *arg2 = (dtn_reg_failure_action_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_reg_failure_action_t XDR * dtn_reg_failure_action_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_failure_action_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_reg_failure_action_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_failure_action_t" "', argument " "2"" of type '" "dtn_reg_failure_action_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_reg_failure_action_t * >(argp2);
-  result = xdr_dtn_reg_failure_action_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_reg_info_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_reg_info_t *arg2 = (dtn_reg_info_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_reg_info_t XDR * dtn_reg_info_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_info_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_info_t" "', argument " "2"" of type '" "dtn_reg_info_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_reg_info_t * >(argp2);
-  result = xdr_dtn_reg_info_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_bundle_priority_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_priority_t *arg2 = (dtn_bundle_priority_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_priority_t XDR * dtn_bundle_priority_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_priority_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "2"" of type '" "dtn_bundle_priority_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_priority_t * >(argp2);
-  result = xdr_dtn_bundle_priority_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_bundle_delivery_opts_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_delivery_opts_t *arg2 = (dtn_bundle_delivery_opts_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_delivery_opts_t XDR * dtn_bundle_delivery_opts_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_delivery_opts_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "2"" of type '" "dtn_bundle_delivery_opts_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_delivery_opts_t * >(argp2);
-  result = xdr_dtn_bundle_delivery_opts_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_extension_block_flags_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_extension_block_flags_t *arg2 = (dtn_extension_block_flags_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_extension_block_flags_t XDR * dtn_extension_block_flags_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_extension_block_flags_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "2"" of type '" "dtn_extension_block_flags_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_extension_block_flags_t * >(argp2);
-  result = xdr_dtn_extension_block_flags_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_extension_block_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_extension_block_t *arg2 = (dtn_extension_block_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_extension_block_t XDR * dtn_extension_block_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_extension_block_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_t" "', argument " "2"" of type '" "dtn_extension_block_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_extension_block_t * >(argp2);
-  result = xdr_dtn_extension_block_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_bundle_spec_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_spec_t *arg2 = (dtn_bundle_spec_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_spec_t XDR * dtn_bundle_spec_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_spec_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "2"" of type '" "dtn_bundle_spec_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_spec_t * >(argp2);
-  result = xdr_dtn_bundle_spec_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_bundle_id_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_id_t *arg2 = (dtn_bundle_id_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_id_t XDR * dtn_bundle_id_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_id_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_id_t" "', argument " "2"" of type '" "dtn_bundle_id_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_id_t * >(argp2);
-  result = xdr_dtn_bundle_id_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_status_report_reason_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_status_report_reason_t *arg2 = (dtn_status_report_reason_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_status_report_reason_t XDR * dtn_status_report_reason_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_status_report_reason_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "2"" of type '" "dtn_status_report_reason_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_status_report_reason_t * >(argp2);
-  result = xdr_dtn_status_report_reason_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_status_report_flags_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_status_report_flags_t *arg2 = (dtn_status_report_flags_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_status_report_flags_t XDR * dtn_status_report_flags_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_status_report_flags_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "2"" of type '" "dtn_status_report_flags_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_status_report_flags_t * >(argp2);
-  result = xdr_dtn_status_report_flags_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_bundle_status_report_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_status_report_t *arg2 = (dtn_bundle_status_report_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_status_report_t XDR * dtn_bundle_status_report_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_status_report_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "2"" of type '" "dtn_bundle_status_report_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_status_report_t * >(argp2);
-  result = xdr_dtn_bundle_status_report_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_xdr_dtn_bundle_payload_location_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_payload_location_t *arg2 = (dtn_bundle_payload_location_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oo:xdr_dtn_bundle_payload_location_t XDR * dtn_bundle_payload_location_t * ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(objv[2], &argp2,SWIGTYPE_p_dtn_bundle_payload_location_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "2"" of type '" "dtn_bundle_payload_location_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_payload_location_t * >(argp2);
-  result = xdr_dtn_bundle_payload_location_t(arg1,arg2);
-  Tcl_SetObjResult(interp,SWIG_NewInstanceObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0 ));
-  return TCL_OK;
-fail:
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
 _wrap_xdr_dtn_bundle_payload_t(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   XDR *arg1 = (XDR *) 0 ;
   dtn_bundle_payload_t *arg2 = (dtn_bundle_payload_t *) 0 ;
@@ -5968,7 +6032,7 @@ _wrap_build_reginfo(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int ob
   int ecode5 = 0 ;
   int res6 = SWIG_OLDOBJ ;
   
-  if (SWIG_GetArgs(interp, objc, objv,"oooooo:build_reginfo reginfo endpoint action expiration init_passive script ",(void *)0,(void *)0,(void *)0,(void *)0,(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  if (SWIG_GetArgs(interp, objc, objv,"oooooo:build_reginfo reginfo endpoint flags expiration init_passive script ",(void *)0,(void *)0,(void *)0,(void *)0,(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
   res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "build_reginfo" "', argument " "1"" of type '" "dtn_reg_info_t *""'"); 
@@ -6043,7 +6107,7 @@ _wrap_dtn_register(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int obj
   int ecode5 = 0 ;
   int res6 = SWIG_OLDOBJ ;
   
-  if (SWIG_GetArgs(interp, objc, objv,"oooooo:dtn_register handle endpoint action expiration init_passive script ",(void *)0,(void *)0,(void *)0,(void *)0,(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  if (SWIG_GetArgs(interp, objc, objv,"oooooo:dtn_register handle endpoint flags expiration init_passive script ",(void *)0,(void *)0,(void *)0,(void *)0,(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
   ecode1 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[1], &val1);
   if (!SWIG_IsOK(ecode1)) {
     SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_register" "', argument " "1"" of type '" "int""'");
@@ -7935,6 +7999,56 @@ fail:
 
 
 SWIGINTERN int
+_wrap_dtn_bundle_delivery_regid_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_bundle *arg1 = (dtn_bundle *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_bundle_delivery_regid_set self delivery_regid ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_bundle, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_bundle_delivery_regid_set" "', argument " "1"" of type '" "dtn_bundle *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_bundle * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_bundle_delivery_regid_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->delivery_regid = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_bundle_delivery_regid_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_bundle *arg1 = (dtn_bundle *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_bundle_delivery_regid_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_bundle, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_bundle_delivery_regid_get" "', argument " "1"" of type '" "dtn_bundle *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_bundle * >(argp1);
+  result = (unsigned int) ((arg1)->delivery_regid);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
 _wrap_dtn_bundle_payload_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   dtn_bundle *arg1 = (dtn_bundle *) 0 ;
   std::string *arg2 = 0 ;
@@ -8094,6 +8208,7 @@ static swig_attribute swig_dtn_bundle_attributes[] = {
     { "-expiration",_wrap_dtn_bundle_expiration_get, _wrap_dtn_bundle_expiration_set},
     { "-creation_secs",_wrap_dtn_bundle_creation_secs_get, _wrap_dtn_bundle_creation_secs_set},
     { "-creation_seqno",_wrap_dtn_bundle_creation_seqno_get, _wrap_dtn_bundle_creation_seqno_set},
+    { "-delivery_regid",_wrap_dtn_bundle_delivery_regid_get, _wrap_dtn_bundle_delivery_regid_set},
     { "-payload",_wrap_dtn_bundle_payload_get, _wrap_dtn_bundle_payload_set},
     { "-status_report",_wrap_dtn_bundle_status_report_get, _wrap_dtn_bundle_status_report_set},
     {0,0,0}
@@ -8132,6 +8247,194 @@ _wrap_dtn_recv(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, T
   arg3 = static_cast< int >(val3);
   result = (dtn_bundle *)dtn_recv(arg1,arg2,arg3);
   Tcl_SetObjResult(interp, SWIG_NewInstanceObj( SWIG_as_voidptr(result), SWIGTYPE_p_dtn_bundle,0));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_session_info_status_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_session_info_status_set self status ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_session_info, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_session_info_status_set" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_session_info_status_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->status = arg2;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_session_info_status_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_session_info_status_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_session_info, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_session_info_status_get" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  result = (unsigned int) ((arg1)->status);
+  Tcl_SetObjResult(interp,SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_session_info_session_set(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  std::string *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int res2 = SWIG_OLDOBJ ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_session_info_session_set self session ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_session_info, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_session_info_session_set" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  {
+    std::string *ptr = (std::string *)0;
+    res2 = SWIG_AsPtr_std_string SWIG_TCL_CALL_ARGS_2(objv[2], &ptr);
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "dtn_session_info_session_set" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "dtn_session_info_session_set" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    arg2 = ptr;
+  }
+  if (arg1) (arg1)->session = *arg2;
+  
+  
+  if (SWIG_IsNewObj(res2)) delete arg2;
+  return TCL_OK;
+fail:
+  if (SWIG_IsNewObj(res2)) delete arg2;
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_dtn_session_info_session_get(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  std::string *result = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:dtn_session_info_session_get self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_session_info, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_session_info_session_get" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  {
+    std::string const &_result_ref =  ((arg1)->session);
+    result = (std::string *) &_result_ref;
+  }
+  Tcl_SetObjResult(interp,SWIG_From_std_string(static_cast< std::string >(*result)));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_new_dtn_session_info(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_session_info *result = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,":new_dtn_session_info ") == TCL_ERROR) SWIG_fail;
+  result = (dtn_session_info *)new dtn_session_info();
+  Tcl_SetObjResult(interp, SWIG_NewInstanceObj( SWIG_as_voidptr(result), SWIGTYPE_p_dtn_session_info,0));
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN int
+_wrap_delete_dtn_session_info(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"o:delete_dtn_session_info self ",(void *)0) == TCL_ERROR) SWIG_fail;
+  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_dtn_session_info, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_dtn_session_info" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  delete arg1;
+  
+  
+  return TCL_OK;
+fail:
+  return TCL_ERROR;
+}
+
+
+SWIGINTERN void swig_delete_dtn_session_info(void *obj) {
+dtn_session_info *arg1 = (dtn_session_info *) obj;
+delete arg1;
+}
+static swig_method swig_dtn_session_info_methods[] = {
+    {0,0}
+};
+static swig_attribute swig_dtn_session_info_attributes[] = {
+    { "-status",_wrap_dtn_session_info_status_get, _wrap_dtn_session_info_status_set},
+    { "-session",_wrap_dtn_session_info_session_get, _wrap_dtn_session_info_session_set},
+    {0,0,0}
+};
+static swig_class *swig_dtn_session_info_bases[] = {0};
+static char *swig_dtn_session_info_base_names[] = {0};
+static swig_class _wrap_class_dtn_session_info = { "dtn_session_info", &SWIGTYPE_p_dtn_session_info,_wrap_new_dtn_session_info, swig_delete_dtn_session_info, swig_dtn_session_info_methods, swig_dtn_session_info_attributes, swig_dtn_session_info_bases,swig_dtn_session_info_base_names, &swig_module };
+SWIGINTERN int
+_wrap_dtn_session_update(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  int arg1 ;
+  int arg2 ;
+  dtn_session_info *result = 0 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"oo:dtn_session_update handle timeout ",(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
+  ecode1 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[1], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_session_update" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  ecode2 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_session_update" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = static_cast< int >(val2);
+  result = (dtn_session_info *)dtn_session_update(arg1,arg2);
+  Tcl_SetObjResult(interp, SWIG_NewInstanceObj( SWIG_as_voidptr(result), SWIGTYPE_p_dtn_session_info,0));
   return TCL_OK;
 fail:
   return TCL_ERROR;
@@ -8216,6 +8519,9 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "new_dtn_endpoint_id_t", (swig_wrapper_func) _wrap_new_dtn_endpoint_id_t, NULL},
     { SWIG_prefix "delete_dtn_endpoint_id_t", (swig_wrapper_func) _wrap_delete_dtn_endpoint_id_t, NULL},
     { SWIG_prefix "dtn_endpoint_id_t", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_endpoint_id_t},
+    { SWIG_prefix "xdr_dtn_endpoint_id_t", (swig_wrapper_func) _wrap_xdr_dtn_endpoint_id_t, NULL},
+    { SWIG_prefix "xdr_dtn_reg_id_t", (swig_wrapper_func) _wrap_xdr_dtn_reg_id_t, NULL},
+    { SWIG_prefix "xdr_dtn_timeval_t", (swig_wrapper_func) _wrap_xdr_dtn_timeval_t, NULL},
     { SWIG_prefix "dtn_timestamp_t_secs_set", (swig_wrapper_func) _wrap_dtn_timestamp_t_secs_set, NULL},
     { SWIG_prefix "dtn_timestamp_t_secs_get", (swig_wrapper_func) _wrap_dtn_timestamp_t_secs_get, NULL},
     { SWIG_prefix "dtn_timestamp_t_seqno_set", (swig_wrapper_func) _wrap_dtn_timestamp_t_seqno_set, NULL},
@@ -8223,17 +8529,20 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "new_dtn_timestamp_t", (swig_wrapper_func) _wrap_new_dtn_timestamp_t, NULL},
     { SWIG_prefix "delete_dtn_timestamp_t", (swig_wrapper_func) _wrap_delete_dtn_timestamp_t, NULL},
     { SWIG_prefix "dtn_timestamp_t", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_timestamp_t},
+    { SWIG_prefix "xdr_dtn_timestamp_t", (swig_wrapper_func) _wrap_xdr_dtn_timestamp_t, NULL},
     { SWIG_prefix "dtn_service_tag_t_tag_set", (swig_wrapper_func) _wrap_dtn_service_tag_t_tag_set, NULL},
     { SWIG_prefix "dtn_service_tag_t_tag_get", (swig_wrapper_func) _wrap_dtn_service_tag_t_tag_get, NULL},
     { SWIG_prefix "new_dtn_service_tag_t", (swig_wrapper_func) _wrap_new_dtn_service_tag_t, NULL},
     { SWIG_prefix "delete_dtn_service_tag_t", (swig_wrapper_func) _wrap_delete_dtn_service_tag_t, NULL},
     { SWIG_prefix "dtn_service_tag_t", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_service_tag_t},
+    { SWIG_prefix "xdr_dtn_service_tag_t", (swig_wrapper_func) _wrap_xdr_dtn_service_tag_t, NULL},
+    { SWIG_prefix "xdr_dtn_reg_flags_t", (swig_wrapper_func) _wrap_xdr_dtn_reg_flags_t, NULL},
     { SWIG_prefix "dtn_reg_info_t_endpoint_set", (swig_wrapper_func) _wrap_dtn_reg_info_t_endpoint_set, NULL},
     { SWIG_prefix "dtn_reg_info_t_endpoint_get", (swig_wrapper_func) _wrap_dtn_reg_info_t_endpoint_get, NULL},
     { SWIG_prefix "dtn_reg_info_t_regid_set", (swig_wrapper_func) _wrap_dtn_reg_info_t_regid_set, NULL},
     { SWIG_prefix "dtn_reg_info_t_regid_get", (swig_wrapper_func) _wrap_dtn_reg_info_t_regid_get, NULL},
-    { SWIG_prefix "dtn_reg_info_t_failure_action_set", (swig_wrapper_func) _wrap_dtn_reg_info_t_failure_action_set, NULL},
-    { SWIG_prefix "dtn_reg_info_t_failure_action_get", (swig_wrapper_func) _wrap_dtn_reg_info_t_failure_action_get, NULL},
+    { SWIG_prefix "dtn_reg_info_t_flags_set", (swig_wrapper_func) _wrap_dtn_reg_info_t_flags_set, NULL},
+    { SWIG_prefix "dtn_reg_info_t_flags_get", (swig_wrapper_func) _wrap_dtn_reg_info_t_flags_get, NULL},
     { SWIG_prefix "dtn_reg_info_t_expiration_set", (swig_wrapper_func) _wrap_dtn_reg_info_t_expiration_set, NULL},
     { SWIG_prefix "dtn_reg_info_t_expiration_get", (swig_wrapper_func) _wrap_dtn_reg_info_t_expiration_get, NULL},
     { SWIG_prefix "dtn_reg_info_t_init_passive_set", (swig_wrapper_func) _wrap_dtn_reg_info_t_init_passive_set, NULL},
@@ -8249,6 +8558,10 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "new_dtn_reg_info_t_script", (swig_wrapper_func) _wrap_new_dtn_reg_info_t_script, NULL},
     { SWIG_prefix "delete_dtn_reg_info_t_script", (swig_wrapper_func) _wrap_delete_dtn_reg_info_t_script, NULL},
     { SWIG_prefix "dtn_reg_info_t_script", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_reg_info_t_script},
+    { SWIG_prefix "xdr_dtn_reg_info_t", (swig_wrapper_func) _wrap_xdr_dtn_reg_info_t, NULL},
+    { SWIG_prefix "xdr_dtn_bundle_priority_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_priority_t, NULL},
+    { SWIG_prefix "xdr_dtn_bundle_delivery_opts_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_delivery_opts_t, NULL},
+    { SWIG_prefix "xdr_dtn_extension_block_flags_t", (swig_wrapper_func) _wrap_xdr_dtn_extension_block_flags_t, NULL},
     { SWIG_prefix "dtn_extension_block_t_type_set", (swig_wrapper_func) _wrap_dtn_extension_block_t_type_set, NULL},
     { SWIG_prefix "dtn_extension_block_t_type_get", (swig_wrapper_func) _wrap_dtn_extension_block_t_type_get, NULL},
     { SWIG_prefix "dtn_extension_block_t_flags_set", (swig_wrapper_func) _wrap_dtn_extension_block_t_flags_set, NULL},
@@ -8264,6 +8577,7 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "new_dtn_extension_block_t_data", (swig_wrapper_func) _wrap_new_dtn_extension_block_t_data, NULL},
     { SWIG_prefix "delete_dtn_extension_block_t_data", (swig_wrapper_func) _wrap_delete_dtn_extension_block_t_data, NULL},
     { SWIG_prefix "dtn_extension_block_t_data", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_extension_block_t_data},
+    { SWIG_prefix "xdr_dtn_extension_block_t", (swig_wrapper_func) _wrap_xdr_dtn_extension_block_t, NULL},
     { SWIG_prefix "dtn_bundle_spec_t_source_set", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_source_set, NULL},
     { SWIG_prefix "dtn_bundle_spec_t_source_get", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_source_get, NULL},
     { SWIG_prefix "dtn_bundle_spec_t_dest_set", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_dest_set, NULL},
@@ -8278,6 +8592,8 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "dtn_bundle_spec_t_expiration_get", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_expiration_get, NULL},
     { SWIG_prefix "dtn_bundle_spec_t_creation_ts_set", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_creation_ts_set, NULL},
     { SWIG_prefix "dtn_bundle_spec_t_creation_ts_get", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_creation_ts_get, NULL},
+    { SWIG_prefix "dtn_bundle_spec_t_delivery_regid_set", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_delivery_regid_set, NULL},
+    { SWIG_prefix "dtn_bundle_spec_t_delivery_regid_get", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_delivery_regid_get, NULL},
     { SWIG_prefix "dtn_bundle_spec_t_metadata_get", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_metadata_get, NULL},
     { SWIG_prefix "dtn_bundle_spec_t_blocks_get", (swig_wrapper_func) _wrap_dtn_bundle_spec_t_blocks_get, NULL},
     { SWIG_prefix "new_dtn_bundle_spec_t", (swig_wrapper_func) _wrap_new_dtn_bundle_spec_t, NULL},
@@ -8297,6 +8613,7 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "new_dtn_bundle_spec_t_blocks", (swig_wrapper_func) _wrap_new_dtn_bundle_spec_t_blocks, NULL},
     { SWIG_prefix "delete_dtn_bundle_spec_t_blocks", (swig_wrapper_func) _wrap_delete_dtn_bundle_spec_t_blocks, NULL},
     { SWIG_prefix "dtn_bundle_spec_t_blocks", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_bundle_spec_t_blocks},
+    { SWIG_prefix "xdr_dtn_bundle_spec_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_spec_t, NULL},
     { SWIG_prefix "dtn_bundle_id_t_source_set", (swig_wrapper_func) _wrap_dtn_bundle_id_t_source_set, NULL},
     { SWIG_prefix "dtn_bundle_id_t_source_get", (swig_wrapper_func) _wrap_dtn_bundle_id_t_source_get, NULL},
     { SWIG_prefix "dtn_bundle_id_t_creation_ts_set", (swig_wrapper_func) _wrap_dtn_bundle_id_t_creation_ts_set, NULL},
@@ -8308,6 +8625,9 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "new_dtn_bundle_id_t", (swig_wrapper_func) _wrap_new_dtn_bundle_id_t, NULL},
     { SWIG_prefix "delete_dtn_bundle_id_t", (swig_wrapper_func) _wrap_delete_dtn_bundle_id_t, NULL},
     { SWIG_prefix "dtn_bundle_id_t", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_bundle_id_t},
+    { SWIG_prefix "xdr_dtn_bundle_id_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_id_t, NULL},
+    { SWIG_prefix "xdr_dtn_status_report_reason_t", (swig_wrapper_func) _wrap_xdr_dtn_status_report_reason_t, NULL},
+    { SWIG_prefix "xdr_dtn_status_report_flags_t", (swig_wrapper_func) _wrap_xdr_dtn_status_report_flags_t, NULL},
     { SWIG_prefix "dtn_bundle_status_report_t_bundle_id_set", (swig_wrapper_func) _wrap_dtn_bundle_status_report_t_bundle_id_set, NULL},
     { SWIG_prefix "dtn_bundle_status_report_t_bundle_id_get", (swig_wrapper_func) _wrap_dtn_bundle_status_report_t_bundle_id_get, NULL},
     { SWIG_prefix "dtn_bundle_status_report_t_reason_set", (swig_wrapper_func) _wrap_dtn_bundle_status_report_t_reason_set, NULL},
@@ -8329,6 +8649,8 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "new_dtn_bundle_status_report_t", (swig_wrapper_func) _wrap_new_dtn_bundle_status_report_t, NULL},
     { SWIG_prefix "delete_dtn_bundle_status_report_t", (swig_wrapper_func) _wrap_delete_dtn_bundle_status_report_t, NULL},
     { SWIG_prefix "dtn_bundle_status_report_t", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_bundle_status_report_t},
+    { SWIG_prefix "xdr_dtn_bundle_status_report_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_status_report_t, NULL},
+    { SWIG_prefix "xdr_dtn_bundle_payload_location_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_payload_location_t, NULL},
     { SWIG_prefix "dtn_bundle_payload_t_location_set", (swig_wrapper_func) _wrap_dtn_bundle_payload_t_location_set, NULL},
     { SWIG_prefix "dtn_bundle_payload_t_location_get", (swig_wrapper_func) _wrap_dtn_bundle_payload_t_location_get, NULL},
     { SWIG_prefix "dtn_bundle_payload_t_status_report_set", (swig_wrapper_func) _wrap_dtn_bundle_payload_t_status_report_set, NULL},
@@ -8352,23 +8674,6 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "new_dtn_bundle_payload_t_filename", (swig_wrapper_func) _wrap_new_dtn_bundle_payload_t_filename, NULL},
     { SWIG_prefix "delete_dtn_bundle_payload_t_filename", (swig_wrapper_func) _wrap_delete_dtn_bundle_payload_t_filename, NULL},
     { SWIG_prefix "dtn_bundle_payload_t_filename", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_bundle_payload_t_filename},
-    { SWIG_prefix "xdr_dtn_endpoint_id_t", (swig_wrapper_func) _wrap_xdr_dtn_endpoint_id_t, NULL},
-    { SWIG_prefix "xdr_dtn_reg_id_t", (swig_wrapper_func) _wrap_xdr_dtn_reg_id_t, NULL},
-    { SWIG_prefix "xdr_dtn_timeval_t", (swig_wrapper_func) _wrap_xdr_dtn_timeval_t, NULL},
-    { SWIG_prefix "xdr_dtn_timestamp_t", (swig_wrapper_func) _wrap_xdr_dtn_timestamp_t, NULL},
-    { SWIG_prefix "xdr_dtn_service_tag_t", (swig_wrapper_func) _wrap_xdr_dtn_service_tag_t, NULL},
-    { SWIG_prefix "xdr_dtn_reg_failure_action_t", (swig_wrapper_func) _wrap_xdr_dtn_reg_failure_action_t, NULL},
-    { SWIG_prefix "xdr_dtn_reg_info_t", (swig_wrapper_func) _wrap_xdr_dtn_reg_info_t, NULL},
-    { SWIG_prefix "xdr_dtn_bundle_priority_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_priority_t, NULL},
-    { SWIG_prefix "xdr_dtn_bundle_delivery_opts_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_delivery_opts_t, NULL},
-    { SWIG_prefix "xdr_dtn_extension_block_flags_t", (swig_wrapper_func) _wrap_xdr_dtn_extension_block_flags_t, NULL},
-    { SWIG_prefix "xdr_dtn_extension_block_t", (swig_wrapper_func) _wrap_xdr_dtn_extension_block_t, NULL},
-    { SWIG_prefix "xdr_dtn_bundle_spec_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_spec_t, NULL},
-    { SWIG_prefix "xdr_dtn_bundle_id_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_id_t, NULL},
-    { SWIG_prefix "xdr_dtn_status_report_reason_t", (swig_wrapper_func) _wrap_xdr_dtn_status_report_reason_t, NULL},
-    { SWIG_prefix "xdr_dtn_status_report_flags_t", (swig_wrapper_func) _wrap_xdr_dtn_status_report_flags_t, NULL},
-    { SWIG_prefix "xdr_dtn_bundle_status_report_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_status_report_t, NULL},
-    { SWIG_prefix "xdr_dtn_bundle_payload_location_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_payload_location_t, NULL},
     { SWIG_prefix "xdr_dtn_bundle_payload_t", (swig_wrapper_func) _wrap_xdr_dtn_bundle_payload_t, NULL},
     { SWIG_prefix "dtn_strerror", (swig_wrapper_func) _wrap_dtn_strerror, NULL},
     { SWIG_prefix "dtn_open", (swig_wrapper_func) _wrap_dtn_open, NULL},
@@ -8444,6 +8749,8 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "dtn_bundle_creation_secs_get", (swig_wrapper_func) _wrap_dtn_bundle_creation_secs_get, NULL},
     { SWIG_prefix "dtn_bundle_creation_seqno_set", (swig_wrapper_func) _wrap_dtn_bundle_creation_seqno_set, NULL},
     { SWIG_prefix "dtn_bundle_creation_seqno_get", (swig_wrapper_func) _wrap_dtn_bundle_creation_seqno_get, NULL},
+    { SWIG_prefix "dtn_bundle_delivery_regid_set", (swig_wrapper_func) _wrap_dtn_bundle_delivery_regid_set, NULL},
+    { SWIG_prefix "dtn_bundle_delivery_regid_get", (swig_wrapper_func) _wrap_dtn_bundle_delivery_regid_get, NULL},
     { SWIG_prefix "dtn_bundle_payload_set", (swig_wrapper_func) _wrap_dtn_bundle_payload_set, NULL},
     { SWIG_prefix "dtn_bundle_payload_get", (swig_wrapper_func) _wrap_dtn_bundle_payload_get, NULL},
     { SWIG_prefix "dtn_bundle_status_report_set", (swig_wrapper_func) _wrap_dtn_bundle_status_report_set, NULL},
@@ -8452,6 +8759,14 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "delete_dtn_bundle", (swig_wrapper_func) _wrap_delete_dtn_bundle, NULL},
     { SWIG_prefix "dtn_bundle", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_bundle},
     { SWIG_prefix "dtn_recv", (swig_wrapper_func) _wrap_dtn_recv, NULL},
+    { SWIG_prefix "dtn_session_info_status_set", (swig_wrapper_func) _wrap_dtn_session_info_status_set, NULL},
+    { SWIG_prefix "dtn_session_info_status_get", (swig_wrapper_func) _wrap_dtn_session_info_status_get, NULL},
+    { SWIG_prefix "dtn_session_info_session_set", (swig_wrapper_func) _wrap_dtn_session_info_session_set, NULL},
+    { SWIG_prefix "dtn_session_info_session_get", (swig_wrapper_func) _wrap_dtn_session_info_session_get, NULL},
+    { SWIG_prefix "new_dtn_session_info", (swig_wrapper_func) _wrap_new_dtn_session_info, NULL},
+    { SWIG_prefix "delete_dtn_session_info", (swig_wrapper_func) _wrap_delete_dtn_session_info, NULL},
+    { SWIG_prefix "dtn_session_info", (swig_wrapper_func) SWIG_ObjectConstructor, (ClientData)&_wrap_class_dtn_session_info},
+    { SWIG_prefix "dtn_session_update", (swig_wrapper_func) _wrap_dtn_session_update, NULL},
     { SWIG_prefix "dtn_poll_fd", (swig_wrapper_func) _wrap_dtn_poll_fd, NULL},
     { SWIG_prefix "dtn_begin_poll", (swig_wrapper_func) _wrap_dtn_begin_poll, NULL},
     { SWIG_prefix "dtn_cancel_poll", (swig_wrapper_func) _wrap_dtn_cancel_poll, NULL},
@@ -8491,10 +8806,11 @@ static swig_type_info _swigt__p_dtn_extension_block_flags_t = {"_p_dtn_extension
 static swig_type_info _swigt__p_dtn_extension_block_t = {"_p_dtn_extension_block_t", "dtn_extension_block_t *", 0, 0, (void*)&_wrap_class_dtn_extension_block_t, 0};
 static swig_type_info _swigt__p_dtn_extension_block_t_data = {"_p_dtn_extension_block_t_data", "dtn_extension_block_t_data *", 0, 0, (void*)&_wrap_class_dtn_extension_block_t_data, 0};
 static swig_type_info _swigt__p_dtn_handle_t = {"_p_dtn_handle_t", "dtn_handle_t *", 0, 0, (void*)0, 0};
-static swig_type_info _swigt__p_dtn_reg_failure_action_t = {"_p_dtn_reg_failure_action_t", "enum dtn_reg_failure_action_t *|dtn_reg_failure_action_t *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_dtn_reg_flags_t = {"_p_dtn_reg_flags_t", "enum dtn_reg_flags_t *|dtn_reg_flags_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_reg_info_t = {"_p_dtn_reg_info_t", "dtn_reg_info_t *", 0, 0, (void*)&_wrap_class_dtn_reg_info_t, 0};
 static swig_type_info _swigt__p_dtn_reg_info_t_script = {"_p_dtn_reg_info_t_script", "dtn_reg_info_t_script *", 0, 0, (void*)&_wrap_class_dtn_reg_info_t_script, 0};
 static swig_type_info _swigt__p_dtn_service_tag_t = {"_p_dtn_service_tag_t", "dtn_service_tag_t *", 0, 0, (void*)&_wrap_class_dtn_service_tag_t, 0};
+static swig_type_info _swigt__p_dtn_session_info = {"_p_dtn_session_info", "dtn_session_info *", 0, 0, (void*)&_wrap_class_dtn_session_info, 0};
 static swig_type_info _swigt__p_dtn_status_report = {"_p_dtn_status_report", "dtn_status_report *", 0, 0, (void*)&_wrap_class_dtn_status_report, 0};
 static swig_type_info _swigt__p_dtn_status_report_flags_t = {"_p_dtn_status_report_flags_t", "enum dtn_status_report_flags_t *|dtn_status_report_flags_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_status_report_reason_t = {"_p_dtn_status_report_reason_t", "enum dtn_status_report_reason_t *|dtn_status_report_reason_t *", 0, 0, (void*)0, 0};
@@ -8524,10 +8840,11 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_dtn_extension_block_t,
   &_swigt__p_dtn_extension_block_t_data,
   &_swigt__p_dtn_handle_t,
-  &_swigt__p_dtn_reg_failure_action_t,
+  &_swigt__p_dtn_reg_flags_t,
   &_swigt__p_dtn_reg_info_t,
   &_swigt__p_dtn_reg_info_t_script,
   &_swigt__p_dtn_service_tag_t,
+  &_swigt__p_dtn_session_info,
   &_swigt__p_dtn_status_report,
   &_swigt__p_dtn_status_report_flags_t,
   &_swigt__p_dtn_status_report_reason_t,
@@ -8557,10 +8874,11 @@ static swig_cast_info _swigc__p_dtn_extension_block_flags_t[] = {  {&_swigt__p_d
 static swig_cast_info _swigc__p_dtn_extension_block_t[] = {  {&_swigt__p_dtn_extension_block_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_extension_block_t_data[] = {  {&_swigt__p_dtn_extension_block_t_data, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_handle_t[] = {  {&_swigt__p_dtn_handle_t, 0, 0, 0},{0, 0, 0, 0}};
-static swig_cast_info _swigc__p_dtn_reg_failure_action_t[] = {  {&_swigt__p_dtn_reg_failure_action_t, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_dtn_reg_flags_t[] = {  {&_swigt__p_dtn_reg_flags_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_reg_info_t[] = {  {&_swigt__p_dtn_reg_info_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_reg_info_t_script[] = {  {&_swigt__p_dtn_reg_info_t_script, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_service_tag_t[] = {  {&_swigt__p_dtn_service_tag_t, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_dtn_session_info[] = {  {&_swigt__p_dtn_session_info, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_status_report[] = {  {&_swigt__p_dtn_status_report, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_status_report_flags_t[] = {  {&_swigt__p_dtn_status_report_flags_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_status_report_reason_t[] = {  {&_swigt__p_dtn_status_report_reason_t, 0, 0, 0},{0, 0, 0, 0}};
@@ -8590,10 +8908,11 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_dtn_extension_block_t,
   _swigc__p_dtn_extension_block_t_data,
   _swigc__p_dtn_handle_t,
-  _swigc__p_dtn_reg_failure_action_t,
+  _swigc__p_dtn_reg_flags_t,
   _swigc__p_dtn_reg_info_t,
   _swigc__p_dtn_reg_info_t_script,
   _swigc__p_dtn_service_tag_t,
+  _swigc__p_dtn_session_info,
   _swigc__p_dtn_status_report,
   _swigc__p_dtn_status_report_flags_t,
   _swigc__p_dtn_status_report_reason_t,
@@ -8914,6 +9233,7 @@ SWIGEXPORT int SWIG_init(Tcl_Interp *interp) {
   SWIG_Tcl_InstallConstants(interp, swig_constants);
   
   
+  SWIG_Tcl_SetConstantObj(interp, "RPCGEN_VERSION", SWIG_From_int(static_cast< int >(199506)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_ENDPOINT_ID", SWIG_From_int(static_cast< int >(256)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_AUTHDATA", SWIG_From_int(static_cast< int >(1024)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_MAX_REGION_LEN", SWIG_From_int(static_cast< int >(64)));
@@ -8924,6 +9244,9 @@ SWIGEXPORT int SWIG_init(Tcl_Interp *interp) {
   SWIG_Tcl_SetConstantObj(interp, "DTN_REG_DROP", SWIG_From_int(static_cast< int >(DTN_REG_DROP)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_REG_DEFER", SWIG_From_int(static_cast< int >(DTN_REG_DEFER)));
   SWIG_Tcl_SetConstantObj(interp, "DTN_REG_EXEC", SWIG_From_int(static_cast< int >(DTN_REG_EXEC)));
+  SWIG_Tcl_SetConstantObj(interp, "DTN_SESSION_CUSTODY", SWIG_From_int(static_cast< int >(DTN_SESSION_CUSTODY)));
+  SWIG_Tcl_SetConstantObj(interp, "DTN_SESSION_PUBLISH", SWIG_From_int(static_cast< int >(DTN_SESSION_PUBLISH)));
+  SWIG_Tcl_SetConstantObj(interp, "DTN_SESSION_SUBSCRIBE", SWIG_From_int(static_cast< int >(DTN_SESSION_SUBSCRIBE)));
   SWIG_Tcl_SetConstantObj(interp, "COS_BULK", SWIG_From_int(static_cast< int >(COS_BULK)));
   SWIG_Tcl_SetConstantObj(interp, "COS_NORMAL", SWIG_From_int(static_cast< int >(COS_NORMAL)));
   SWIG_Tcl_SetConstantObj(interp, "COS_EXPEDITED", SWIG_From_int(static_cast< int >(COS_EXPEDITED)));

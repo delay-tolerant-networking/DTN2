@@ -212,8 +212,7 @@ public:
         memset(&reginfo, 0, sizeof(reginfo));
 
         dtn_copy_eid(&reginfo.endpoint, &opts_.endpoint_);
-        reginfo.failure_action =
-            (dtn_reg_failure_action_t)opts_.failure_action_;
+        reginfo.flags = opts_.failure_action_;
         reginfo.expiration = opts_.expiration_;
         reginfo.script.script_len = opts_.script_.length();
         reginfo.script.script_val = (char*)opts_.script_.c_str();

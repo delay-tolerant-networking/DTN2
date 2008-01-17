@@ -54,6 +54,7 @@ Bundle::init(u_int32_t id)
     expiration_		= 0;
     owner_              = "";
     fragmented_incoming_= false;
+    session_flags_      = 0;
 
     // as per the spec, the creation timestamp should be calculated as
     // seconds since 1/1/2000, and since the bundle id should be
@@ -164,6 +165,8 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));
     buf->appendf("       orig_length: %d\n", orig_length_);
     buf->appendf("       frag_offset: %d\n", frag_offset_);
+    buf->appendf("       session_eid: %s\n", session_eid_.c_str());
+    buf->appendf("     session_flags: 0x%x\n", session_flags_);
     buf->append("\n");
 
     buf->appendf("forwarding log:\n");
@@ -234,6 +237,8 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("orig_length", &orig_length_);
     a->process("frag_offset", &frag_offset_);
     a->process("owner", &owner_);
+    a->process("session_eid", &session_eid_);    
+    a->process("session_flags", &session_flags_);    
     a->process("extended_id_seconds", &extended_id_.seconds_);
     a->process("extended_id_seqno", &extended_id_.seqno_);
     a->process("recv_blocks", &recv_blocks_);

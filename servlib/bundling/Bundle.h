@@ -224,6 +224,8 @@ public:
     bool              local_custody()     const { return local_custody_; }
     const std::string& owner()            const { return owner_; }
     bool              fragmented_incoming() const { return fragmented_incoming_; }
+    const EndpointID& session_eid()       const { return session_eid_; }
+    u_int8_t          session_flags()     const { return session_flags_; }
     const BundlePayload& payload()        const { return payload_; }
     const ForwardingLog* fwdlog()         const { return &fwdlog_; }
     const BundleTimestamp& creation_ts()  const { return creation_ts_; }
@@ -259,8 +261,9 @@ public:
     void set_owner(const std::string& s) { owner_ = s; }
     void set_fragmented_incoming(bool t) { fragmented_incoming_ = t; }
     void set_creation_ts(const BundleTimestamp& ts) { creation_ts_ = ts; }
+    EndpointID* mutable_session_eid()  { return &session_eid_; }
+    void set_session_flags(u_int8_t f) { session_flags_ = f; }
     void test_set_bundleid(u_int32_t id) { bundleid_ = id; }
-
     BundlePayload*   mutable_payload() { return &payload_; }
     ForwardingLog*   fwdlog()          { return &fwdlog_; }
     ExpirationTimer* expiration_timer(){ return expiration_timer_; }
@@ -303,8 +306,10 @@ private:
     u_int32_t expiration_;	///< Bundle expiration time
     u_int32_t frag_offset_;	///< Offset of fragment in original bundle
     u_int32_t orig_length_;	///< Length of original bundle
+    EndpointID session_eid_;	///< Session eid
+    u_int8_t session_flags_;	///< Session flags
     BundlePayload payload_;	///< Reference to the payload
-
+    
     /*
      * Internal fields and structures for managing the bundle that are
      * not transmitted over the network.

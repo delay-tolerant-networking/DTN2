@@ -153,6 +153,18 @@ extern int dtn_recv(dtn_handle_t handle,
                     dtn_timeval_t timeout);
 
 /**
+ * Blocking query for new subscribers on a session. One or more
+ * registrations must have been bound to the handle with the
+ * SESSION_CUSTODY flag set. Returns an indication that the
+ * subscription state in the given session has changed (i.e. a
+ * subscriber was added or removed).
+ */
+extern int dtn_session_update(dtn_handle_t handle,
+                              unsigned int* status,
+                              dtn_endpoint_id_t* session,
+                              dtn_timeval_t timeout);
+
+/**
  * Return a file descriptor for the given handle suitable for calling
  * poll() or select() in conjunction with a call to dtn_begin_poll().
  */

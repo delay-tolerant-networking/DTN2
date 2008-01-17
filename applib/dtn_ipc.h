@@ -45,7 +45,7 @@ extern "C" {
  * Make sure to bump this when changing any data structures, message
  * types, adding functions, etc.
  */
-#define DTN_IPC_VERSION 5
+#define DTN_IPC_VERSION 6
 
 /**
  * Default api ports. The handshake port is used for initial contact
@@ -91,7 +91,8 @@ typedef enum {
     DTN_RECV			= 11,
     DTN_BEGIN_POLL		= 12,
     DTN_CANCEL_POLL		= 13,
-    DTN_CANCEL          	= 14
+    DTN_CANCEL          	= 14,
+    DTN_SESSION_UPDATE         	= 15
 } dtnapi_message_type_t;
 
 /**

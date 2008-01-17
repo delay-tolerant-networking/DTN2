@@ -22,30 +22,60 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
+#include "session/Session.h"
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 APIRegistration::APIRegistration(const oasys::Builder& builder)
     : Registration(builder)
 {
     bundle_list_ = new BlockingBundleList(logpath_);
+    session_notify_list_ = NULL;
 }
     
+//----------------------------------------------------------------------
 APIRegistration::APIRegistration(u_int32_t regid,
                                  const EndpointIDPattern& endpoint,
                                  failure_action_t action,
+                                 u_int32_t session_flags,
                                  u_int32_t expiration,
                                  const std::string& script)
-    : Registration(regid, endpoint, action, expiration, script)
+    : Registration(regid, endpoint, action, session_flags, expiration, script)
 {
     bundle_list_ = new BlockingBundleList(logpath_);
+    if (session_flags & Session::CUSTODY) {
+        session_notify_list_ = new BlockingBundleList(logpath_);
+        session_notify_list_->logpath_appendf("/session_notify");
+    } else {
+        session_notify_list_ = NULL;
+    }
 }
 
+//----------------------------------------------------------------------
+void
+APIRegistration::serialize(oasys::SerializeAction* a)
+{
+    Registration::serialize(a);
+
+    if (a->action_code() == oasys::Serialize::UNMARSHAL &&
+        (session_flags_ & Session::CUSTODY))
+    {
+        session_notify_list_ = new BlockingBundleList(logpath_);
+        session_notify_list_->logpath_appendf("/session_notify");
+    }
+}
+
+//----------------------------------------------------------------------
 APIRegistration::~APIRegistration()
 {
     delete bundle_list_;
+    if (session_notify_list_) {
+        delete session_notify_list_;
+    }
 }
 
+//----------------------------------------------------------------------
 void
 APIRegistration::deliver_bundle(Bundle* bundle)
 {
