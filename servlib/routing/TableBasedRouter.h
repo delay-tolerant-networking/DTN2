@@ -75,7 +75,7 @@ protected:
 
     /// @{ Session management helper functions
     bool subscribe_to_session(Session* session);
-    bool find_session_upstream(Bundle* bundle, Session* session);
+    bool find_session_upstream(Session* session);
     void handle_session_bundle(BundleReceivedEvent* event);
     bool fwd_to_session_peer(Bundle* bundle, const EndpointID& peer);
     /// @}

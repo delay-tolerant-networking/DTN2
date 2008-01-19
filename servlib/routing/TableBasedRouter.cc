@@ -711,6 +711,14 @@ TableBasedRouter::handle_registration_added(RegistrationAddedEvent* event)
 
     else if (reg->session_flags() & Session::PUBLISH) {
         log_debug("session publish registration %u", reg->regid());
+
+        Session* session = sessions_.get_session(reg->endpoint());
+        if (session->upstream().is_null()) {
+            log_debug("unknown upstream for publish registration... "
+                      "trying to find one");
+            find_session_upstream(session);
+        }
+
         // XXX/demmer do something about publish
     }
 }
@@ -786,7 +794,7 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
         if (session->upstream().is_null()) {
             log_debug("handle_session_bundle: "
                       "unknown upstream... trying to find one");
-            if (! find_session_upstream(bundle, session)) {
+            if (! find_session_upstream(session)) {
                 return; // can't do anything
             }
 
@@ -834,6 +842,13 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
         log_debug("handle_session_bundle: "
                   "forwarding data bundle to %zu subscribers",
                   session->subscribers().size());
+
+        // make sure there's a known upstream
+        if (session->upstream().is_null()) {
+            log_debug("unknown upstream for publish registration... "
+                      "trying to find one");
+            find_session_upstream(session);
+        }
 
         SubscriberList::const_iterator iter;
         for (iter = session->subscribers().begin();
@@ -890,14 +905,16 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
 
 //----------------------------------------------------------------------
 bool
-TableBasedRouter::find_session_upstream(Bundle* bundle, Session* session)
+TableBasedRouter::find_session_upstream(Session* session)
 {
+    EndpointID subscribe_eid("dtn-session:" + session->eid().str());
+    
     // first look for a local custody registration
     for (RegistrationList::iterator iter = session_custodians_.begin();
          iter != session_custodians_.end(); ++iter)
     {
         Registration* reg = *iter;
-        if (reg->endpoint().match(bundle->dest())) {
+        if (reg->endpoint().match(subscribe_eid)) {
             log_debug("find_session_upstream: found custody registration %d",
                       reg->regid());
 
@@ -913,7 +930,7 @@ TableBasedRouter::find_session_upstream(Bundle* bundle, Session* session)
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
     
-    route_table_->get_matching(bundle->dest(), &matches);
+    route_table_->get_matching(subscribe_eid, &matches);
     // XXX/demmer do something about this...
     // sort_routes(bundle, &matches);
 
@@ -923,7 +940,8 @@ TableBasedRouter::find_session_upstream(Bundle* bundle, Session* session)
         if (link->remote_eid().str() == "" ||
             link->remote_eid() == EndpointID::NULL_EID())
         {
-            log_warn("find_session_upstream: got route match with no remote eid");
+            log_warn("find_session_upstream: "
+                     "got route match with no remote eid");
             // XXX/demmer uh...
             continue;
         }
