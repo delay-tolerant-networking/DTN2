@@ -22,6 +22,7 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
+#include "session/Session.h"
 #include "storage/GlobalStore.h"
 
 namespace dtn {
@@ -134,6 +135,26 @@ Registration::serialize(oasys::SerializeAction* a)
     }
 
     logpathf("/dtn/registration/%d", regid_);
+}
+
+//----------------------------------------------------------------------
+int
+Registration::format(char* buf, size_t sz) const
+{
+    return snprintf(buf, sz,
+                    "id %u: %s %s (%s%s) [expiration %d%s%s%s%s]",
+                    regid(),
+                    active() ? "active" : "passive",
+                    endpoint().c_str(),
+                    failure_action_toa(failure_action()),
+                    failure_action() == Registration::EXEC ?
+                      script().c_str() : "",
+                    expiration(),
+                    session_flags() != 0 ? " session:" : "",
+                    (session_flags() & Session::CUSTODY) ? " custody" : "",
+                    (session_flags() & Session::PUBLISH) ? " publish" : "",
+                    (session_flags() & Session::SUBSCRIBE) ? " subscribe" : ""
+        );
 }
 
 //----------------------------------------------------------------------
