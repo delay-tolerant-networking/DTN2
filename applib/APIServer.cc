@@ -850,7 +850,7 @@ APIClient::handle_send()
     // The bundle's source EID must be either dtn:none or an EID
     // registered at this node so check that now.
     const RegistrationTable* reg_table = BundleDaemon::instance()->reg_table();
-    Registration *reg;
+    RegistrationList unused;
     if (b->source() == EndpointID::NULL_EID())
     {
         // Bundles with a null source EID are not allowed to request reports or
@@ -860,18 +860,12 @@ APIClient::handle_send()
                     "custody transfer");
             return DTN_EINVAL;
         }
-        
+
         b->set_do_not_fragment(true);
     }
-    else if ((reg = reg_table->get(EndpointIDPattern(b->source()))) != NULL)
+    else if (reg_table->get_matching(b->source(), &unused) != 0)
     {
-        // If it is a local registration, check the registration
-        // flags to see if it's a session registration to set the
-        // bundle's session fields appropriately.
-        if (reg->session_flags() != 0) {
-            b->mutable_session_eid()->assign(reg->endpoint());
-            b->set_session_flags(Session::DATA);
-        }
+        // Local registration -- don't do anything
     }
     else if (b->source().subsume(BundleDaemon::instance()->local_eid()))
     {
@@ -882,6 +876,17 @@ APIClient::handle_send()
         log_err("this node is not a member of the bundle's source EID (%s)",
                 b->source().str().c_str());
         return DTN_EINVAL;
+    }
+    
+    // Look up the destination eid to see if there's a session
+    // registration that matches, to set the bundle's session fields
+    // appropriately.
+    // XXX/demmer should this be the destination or a specific session
+    // field in the bundle?
+    Registration* reg = reg_table->get(EndpointIDPattern(b->dest()));
+    if (reg && reg->session_flags() != 0) {
+        b->mutable_session_eid()->assign(reg->endpoint());
+        b->set_session_flags(Session::DATA);
     }
 
     // delivery options
