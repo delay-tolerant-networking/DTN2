@@ -389,6 +389,8 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
         sr_dst->ack_by_app_ts_seqno      = sr_src->ack_by_app_ts.seqno;
 
         bundle->status_report = sr_dst;
+    } else {
+        bundle->status_report = NULL;
     }
 
     return bundle;
