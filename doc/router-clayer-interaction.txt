@@ -1,0 +1,56 @@
+	    DTN2 Router <-> Convergence Layer Interaction
+	    ---------------------------------------------
+
+
+This is an (incomplete) document that describes the contract between
+DTN2 routers and convergence layers. XXX/demmer needs more work
+
+Basic Design
+------------
+
+Each link has two BundleLists: the queue_ and the inflight_ lists.
+A router indicates that it wants to transmit a bundle by calling
+BundleActions::queue_bundle. That in turn puts the bundle on the
+queue_ and calls ConvergenceLayer::bundle_queued. 
+
+When the convergence layer initiates transmission of the bundle, it
+should call Link::add_to_inflight and Link::del_from_queue on the
+bundle. That adjusts the bundle lists to indicate to the rest of the
+system that the bundle is actively being transmitted. (May in the
+future add an event to indicate this).
+
+Once the bundle transmission has completed, the convergence layer
+should post a BundleTransmittedEvent to indicate it. 
+
+Backpressure
+------------
+
+Each link queue has a configurable queue depth with a high water and
+low water mark. That limits the number of bundles that will be queued
+on the link and provides backpressure to the rest of the system. 
+
+The router responds to bundle transmitted events by checking whether
+the link queue has space for new bundles, and if so will initiate new
+transmissions by queuing more bundles there
+
+Link Closures
+-------------
+
+When links close, any bundles that are currently inflight (i.e. on the
+inflight list) should be put back onto the link queue by the
+convergence layer. Then when the link is re-opened, the convergence
+layer should initiate transmission of the bundles that are on the
+queue, as it will not get additional bundles_queued() calls when the
+link reopens.
+
+Cancelling Bundles
+------------------
+
+If routers have queued bundles on a link and want to cancel
+transmission, they should call BundleActions::cancel_bundle. If the
+bundle is on the link queue, it is simply removed from the queue,
+no indication is given to the convergence layer, and a
+BundleSendCancelledEvent is posted. If the bundle is on the inflight
+queue, then ConvergenceLayer::cancel_bundle is called. If the
+convergence layer can cancel transmission, it should. If not, it can
+ignore the call and then presumably eventually complete transmission.
