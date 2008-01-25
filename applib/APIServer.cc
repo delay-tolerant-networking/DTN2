@@ -1158,7 +1158,6 @@ APIClient::handle_recv()
         return DTN_EXDR;
     }
     
-    log_always("calling wait_for_notify");
     int err = wait_for_notify("recv", timeout, &reg, NULL, &sock_ready);
     if (err != 0) {
         return err;
@@ -1503,7 +1502,6 @@ APIClient::handle_session_update()
         return DTN_EXDR;
     }
     
-    log_always("handle_session_update: calling wait_for_notify");
     int err = wait_for_notify("session_update", timeout, NULL, &reg,
                               &sock_ready);
     if (err != 0) {
@@ -1564,8 +1562,6 @@ APIClient::wait_for_notify(const char*       operation,
                            APIRegistration** session_ready_reg,
                            bool*             sock_ready)
 {
-    log_always("in wait_for_notify");
-    
     APIRegistration* reg;
 
     ASSERT(sock_ready != NULL);
