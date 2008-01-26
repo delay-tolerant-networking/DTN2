@@ -194,6 +194,22 @@ EndpointID::serialize(oasys::SerializeAction* a)
 bool
 EndpointIDPattern::match(const EndpointID& eid) const
 {
+    // only match if we're valid
+    if (!uri_.valid()) {
+        log_warn_p("/dtn/naming/endpoint",
+                   "match error: pattern '%s' not a valid uri",
+                   uri_.c_str());
+        return false;
+    }
+    
+    // only match valid eids
+    if (!eid.uri().valid()) {
+        log_warn_p("/dtn/naming/endpoint",
+                   "match error: eid '%s' not a valid uri",
+                   eid.c_str());
+        return false;
+    }
+    
     if (! known_scheme()) {
         return (*this == eid);
     }

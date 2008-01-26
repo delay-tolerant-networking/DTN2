@@ -77,20 +77,6 @@ TCAScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
 
-    if (!eid.uri().valid()) {
-        log_warn_p("/scheme/dtn",
-                   "match error: eid '%s' not a valid url",
-                   eid.c_str());
-        return false;
-    }
-
-    if (!pattern.uri().valid()) {
-        log_warn_p("/scheme/dtn",
-                   "match error: pattern '%s' not a valid url",
-                   pattern.c_str());
-        return false;
-    }
-
     // check for a wildcard host specifier e.g dtn://*
     if (pattern.uri().host() == "*" && pattern.uri().path() == "")
     {

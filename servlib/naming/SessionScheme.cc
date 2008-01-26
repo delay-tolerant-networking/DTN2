@@ -69,22 +69,6 @@ SessionScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
 
-    // only match valid eids
-    if (!eid.uri().valid()) {
-        log_warn_p("/dtn/scheme/session",
-                   "match error: eid '%s' not a valid uri",
-                   eid.c_str());
-        return false;
-    }
-
-    // only match with valid patterns
-    if (!pattern.uri().valid()) {
-        log_warn_p("/dtn/scheme/session",
-                   "match error: pattern '%s' not a valid uri",
-                   pattern.c_str());
-        return false;
-    }
-
     // use globbing to match
     if (oasys::Glob::fixed_glob(pattern.uri().ssp().c_str(),
                                 eid.uri().ssp().c_str()))
