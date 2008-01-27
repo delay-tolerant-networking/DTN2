@@ -136,6 +136,15 @@ TableBasedRouter::handle_bundle_cancelled(BundleSendCancelledEvent* event)
 
 //----------------------------------------------------------------------
 void
+TableBasedRouter::handle_bundle_expired(BundleExpiredEvent* event)
+{
+    // XXX/demmer need to remove expired bundles from relevant session
+    // lists
+    (void)event;
+}
+
+//----------------------------------------------------------------------
+void
 TableBasedRouter::handle_route_add(RouteAddEvent* event)
 {
     add_route(event->entry_);
@@ -362,6 +371,26 @@ TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 {
     buf->appendf("Route table for %s router:\n\n", name_.c_str());
     route_table_->dump(buf);
+
+    if (!sessions_.empty())
+    {
+        buf->appendf("Session table (%zu sessions):\n", sessions_.size());
+        sessions_.dump(buf);
+        buf->appendf("\n");
+    }
+
+    if (!session_custodians_.empty())
+    {
+        buf->appendf("Session custodians (%zu registrations):\n",
+                     session_custodians_.size());
+
+        for (RegistrationList::iterator iter = session_custodians_.begin();
+             iter != session_custodians_.end(); ++iter)
+        {
+            buf->appendf("    *%p\n", *iter);
+        }
+        buf->appendf("\n");
+    }
 }
 
 //----------------------------------------------------------------------
@@ -458,10 +487,9 @@ TableBasedRouter::route_bundle(Bundle* bundle)
                    bundle->bundleid());
         return 0;
     }
-
-    LinkRef null_link("TableBasedRouter::route_bundle");
-    route_table_->get_matching(bundle->dest(), null_link, &matches);
-
+    
+    route_table_->get_matching(bundle->dest(), &matches);
+    
     // sort the matching routes by priority, allowing subclasses to
     // override the way in which the sorting occurs
     sort_routes(bundle, &matches);
@@ -738,20 +766,11 @@ TableBasedRouter::subscribe_to_session(Session* session)
         bundle->mutable_replyto()->assign(EndpointID::NULL_EID());
         bundle->mutable_custodian()->assign(EndpointID::NULL_EID());
         bundle->set_expiration(10); // XXX/demmer config?
-        bundle->set_singleton_dest(false);
-
-        int flags;
-        if (session->upstream().is_null()) {
-            flags = Session::SUBSCRIBE;
-        } else {
-            flags = Session::RESUBSCRIBE;
-        }
-        
+        bundle->set_singleton_dest(true);
         bundle->mutable_session_eid()->assign(session->eid());
-        bundle->set_session_flags(flags);
+        bundle->set_session_flags(Session::SUBSCRIBE);
 
-        log_debug("sending %s bundle to session %s",
-                  Session::flag_str(flags),
+        log_debug("sending subscribe bundle to session %s",
                   session->eid().c_str());
         
         BundleDaemon::post_at_head(
@@ -786,52 +805,49 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
 
     switch (bundle->session_flags()) {
     case Session::SUBSCRIBE:
-    case Session::RESUBSCRIBE:
     {
-        // forward the subscription on to the appropriate upstream
-        // (either local or remote)
-        bool new_upstream = false;
+        // if we don't have an upstream route yet, forward the
+        // subscription bundle onwards towards the session root
         if (session->upstream().is_null()) {
             log_debug("handle_session_bundle: "
                       "unknown upstream... trying to find one");
+            
             if (! find_session_upstream(session)) {
+                log_err("can't find an upstream for session %s", session->eid().c_str());
                 return; // can't do anything
             }
 
-            new_upstream = true;
             ASSERT(!session->upstream().is_null());
+
+            const Subscriber& upstream = session->upstream();
+            if (upstream.is_local())
+            {
+                log_debug("handle_session_bundle: "
+                          "forwarding %s bundle to upstream registration",
+                          Session::flag_str(bundle->session_flags()));
+                upstream.reg()->session_notify_list()->push_back(bundle);
+            }
+            else
+            {
+                log_debug("handle_session_bundle: "
+                          "found upstream subscriber... forwarding subscription bundle");
+                route_bundle(bundle);
+            }
         }
 
-        const Subscriber& upstream = session->upstream();
-        if (upstream.is_local())
-        {
-            log_debug("handle_session_bundle: "
-                      "forwarding %s bundle to upstream registration",
-                      Session::flag_str(bundle->session_flags()));
-            upstream.reg()->session_notify_list()->push_back(bundle);
-        }
-        else
-        {
-            log_debug("handle_session_bundle: "
-                      "found upstream subscriber... sending subscription bundle");
-
-            // XXX/demmer change bundle to a resubscribe if
-            // new_upstream is false??
-            fwd_to_session_peer(bundle, upstream.nexthop());
-        }
-
-        // add the subscriber to the session
-        if (bundle->prevhop().str() != "" &&
+        // add the new subscriber to the session
+        if (event->source_ == EVENTSRC_PEER &&
+            bundle->prevhop().str() != "" &&
             bundle->prevhop() != EndpointID::NULL_EID())
         {
             log_debug("handle_session_bundle: "
                       "adding downstream subscriber %s",
                       bundle->prevhop().c_str());
-            session->add_subscriber(Subscriber(bundle->prevhop()));
+            add_subscriber(session, bundle->prevhop());
         }
         else
         {
-            // XXX/demmer ??
+            // XXX/demmer what to do here??
             log_err("handle_session_bundle: "
                     "downstream subscriber with no prevhop!!!!");
         }
@@ -845,59 +861,19 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
 
         // make sure there's a known upstream
         if (session->upstream().is_null()) {
-            log_debug("unknown upstream for publish registration... "
-                      "trying to find one");
-            find_session_upstream(session);
+            log_warn("unknown upstream for DATA bundle... "
+                     "trying to find one");
         }
 
-        SubscriberList::const_iterator iter;
-        for (iter = session->subscribers().begin();
-             iter != session->subscribers().end(); ++iter)
-        {
-            const Subscriber& sub = *iter;
-            ASSERT(!sub.is_null());
-
-            // XXX/demmer should mark the subscriber where the message
-            // came from with state to remember the bundle id... then
-            // we don't need the individual things below
-            //
-            // XXX/demmer this doesn't handle the case where there may
-            // be more than one local app since the event isn't marked
-            // with the registration that it came from
-
-            if (sub.is_local()) {
-                if (event->source_ == EVENTSRC_APP)
-                {
-                    log_debug("handle_session_bundle: "
-                              "ignoring regid %d since it sent the bundle",
-                              sub.reg()->regid());
-                    continue;
-                }
-                
-                log_debug("handle_session_bundle: "
-                          "delivering to local subscriber regid %d",
-                          sub.reg()->regid());
-                sub.reg()->bundle_list()->push_back(bundle);
-
-            } else {
-                if (sub.nexthop() == event->prevhop_) {
-                    log_debug("handle_session_bundle: "
-                              "ignoring subscriber %s since it sent the bundle",
-                              sub.nexthop().c_str());
-                    continue;
-                }
-                    
-                log_debug("handle_session_bundle: "
-                          "delivering to remote subscriber %s",
-                          sub.nexthop().c_str());
-                fwd_to_session_peer(bundle, sub.nexthop());
-            }
-        }
+        // add the bundle to the session's bundle list
+        session->bundles()->push_back(bundle);
+        route_bundle(bundle);
         break;
     }
+    case Session::RESUBSCRIBE:
     default:
     {
-        // XXX/demmer 
+        // XXX/demmer handle resubscribe when routes change
         log_warn("session flags %x not implemented", bundle->session_flags());
     }
     }
@@ -907,14 +883,12 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
 bool
 TableBasedRouter::find_session_upstream(Session* session)
 {
-    EndpointID subscribe_eid("dtn-session:" + session->eid().str());
-    
     // first look for a local custody registration
     for (RegistrationList::iterator iter = session_custodians_.begin();
          iter != session_custodians_.end(); ++iter)
     {
         Registration* reg = *iter;
-        if (reg->endpoint().match(subscribe_eid)) {
+        if (reg->endpoint().match(session->eid())) {
             log_debug("find_session_upstream: found custody registration %d",
                       reg->regid());
 
@@ -930,7 +904,9 @@ TableBasedRouter::find_session_upstream(Session* session)
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
     
+    EndpointID subscribe_eid("dtn-session:" + session->eid().str());
     route_table_->get_matching(subscribe_eid, &matches);
+
     // XXX/demmer do something about this...
     // sort_routes(bundle, &matches);
 
@@ -949,6 +925,7 @@ TableBasedRouter::find_session_upstream(Session* session)
         log_debug("find_session_upstream: session %s upstream %s",
                   session->eid().c_str(), link->remote_eid().c_str());
         session->set_upstream(Subscriber(link->remote_eid()));
+        add_subscriber(session, link->remote_eid());
         return true;
     }
 
@@ -958,40 +935,28 @@ TableBasedRouter::find_session_upstream(Session* session)
 }
 
 //----------------------------------------------------------------------
-bool
-TableBasedRouter::fwd_to_session_peer(Bundle* bundle, const EndpointID& peer)
+void
+TableBasedRouter::add_subscriber(Session* session, const EndpointID& peer)
 {
-    RouteEntryVec matches;
-    RouteEntryVec::iterator iter;
+    log_debug("adding new subscriber for session %s -> %s",
+              session->eid().c_str(), peer.c_str());
     
-    log_debug("fwd_to_session_peer: bundle %d, peer %s",
-              bundle->bundleid(), peer.c_str());
+    session->add_subscriber(Subscriber(peer));
 
-    route_table_->get_matching(peer, &matches);
-
-    // sort the matching routes by priority, allowing subclasses to
-    // override the way in which the sorting occurs
-    sort_routes(bundle, &matches);
-
-    log_debug("fwd_to_matching bundle id %d: checking %zu route entry matches",
-              bundle->bundleid(), matches.size());
+    // XXX/demmer check for duplicates?
     
-    for (iter = matches.begin(); iter != matches.end(); ++iter)
+    RouteEntry *entry = new RouteEntry(session->eid(), peer);
+    entry->set_action(ForwardingInfo::COPY_ACTION);
+    route_table_->add_entry(entry);
+
+    log_debug("routing %zu session bundles", session->bundles()->size());
+    oasys::ScopeLock l(session->bundles()->lock(),
+                       "TableBasedRouter::add_subscriber");
+    for (BundleList::iterator iter = session->bundles()->begin();
+         iter != session->bundles()->end(); ++iter)
     {
-        if (! should_fwd(bundle, *iter)) {
-            continue;
-        }
-        
-        if (!fwd_to_nexthop(bundle, *iter)) {
-            continue;
-        }
-        
-        log_debug("fwd_to_session_peer bundle id %d: forwarded to %s",
-                  bundle->bundleid(), peer.c_str());
-        return true;
+        route_bundle(*iter);
     }
-
-    return false;
 }
 
 //----------------------------------------------------------------------

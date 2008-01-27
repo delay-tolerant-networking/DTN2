@@ -59,6 +59,7 @@ protected:
     virtual void handle_bundle_received(BundleReceivedEvent* event);
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
     virtual void handle_bundle_cancelled(BundleSendCancelledEvent* event);
+    virtual void handle_bundle_expired(BundleExpiredEvent* event);
     virtual void handle_route_add(RouteAddEvent* event);
     virtual void handle_route_del(RouteDelEvent* event);
     virtual void handle_contact_up(ContactUpEvent* event);
@@ -77,7 +78,7 @@ protected:
     bool subscribe_to_session(Session* session);
     bool find_session_upstream(Session* session);
     void handle_session_bundle(BundleReceivedEvent* event);
-    bool fwd_to_session_peer(Bundle* bundle, const EndpointID& peer);
+    void add_subscriber(Session* session, const EndpointID& peer);
     /// @}
     
     /**
