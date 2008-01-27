@@ -79,6 +79,11 @@ ParamCommand::ParamCommand()
                                 "How to set the is_singleton bit for "
                                 "unknown schemes"));
     
+    bind_var(new oasys::BoolOpt("glob_unknown_schemes",
+                                &EndpointID::glob_unknown_schemes_,
+                                "Whether unknown schemes use glob-based matching for "
+                                "registrations and routes"));
+    
     bind_var(new oasys::UIntOpt("link_min_retry_interval",
                                 &Link::default_params_.min_retry_interval_,
                                 "interval",

@@ -21,6 +21,7 @@
 #include <ctype.h>
 
 #include <oasys/debug/Log.h>
+#include <oasys/util/Glob.h>
 
 #include "applib/dtn_types.h"
 #include "EndpointID.h"
@@ -36,6 +37,7 @@ EndpointIDPattern GlobalEndpointIDs::wildcard_eid_;
 
 EndpointID::singleton_info_t
   EndpointID::is_singleton_default_ = EndpointID::MULTINODE;
+bool EndpointID::glob_unknown_schemes_ = true;
 
 //----------------------------------------------------------------------
 bool
@@ -210,11 +212,16 @@ EndpointIDPattern::match(const EndpointID& eid) const
         return false;
     }
     
-    if (! known_scheme()) {
+    if (known_scheme()) {
+        return scheme()->match(*this, eid);
+
+    } else if (glob_unknown_schemes_) {
+        return oasys::Glob::fixed_glob(uri_.c_str(), eid.c_str());
+        
+    } else {
         return (*this == eid);
     }
 
-    return scheme()->match(*this, eid);
 }
 
 

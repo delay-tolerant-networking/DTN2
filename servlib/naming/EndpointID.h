@@ -208,6 +208,11 @@ public:
     static singleton_info_t is_singleton_default_;
 
     /**
+     * Bit to control how to match unknown schemes.
+     */
+    static bool glob_unknown_schemes_;
+
+    /**
      * Copy the endpoint id contents out to the API type
      * dtn_endpoint_id_t.
      */
