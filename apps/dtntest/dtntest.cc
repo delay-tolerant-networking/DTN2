@@ -136,6 +136,14 @@ oasys::EnumOpt::Case FailureActionCases[] = {
     {0, 0}
 };
 
+//----------------------------------------------------------------------
+oasys::BitFlagOpt::Case SessionFlagCases[] = {
+    {"subscribe", DTN_SESSION_SUBSCRIBE},
+    {"publish",   DTN_SESSION_PUBLISH},
+    {"custody",   DTN_SESSION_CUSTODY},
+    {0, 0}
+};
+
 class DTNRegisterCommand : public oasys::TclCommand {
 public:
     oasys::OptParser parser_;
@@ -143,6 +151,7 @@ public:
     struct RegistrationOpts {
         dtn_endpoint_id_t endpoint_;
         int               failure_action_;
+        int               session_flags_;
         u_int             expiration_;
         std::string       script_;
         bool              init_passive_;
@@ -153,7 +162,8 @@ public:
     void init_opts() {
         memset(&opts_.endpoint_, 0, sizeof(opts_.endpoint_));
         opts_.failure_action_ = DTN_REG_DROP;
-        opts_.expiration_ = 0;
+        opts_.session_flags_ = 0;
+        opts_.expiration_ = 0xffffffff;
         opts_.script_ = "";
         opts_.init_passive_ = false;
     }
@@ -164,6 +174,9 @@ public:
         parser_.addopt(new oasys::EnumOpt("failure_action",
                                           FailureActionCases,
                                           &opts_.failure_action_));
+        parser_.addopt(new oasys::BitFlagOpt("session_flags",
+                                             SessionFlagCases,
+                                             &opts_.session_flags_));
         parser_.addopt(new oasys::UIntOpt("expiration", &opts_.expiration_));
         parser_.addopt(new oasys::StringOpt("script", &opts_.script_));
         parser_.addopt(new oasys::BoolOpt("init_passive",
@@ -203,7 +216,7 @@ public:
             return TCL_ERROR;
         }
         
-        if (opts_.expiration_ == 0) {
+        if (opts_.expiration_ == 0xffffffff) {
             resultf("must set expiration");
             return TCL_ERROR;
         }
@@ -212,7 +225,7 @@ public:
         memset(&reginfo, 0, sizeof(reginfo));
 
         dtn_copy_eid(&reginfo.endpoint, &opts_.endpoint_);
-        reginfo.flags = opts_.failure_action_;
+        reginfo.flags = opts_.failure_action_ | opts_.session_flags_;
         reginfo.expiration = opts_.expiration_;
         reginfo.script.script_len = opts_.script_.length();
         reginfo.script.script_val = (char*)opts_.script_.c_str();
