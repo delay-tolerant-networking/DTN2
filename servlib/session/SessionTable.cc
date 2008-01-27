@@ -18,6 +18,8 @@
 #include <dtn-config.h>
 #endif
 
+#include <oasys/util/StringBuffer.h>
+
 #include "SessionTable.h"
 #include "Session.h"
 #include "naming/EndpointID.h"
@@ -59,6 +61,31 @@ SessionTable::get_session(const EndpointID& eid)
         add_session(session);
     }
     return session;
+}
+
+//----------------------------------------------------------------------
+void
+SessionTable::dump(oasys::StringBuffer* buf) const
+{
+    SessionMap::const_iterator i;
+    SubscriberList::const_iterator j;
+    for (i = table_.begin(); i != table_.end(); ++i) {
+
+        Session* session = i->second;
+        buf->appendf("    %s upstream=*%p subscribers=",
+                     session->eid().c_str(), &session->upstream());
+        
+        for (j = session->subscribers().begin();
+             j != session->subscribers().end(); ++j) {
+
+            const Subscriber& sub = *j;
+            if (sub == session->upstream()) {
+                continue;
+            }
+            buf->appendf("*%p ", &sub);
+        }
+        buf->appendf("\n");
+    }
 }
 
 } // namespace dtn

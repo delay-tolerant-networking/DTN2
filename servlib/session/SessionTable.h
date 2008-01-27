@@ -19,6 +19,10 @@
 
 #include <map>
 
+namespace oasys {
+class StringBuffer;
+}
+
 namespace dtn {
 
 class EndpointID;
@@ -33,6 +37,10 @@ public:
     Session* lookup_session(const EndpointID& eid) const;
     void     add_session(Session* s);
     Session* get_session(const EndpointID& eid);
+
+    bool     empty() const { return table_.empty(); }
+    size_t   size()  const { return table_.size(); }
+    void     dump(oasys::StringBuffer* buf) const;
 
 protected:
     typedef std::map<EndpointID, Session*> SessionMap;
