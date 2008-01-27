@@ -33,15 +33,13 @@ int
 Subscriber::format(char* buf, size_t len) const
 {
     if (is_null()) {
-        return snprintf(buf, len, "null subscriber");
+        return snprintf(buf, len, "(null_subscriber)");
 
     } else if (is_local()) {
-        return snprintf(buf, len, "local subscriber (regid %d)",
-                        reg_->regid());
+        return snprintf(buf, len, "regid:%d", reg_->regid());
         
     } else {
-        return snprintf(buf, len, "remote subscriber (nexthop %s)",
-                        nexthop_.c_str());
+        return snprintf(buf, len, "peer:%s", nexthop_.c_str());
     }
 }
 
