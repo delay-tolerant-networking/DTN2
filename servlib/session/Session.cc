@@ -26,7 +26,9 @@ namespace dtn {
 
 //----------------------------------------------------------------------
 Session::Session(const EndpointID& eid)
-    : Logger("Session", "/dtn/session"), eid_(eid)
+    : Logger("Session", "/dtn/session"),
+      eid_(eid),
+      bundles_(std::string("session-") + eid.str())
 {
     static oasys::atomic_t next_session_id = 0;
     id_ = oasys::atomic_incr_ret(&next_session_id);

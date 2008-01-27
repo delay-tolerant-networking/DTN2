@@ -29,7 +29,8 @@ namespace dtn {
 /**
  * Class to manage a session.
  */
-class Session : public RouteEntryInfo, public oasys::Logger {
+class Session : public RouteEntryInfo, public oasys::Logger
+{
 public:
     /**
      * Type for session-related flags.
@@ -55,16 +56,18 @@ public:
     void set_upstream(const Subscriber& subscriber);
     void add_subscriber(const Subscriber& subscriber);
 
-    u_int32_t         id() const  { return id_; }
-    const EndpointID& eid() const { return eid_;}
-    const Subscriber& upstream() const { return upstream_; }
-    const SubscriberList& subscribers() const { return subscribers_; }
-    
+    u_int32_t             id()              const { return id_; }
+    const EndpointID&     eid()             const { return eid_;}
+    const Subscriber&     upstream()        const { return upstream_; }
+    const SubscriberList& subscribers()     const { return subscribers_; }
+    BundleList*           bundles()               { return &bundles_;}
+
 protected:
     u_int32_t  id_;              ///< Unique session id (for logging)
     EndpointID eid_;	         ///< EndpointID naming the session
     Subscriber upstream_;        ///< Subscriber in direction of a custodian
-    SubscriberList subscribers_; ///< Local + downstream subscribers 
+    SubscriberList subscribers_; ///< Local + downstream subscribers
+    BundleList bundles_;         ///< Currently-resident session bundles
 };
 
 } // namespace dtn
