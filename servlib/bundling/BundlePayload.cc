@@ -249,7 +249,7 @@ BundlePayload::copy_file(oasys::FileIOClient* dst) const
 bool
 BundlePayload::replace_with_file(const char* path)
 {
-    oasys::ScopeLock l(lock_, "BundlePayload::replace_with");
+    oasys::ScopeLock l(lock_, "BundlePayload::replace_with_file");
     
     ASSERT(location_ == DISK);
     std::string payload_path = file_.path();
