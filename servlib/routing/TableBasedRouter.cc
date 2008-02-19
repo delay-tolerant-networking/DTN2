@@ -244,24 +244,23 @@ TableBasedRouter::reroute_bundles(const LinkRef& link)
 
     // if the reroute timer fires, the link should be down and there
     // should be at least one bundle queued on it.
-    //
-    // cancel the queued and inflight transmissions and rely on the
-    // BundleSendCancelledEvent handler to actually reroute the
-    // bundles
+    if (link->state() != Link::UNAVAILABLE) {
+        log_warn("reroute timer fired but link *%p state is %s, not UNAVAILABLE",
+                 link.object(), Link::state_to_str(link->state()));
+        return;
+    }
+    
     log_debug("reroute timer fired -- cancelling %zu bundles on link *%p",
               link->queue()->size(), link.object());
     
-    if (link->state() != Link::UNAVAILABLE) {
-        log_warn("reroute timer fired but link *%p state is %s",
-                 link.object(), Link::state_to_str(link->state()));
-    }
-    
-    BundleRef bundle("TableBasedRouter::reroute_bundles");
-
-    // be careful when iterating through the lists to avoid STL memory
-    // clobbering since cancel_bundle removes from the list
+    // cancel the queued transmissions and rely on the
+    // BundleSendCancelledEvent handler to actually reroute the
+    // bundles, being careful when iterating through the lists to
+    // avoid STL memory clobbering since cancel_bundle removes from
+    // the list
     oasys::ScopeLock l(link->queue()->lock(),
                        "TableBasedRouter::reroute_bundles");
+    BundleRef bundle("TableBasedRouter::reroute_bundles");
     while (! link->queue()->empty()) {
         bundle = link->queue()->front();
         actions_->cancel_bundle(bundle.object(), link);
