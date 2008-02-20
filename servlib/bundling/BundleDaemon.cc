@@ -2476,12 +2476,22 @@ BundleDaemon::run()
             oasys::Time now;
             now.get_time();
 
-            oasys::Time in_queue = event->posted_time_ - now;
-            if (in_queue.sec_ > 2) {
-                log_warn_p(LOOP_LOG, "event %s was in queue for %u.%u seconds",
-                           event->type_str(), in_queue.sec_, in_queue.usec_);
+            
+            if (now >= event->posted_time_) {
+                oasys::Time in_queue;
+                in_queue = now - event->posted_time_;
+                if (in_queue.sec_ > 2) {
+                    log_warn_p(LOOP_LOG, "event %s was in queue for %u.%u seconds",
+                               event->type_str(), in_queue.sec_, in_queue.usec_);
+                }
+            } else {
+                log_warn_p(LOOP_LOG, "time moved backwards: "
+                           "now %u.%u, event posted_time %u.%u",
+                           now.sec_, now.usec_,
+                           event->posted_time_.sec_, event->posted_time_.usec_);
             }
-        
+            
+            
             log_debug_p(LOOP_LOG, "BundleDaemon: handling event %s",
                         event->type_str());
             // handle the event
