@@ -18,9 +18,9 @@
 #define _DTN_VERSION_H_
 
 #define DTN_VERSION_MAJOR	2
-#define DTN_VERSION_MINOR	5
+#define DTN_VERSION_MINOR	6
 #define DTN_VERSION_PATCH	0
-#define DTN_VERSION_STRING	"2.5.0"
+#define DTN_VERSION_STRING	"2.6.0"
 
 extern const char* dtn_version;
 
