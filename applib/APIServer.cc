@@ -1201,6 +1201,7 @@ APIClient::handle_recv()
     spec.expiration = b->expiration();
     spec.creation_ts.secs = b->creation_ts().seconds_;
     spec.creation_ts.seqno = b->creation_ts().seqno_;
+    spec.delivery_regid = reg->regid();
 
     // copy extension blocks
     unsigned int blocks_found = 0;
