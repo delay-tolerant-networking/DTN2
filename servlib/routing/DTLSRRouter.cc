@@ -173,6 +173,8 @@ DTLSRRouter::DTLSRRouter()
       current_lsas_("DTLSRRouter::current_lsas"),
       update_lsa_timer_(this)
 {
+    // override add_nexthop_routes since it just confuses things
+    config_.add_nexthop_routes_ = false;
 }
 
 //----------------------------------------------------------------------
@@ -396,25 +398,27 @@ DTLSRRouter::handle_registration_added(RegistrationAddedEvent* event)
 {
     TableBasedRouter::handle_registration_added(event);
 
-    Registration* reg = event->registration_;
-    if (reg->session_flags() & Session::CUSTODY) {
-        Session* session = sessions_.lookup_session(reg->endpoint());
-        ASSERT(session != NULL);
+    // XXX/demmer fixme
+    
+//     Registration* reg = event->registration_;
+//     if (reg->session_flags() & Session::CUSTODY) {
+//         Session* session = sessions_.lookup_session(reg->endpoint());
+//         ASSERT(session != NULL);
 
-        // For group endpoint ids that aren't covered by the standard
-        // host-specific wildcard patterns, add a local route for the
-        // EID that just points to our local eid (since it's ignored
-        // for matching sessions anyway). That way it's conveyed along
-        // with other route imports.
+//         // For group endpoint ids that aren't covered by the standard
+//         // host-specific wildcard patterns, add a local route for the
+//         // EID that just points to our local eid (since it's ignored
+//         // for matching sessions anyway). That way it's conveyed along
+//         // with other route imports.
         
-        const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
-        if (! reg->endpoint().subsume(local_eid))
-        {
-            RouteEntry* e = new RouteEntry(reg->endpoint(), local_eid);
-            e->set_info(session);
-            route_table_->add_entry(e);
-        }
-    }
+//         const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
+//         if (! reg->endpoint().subsume(local_eid))
+//         {
+//             RouteEntry* e = new RouteEntry(reg->endpoint(), local_eid);
+//             e->set_info(session);
+//             route_table_->add_entry(e);
+//         }
+//     }
 }
 
 //----------------------------------------------------------------------
