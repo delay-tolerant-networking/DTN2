@@ -169,6 +169,7 @@ BundleDaemon::post_event(BundleEvent* event, bool at_back)
 {
     log_debug("posting event (%p) with type %s (at %s)",
               event, event->type_str(), at_back ? "back" : "head");
+    event->posted_time_.get_time();
     eventq_->push(event, at_back);
 }
 
@@ -2474,6 +2475,12 @@ BundleDaemon::run()
             
             oasys::Time now;
             now.get_time();
+
+            oasys::Time in_queue = event->posted_time_ - now;
+            if (in_queue.sec_ > 2) {
+                log_warn_p(LOOP_LOG, "event %s was in queue for %u.%u seconds",
+                           event->type_str(), in_queue.sec_, in_queue.usec_);
+            }
         
             log_debug_p(LOOP_LOG, "BundleDaemon: handling event %s",
                         event->type_str());
