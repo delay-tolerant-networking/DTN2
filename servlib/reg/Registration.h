@@ -39,7 +39,10 @@ class Bundle;
  *
  * Registration state is stored persistently in the database.
  */
-class Registration : public oasys::SerializableObject, public oasys::Logger {
+class Registration : public oasys::Formatter,
+                     public oasys::SerializableObject,
+                     public oasys::Logger
+{
 public:
     /**
      * Reserved registration identifiers.
@@ -96,7 +99,7 @@ public:
     const u_int32_t          durable_key()       const { return regid_; }
     const u_int32_t          regid()             const { return regid_; }
     const EndpointIDPattern& endpoint()          const { return endpoint_; } 
-    failure_action_t         failure_action()
+    failure_action_t         failure_action()    const
     {
         return static_cast<failure_action_t>(failure_action_);
     }
@@ -109,6 +112,11 @@ public:
     void set_active(bool a)  { active_ = a; }
     void set_expired(bool e) { expired_ = e; }
     //@}
+
+    /**
+     * Virtual from Formatter
+     */
+    int format(char* buf, size_t sz) const;
 
     /**
      * Virtual from SerializableObject.
