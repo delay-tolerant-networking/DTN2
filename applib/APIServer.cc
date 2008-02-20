@@ -1549,6 +1549,8 @@ APIClient::handle_session_update()
              "notification for session %s status %s",
              b->session_eid().c_str(), Session::flag_str(b->session_flags()));
 
+    BundleDaemon::post(new BundleDeliveredEvent(b, reg));
+
     return DTN_SUCCESS;
 }
 
