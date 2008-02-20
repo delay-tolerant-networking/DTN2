@@ -84,7 +84,7 @@ dtn_build_local_eid(int handle, const char* service_tag)
 static int
 build_reginfo(dtn_reg_info_t* reginfo,
               const string&   endpoint,
-              unsigned int    action,
+              unsigned int    flags,
               unsigned int    expiration,
               bool            init_passive,
               const string&   script)
@@ -92,7 +92,7 @@ build_reginfo(dtn_reg_info_t* reginfo,
     memset(reginfo, 0, sizeof(dtn_reg_info_t));
     
     strcpy(reginfo->endpoint.uri, endpoint.c_str());
-    reginfo->failure_action    = (dtn_reg_failure_action_t)action;
+    reginfo->flags             = flags;
     reginfo->expiration        = expiration;
     reginfo->init_passive      = init_passive;
     reginfo->script.script_len = script.length();
@@ -105,7 +105,7 @@ build_reginfo(dtn_reg_info_t* reginfo,
 int
 dtn_register(int           handle,
              const string& endpoint,
-             unsigned int  action,
+             unsigned int  flags,
              int           expiration,
              bool          init_passive,
              const string& script)
@@ -114,7 +114,7 @@ dtn_register(int           handle,
     if (!h) return -1;
 
     dtn_reg_info_t reginfo;
-    build_reginfo(&reginfo, endpoint, action, expiration,
+    build_reginfo(&reginfo, endpoint, flags, expiration,
                   init_passive, script);
         
     dtn_reg_id_t regid = 0;

@@ -105,15 +105,25 @@ const DTN_REGID_NONE = 0;
 
 %
 %/**
-% * Registration delivery failure actions
+% * Registration flags are a bitmask of the following:
+%
+% * Delivery failure actions (exactly one must be selected):
 % *     DTN_REG_DROP   - drop bundle if registration not active
 % *     DTN_REG_DEFER  - spool bundle for later retrieval
 % *     DTN_REG_EXEC   - exec program on bundle arrival
+% *
+% * Session flags:
+% *     DTN_SESSION_CUSTODY   - app assumes custody for the session
+% *     DTN_SESSION_PUBLISH   - creates a publication point
+% *     DTN_SESSION_SUBSCRIBE - create subscription for the session
 % */
-enum dtn_reg_failure_action_t {
-    DTN_REG_DROP   = 1,
-    DTN_REG_DEFER  = 2,
-    DTN_REG_EXEC   = 3
+enum dtn_reg_flags_t {
+    DTN_REG_DROP          = 1,
+    DTN_REG_DEFER         = 2,
+    DTN_REG_EXEC          = 3,
+    DTN_SESSION_CUSTODY   = 4,
+    DTN_SESSION_PUBLISH   = 8,
+    DTN_SESSION_SUBSCRIBE = 16
 };
 
 %
@@ -121,12 +131,12 @@ enum dtn_reg_failure_action_t {
 % * Registration state.
 % */
 struct dtn_reg_info_t {
-    dtn_endpoint_id_t 		endpoint;
-    dtn_reg_id_t		regid;
-    dtn_reg_failure_action_t 	failure_action;
-    dtn_timeval_t		expiration;
-    bool			init_passive;
-    opaque			script<DTN_MAX_EXEC_LEN>;
+    dtn_endpoint_id_t 	endpoint;
+    dtn_reg_id_t	regid;
+    unsigned int	flags;
+    dtn_timeval_t	expiration;
+    bool		init_passive;
+    opaque		script<DTN_MAX_EXEC_LEN>;
 };
 
 %
@@ -208,7 +218,9 @@ struct dtn_extension_block_t {
 
 %
 %/**
-% * Bundle metadata.
+% * Bundle metadata. The delivery_regid is ignored when sending
+% * bundles, but is filled in by the daemon with the registration
+% * id where the bundle was received.
 % */
 struct dtn_bundle_spec_t {
     dtn_endpoint_id_t		source;
@@ -218,6 +230,7 @@ struct dtn_bundle_spec_t {
     int				dopts;
     dtn_timeval_t		expiration;
     dtn_timestamp_t		creation_ts;
+    dtn_reg_id_t		delivery_regid;
     dtn_extension_block_t       blocks<DTN_MAX_BLOCKS>;
     dtn_extension_block_t       metadata<DTN_MAX_BLOCKS>;
 };
