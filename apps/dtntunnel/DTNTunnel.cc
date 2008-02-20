@@ -275,8 +275,8 @@ DTNTunnel::init_registration()
         dtn_reg_info_t reginfo;
         memset(&reginfo, 0, sizeof(reginfo));
         dtn_copy_eid(&reginfo.endpoint, &local_eid_);
-        reginfo.failure_action = DTN_REG_DEFER;
-        reginfo.expiration     = 60 * 60 * 24; // 1 day
+        reginfo.flags = DTN_REG_DEFER;
+        reginfo.expiration = 60 * 60 * 24; // 1 day
 
         err = dtn_register(recv_handle_, &reginfo, &regid);
         if (err != 0) {

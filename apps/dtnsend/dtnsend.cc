@@ -191,7 +191,7 @@ main(int argc, char** argv)
         // create a new dtn registration to receive bundle status reports
         memset(&reginfo, 0, sizeof(reginfo));
         dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
-        reginfo.failure_action = DTN_REG_DROP;
+        reginfo.flags = DTN_REG_DROP;
         reginfo.regid = regid;
         reginfo.expiration = 60 * 60;
         if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {

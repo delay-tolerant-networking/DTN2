@@ -296,7 +296,7 @@ int main(int argc, char** argv)
     if (debug) printf(" done\n");
 
     if (debug) printf("[debug] setting up reginfo...");
-    reginfo.failure_action = DTN_REG_DEFER;
+    reginfo.flags = DTN_REG_DEFER;
     reginfo.regid = regid;
     reginfo.expiration = 30;
     if (debug) printf(" done\n");

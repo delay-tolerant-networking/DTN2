@@ -407,7 +407,7 @@ main(int argc, char** argv)
         dtn_copy_eid(&reginfo.endpoint, &local_eid);
         reginfo.regid             = regid;
         reginfo.expiration        = expiration;
-        reginfo.failure_action    = failure_action;
+        reginfo.flags             = failure_action;
         reginfo.script.script_val = failure_script;
         reginfo.script.script_len = strlen(failure_script) + 1;
     }

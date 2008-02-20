@@ -578,7 +578,7 @@ make_registration(dtn_reg_info_t* reginfo)
         // create a new dtn registration to receive bundles
         reginfo->regid = regid;
         reginfo->expiration = REG_EXPIRE;
-        reginfo->failure_action = DTN_REG_DEFER;
+        reginfo->flags = DTN_REG_DEFER;
 	reginfo->script.script_val = FAILURE_SCRIPT;
 	reginfo->script.script_len = strlen(reginfo->script.script_val) + 1;
 
