@@ -68,20 +68,6 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
     
-    if (!eid.uri().valid()) {
-        log_warn_p("/dtn/scheme/dtn",
-                   "match error: eid '%s' not a valid uri",
-                   eid.c_str());
-        return false;
-    }
-    
-    if (!pattern.uri().valid()) {
-        log_warn_p("/dtn/scheme/dtn",
-                   "match error: pattern '%s' not a valid uri",
-                   pattern.c_str());
-        return false;
-    }
-
     // check for a wildcard host specifier e.g dtn://*
     if (pattern.uri().host() == "*" && pattern.uri().path() == "")
     {
