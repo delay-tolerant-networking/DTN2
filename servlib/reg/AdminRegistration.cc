@@ -32,8 +32,7 @@ namespace dtn {
 AdminRegistration::AdminRegistration()
     : Registration(ADMIN_REGID,
                    BundleDaemon::instance()->local_eid(),
-                   Registration::DEFER,
-                   0)
+                   Registration::DEFER, 0, 0)
 {
     logpathf("/dtn/reg/admin");
     set_active(true);

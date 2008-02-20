@@ -52,6 +52,7 @@ public:
     void handle_contact_down(ContactDownEvent* e);
     void handle_link_created(LinkCreatedEvent* e);
     void handle_link_deleted(LinkDeletedEvent* e);
+    void handle_registration_added(RegistrationAddedEvent* event);
     /// @}
 
 protected:
@@ -138,6 +139,7 @@ protected:
     void handle_lsa(Bundle* bundle, LSA* lsa);
     void handle_lsa_expired(Bundle* bundle);
     void drop_all_links(const EndpointID& source);
+    static bool is_dynamic_route(RouteEntry* entry);
     
     void remove_edge(RoutingGraph::Edge* edge);
     void adjust_uptime(RoutingGraph::Edge* edge);
@@ -159,13 +161,12 @@ protected:
     RoutingGraph::Node* local_node_;
     RoutingGraph::WeightFn* weight_fn_;
 
-    /// Bundle lists used to hold onto the most recent LSA / EIDA from
-    /// all other nodes.
+    /// Bundle lists used to hold onto the most recent LSA from all
+    /// other nodes.
     /// 
     /// XXX/demmer this would be better done using a retention
     /// constraint :)
     BundleList current_lsas_;
-    BundleList current_eidas_;
 
     /// The registration to receive lsa and eida announcements
     Reg* reg_;

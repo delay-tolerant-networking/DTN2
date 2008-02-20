@@ -27,7 +27,7 @@
 namespace dtn {
 
 PingRegistration::PingRegistration(const EndpointID& eid)
-    : Registration(PING_REGID, eid, Registration::DEFER, 0)
+    : Registration(PING_REGID, eid, Registration::DEFER, 0, 0)
 {
     logpathf("/dtn/reg/ping");
     set_active(true);

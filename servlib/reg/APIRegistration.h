@@ -41,22 +41,35 @@ public:
     APIRegistration(u_int32_t regid,
                     const EndpointIDPattern& endpoint,
                     failure_action_t action,
+                    u_int32_t session_flags,
                     u_int32_t expiration,
                     const std::string& script = "");
 
     ~APIRegistration();
+
+    /// Virtual from SerializableObject
+    void serialize(oasys::SerializeAction* a);
     
     /// Virtual from Registration
-    virtual void deliver_bundle(Bundle* bundle);
+    void deliver_bundle(Bundle* bundle);
 
     /**
      * Accessor for the queue of bundles for the registration.
      */
     BlockingBundleList* bundle_list() { return bundle_list_; }
+
+    /**
+     * Accessor for notification of session subscribers /
+     * unsubscribers (currently just the subscription bundles).
+     */
+    BlockingBundleList* session_notify_list() { return session_notify_list_; }
     
 protected:
     /// Queue of bundles for the registration
     BlockingBundleList* bundle_list_;
+
+    /// Queue of subscription notification bundles
+    BlockingBundleList* session_notify_list_;
 };
 
 /**

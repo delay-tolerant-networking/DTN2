@@ -24,17 +24,18 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringUtils.h>
 
-#include "BundleProtocol.h"
 #include "BlockInfo.h"
 #include "BlockProcessor.h"
 #include "Bundle.h"
+#include "BundleProtocol.h"
 #include "BundleTimestamp.h"
+#include "MetadataBlockProcessor.h"
 #include "PayloadBlockProcessor.h"
 #include "PreviousHopBlockProcessor.h"
 #include "PrimaryBlockProcessor.h"
 #include "SDNV.h"
+#include "SessionBlockProcessor.h"
 #include "UnknownBlockProcessor.h"
-#include "MetadataBlockProcessor.h"
 
 #ifdef BSP_ENABLED
 #  include "security/SPD.h"
@@ -72,9 +73,10 @@ BundleProtocol::init_default_processors()
 {
     // register default block processor handlers
     BundleProtocol::register_processor(new PrimaryBlockProcessor());
-    BundleProtocol::register_processor(new PreviousHopBlockProcessor());
     BundleProtocol::register_processor(new PayloadBlockProcessor());
+    BundleProtocol::register_processor(new PreviousHopBlockProcessor());
     BundleProtocol::register_processor(new MetadataBlockProcessor());
+    BundleProtocol::register_processor(new SessionBlockProcessor());
 }
 
 //----------------------------------------------------------------------

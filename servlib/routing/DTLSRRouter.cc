@@ -27,6 +27,7 @@
 #include "bundling/TempBundle.h"
 #include "contacts/ContactManager.h"
 #include "routing/RouteTable.h"
+#include "session/Session.h"
 
 namespace oasys {
 
@@ -170,7 +171,6 @@ DTLSRRouter::DTLSRRouter()
       announce_tag_("dtlsr"),
       announce_eid_("dtn://*/dtlsr?*"),
       current_lsas_("DTLSRRouter::current_lsas"),
-      current_eidas_("DTLSRRouter::current_eidas"),
       update_lsa_timer_(this)
 {
 }
@@ -239,9 +239,10 @@ DTLSRRouter::handle_link_created(LinkCreatedEvent* e)
 void
 DTLSRRouter::handle_bundle_received(BundleReceivedEvent* e)
 {
-    if (time_to_age_routes()) {
-        recompute_routes();
-    }
+//     if (time_to_age_routes()) {
+//         recompute_routes();
+//     }
+
     TableBasedRouter::handle_bundle_received(e);
 }
 
@@ -251,7 +252,7 @@ DTLSRRouter::handle_bundle_expired(BundleExpiredEvent* e)
 {
     Bundle* bundle = e->bundleref_.object();
 
-    // check if this is one of the current LSAs / EIDAs. if so, we
+    // check if this is one of the current LSAs if so, we
     // need to drop our retention constraint and let it expire
     //
     // XXX/demmer perhaps we should do something more drastic like
@@ -347,7 +348,7 @@ DTLSRRouter::handle_contact_down(ContactDownEvent* e)
     }
     
     if (edge == NULL) {
-        log_err("handle_link_deleted: can't find link *%p", link.object());
+        log_err("handle_contact_down: can't find link *%p", link.object());
         return;
     }
         
@@ -391,6 +392,33 @@ DTLSRRouter::handle_link_deleted(LinkDeletedEvent* e)
 
 //----------------------------------------------------------------------
 void
+DTLSRRouter::handle_registration_added(RegistrationAddedEvent* event)
+{
+    TableBasedRouter::handle_registration_added(event);
+
+    Registration* reg = event->registration_;
+    if (reg->session_flags() & Session::CUSTODY) {
+        Session* session = sessions_.lookup_session(reg->endpoint());
+        ASSERT(session != NULL);
+
+        // For group endpoint ids that aren't covered by the standard
+        // host-specific wildcard patterns, add a local route for the
+        // EID that just points to our local eid (since it's ignored
+        // for matching sessions anyway). That way it's conveyed along
+        // with other route imports.
+        
+        const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
+        if (! reg->endpoint().subsume(local_eid))
+        {
+            RouteEntry* e = new RouteEntry(reg->endpoint(), local_eid);
+            e->set_info(session);
+            route_table_->add_entry(e);
+        }
+    }
+}
+
+//----------------------------------------------------------------------
+void
 DTLSRRouter::remove_edge(RoutingGraph::Edge* edge)
 {
     log_debug("remove_edge %s", edge->info().id_.c_str());
@@ -419,12 +447,20 @@ DTLSRRouter::invalidate_routes()
 }
 
 //----------------------------------------------------------------------
-struct IsDTLSRRoute {
-    bool operator()(RouteEntry* entry) {
-        // XXX/demmer this could do a dynamic cast or some such...
-        return (entry->info() != NULL);
+bool
+DTLSRRouter::is_dynamic_route(RouteEntry* entry)
+{
+    if (entry->info() == NULL) {
+        return false;
     }
-};
+    
+    RouteInfo* info = dynamic_cast<RouteInfo*>(entry->info());
+    if (info != NULL) {
+        return true;
+    }
+    
+    return false;
+}
 
 //----------------------------------------------------------------------
 void
@@ -441,7 +477,7 @@ DTLSRRouter::recompute_routes()
     log_debug("recomputing all routes");
     last_update_.get_time();
 
-    route_table_->del_matching_entries(IsDTLSRRoute());
+    route_table_->del_matching_entries(is_dynamic_route);
 
     // loop through all the nodes in the graph, finding the right
     // route and re-adding it
@@ -498,7 +534,9 @@ DTLSRRouter::recompute_routes()
 //----------------------------------------------------------------------
 DTLSRRouter::Reg::Reg(DTLSRRouter* router,
                       const EndpointIDPattern& eid)
-    : Registration(DTLSR_REGID, eid, Registration::DEFER, 0),
+    : Registration(DTLSR_REGID, eid, Registration::DEFER,
+                   /* XXX/demmer session_flags */ 0, 0),
+                   
       router_(router)
 {
     logpathf("%s/reg", router->logpath()),
@@ -782,7 +820,7 @@ DTLSRRouter::send_lsa()
     log_debug("send_lsa: generated %zu link states for local ndoe",
               lsa.links_.size());
 
-    Bundle* bundle = new Bundle();
+    Bundle* bundle = new TempBundle();
 
     if (config()->area_ != "") {
         snprintf(tmp, sizeof(tmp), "dtn://*/%s?area=%s;lsa_seqno=%u",

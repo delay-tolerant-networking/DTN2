@@ -35,7 +35,7 @@ TclRegistration::TclRegistration(const EndpointIDPattern& endpoint,
                                  Tcl_Interp* interp)
     
     : Registration(GlobalStore::instance()->next_regid(),
-                   endpoint, Registration::DEFER, 0) // XXX/demmer expiration??
+                   endpoint, Registration::DEFER, 0, 0) // XXX/demmer expiration??
 {
     (void)interp;
     

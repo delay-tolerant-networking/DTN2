@@ -76,7 +76,8 @@ public:
      */
     Registration(u_int32_t regid,
                  const EndpointIDPattern& endpoint,
-                 int action,
+                 u_int32_t failure_action,
+                 u_int32_t session_flags,
                  u_int32_t expiration,
                  const std::string& script = "");
 
@@ -95,8 +96,11 @@ public:
     const u_int32_t          durable_key()       const { return regid_; }
     const u_int32_t          regid()             const { return regid_; }
     const EndpointIDPattern& endpoint()          const { return endpoint_; } 
-    const failure_action_t   failure_action()    const {
-        return static_cast<failure_action_t>(failure_action_); }
+    failure_action_t         failure_action()
+    {
+        return static_cast<failure_action_t>(failure_action_);
+    }
+    const u_int32_t          session_flags()     const { return session_flags_; }
     const std::string&       script()            const { return script_; }
     const u_int32_t          expiration()        const { return expiration_; }
     const bool               active()            const { return active_; }
@@ -139,6 +143,7 @@ protected:
     u_int32_t regid_;
     EndpointIDPattern endpoint_;
     u_int32_t failure_action_;	
+    u_int32_t session_flags_;	
     std::string script_;
     u_int32_t expiration_;
     u_int32_t creation_time_;
