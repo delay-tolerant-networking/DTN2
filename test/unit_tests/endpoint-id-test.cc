@@ -127,7 +127,6 @@ DECLARE_TEST(DTN) {
 
     // and the lone valid null scheme
     EIDCHECK(VALID,   KNOWN, "dtn:none");
-
     // and some invalid ones
     EIDCHECK(INVALID, KNOWN, "dtn:/");
     EIDCHECK(INVALID, KNOWN, "dtn://");
@@ -355,6 +354,35 @@ DECLARE_TEST(StringMatch) {
     EIDMATCH(NOMATCH, "str://host", "dtn://host");
     EIDMATCH(NOMATCH, "dtn://host", "str://host");
     
+    return UNIT_TEST_PASSED;
+}
+
+DECLARE_TEST(Session) {
+    EIDCHECK(VALID,   KNOWN, "dtn-session:any:uri");
+    EIDCHECK(VALID,   KNOWN, "dtn-session:any://other/uri");
+    EIDCHECK(VALID,   KNOWN, "dtn-session:dtn:none");
+
+    EIDCHECK(INVALID, KNOWN, "dtn-session:");
+    EIDCHECK(INVALID, KNOWN, "dtn-session:not_a_uri");
+    EIDCHECK(INVALID, KNOWN, "dtn-session:uri");
+
+    return UNIT_TEST_PASSED;
+}
+
+DECLARE_TEST(SessionMatch) {
+    EIDMATCH(MATCH, "dtn-session:foo:bar", "dtn-session:foo:bar");
+    EIDMATCH(MATCH, "dtn-session:foo://bar", "dtn-session:foo://bar");
+    EIDMATCH(MATCH, "dtn-session:foo://*", "dtn-session:foo://bar");
+    EIDMATCH(MATCH, "dtn-session:foo:*", "dtn-session:foo:bar");
+    EIDMATCH(MATCH, "dtn-session:foo:*", "dtn-session:foo://bar");
+    EIDMATCH(MATCH, "dtn-session:*:*", "dtn-session:foo:bar");
+    EIDMATCH(MATCH, "dtn-session:*:*", "dtn-session:foo://bar");
+    EIDMATCH(MATCH, "dtn-session:*", "dtn-session:foo:bar");
+
+    EIDMATCH(NOMATCH, "dtn-session:foo:bar", "dtn-session:foo://bar");
+    EIDMATCH(NOMATCH, "dtn-session:*:bar", "dtn-session:foo:baz");
+    EIDMATCH(NOMATCH, "dtn-session:foo:*", "dtn-session:foo2:bar");
+
     return UNIT_TEST_PASSED;
 }
 
@@ -590,6 +618,8 @@ DECLARE_TESTER(EndpointIDTester) {
 //#endif
     ADD_TEST(String);
     ADD_TEST(StringMatch);
+    ADD_TEST(Session);
+    ADD_TEST(SessionMatch);
     ADD_TEST(URIGenericSyntax);
     ADD_TEST(URIEquality);
 }
