@@ -369,14 +369,22 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
 {
     ASSERT(!bundle->is_fragment());
 
-    // tells routers that this Bundle has been taken care of
-    // by the daemon already
-    bundle->set_owner("daemon");
+    ForwardingInfo::state_t state = bundle->fwdlog()->get_latest_entry(registration);
+    if (state != ForwardingInfo::NONE)
+    {
+        ASSERT(state == ForwardingInfo::DELIVERED);
+        log_debug("not delivering bundle *%p to registration %d (%s) "
+                  "since already delivered",
+                  bundle, registration->regid(),
+                  registration->endpoint().c_str());
+        return;
+    }
 
     log_debug("delivering bundle *%p to registration %d (%s)",
               bundle, registration->regid(),
               registration->endpoint().c_str());
 
+    // XXX/demmer should this be COPY_ACTION instead?
     bundle->fwdlog()->add_entry(registration,
                                 ForwardingInfo::FORWARD_ACTION,
                                 ForwardingInfo::DELIVERED);
