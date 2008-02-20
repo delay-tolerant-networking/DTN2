@@ -314,6 +314,7 @@ struct dtn_bundle {
     unsigned int expiration;
     unsigned int creation_secs;
     unsigned int creation_seqno;
+    unsigned int delivery_regid;
     string       payload;
     dtn_status_report* status_report;
 };
@@ -348,6 +349,7 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
     bundle->expiration     = spec.expiration;
     bundle->creation_secs  = spec.creation_ts.secs;
     bundle->creation_seqno = spec.creation_ts.seqno;
+    bundle->delivery_regid = spec.delivery_regid;
 
     switch(location) {
     case DTN_PAYLOAD_MEM:
@@ -392,6 +394,35 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
     }
 
     return bundle;
+}
+
+//----------------------------------------------------------------------
+struct dtn_session_info {
+    unsigned int status;
+    string       session;
+};
+
+//----------------------------------------------------------------------
+dtn_session_info*
+dtn_session_update(int handle, int timeout)
+{
+    dtn_handle_t h = find_handle(handle);
+    if (!h) return NULL;
+
+    unsigned int status = 0;
+    dtn_endpoint_id_t session;
+    memset(&session, 0, sizeof(session));
+    
+    int err = dtn_session_update(h, &status, &session, timeout);
+    if (err != DTN_SUCCESS) {
+        return NULL;
+    }
+
+    dtn_session_info* s = new dtn_session_info();
+    s->status = status;
+    s->session = session.uri;
+
+    return s;
 }
 
 //----------------------------------------------------------------------

@@ -2491,14 +2491,15 @@ SWIG_Python_MustGetPtr(PyObject *obj, swig_type_info *ty, int argnum, int flags)
 #define SWIGTYPE_p_dtn_reg_info_t swig_types[22]
 #define SWIGTYPE_p_dtn_reg_info_t_script swig_types[23]
 #define SWIGTYPE_p_dtn_service_tag_t swig_types[24]
-#define SWIGTYPE_p_dtn_status_report swig_types[25]
-#define SWIGTYPE_p_dtn_status_report_flags_t swig_types[26]
-#define SWIGTYPE_p_dtn_status_report_reason_t swig_types[27]
-#define SWIGTYPE_p_dtn_timestamp_t swig_types[28]
-#define SWIGTYPE_p_mapTunsigned_int_dtn_handle_t_t swig_types[29]
-#define SWIGTYPE_p_u_int swig_types[30]
-static swig_type_info *swig_types[32];
-static swig_module_info swig_module = {swig_types, 31, 0, 0, 0, 0};
+#define SWIGTYPE_p_dtn_session_info swig_types[25]
+#define SWIGTYPE_p_dtn_status_report swig_types[26]
+#define SWIGTYPE_p_dtn_status_report_flags_t swig_types[27]
+#define SWIGTYPE_p_dtn_status_report_reason_t swig_types[28]
+#define SWIGTYPE_p_dtn_timestamp_t swig_types[29]
+#define SWIGTYPE_p_mapTunsigned_int_dtn_handle_t_t swig_types[30]
+#define SWIGTYPE_p_u_int swig_types[31]
+static swig_type_info *swig_types[33];
+static swig_module_info swig_module = {swig_types, 32, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -9263,6 +9264,59 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_dtn_bundle_delivery_regid_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  dtn_bundle *arg1 = (dtn_bundle *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:dtn_bundle_delivery_regid_set",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_dtn_bundle, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_bundle_delivery_regid_set" "', argument " "1"" of type '" "dtn_bundle *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_bundle * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_bundle_delivery_regid_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->delivery_regid = arg2;
+  
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_dtn_bundle_delivery_regid_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  dtn_bundle *arg1 = (dtn_bundle *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:dtn_bundle_delivery_regid_get",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_dtn_bundle, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_bundle_delivery_regid_get" "', argument " "1"" of type '" "dtn_bundle *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_bundle * >(argp1);
+  result = (unsigned int) ((arg1)->delivery_regid);
+  resultobj = SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_dtn_bundle_payload_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   dtn_bundle *arg1 = (dtn_bundle *) 0 ;
@@ -9455,6 +9509,195 @@ SWIGINTERN PyObject *_wrap_dtn_recv(PyObject *SWIGUNUSEDPARM(self), PyObject *ar
   arg3 = static_cast< int >(val3);
   result = (dtn_bundle *)dtn_recv(arg1,arg2,arg3);
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_dtn_bundle, 0 |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_dtn_session_info_status_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  unsigned int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:dtn_session_info_status_set",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_dtn_session_info, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_session_info_status_set" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_session_info_status_set" "', argument " "2"" of type '" "unsigned int""'");
+  } 
+  arg2 = static_cast< unsigned int >(val2);
+  if (arg1) (arg1)->status = arg2;
+  
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_dtn_session_info_status_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  unsigned int result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:dtn_session_info_status_get",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_dtn_session_info, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_session_info_status_get" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  result = (unsigned int) ((arg1)->status);
+  resultobj = SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_dtn_session_info_session_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  std::string *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int res2 = SWIG_OLDOBJ ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:dtn_session_info_session_set",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_dtn_session_info, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_session_info_session_set" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  {
+    std::string *ptr = (std::string *)0;
+    res2 = SWIG_AsPtr_std_string(obj1, &ptr);
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "dtn_session_info_session_set" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "dtn_session_info_session_set" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    arg2 = ptr;
+  }
+  if (arg1) (arg1)->session = *arg2;
+  
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsNewObj(res2)) delete arg2;
+  return resultobj;
+fail:
+  if (SWIG_IsNewObj(res2)) delete arg2;
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_dtn_session_info_session_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  std::string *result = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:dtn_session_info_session_get",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_dtn_session_info, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "dtn_session_info_session_get" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  {
+    std::string const &_result_ref =  ((arg1)->session);
+    result = (std::string *) &_result_ref;
+  }
+  resultobj = SWIG_From_std_string(static_cast< std::string >(*result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_new_dtn_session_info(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  dtn_session_info *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)":new_dtn_session_info")) SWIG_fail;
+  result = (dtn_session_info *)new dtn_session_info();
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_dtn_session_info, SWIG_POINTER_NEW |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_delete_dtn_session_info(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  dtn_session_info *arg1 = (dtn_session_info *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:delete_dtn_session_info",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_dtn_session_info, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_dtn_session_info" "', argument " "1"" of type '" "dtn_session_info *""'"); 
+  }
+  arg1 = reinterpret_cast< dtn_session_info * >(argp1);
+  delete arg1;
+  
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *dtn_session_info_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *obj;
+  if (!PyArg_ParseTuple(args,(char*)"O|swigregister", &obj)) return NULL;
+  SWIG_TypeNewClientData(SWIGTYPE_p_dtn_session_info, SWIG_NewClientData(obj));
+  return SWIG_Py_Void();
+}
+
+SWIGINTERN PyObject *_wrap_dtn_session_update(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int arg1 ;
+  int arg2 ;
+  dtn_session_info *result = 0 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:dtn_session_update",&obj0,&obj1)) SWIG_fail;
+  ecode1 = SWIG_AsVal_int(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dtn_session_update" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dtn_session_update" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = static_cast< int >(val2);
+  result = (dtn_session_info *)dtn_session_update(arg1,arg2);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_dtn_session_info, 0 |  0 );
   return resultobj;
 fail:
   return NULL;
@@ -9772,6 +10015,8 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"dtn_bundle_creation_secs_get", _wrap_dtn_bundle_creation_secs_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_creation_seqno_set", _wrap_dtn_bundle_creation_seqno_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_creation_seqno_get", _wrap_dtn_bundle_creation_seqno_get, METH_VARARGS, NULL},
+	 { (char *)"dtn_bundle_delivery_regid_set", _wrap_dtn_bundle_delivery_regid_set, METH_VARARGS, NULL},
+	 { (char *)"dtn_bundle_delivery_regid_get", _wrap_dtn_bundle_delivery_regid_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_payload_set", _wrap_dtn_bundle_payload_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_payload_get", _wrap_dtn_bundle_payload_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_status_report_set", _wrap_dtn_bundle_status_report_set, METH_VARARGS, NULL},
@@ -9780,6 +10025,14 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"delete_dtn_bundle", _wrap_delete_dtn_bundle, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_swigregister", dtn_bundle_swigregister, METH_VARARGS, NULL},
 	 { (char *)"dtn_recv", _wrap_dtn_recv, METH_VARARGS, NULL},
+	 { (char *)"dtn_session_info_status_set", _wrap_dtn_session_info_status_set, METH_VARARGS, NULL},
+	 { (char *)"dtn_session_info_status_get", _wrap_dtn_session_info_status_get, METH_VARARGS, NULL},
+	 { (char *)"dtn_session_info_session_set", _wrap_dtn_session_info_session_set, METH_VARARGS, NULL},
+	 { (char *)"dtn_session_info_session_get", _wrap_dtn_session_info_session_get, METH_VARARGS, NULL},
+	 { (char *)"new_dtn_session_info", _wrap_new_dtn_session_info, METH_VARARGS, NULL},
+	 { (char *)"delete_dtn_session_info", _wrap_delete_dtn_session_info, METH_VARARGS, NULL},
+	 { (char *)"dtn_session_info_swigregister", dtn_session_info_swigregister, METH_VARARGS, NULL},
+	 { (char *)"dtn_session_update", _wrap_dtn_session_update, METH_VARARGS, NULL},
 	 { (char *)"dtn_poll_fd", _wrap_dtn_poll_fd, METH_VARARGS, NULL},
 	 { (char *)"dtn_begin_poll", _wrap_dtn_begin_poll, METH_VARARGS, NULL},
 	 { (char *)"dtn_cancel_poll", _wrap_dtn_cancel_poll, METH_VARARGS, NULL},
@@ -9814,6 +10067,7 @@ static swig_type_info _swigt__p_dtn_reg_flags_t = {"_p_dtn_reg_flags_t", "enum d
 static swig_type_info _swigt__p_dtn_reg_info_t = {"_p_dtn_reg_info_t", "dtn_reg_info_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_reg_info_t_script = {"_p_dtn_reg_info_t_script", "dtn_reg_info_t_script *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_service_tag_t = {"_p_dtn_service_tag_t", "dtn_service_tag_t *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_dtn_session_info = {"_p_dtn_session_info", "dtn_session_info *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_status_report = {"_p_dtn_status_report", "dtn_status_report *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_status_report_flags_t = {"_p_dtn_status_report_flags_t", "enum dtn_status_report_flags_t *|dtn_status_report_flags_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_dtn_status_report_reason_t = {"_p_dtn_status_report_reason_t", "enum dtn_status_report_reason_t *|dtn_status_report_reason_t *", 0, 0, (void*)0, 0};
@@ -9847,6 +10101,7 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_dtn_reg_info_t,
   &_swigt__p_dtn_reg_info_t_script,
   &_swigt__p_dtn_service_tag_t,
+  &_swigt__p_dtn_session_info,
   &_swigt__p_dtn_status_report,
   &_swigt__p_dtn_status_report_flags_t,
   &_swigt__p_dtn_status_report_reason_t,
@@ -9880,6 +10135,7 @@ static swig_cast_info _swigc__p_dtn_reg_flags_t[] = {  {&_swigt__p_dtn_reg_flags
 static swig_cast_info _swigc__p_dtn_reg_info_t[] = {  {&_swigt__p_dtn_reg_info_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_reg_info_t_script[] = {  {&_swigt__p_dtn_reg_info_t_script, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_service_tag_t[] = {  {&_swigt__p_dtn_service_tag_t, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_dtn_session_info[] = {  {&_swigt__p_dtn_session_info, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_status_report[] = {  {&_swigt__p_dtn_status_report, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_status_report_flags_t[] = {  {&_swigt__p_dtn_status_report_flags_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_dtn_status_report_reason_t[] = {  {&_swigt__p_dtn_status_report_reason_t, 0, 0, 0},{0, 0, 0, 0}};
@@ -9913,6 +10169,7 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_dtn_reg_info_t,
   _swigc__p_dtn_reg_info_t_script,
   _swigc__p_dtn_service_tag_t,
+  _swigc__p_dtn_session_info,
   _swigc__p_dtn_status_report,
   _swigc__p_dtn_status_report_flags_t,
   _swigc__p_dtn_status_report_reason_t,

@@ -84,6 +84,7 @@ package dtnapi;
 *dtn_cancel = *dtnapic::dtn_cancel;
 *dtn_status_report_reason_to_str = *dtnapic::dtn_status_report_reason_to_str;
 *dtn_recv = *dtnapic::dtn_recv;
+*dtn_session_update = *dtnapic::dtn_session_update;
 *dtn_poll_fd = *dtnapic::dtn_poll_fd;
 *dtn_begin_poll = *dtnapic::dtn_begin_poll;
 *dtn_cancel_poll = *dtnapic::dtn_cancel_poll;
@@ -880,6 +881,8 @@ use vars qw(@ISA %OWNER %ITERATORS %BLESSEDMEMBERS);
 *swig_creation_secs_set = *dtnapic::dtn_bundle_creation_secs_set;
 *swig_creation_seqno_get = *dtnapic::dtn_bundle_creation_seqno_get;
 *swig_creation_seqno_set = *dtnapic::dtn_bundle_creation_seqno_set;
+*swig_delivery_regid_get = *dtnapic::dtn_bundle_delivery_regid_get;
+*swig_delivery_regid_set = *dtnapic::dtn_bundle_delivery_regid_set;
 *swig_payload_get = *dtnapic::dtn_bundle_payload_get;
 *swig_payload_set = *dtnapic::dtn_bundle_payload_set;
 *swig_status_report_get = *dtnapic::dtn_bundle_status_report_get;
@@ -897,6 +900,47 @@ sub DESTROY {
     delete $ITERATORS{$self};
     if (exists $OWNER{$self}) {
         dtnapic::delete_dtn_bundle($self);
+        delete $OWNER{$self};
+    }
+}
+
+sub DISOWN {
+    my $self = shift;
+    my $ptr = tied(%$self);
+    delete $OWNER{$ptr};
+}
+
+sub ACQUIRE {
+    my $self = shift;
+    my $ptr = tied(%$self);
+    $OWNER{$ptr} = 1;
+}
+
+
+############# Class : dtnapi::dtn_session_info ##############
+
+package dtnapi::dtn_session_info;
+use vars qw(@ISA %OWNER %ITERATORS %BLESSEDMEMBERS);
+@ISA = qw( dtnapi );
+%OWNER = ();
+%ITERATORS = ();
+*swig_status_get = *dtnapic::dtn_session_info_status_get;
+*swig_status_set = *dtnapic::dtn_session_info_status_set;
+*swig_session_get = *dtnapic::dtn_session_info_session_get;
+*swig_session_set = *dtnapic::dtn_session_info_session_set;
+sub new {
+    my $pkg = shift;
+    my $self = dtnapic::new_dtn_session_info(@_);
+    bless $self, $pkg if defined($self);
+}
+
+sub DESTROY {
+    return unless $_[0]->isa('HASH');
+    my $self = tied(%{$_[0]});
+    return unless defined $self;
+    delete $ITERATORS{$self};
+    if (exists $OWNER{$self}) {
+        dtnapic::delete_dtn_session_info($self);
         delete $OWNER{$self};
     }
 }
