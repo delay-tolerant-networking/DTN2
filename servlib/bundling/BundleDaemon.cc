@@ -58,6 +58,7 @@ BundleDaemon* oasys::Singleton<BundleDaemon, false>::instance_ = NULL;
 
 BundleDaemon::Params::Params()
     :  early_deletion_(true),
+       suppress_duplicates_(true),
        accept_custody_(true),
        reactive_frag_enabled_(true),
        retry_reliable_unacked_(true),
@@ -634,13 +635,32 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                                     BundleProtocol::CUSTODY_REDUNDANT_RECEPTION);
         }
 
-        // since we don't want the bundle to be processed by the rest
-        // of the system, we mark the event as daemon_only (meaning it
-        // won't be forwarded to routers) and return, which should
-        // eventually remove all references on the bundle and then it
-        // will be deleted
-        event->daemon_only_ = true;
-        return;
+        if (params_.suppress_duplicates_) {
+            // since we don't want the bundle to be processed by the rest
+            // of the system, we mark the event as daemon_only (meaning it
+            // won't be forwarded to routers) and return, which should
+            // eventually remove all references on the bundle and then it
+            // will be deleted
+            event->daemon_only_ = true;
+            return;
+        }
+
+        // The BP says that the "dispatch pending" retention constraint
+        // must be removed from this bundle if there is a duplicate we
+        // currently have custody of. This would cause the bundle to have
+        // no retention constraints and it now "may" be discarded. Assuming
+        // this means it is supposed to be discarded, we have to suppress
+        // a duplicate in this situation regardless of the parameter
+        // setting. We would then be relying on the custody transfer timer
+        // to cause a new forwarding attempt in the case of routing loops
+        // instead of the receipt of a duplicate, so in theory we can indeed
+        // suppress this bundle. It may not be strictly required to do so,
+        // in which case we can remove the following block.
+        if (bundle->custody_requested() && duplicate->local_custody()) {
+            event->daemon_only_ = true;
+            return;
+        }
+
     }
 
     /*
@@ -666,7 +686,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * reload from the data store, then if we have local custody, make
      * sure it's added to the custody bundles list.
      */
-    if (bundle->custody_requested() && params_.accept_custody_)
+    if (bundle->custody_requested() && params_.accept_custody_
+        && (duplicate == NULL || !duplicate->local_custody()))
     {
         if (event->source_ != EVENTSRC_STORE) {
             accept_custody(bundle);
@@ -674,6 +695,18 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         } else if (bundle->local_custody()) {
             custody_bundles_->push_back(bundle);
         }
+    }
+
+    /*
+     * If this bundle is a duplicate and it has not been suppressed, we
+     * can assume the bundle it duplicates has already been delivered or
+     * added to the fragment manager if required, so do not do so again.
+     * We can bounce out now.
+     * XXX/jmmikkel If the extension blocks differ and we care to
+     * do something with them, we can't bounce out quite yet.
+     */
+    if (duplicate != NULL) {
+        return;
     }
 
     /*
@@ -1858,9 +1891,18 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
              event->data_.succeeded_ ? "succeeded" : "failed",
              CustodySignal::reason_to_str(event->data_.reason_));
 
+    GbofId gbof_id;
+    gbof_id.source_ = event->data_.orig_source_eid_;
+    gbof_id.creation_ts_ = event->data_.orig_creation_tv_;
+    gbof_id.is_fragment_
+        = event->data_.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT;
+    gbof_id.frag_length_
+        = gbof_id.is_fragment_ ? event->data_.orig_frag_length_ : 0;
+    gbof_id.frag_offset_
+        = gbof_id.is_fragment_ ? event->data_.orig_frag_offset_ : 0;
+
     BundleRef orig_bundle =
-        custody_bundles_->find(event->data_.orig_source_eid_,
-                               event->data_.orig_creation_tv_);
+        custody_bundles_->find(gbof_id);
     
     if (orig_bundle == NULL) {
         log_warn("received custody signal for bundle %s %u.%u "
@@ -2236,6 +2278,7 @@ BundleDaemon::find_duplicate(Bundle* b)
     oasys::ScopeLock l(pending_bundles_->lock(), 
                        "BundleDaemon::find_duplicate");
     log_debug("pending_bundles size %zd", pending_bundles_->size());
+    Bundle *found = NULL;
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
@@ -2248,14 +2291,25 @@ BundleDaemon::find_duplicate(Bundle* b)
             (b->creation_ts().seqno_   == b2->creation_ts().seqno_) &&
             (b->is_fragment()          == b2->is_fragment()) &&
             (b->frag_offset()          == b2->frag_offset()) &&
-            (b->orig_length()          == b2->orig_length()) &&
+            /*(b->orig_length()          == b2->orig_length()) &&*/
             (b->payload().length()     == b2->payload().length()))
         {
-            return b2;
+            // b is a duplicate of b2
+            found = b2;
+            /*
+             * If we are not suppressing duplicates, we might have custody of
+             * one of any number of duplicates, so if this one does not have
+             * custody, keep looking until we find one that does have custody
+             * or we run out of choices. If we are suppressing duplicates
+             * there's no need to keep looking.
+             */
+            if (params_.suppress_duplicates_ || b2->local_custody()) {
+                break;
+            }
         }
     }
 
-    return NULL;
+    return found;
 }
 
 //----------------------------------------------------------------------

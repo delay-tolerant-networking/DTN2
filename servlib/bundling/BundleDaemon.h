@@ -210,6 +210,10 @@ public:
         /// all routers / registrations have handled it
         bool early_deletion_;
 
+        /// Whether or not to skip routing decisions for and delete duplicate
+        /// bundles
+        bool suppress_duplicates_;
+
         /// Whether or not to accept custody when requested
         bool accept_custody_;
 

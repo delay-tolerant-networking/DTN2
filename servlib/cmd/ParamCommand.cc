@@ -40,6 +40,12 @@ ParamCommand::ParamCommand()
                                 "before they've expired "
                                 "(default is true)"));
 
+    bind_var(new oasys::BoolOpt("suppress_duplicates",
+                                &BundleDaemon::params_.suppress_duplicates_,
+                                "Do not route bundles that are a duplicate "
+                                "of any currently pending bundle "
+                                "(default is true)"));
+
     bind_var(new oasys::BoolOpt("accept_custody",
                                 &BundleDaemon::params_.accept_custody_,
                                 "Accept custody when requested "
