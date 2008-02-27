@@ -106,7 +106,7 @@ bool
 SPD::verify_in_policy(const Bundle* bundle)
 {
     spd_policy_t policy = find_policy(SPD_DIR_IN, bundle);
-    const BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
+    const BlockInfoVec* recv_blocks = &bundle->recv_blocks();
 
 	log_debug_p(log, "SPD::verify_in_policy() 0x%x", policy);
 

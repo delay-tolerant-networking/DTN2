@@ -87,7 +87,7 @@ Ciphersuite_BA1::validate(const Bundle*           bundle,
     size_t          rem;
     HMAC_CTX        ctx;
     OpaqueContext*   r = reinterpret_cast<OpaqueContext*>(&ctx);
-    const BlockInfoVec*   recv_blocks = &bundle->recv_blocks_;
+    const BlockInfoVec& recv_blocks = bundle->recv_blocks();
     u_char          result[EVP_MAX_MD_SIZE];
     u_int32_t       rlen = 0;
     BP_Local_CS*    locals = NULL;
@@ -123,8 +123,8 @@ Ciphersuite_BA1::validate(const Bundle*           bundle,
                      EVP_sha1(), NULL);
         
         // walk the list and process each of the blocks
-        for ( BlockInfoVec::const_iterator iter = recv_blocks->begin();
-              iter != recv_blocks->end();
+        for ( BlockInfoVec::const_iterator iter = recv_blocks.begin();
+              iter != recv_blocks.end();
               ++iter)
         {
             offset = 0;
