@@ -389,9 +389,9 @@ BlockProcessor::validate(const Bundle*           bundle,
 
 //----------------------------------------------------------------------
 int
-BlockProcessor::reload_post_process(const Bundle* bundle,
-                                    const BlockInfoVec* block_list,
-                                    const BlockInfo*    block)
+BlockProcessor::reload_post_process(Bundle*       bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block)
 {
     (void)bundle;
     (void)block_list;

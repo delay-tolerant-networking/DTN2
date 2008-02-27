@@ -58,9 +58,9 @@ public:
      * Perform any needed action in the case where a block/bundle
      * has been reloaded from store
      */
-    virtual int reload_post_process(const Bundle* bundle,
-                                    const BlockInfoVec* block_list,
-                                    const BlockInfo*    block);
+    virtual int reload_post_process(Bundle*       bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block);
 
     /**
      * Validate the block. This is called after all blocks in the
