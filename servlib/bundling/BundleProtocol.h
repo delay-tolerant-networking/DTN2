@@ -57,6 +57,12 @@ public:
     static void init_default_processors();
 
     /**
+     * Give the processors a chance to chew on the bundle after
+     * reloading from disk.
+     */
+    static void reload_post_process(Bundle* bundle);
+
+    /**
      * Generate a BlockInfoVec for the outgoing link and put it into
      * xmit_blocks_.
      *

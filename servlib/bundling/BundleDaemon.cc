@@ -2373,6 +2373,8 @@ BundleDaemon::load_bundles()
             continue;
         }
 
+        BundleProtocol::reload_post_process(bundle);
+
         BundleReceivedEvent e(bundle, EVENTSRC_STORE);
         handle_event(&e);
 

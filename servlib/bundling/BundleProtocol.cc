@@ -78,6 +78,22 @@ BundleProtocol::init_default_processors()
 }
 
 //----------------------------------------------------------------------
+void
+BundleProtocol::reload_post_process(Bundle* bundle)
+{
+    BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
+
+    for (BlockInfoVec::iterator iter = recv_blocks->begin();
+         iter != recv_blocks->end();
+         ++iter)
+    {
+        // allow BlockProcessors [and Ciphersuites] a chance to re-do
+        // things needed after a load-from-store
+        iter->owner()->reload_post_process(bundle, recv_blocks, &*iter);
+    }
+}
+        
+//----------------------------------------------------------------------
 BlockInfoVec*
 BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
 {
@@ -108,11 +124,8 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
                 continue;
             }
             
-            // allow BlockProcessors [and Ciphersuites] a chance to re-do things 
-            // needed after a possible load-from-store
-            iter->owner()->reload_post_process(bundle, recv_blocks, &*iter);
-            
-            iter->owner()->prepare(bundle, xmit_blocks, &*iter,link,  BlockInfo::LIST_RECEIVED);
+            iter->owner()->prepare(bundle, xmit_blocks, &*iter, link,
+                                   BlockInfo::LIST_RECEIVED);
         }
     }
     else {
