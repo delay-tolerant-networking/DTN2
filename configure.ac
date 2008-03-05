@@ -108,7 +108,7 @@ prefix=$oasys_save_prefix
 # Configure gcc and find oasys
 # -------------------------------------------------------------------------
 AC_OASYS_CONFIG_GCC
-AC_OASYS_CONFIG
+AC_OASYS_CONFIG(1,3)
 
 # -------------------------------------------------------------------------
 # Dump the autoconf cache now to try to avoid redundant checks

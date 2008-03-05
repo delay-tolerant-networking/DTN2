@@ -1755,31 +1755,39 @@ EOF
 
 ])
 
+dnl
+dnl AC_OASYS_CONFIG [major] [minor]
+dnl
 AC_DEFUN(AC_OASYS_CONFIG, [
+    ac_oasysver_major=$1
+    ac_oasysver_minor=$2
     ac_oasysdir=../oasys
+
     AC_ARG_WITH(oasys,
         AC_HELP_STRING([--with-oasys=DIR],
     		   [location of an oasys installation (default ../oasys)]),
         ac_oasysdir=$withval) 
 
-    AC_MSG_CHECKING([for an oasys installation])
-
-    # XXX/demmer fix this all to do a real compilation test
+    AC_MSG_CHECKING([for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)])
 
     if test "$ac_oasysdir" = ../oasys -a ! -d ../oasys ; then
         ac_oasysdir=/usr
     fi
 
     #
+    # Check if the oasys directory is a source directory or an
+    # installation by probing for the oasys-version.h file and 
+    # setting the other paths accordingly.
+    # 
     # This is a bit strange since when we're done, OASYS_INCDIR points
     # to the parent of where the oasys header files are, OASYS_LIBDIR
     # points to the directory where the libraries are, and
     # OASYS_ETCDIR points to where the various scripts are.
     #
-    if test "$ac_oasysdir" = ../oasys ; then
-        OASYS_INCDIR=".."
-        OASYS_LIBDIR="../oasys/lib"
-        OASYS_ETCDIR="../oasys"
+    if test -f $ac_oasysdir/oasys-version.h ; then
+        OASYS_INCDIR="$ac_oasysdir/.."
+        OASYS_LIBDIR="$ac_oasysdir/lib"
+        OASYS_ETCDIR="$ac_oasysdir"
     else
         OASYS_INCDIR="$ac_oasysdir/include"
         OASYS_LIBDIR="$ac_oasysdir/lib"
@@ -1798,9 +1806,44 @@ AC_DEFUN(AC_OASYS_CONFIG, [
        AC_MSG_ERROR(nonexistent oasys tools directory $OASYS_ETCDIR)
     fi
 
-    AC_OASYS_SUBST_CONFIG    
+    if test "$ac_oasysver_major" = "" ; then
+       ac_oasysver_major=1
+    fi
+
+    if test "$ac_oasysver_minor" = "" ; then
+       ac_oasysver_minor=1
+    fi
+
+    AC_OASYS_SUBST_CONFIG
+
+    #
+    # Check the settings to make sure that we can build a program.
+    #
     
-    AC_MSG_RESULT($ac_oasysdir (version $OASYS_VERSION))
+    ac_save_LDFLAGS=$LDFLAGS
+    LDFLAGS="$LDFLAGS $OASYS_LDFLAGS"
+    AC_LINK_IFELSE(
+      AC_LANG_PROGRAM(
+      [
+	#include <oasys/oasys-version.h>
+	#if (OASYS_VERSION_MAJOR != ${ac_oasysver_major}) || \
+            (OASYS_VERSION_MINOR <  ${ac_oasysver_minor})
+	#error incorrect oasys version (wanted ${ac_oasysver_major}.${ac_oasysver_minor})
+	#endif
+      ], 
+      [
+          const char* s = oasys_version;
+	  (void)s;
+      ]),
+      [ 
+          AC_MSG_RESULT($ac_oasysdir)
+      ],
+      [
+          AC_MSG_RESULT([no])
+	  AC_MSG_ERROR([can't find compatible oasys install (version $ac_oasysver_major.$ac_oasysver_minor or better) at $ac_oasysdir])
+      ])
+
+    LDFLAGS=$ac_save_LDFLAGS
 ])
 
 AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
@@ -1812,10 +1855,30 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
     OASYS_ETCDIR=`cd $OASYS_ETCDIR && pwd`
 
     OASYS_VERSION=`$OASYS_ETCDIR/tools/extract-version $OASYS_ETCDIR/oasys-version.dat version`
+
+    #
+    # By default, oasys apps link statically to make it easier when
+    # linking with a source directory.
+    #
+
+    if test -f $OASYS_LIBDIR/liboasys-$OASYS_VERSION.a ; then
+	OASYS_LDFLAGS="$OASYS_LIBDIR/liboasys-$OASYS_VERSION.a"
+	OASYS_COMPAT_LDFLAGS="$OASYS_LIBDIR/liboasyscompat-$OASYS_VERSION.a"
+
+    elif test $ac_oasysdir = /usr ; then
+	OASYS_LDFLAGS="-loasys-$OASYS_VERSION"
+	OASYS_COMPAT_LDFLAGS="-loasyscompat-$OASYS_VERSION"
+
+    else
+	OASYS_LDFLAGS="-L$OASYS_LIBDIR -loasys-$OASYS_VERSION"
+	OASYS_COMPAT_LDFLAGS="-L$OASYS_LIBDIR -loasyscompat-$OASYS_VERSION"
+    fi
         
     AC_SUBST(OASYS_INCDIR)
     AC_SUBST(OASYS_LIBDIR)
     AC_SUBST(OASYS_ETCDIR)
+    AC_SUBST(OASYS_LDFLAGS)
+    AC_SUBST(OASYS_COMPAT_LDFLAGS)
     AC_SUBST(OASYS_VERSION)
 
     AC_SUBST(EXTLIB_CFLAGS)
