@@ -1,6 +1,39 @@
 Release Notes for DTN2
 ----------------------
 
+
+2.5.1 (March 2008)
+------------------
+
+- Updated the source control system to mercurial, splitting the oasys
+  library into a fully separate package and changing the configuration,
+  build, and packaging accordingly.
+
+- Restructuring of the core forwarding path and the router <->
+  convergence layer interface, getting rid of the BUSY state
+  management and (hopefully) improving stability and scalability.
+
+- Internal changes to the Bundle class that make all member variables
+  private, adding accessor functions for manipulation and state
+  retrieval.
+
+- Add additional API function access through the SWIG interface and
+  parse status reports that are returned to the app.
+
+- Add a fix so that bundles aren't delivered twice to the same
+  registration.
+
+- Incorporate patches from BBN to fix bugs during shutdown, more
+  efficient comparisons, memory leak and dangling pointer fixes, and
+  modified handling of duplicate bundles,
+
+- Incorporate various updates to the prophet implementation from Jeff
+  Wilson.
+
+- Minor updates to work with Mac OS X 10.5 (Leopard).
+
+
+
 2.5.0 (October 2007)
 -------------------
 - Integrated support for the Bundle Security Protocol blocks,
