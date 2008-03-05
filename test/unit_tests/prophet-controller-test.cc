@@ -1,3 +1,4 @@
+#include <dtn-config.h>
 #include <oasys/util/UnitTest.h>
 
 using namespace oasys;
