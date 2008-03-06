@@ -1779,13 +1779,14 @@ AC_DEFUN(AC_OASYS_CONFIG, [
     # installation by probing for the oasys-version.h file and 
     # setting the other paths accordingly.
     # 
-    # This is a bit strange since when we're done, OASYS_INCDIR points
-    # to the parent of where the oasys header files are, OASYS_LIBDIR
-    # points to the directory where the libraries are, and
-    # OASYS_ETCDIR points to where the various scripts are.
+    # When we're done, OASYS_INCDIR points to the parent directory
+    # containing the oasys header files or the source directory itself
+    # with a symlink (oasys -> .), OASYS_LIBDIR points to the
+    # directory where the libraries are. OASYS_ETCDIR points to where
+    # the various scripts are.
     #
     if test -f $ac_oasysdir/oasys-version.h ; then
-        OASYS_INCDIR="$ac_oasysdir/.."
+        OASYS_INCDIR="$ac_oasysdir"
         OASYS_LIBDIR="$ac_oasysdir/lib"
         OASYS_ETCDIR="$ac_oasysdir"
     else
@@ -1819,6 +1820,9 @@ AC_DEFUN(AC_OASYS_CONFIG, [
     #
     # Check the settings to make sure that we can build a program.
     #
+
+    ac_save_CFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS -I$OASYS_INCDIR"
     
     ac_save_LDFLAGS=$LDFLAGS
     LDFLAGS="$LDFLAGS $OASYS_LDFLAGS"
@@ -1843,6 +1847,7 @@ AC_DEFUN(AC_OASYS_CONFIG, [
 	  AC_MSG_ERROR([can't find compatible oasys install (version $ac_oasysver_major.$ac_oasysver_minor or better) at $ac_oasysdir])
       ])
 
+    CFLAGS=$ac_save_CFLAGS
     LDFLAGS=$ac_save_LDFLAGS
 ])
 
@@ -1865,7 +1870,7 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
 	OASYS_LDFLAGS="$OASYS_LIBDIR/liboasys-$OASYS_VERSION.a"
 	OASYS_COMPAT_LDFLAGS="$OASYS_LIBDIR/liboasyscompat-$OASYS_VERSION.a"
 
-    elif test $ac_oasysdir = /usr ; then
+    elif test "$ac_oasysdir" = /usr ; then
 	OASYS_LDFLAGS="-loasys-$OASYS_VERSION"
 	OASYS_COMPAT_LDFLAGS="-loasyscompat-$OASYS_VERSION"
 

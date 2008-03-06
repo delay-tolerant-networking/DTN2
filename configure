@@ -4024,13 +4024,14 @@ echo $ECHO_N "checking for an oasys installation (version $ac_oasysver_major.$ac
     # installation by probing for the oasys-version.h file and
     # setting the other paths accordingly.
     #
-    # This is a bit strange since when we're done, OASYS_INCDIR points
-    # to the parent of where the oasys header files are, OASYS_LIBDIR
-    # points to the directory where the libraries are, and
-    # OASYS_ETCDIR points to where the various scripts are.
+    # When we're done, OASYS_INCDIR points to the parent directory
+    # containing the oasys header files or the source directory itself
+    # with a symlink (oasys -> .), OASYS_LIBDIR points to the
+    # directory where the libraries are. OASYS_ETCDIR points to where
+    # the various scripts are.
     #
     if test -f $ac_oasysdir/oasys-version.h ; then
-        OASYS_INCDIR="$ac_oasysdir/.."
+        OASYS_INCDIR="$ac_oasysdir"
         OASYS_LIBDIR="$ac_oasysdir/lib"
         OASYS_ETCDIR="$ac_oasysdir"
     else
@@ -4084,7 +4085,7 @@ echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
 	OASYS_LDFLAGS="$OASYS_LIBDIR/liboasys-$OASYS_VERSION.a"
 	OASYS_COMPAT_LDFLAGS="$OASYS_LIBDIR/liboasyscompat-$OASYS_VERSION.a"
 
-    elif test $ac_oasysdir = /usr ; then
+    elif test "$ac_oasysdir" = /usr ; then
 	OASYS_LDFLAGS="-loasys-$OASYS_VERSION"
 	OASYS_COMPAT_LDFLAGS="-loasyscompat-$OASYS_VERSION"
 
@@ -4110,6 +4111,9 @@ echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
     #
     # Check the settings to make sure that we can build a program.
     #
+
+    ac_save_CFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS -I$OASYS_INCDIR"
 
     ac_save_LDFLAGS=$LDFLAGS
     LDFLAGS="$LDFLAGS $OASYS_LDFLAGS"
@@ -4175,6 +4179,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
 
+    CFLAGS=$ac_save_CFLAGS
     LDFLAGS=$ac_save_LDFLAGS
 
 
