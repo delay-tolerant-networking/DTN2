@@ -156,13 +156,14 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         p.addopt(new oasys::EnumOpt("fwd_strategy",
                     FwdStrategyCases, &fs_pass, "",
                     "forwarding strategies"));
-        ProphetRouter::params_.fs_ =
-            (prophet::FwdStrategy::fwd_strategy_t)fs_pass;
         if (! p.parse(argc,argv,&invalid))
         {
             resultf("bad parameter for fwd_strategy: %s",invalid);
             return TCL_ERROR;
         }
+
+        ProphetRouter::params_.fs_ =
+            (prophet::FwdStrategy::fwd_strategy_t)fs_pass;
 
         resultf("fwd_strategy set to %s",
                 prophet::FwdStrategy::fs_to_str(ProphetRouter::params_.fs_));

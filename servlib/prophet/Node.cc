@@ -104,6 +104,7 @@ Node::update_transitive(double ab, double bc)
     if (!(p_value_ >= 0.0 && p_value_ <= 1.0)) return;
     if (!(ab >= 0.0 && ab <= 1.0)) return;
     if (!(bc >= 0.0 && bc <= 1.0)) return;
+    if (p_value_ > bc) return;
     if (params_ == NULL) return;
 
     // new p_value_ is P_(A,C), previous p_value is P_(A,C)_old
@@ -111,7 +112,7 @@ Node::update_transitive(double ab, double bc)
     // A is the local node
     // B is the node just encountered (originator of RIB)
     // C is the node represented by this ProphetNode instance
-    p_value_ = p_value_ + (1.0 - p_value_) * ab * bc * params_->beta_;
+    p_value_ = (p_value_ * params_->beta_) + (1.0 - params_->beta_) * ab * bc * params_->encounter_;
 
     // update age to reflect data "freshness"
     age_ = time(0);

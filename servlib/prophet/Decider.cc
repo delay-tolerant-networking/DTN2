@@ -58,8 +58,9 @@ FwdDeciderGRTR::operator()(const Bundle* b) const
     else if (!is_relay_)
         return false;
 
-    // forward if remote's predictability is greater that local's
-    if (local_->p_value(b) < remote_->p_value(b))
+    std::string dest_eid = core_->get_route(b->destination_id());
+    // forward if remote's predictability is greater than local's
+    if (local_->p_value(dest_eid) < remote_->p_value(dest_eid))
     {
         LOG("ok to fwd: %s is better route for bundle %s %u:%u "
             "(%.2f > %.2f)", next_hop_->remote_eid(),b->destination_id().c_str(),
