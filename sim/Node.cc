@@ -92,9 +92,10 @@ Node::do_init()
         PANIC("Error initializing storage tables");
     }
 
-    bundle_store_ = BundleStore::instance();
-    link_store_   = LinkStore::instance();
-    reg_store_    = RegistrationStore::instance();
+    bundle_store_  = BundleStore::instance();
+    prophet_store_ = ProphetStore::instance();
+    link_store_    = LinkStore::instance();
+    reg_store_     = RegistrationStore::instance();
 }
 
 //----------------------------------------------------------------------
@@ -108,6 +109,7 @@ Node::set_active()
     oasys::Log::instance()->set_prefix(name_.c_str());
 
     BundleStore::force_set_instance(bundle_store_);
+    ProphetStore::force_set_instance(prophet_store_);
     LinkStore::force_set_instance(link_store_);
     RegistrationStore::force_set_instance(reg_store_);
 }
