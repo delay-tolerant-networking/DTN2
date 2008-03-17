@@ -165,7 +165,7 @@ public:
     /**
      * The current version of the bundling protocol.
      */
-    static const int CURRENT_VERSION = 0x05;
+    static const int CURRENT_VERSION = 0x06;
     
     static const unsigned PREAMBLE_FIXED_LENGTH = 1;
 
