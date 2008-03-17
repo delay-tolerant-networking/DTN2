@@ -213,6 +213,38 @@ AC_DEFUN(AC_CONFIG_OPENSSL, [
     fi
 ])
 dnl
+dnl    Copyright 2007 Intel Corporation
+dnl 
+dnl    Licensed under the Apache License, Version 2.0 (the "License");
+dnl    you may not use this file except in compliance with the License.
+dnl    You may obtain a copy of the License at
+dnl 
+dnl        http://www.apache.org/licenses/LICENSE-2.0
+dnl 
+dnl    Unless required by applicable law or agreed to in writing, software
+dnl    distributed under the License is distributed on an "AS IS" BASIS,
+dnl    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+dnl    See the License for the specific language governing permissions and
+dnl    limitations under the License.
+dnl
+
+dnl
+dnl Autoconf support for finding apr and setting appropriate configure 
+dnl variables. 
+dnl
+
+AC_DEFUN(AC_CONFIG_APR, [
+    apr_version=1
+
+    APR_FIND_APR("", "", 1, ${apr_version})
+    if test "$apr_found" = "no"; then
+        AC_MSG_ERROR([Apache Portable Runtime (APR) library not found. Install it and re-run configure.])
+    fi
+
+    EXTLIB_CFLAGS="$EXTLIB_CFLAGS `$apr_config --includes`"
+    EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS `$apr_config --link-ld --libs`"
+])
+dnl
 dnl    Copyright 2006 Intel Corporation
 dnl 
 dnl    Licensed under the Apache License, Version 2.0 (the "License");
@@ -1759,41 +1791,37 @@ dnl
 dnl AC_OASYS_CONFIG [major] [minor]
 dnl
 AC_DEFUN(AC_OASYS_CONFIG, [
+    rm -f oasys
+
     ac_oasysver_major=$1
     ac_oasysver_minor=$2
-    ac_oasysdir=../oasys
+    ac_oasysdir=
 
     AC_ARG_WITH(oasys,
         AC_HELP_STRING([--with-oasys=DIR],
-    		   [location of an oasys installation (default ../oasys)]),
+    		   [location of an oasys installation (default ../oasys or /usr)]),
         ac_oasysdir=$withval) 
 
     AC_MSG_CHECKING([for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)])
 
-    if test "$ac_oasysdir" = ../oasys -a ! -d ../oasys ; then
-        ac_oasysdir=/usr
+    if test "$ac_oasysdir" = "" ; then
+       if test -d ../oasys ; then
+          ac_oasysdir=../oasys
+       else
+          ac_oasysdir=/usr
+       fi
     fi
 
     #
-    # Check if the oasys directory is a source directory or an
-    # installation by probing for the oasys-version.h file and 
-    # setting the other paths accordingly.
-    # 
-    # When we're done, OASYS_INCDIR points to the parent directory
-    # containing the oasys header files or the source directory itself
-    # with a symlink (oasys -> .), OASYS_LIBDIR points to the
-    # directory where the libraries are. OASYS_ETCDIR points to where
-    # the various scripts are.
+    # Set the oasys paths properly. OASYS_INCDIR points to the parent
+    # directory containing the oasys header files or the source
+    # directory itself with a symlink (include/oasys -> .),
+    # OASYS_LIBDIR points to the directory where the libraries are.
+    # OASYS_ETCDIR points to where the various scripts are.
     #
-    if test -f $ac_oasysdir/oasys-version.h ; then
-        OASYS_INCDIR="$ac_oasysdir"
-        OASYS_LIBDIR="$ac_oasysdir/lib"
-        OASYS_ETCDIR="$ac_oasysdir"
-    else
-        OASYS_INCDIR="$ac_oasysdir/include"
-        OASYS_LIBDIR="$ac_oasysdir/lib"
-        OASYS_ETCDIR="$ac_oasysdir/share/oasys"
-    fi
+    OASYS_INCDIR="$ac_oasysdir/include"
+    OASYS_LIBDIR="$ac_oasysdir/lib"
+    OASYS_ETCDIR="$ac_oasysdir/share/oasys"
 
     if test ! -d $OASYS_INCDIR ; then
        AC_MSG_ERROR(nonexistent oasys include directory $OASYS_INCDIR)
@@ -1820,7 +1848,6 @@ AC_DEFUN(AC_OASYS_CONFIG, [
     #
     # Check the settings to make sure that we can build a program.
     #
-
     ac_save_CFLAGS=$CFLAGS
     CFLAGS="$CFLAGS -I$OASYS_INCDIR"
     
@@ -1846,6 +1873,11 @@ AC_DEFUN(AC_OASYS_CONFIG, [
           AC_MSG_RESULT([no])
 	  AC_MSG_ERROR([can't find compatible oasys install (version $ac_oasysver_major.$ac_oasysver_minor or better) at $ac_oasysdir])
       ])
+
+    #
+    # Create a symlink to the oasys directory for the test scripts
+    #
+    ln -s $ac_oasysdir oasys
 
     CFLAGS=$ac_save_CFLAGS
     LDFLAGS=$ac_save_LDFLAGS
@@ -2273,7 +2305,7 @@ dnl Checks for header files.
 dnl -------------------------------------------------------------------------
 AC_DEFUN(AC_OASYS_SYSTEM_HEADERS, [
     AC_HEADER_STDC
-    AC_CHECK_HEADERS([err.h execinfo.h stdint.h string.h synch.h sys/cdefs.h sys/types.h])
+    AC_CHECK_HEADERS([err.h execinfo.h stdint.h string.h synch.h termios.h sys/cdefs.h sys/types.h])
 ])
 
 dnl -------------------------------------------------------------------------
