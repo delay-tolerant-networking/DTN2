@@ -81,12 +81,14 @@ Node::do_init()
 
     // the other stores are faux-singletons with an instance per node
     BundleStore::force_set_instance(NULL);
+    ProphetStore::force_set_instance(NULL);
     LinkStore::force_set_instance(NULL);
     RegistrationStore::force_set_instance(NULL);
 
     log_info("creating storage tables");
     if ((BundleStore::init(storage_config_, store_) != 0) ||
         (LinkStore::init(storage_config_, store_) != 0) ||
+        (ProphetStore::init(storage_config_, store_) != 0) ||
         (RegistrationStore::init(storage_config_, store_) != 0))
     {
         PANIC("Error initializing storage tables");
