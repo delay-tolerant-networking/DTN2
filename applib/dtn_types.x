@@ -291,18 +291,15 @@ struct dtn_bundle_status_report_t {
 % * When sending a bundle, if the location specifies that the payload
 % * is in a temp file, then the daemon assumes ownership of the file
 % * and should have sufficient permissions to move or rename it.
-% * 
-% * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
-% * bundle payload that can be sent or received in memory.
-% * 
+% *
 % * When receiving a bundle that is a status report, then the
 % * status_report pointer will be non-NULL and will point to a
 % * dtn_bundle_status_report_t structure which contains the parsed fields
 % * of the status report.
 % *
-% *     DTN_PAYLOAD_MEM		- copy contents from memory
-% *     DTN_PAYLOAD_FILE	- file copy the contents of the file
-% *     DTN_PAYLOAD_TEMP_FILE	- assume ownership of the file
+% *     DTN_PAYLOAD_MEM         - payload contents in memory
+% *     DTN_PAYLOAD_FILE        - payload contents in file
+% *     DTN_PAYLOAD_TEMP_FILE   - in file, assume ownership (send only)
 % */
 enum dtn_bundle_payload_location_t {
     DTN_PAYLOAD_FILE,
