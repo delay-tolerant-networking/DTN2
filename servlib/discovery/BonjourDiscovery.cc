@@ -24,6 +24,8 @@
 #include "bundling/BundleDaemon.h"
 #include "conv_layers/TCPConvergenceLayer.h"
 
+#define ADDRESS_KEY "local_eid"
+
 namespace dtn {
 
 //----------------------------------------------------------------------
@@ -69,9 +71,14 @@ BonjourDiscovery::run()
 
     const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
     char txt[255];
-    int txtLen = local_eid.length() + 1;
-    memcpy(&txt[1], local_eid.data(), local_eid.length());
-    txt[0] = local_eid.length();
+    TXTRecordRef record;
+    TXTRecordCreate(&record, 255, &txt);
+    err = TXTRecordSetValue(&record, ADDRESS_KEY, local_eid.length(), local_eid.data());
+
+    if (err != kDNSServiceErr_NoError) {
+        log_err("KURTIS error in DNSServiceRegister: %s", dns_service_strerror(err));
+        return;
+    }
 
     // call DNSServiceRegister to announce the tcp service listening
     // on the default port
@@ -83,10 +90,12 @@ BonjourDiscovery::run()
                              NULL /* domain */,
                              NULL /* host */,
                              htons(TCPConvergenceLayer::TCPCL_DEFAULT_PORT),
-                             txtLen /* txtLen */,
-                             txt /* txtRecord */,
+                             TXTRecordGetLength(&record) /* txtLen */,
+                             TXTRecordGetBytesPtr(&record) /* txtRecord */,
                              register_reply_callback /* callback */,
                              this /* context */);
+
+    TXTRecordDeallocate(&record);
 
     if (err != kDNSServiceErr_NoError) {
         log_err("error in DNSServiceRegister: %s", dns_service_strerror(err));
@@ -282,6 +291,8 @@ BonjourDiscovery::handle_resolve(DNSServiceRef sdRef,
 {
     EndpointID remote_eid;
     oasys::StaticStringBuffer<64> buf;
+    unsigned char value_len;
+    char* value;
         
     (void)sdRef;
     (void)flags;
@@ -295,14 +306,22 @@ BonjourDiscovery::handle_resolve(DNSServiceRef sdRef,
 
     if (txtlen == 0) {
         log_warn("handle_resolve(%s, %s): zero-length txt record",
-                 fullname, hosttarget);
+	       fullname, hosttarget);
         goto done;
     }
 
-    remote_eid.assign(&txtRecord[1], txtlen-1);
+    if (!TXTRecordContainsKey(txtlen, txtRecord, ADDRESS_KEY)){
+        log_warn("handle_resolve(%s, %s): no ADDRESS_KEY field found in txt record",
+		 fullname, hosttarget);
+	goto done;
+    }
+
+    value = (char*) TXTRecordGetValuePtr(txtlen, txtRecord, ADDRESS_KEY, &value_len);
+
+    remote_eid.assign(value, static_cast<size_t>(value_len));
     if (!remote_eid.valid()) {
-        log_warn("handle_resolve(%s, %s): txt record '%.*s' not a valid eid",
-                 fullname, hosttarget, txtlen-1, txtRecord+1);
+        log_warn("handle_resolve(%s, %s): %s not a valid eid",
+                 fullname, hosttarget, remote_eid.c_str());
         goto done;
     }
 
@@ -312,8 +331,8 @@ BonjourDiscovery::handle_resolve(DNSServiceRef sdRef,
         goto done;
     }
     
-    log_debug("handle_resolve: name %s host %s port %u txt %.*s if %d: err %s",
-              fullname, hosttarget, ntohs(port), txtlen-1, txtRecord+1,
+    log_debug("handle_resolve: name %s host %s port %u txt %s if %d: err %s",
+              fullname, hosttarget, ntohs(port), remote_eid.c_str(),
               interfaceIndex, dns_service_strerror(errorCode));
 
     buf.appendf("%s:%u", hosttarget, htons(port));
