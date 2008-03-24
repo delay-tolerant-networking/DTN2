@@ -1278,6 +1278,8 @@ APIClient::handle_recv()
         log_err("payload location %d not understood", location);
         return DTN_EINVAL;
     }
+
+    payload.location = location;
     
     /*
      * If the bundle is a status report, parse it and copy out the
