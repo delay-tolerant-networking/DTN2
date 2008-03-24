@@ -970,7 +970,8 @@ APIClient::handle_send()
 
         if ((file = fopen(filename, "r")) == NULL)
         {
-            log_err("payload file %s can't be opened!", filename);
+            log_err("payload file %s can't be opened: %s",
+                    filename, strerror(errno));
             return DTN_EINVAL;
         }
         
