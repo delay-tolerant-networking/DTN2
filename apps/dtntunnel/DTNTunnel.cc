@@ -31,7 +31,6 @@
 #include "APIEndpointIDOpt.h"
 
 #include <oasys/io/NetUtils.h>
-#include <oasys/util/Daemonizer.h>
 #include <oasys/util/Getopt.h>
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/StringUtils.h>
@@ -225,14 +224,14 @@ DTNTunnel::init_registration()
     if (err != DTN_SUCCESS) {
         log_crit("can't open recv handle to daemon: %s",
                  dtn_strerror(err));
-        exit(1);
+        notify_and_exit(1);
     }
     
     err = dtn_open(&send_handle_);
     if (err != DTN_SUCCESS) {
         log_crit("can't open send handle to daemon: %s",
                  dtn_strerror(err));
-        exit(1);
+        notify_and_exit(1);
     }
 
     oasys::StaticStringBuffer<128> demux;
@@ -253,7 +252,7 @@ DTNTunnel::init_registration()
         if (err != DTN_SUCCESS) {
             log_crit("can't build local eid: %s",
                      dtn_strerror(dtn_errno(recv_handle_)));
-            exit(1);
+            notify_and_exit(1);
         }
     }
 
@@ -269,7 +268,7 @@ DTNTunnel::init_registration()
         if (err != 0) {
             log_crit("error in dtn_bind: %s", 
                      dtn_strerror(dtn_errno(recv_handle_)));
-            exit(1);
+            notify_and_exit(1);
         }
     } else if (dtn_errno(recv_handle_) == DTN_ENOTFOUND) {
         dtn_reg_info_t reginfo;
@@ -282,12 +281,12 @@ DTNTunnel::init_registration()
         if (err != 0) {
             log_crit("error in dtn_register: %s",
                      dtn_strerror(dtn_errno(recv_handle_)));
-            exit(1);
+            notify_and_exit(1);
         }
     } else {
         log_crit("error in dtn_find_registration: %s",
                  dtn_strerror(dtn_errno(recv_handle_)));
-        exit(1);
+        notify_and_exit(1);
     }
 }
 
@@ -381,6 +380,12 @@ DTNTunnel::main(int argc, char* argv[])
 
     init_tunnel();
     init_registration();
+
+    // if we've daemonized, now is the time to notify our parent
+    // process that we've successfully initialized
+    if (daemonize_) {
+        daemonizer_.notify_parent(0);
+    }
 
     log_debug("DTNTunnel starting receive loop...");
     
