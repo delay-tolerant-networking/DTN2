@@ -88,14 +88,28 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 void
 TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
-    Bundle* bundle = event->bundleref_.object();
-    (void)bundle;
-    log_debug("handle bundle transmitted: *%p", bundle);
+    const BundleRef& bundle = event->bundleref_;
+    log_debug("handle bundle transmitted: *%p", bundle.object());
 
     // if the bundle has a deferred single-copy transmission for
     // forwarding on any links, then remove the forwarding log entries
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
     oasys::ScopeLock l(cm->lock(), "TableBasedRouter::handle_bundle_transmitted");
+
+    const LinkSet* links = cm->links();
+    LinkSet::const_iterator iter;
+    for (iter = links->begin(); iter != links->end(); ++iter) {
+        DeferredList* deferred = deferred_list(*iter);
+        ForwardingInfo info;
+        if (deferred->find(bundle, &info))
+        {
+            if (info.action() == ForwardingInfo::FORWARD_ACTION) {
+                log_debug("removing bundle *%p from link *%p deferred list",
+                          bundle.object(), (*iter).object());
+                deferred->del(bundle);
+            }
+        }
+    }
     
     // if the link queue has free space, then check the list of
     // unrouted bundles to see if any should be routed to this link
@@ -590,6 +604,13 @@ TableBasedRouter::reroute_all_bundles()
 }
 
 //----------------------------------------------------------------------
+void
+TableBasedRouter::recompute_routes()
+{
+    reroute_all_bundles();
+}
+
+//----------------------------------------------------------------------
 TableBasedRouter::DeferredList::DeferredList(const char* logpath,
                                              const LinkRef& link)
     : RouterInfo(),
@@ -604,6 +625,19 @@ void
 TableBasedRouter::DeferredList::dump_stats(oasys::StringBuffer* buf)
 {
     buf->appendf(" -- %zu bundles_deferred", count_);
+}
+
+//----------------------------------------------------------------------
+bool
+TableBasedRouter::DeferredList::find(const BundleRef& bundle,
+                                     ForwardingInfo* info)
+{
+    InfoMap::const_iterator iter = info_.find(bundle->bundleid());
+    if (iter == info_.end()) {
+        return false;
+    }
+    *info = iter->second;
+    return true;
 }
 
 //----------------------------------------------------------------------

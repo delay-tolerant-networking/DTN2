@@ -136,6 +136,12 @@ protected:
     virtual void reroute_all_bundles();
 
     /**
+     * Generic hook in response to the command line indication that we
+     * should reroute all bundles.
+     */
+    virtual void recompute_routes();
+
+    /**
      * When new links are added or opened, and if we're configured to
      * add nexthop routes, try to add a new route for the given link.
      */
@@ -183,6 +189,10 @@ protected:
         /// Accessor for the forwarding info associated with the
         /// bundle, which must be on the list
         const ForwardingInfo& info(const BundleRef& bundle);
+
+        /// Check if the bundle is on the list. If so, return its
+        /// forwarding info.
+        bool find(const BundleRef& bundle, ForwardingInfo* info);
 
         /// Add a new bundle/info pair to the deferred list
         bool add(const BundleRef& bundle, const ForwardingInfo& info);
