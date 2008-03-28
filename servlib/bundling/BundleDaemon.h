@@ -359,6 +359,10 @@ protected:
     void handle_cla_parameters_report(CLAParametersReportEvent* event);
     ///@}
 
+    /// @{
+    void event_handlers_completed(BundleEvent* event);
+    /// @}
+
     typedef BundleProtocol::custody_signal_reason_t custody_signal_reason_t;
     typedef BundleProtocol::status_report_flag_t status_report_flag_t;
     typedef BundleProtocol::status_report_reason_t status_report_reason_t;

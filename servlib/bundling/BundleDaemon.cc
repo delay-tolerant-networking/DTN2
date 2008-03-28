@@ -906,13 +906,6 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         // forwarding are known to be unable to send bundles back to
         // this node
     }
-
-    /*
-     * Check if we should can delete the bundle from the pending list,
-     * i.e. we don't have custody and it's not being transmitted
-     * anywhere else.
-     */
-    try_delete_from_pending(bundle);
 }
 
 //----------------------------------------------------------------------
@@ -961,13 +954,6 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
                                     BundleProtocol::CUSTODY_NO_ADDTL_INFO);
         }
     }
-    
-    /*
-     * Finally, check if we can and should delete the bundle from the
-     * pending list, i.e. we don't have custody and it's not being
-     * transmitted anywhere else.
-     */
-    try_delete_from_pending(bundle);
 }
 
 //----------------------------------------------------------------------
@@ -2060,6 +2046,43 @@ BundleDaemon::handle_status_request(StatusRequest* request)
 }
 
 //----------------------------------------------------------------------
+void
+BundleDaemon::event_handlers_completed(BundleEvent* event)
+{
+    /**
+     * Once bundle transmission or delivery has been processed by the
+     * router, check to see if it's still needed, otherwise we delete
+     * it.
+     * 
+     * XXX/demmer we might want to add reception here too, although
+     * then the router would need to mark the bundles that it still
+     * needs to route.
+     */
+    Bundle* bundle = NULL;
+    if (event->type_ == BUNDLE_TRANSMITTED) {
+        bundle = ((BundleTransmittedEvent*)event)->bundleref_.object();
+    } else if (event->type_ == BUNDLE_DELIVERED) {
+        bundle = ((BundleTransmittedEvent*)event)->bundleref_.object();
+    }
+
+    if (bundle != NULL) {
+        try_delete_from_pending(bundle);
+    }
+
+    /**
+     * Once the bundle expired event has been processed, the bundle
+     * shouldn't exist on any more lists.
+     */
+    if (event->type_ == BUNDLE_EXPIRED) {
+        size_t num_mappings = bundle->num_mappings();
+        if (num_mappings != 0) {
+            log_warn("expired bundle *%p still has %zu mappings",
+                     bundle, num_mappings);
+        }
+    }
+}
+
+//----------------------------------------------------------------------
 bool
 BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 {
@@ -2341,6 +2364,8 @@ BundleDaemon::handle_event(BundleEvent* event)
         router_->handle_event(event);
         contactmgr_->handle_event(event);
     }
+
+    event_handlers_completed(event);
 
     stats_.events_processed_++;
 
