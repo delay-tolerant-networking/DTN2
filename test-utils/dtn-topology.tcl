@@ -90,7 +90,8 @@ proc config_link {id peerid type cl with_routes link_args} {
     # gets created in response to the connection establishment, and
     # hence is OPPORUNISTIC.
     if {[dtn::is_bidirectional $cl] && \
-	    ($type == "ONDEMAND" || $type == "ALWAYSON") && \
+	    ([string toupper $type] == "ONDEMAND" || \
+             [string toupper $type] == "ALWAYSON") && \
 	    [get_link_name $cl $peerid $id] != ""} {
 	set type OPPORTUNISTIC
     }
