@@ -159,7 +159,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
 
         if (count > 0) {
             log_debug("should_fwd bundle %d: "
-                      "skip %s since already transmitted (count %zu)",
+                      "skip %s since already transmitted or queued (count %zu)",
                       bundle->bundleid(), link->name(), count);
             return false;
         } else {
