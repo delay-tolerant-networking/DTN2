@@ -72,6 +72,10 @@ RouteCommand::RouteCommand()
                                 DTLSRConfig::instance()->weight_opts_,
                                 (int*)&DTLSRConfig::instance()->weight_fn_,
                                 "fn", "Weight function for the graph"));
+
+    bind_var(new oasys::UIntOpt("dtlsr_weight_shift",
+                                &DTLSRConfig::instance()->weight_shift_,
+                                "shift", "Scale the weight on down links"));
                                   
     bind_var(new oasys::DoubleOpt("dtlsr_uptime_factor",
                                   &DTLSRConfig::instance()->uptime_factor_,

@@ -85,7 +85,7 @@ IPDiscovery::configure(int argc, const char* argv[])
         socket_.set_remote_addr(remote_addr_);
         in_addr_t mcast_addr = inet_addr("224.0.0.0");
         // infer multicast option from remote address
-        if (mcast_addr & remote_addr_ == mcast_addr)
+        if ((mcast_addr & remote_addr_) == mcast_addr)
         {
             socket_.params_.multicast_ = true;
             socket_.params_.mcast_ttl_ = mcast_ttl_;
@@ -168,6 +168,7 @@ IPDiscovery::run()
                 else
                 {
                     alt.params_ = socket_.params_;
+                    socket_.set_remote_addr(remote_addr_);
                     if (alt.bind(announce->cl_addr(),port_) != 0)
                     {
                         log_err("failed to bind to %s:%u -- %s (%d)",
