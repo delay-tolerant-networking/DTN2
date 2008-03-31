@@ -479,10 +479,13 @@ dtn_recv(dtn_handle_t h,
     // instead, so read in the data here
     if (location == DTN_PAYLOAD_MEM && payload->location == DTN_PAYLOAD_FILE)
     {
-        int fd = open(payload->filename.filename_val, O_RDONLY, 0);
+        char filename[PATH_MAX];
+        strncpy(filename, payload->filename.filename_val, PATH_MAX);
+        
+        int fd = open(filename, O_RDONLY, 0);
         if (fd <= 0) {
-            fprintf(stderr, "DTN API internal error opening payload file: %s\n",
-                    strerror(errno));
+            fprintf(stderr, "DTN API internal error opening payload file %s: %s\n",
+                    filename, strerror(errno));
             return DTN_EXDR;
         }
 
@@ -516,6 +519,12 @@ dtn_recv(dtn_handle_t h,
         } while (len > 0);
 
         close(fd);
+
+        if (unlink(filename) != 0) {
+            fprintf(stderr, "DTN API internal error removing payload file %s: %s\n",
+                    filename, strerror(errno));
+            return DTN_EXDR;
+        }
     }
     else if (location != payload->location)
     {
