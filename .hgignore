@@ -3,12 +3,9 @@ syntax: glob
 # some defaults pulled from the CVS manual then modified
 tags
 TAGS
+\.\#*
 *~
-#*
-.#*
-,*
-_$*
-*$
+
 .del-*
 *.a
 *.olb
