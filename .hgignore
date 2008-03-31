@@ -58,3 +58,4 @@ apps/num2sdnv/sdnv2num
 daemon/dtnd
 sim/dtnsim
 test/unit_tests/*-test
+oasys
