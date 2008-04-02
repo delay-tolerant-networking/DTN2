@@ -48,6 +48,7 @@ void
 TableBasedRouter::add_route(RouteEntry *entry)
 {
     route_table_->add_entry(entry);
+    dupcache_.evict_all();
     reroute_all_bundles();        
 }
 
@@ -56,7 +57,7 @@ void
 TableBasedRouter::del_route(const EndpointIDPattern& dest)
 {
     route_table_->del_entries(dest);
-
+    dupcache_.evict_all();
     // XXX/demmer this needs to reroute bundles, cancelling them from
     // their old route destinations
 }
@@ -86,15 +87,10 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 
 //----------------------------------------------------------------------
 void
-TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
+TableBasedRouter::remove_from_deferred(const BundleRef& bundle, int actions)
 {
-    const BundleRef& bundle = event->bundleref_;
-    log_debug("handle bundle transmitted: *%p", bundle.object());
-
-    // if the bundle has a deferred single-copy transmission for
-    // forwarding on any links, then remove the forwarding log entries
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    oasys::ScopeLock l(cm->lock(), "TableBasedRouter::handle_bundle_transmitted");
+    oasys::ScopeLock l(cm->lock(), "TableBasedRouter::remove_from_deferred");
 
     const LinkSet* links = cm->links();
     LinkSet::const_iterator iter;
@@ -103,18 +99,38 @@ TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
         ForwardingInfo info;
         if (deferred->find(bundle, &info))
         {
-            if (info.action() == ForwardingInfo::FORWARD_ACTION) {
+            if (info.action() & actions) {
                 log_debug("removing bundle *%p from link *%p deferred list",
                           bundle.object(), (*iter).object());
                 deferred->del(bundle);
             }
         }
     }
+}
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
+{
+    const BundleRef& bundle = event->bundleref_;
+    log_debug("handle bundle transmitted: *%p", bundle.object());
+
+    // if the bundle has a deferred single-copy transmission for
+    // forwarding on any links, then remove the forwarding log entries
+    remove_from_deferred(bundle, ForwardingInfo::FORWARD_ACTION);
     
-    // if the link queue has free space, then check the list of
-    // unrouted bundles to see if any should be routed to this link
+    // check if the transmission means that we can send another bundle
+    // on the link
     const LinkRef& link = event->contact_->link();
     check_next_hop(link);
+}
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::delete_bundle(const BundleRef& bundle)
+{
+    log_debug("delete bundle: *%p", bundle.object());
+    remove_from_deferred(bundle, ForwardingInfo::ANY_ACTION);
 }
 
 //----------------------------------------------------------------------

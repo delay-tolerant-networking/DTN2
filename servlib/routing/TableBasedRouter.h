@@ -66,7 +66,7 @@ protected:
     virtual void handle_link_deleted(LinkDeletedEvent* event);
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
     /// @}
-    
+
     /**
      * Dump the routing state.
      */
@@ -147,6 +147,16 @@ protected:
      */
     void add_nexthop_route(const LinkRef& link);
 
+    /**
+     * Hook to tell the router that the bundle should be deleted.
+     */
+    void delete_bundle(const BundleRef& bundle);
+
+    /**
+     * Remove matching deferred transmission entries.
+     */
+    void remove_from_deferred(const BundleRef& bundle, int actions);
+    
     /// Cache to check for duplicates
     DuplicateCache dupcache_;
 

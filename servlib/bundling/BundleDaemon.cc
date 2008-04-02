@@ -443,7 +443,7 @@ BundleDaemon::handle_bundle_delete(BundleDeleteRequest* request)
         log_info("BUNDLE_DELETE: bundle *%p (reason %s)",
                  request->bundle_.object(),
                  BundleStatusReport::reason_to_str(request->reason_));
-        delete_bundle(request->bundle_.object(), request->reason_);
+        delete_bundle(request->bundle_, request->reason_);
     }
 }
 
@@ -464,7 +464,8 @@ BundleDaemon::handle_bundle_accept(BundleAcceptRequest* request)
 void
 BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 {
-    Bundle* bundle = event->bundleref_.object();
+    const BundleRef& bundleref = event->bundleref_;
+    Bundle* bundle = bundleref.object();
 
     // update statistics and store an appropriate event descriptor
     const char* source_str = "";
@@ -608,7 +609,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
          * not giving the reception event to the router.
          */
         if (!accept_bundle) {
-            delete_bundle(bundle, deletion_reason);
+            delete_bundle(bundleref, deletion_reason);
             event->daemon_only_ = true;
             return;
         }
@@ -963,9 +964,9 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     // update statistics
     stats_.expired_bundles_++;
     
-    Bundle* bundle = event->bundleref_.object();
+    const BundleRef& bundle = event->bundleref_;
 
-    log_info("BUNDLE_EXPIRED *%p", bundle);
+    log_info("BUNDLE_EXPIRED *%p", bundle.object());
 
     // note that there may or may not still be a pending expiration
     // timer, since this event may be coming from the console, so we
@@ -1037,7 +1038,7 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
     // If the request does not have a link name, the bundle itself has been
     // canceled (probably by an application).
     else {
-        delete_bundle(br.object());
+        delete_bundle(br);
     }
 }
 
@@ -2074,6 +2075,7 @@ BundleDaemon::event_handlers_completed(BundleEvent* event)
      * shouldn't exist on any more lists.
      */
     if (event->type_ == BUNDLE_EXPIRED) {
+        bundle = ((BundleExpiredEvent*)event)->bundleref_.object();
         size_t num_mappings = bundle->num_mappings();
         if (num_mappings != 0) {
             log_warn("expired bundle *%p still has %zu mappings",
@@ -2233,8 +2235,11 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
 
 //----------------------------------------------------------------------
 bool
-BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
+BundleDaemon::delete_bundle(const BundleRef& bundleref,
+                            status_report_reason_t reason)
 {
+    Bundle* bundle = bundleref.object();
+    
     ++stats_.deleted_bundles_;
     
     // send a bundle deletion status report if we have custody or the
@@ -2257,6 +2262,9 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     if (bundle->is_fragment()) {
         fragmentmgr_->delete_fragment(bundle);
     }
+
+    // notify the router that it's time to delete the bundle
+    router_->delete_bundle(bundleref);
 
     // delete the bundle from the pending list
     log_debug("pending_bundles size %zd", pending_bundles_->size());

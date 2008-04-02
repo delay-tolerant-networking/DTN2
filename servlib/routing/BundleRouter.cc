@@ -118,20 +118,6 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
         return false;
     }
 
-    // check if we're trying to send it right back where it came from
-    //
-    // XXX/demmer this is bad -- some routing schemes might want to do
-    // this
-    if (link->remote_eid() == bundle->prevhop() &&
-        link->remote_eid() != EndpointID::NULL_EID())
-    {
-        log_debug("should_fwd bundle %d: "
-                  "skip %s since remote eid %s == bundle prevhop",
-                  bundle->bundleid(), link->name(),
-                  link->remote_eid().c_str());
-        return false;
-    }
-
     // check if we've already sent or are in the process of sending
     // the bundle to the node via some other link
     size_t count = bundle->fwdlog()->get_count(
@@ -210,6 +196,13 @@ BundleRouter::accept_bundle(Bundle* bundle, int* errp)
 
     *errp = 0;
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+BundleRouter::delete_bundle(const BundleRef& bundle)
+{
+    (void)bundle;
 }
 
 //----------------------------------------------------------------------

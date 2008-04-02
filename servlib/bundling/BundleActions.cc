@@ -234,8 +234,10 @@ BundleActions::delete_bundle(Bundle* bundle,
                              BundleProtocol::status_report_reason_t reason,
                              bool log_on_error)
 {
+    BundleRef bref(bundle, "BundleActions::delete_bundle");
+    
     log_debug("attempting to delete bundle *%p from data store", bundle);
-    bool del = BundleDaemon::instance()->delete_bundle(bundle, reason);
+    bool del = BundleDaemon::instance()->delete_bundle(bref, reason);
 
     if (log_on_error && !del) {
         log_err("Failed to delete bundle *%p from data store", bundle);

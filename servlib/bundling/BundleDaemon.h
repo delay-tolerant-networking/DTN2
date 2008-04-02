@@ -426,7 +426,7 @@ protected:
      * for the bundle if necessary, removes the bundle from the pending
      * list, and sends a bundle deletion status report if necessary.
      */
-    bool delete_bundle(Bundle* bundle,
+    bool delete_bundle(const BundleRef& bundle,
                        status_report_reason_t reason =
                            BundleProtocol::REASON_NO_ADDTL_INFO);
     
