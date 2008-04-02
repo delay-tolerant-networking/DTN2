@@ -48,6 +48,7 @@ apps/dtnmoteproxy/dtnmoteproxy
 apps/dtnperf/dtnperf-client
 apps/dtnperf/dtnperf-server
 apps/dtnping/dtnping
+apps/dtnping/dtnreporter
 apps/dtnping/dtntraceroute
 apps/dtnrecv/dtnrecv
 apps/dtnsend/dtnsend
