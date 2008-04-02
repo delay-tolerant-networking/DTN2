@@ -116,7 +116,7 @@ public:
             // account historical data, i.e. a number that
             // grows/shrinks as the link gets worse but where a router
             // can take into account that some outages are expected
-            u_int32_t ret = downtime + 5;
+            u_int32_t ret = (downtime + 5) >> DTLSRConfig::instance()->weight_shift_;
 
             if (ret < 24*60*60) {
                 log_debug_p("/dtn/route/graph",
