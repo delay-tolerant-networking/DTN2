@@ -43,6 +43,11 @@ public:
      */
     bool is_duplicate(Bundle* bundle);
 
+    /**
+     * Flush the cache.
+     */
+    void evict_all();
+
 protected:
     /**
      * Cache value class.

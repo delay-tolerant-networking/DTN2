@@ -49,4 +49,11 @@ DuplicateCache::is_duplicate(Bundle* bundle)
     return false;
 }
 
+//----------------------------------------------------------------------
+void
+DuplicateCache::evict_all()
+{
+    cache_.evict_all();
+}
+
 } // namespace dtn
