@@ -62,6 +62,11 @@ public:
      * Configurable weight function.
      */
     weight_fn_t weight_fn_;
+
+    /**
+     * Configurable scaling on link weight.
+     */
+    u_int weight_shift_;
         
     /**
      * Factor by which to age the cost of a link based on its
