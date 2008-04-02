@@ -506,13 +506,13 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
         oasys::StaticStringBuffer<1024> buf;
-        buf.appendf("BUNDLE_RECEIVED%s: (%u bytes recvd)\n",
-                    source_str, event->bytes_received_);
+        buf.appendf("BUNDLE_RECEIVED%s: prevhop %s (%u bytes recvd)\n",
+                    source_str, event->prevhop_.c_str(), event->bytes_received_);
         bundle->format_verbose(&buf);
         log_multiline(oasys::LOG_DEBUG, buf.c_str());
     } else {
-        log_info("BUNDLE_RECEIVED%s *%p (%u bytes recvd)",
-                 source_str, bundle, event->bytes_received_);
+        log_info("BUNDLE_RECEIVED%s *%p prevhop %s (%u bytes recvd)",
+                 source_str, bundle, event->prevhop_.c_str(), event->bytes_received_);
     }
     
     // log a warning if the bundle doesn't have any expiration time or
