@@ -228,14 +228,18 @@ test::script {
     dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
     dtn::wait_for_bundle_stats 1 {1 received 1 generated 1 transmitted}
     
-    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
-    dtn::wait_for_bundle_stats 1 {1 pending 1 custody}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody 1 delivered}
+    dtn::wait_for_bundle_stats 1 {1 pending 1 custody 0 delivered}
 
     testlog "waiting for bundle to expire"
     dtn::wait_for_bundle_stats 1 {1 expired}
 
     testlog "checking that custody was cleaned up"
     dtn::wait_for_bundle_stats 1 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
+
+    testlog "checking that expiration status report was delivered"
+    dtn::wait_for_bundle_stats 0 {2 delivered}
 
     testlog "re-adding route"
     dtn::tell_dtnd 1 route add $dst_route tcp-link:1-2
