@@ -20,7 +20,7 @@
 #include <oasys/util/StringUtils.h>
 
 #include "BundleRouter.h"
-#include "DuplicateCache.h"
+#include "ReceptionCache.h"
 #include "RouterInfo.h"
 
 namespace dtn {
@@ -157,8 +157,8 @@ protected:
      */
     void remove_from_deferred(const BundleRef& bundle, int actions);
     
-    /// Cache to check for duplicates
-    DuplicateCache dupcache_;
+    /// Cache to check for duplicates and to implement a simple RPF check
+    ReceptionCache reception_cache_;
 
     /// The routing table
     RouteTable* route_table_;

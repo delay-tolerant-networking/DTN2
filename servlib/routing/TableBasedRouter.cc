@@ -32,7 +32,7 @@ namespace dtn {
 TableBasedRouter::TableBasedRouter(const char* classname,
                                    const std::string& name)
     : BundleRouter(classname, name),
-      dupcache_(1024)
+      reception_cache_(1024) // XXX/demmer configurable??
 {
     route_table_ = new RouteTable(name);
 }
@@ -48,7 +48,11 @@ void
 TableBasedRouter::add_route(RouteEntry *entry)
 {
     route_table_->add_entry(entry);
-    dupcache_.evict_all();
+
+    // clear the reception cache when the routes change since we might
+    // want to send a bundle back where it came from
+    reception_cache_.evict_all();
+    
     reroute_all_bundles();        
 }
 
@@ -57,7 +61,11 @@ void
 TableBasedRouter::del_route(const EndpointIDPattern& dest)
 {
     route_table_->del_entries(dest);
-    dupcache_.evict_all();
+
+    // clear the reception cache when the routes change since we might
+    // want to send a bundle back where it came from
+    reception_cache_.evict_all();
+    
     // XXX/demmer this needs to reroute bundles, cancelling them from
     // their old route destinations
 }
@@ -76,7 +84,12 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
     Bundle* bundle = event->bundleref_.object();
     log_debug("handle bundle received: *%p", bundle);
 
-    if (dupcache_.is_duplicate(bundle)) {
+    EndpointID remote_eid(EndpointID::NULL_EID());
+    if (event->link_ != NULL) {
+        remote_eid = event->link_->remote_eid();
+    }
+    if (! reception_cache_.add_entry(bundle, remote_eid))
+    {
         log_info("ignoring duplicate bundle: *%p", bundle);
         BundleDaemon::post_at_head(new BundleNotNeededEvent(bundle));
         return;
@@ -197,6 +210,22 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
 {
     if (route == NULL)
         return false;
+
+    // simple RPF check -- if the bundle was received from the given
+    // node, then don't send it back as long as the entry is still in
+    // the reception cache (meaning our routes haven't changed).
+    EndpointID prevhop;
+    if (reception_cache_.lookup(bundle, &prevhop))
+    {
+        if (prevhop == route->link()->remote_eid() &&
+            prevhop != EndpointID::NULL_EID())
+        {
+            log_debug("should_fwd bundle %d: "
+                      "skip %s since bundle arrived from the same node",
+                      bundle->bundleid(), route->link()->name());
+            return false;
+        }
+    }
 
     return BundleRouter::should_fwd(bundle, route->link(), route->action());
 }

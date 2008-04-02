@@ -152,7 +152,6 @@ REGISTRATION_SRCS :=				\
 ROUTING_SRCS :=					\
 	routing/router.cc			\
 	routing/router-custom.cc		\
-	routing/DuplicateCache.cc		\
 	routing/DTLSR.cc			\
 	routing/DTLSRConfig.cc			\
 	routing/DTLSRRouter.cc			\
@@ -166,6 +165,7 @@ ROUTING_SRCS :=					\
 	routing/ProphetNode.cc			\
 	routing/ProphetNodeList.cc		\
 	routing/ProphetRouter.cc		\
+	routing/ReceptionCache.cc		\
 	routing/RouteEntry.cc			\
 	routing/RouteTable.cc			\
 	routing/RouterInfo.cc			\
