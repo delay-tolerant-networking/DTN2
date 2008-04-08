@@ -44,27 +44,16 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-#	dh_installchangelogs
 	dh_installdocs
 	dh_installexamples
-#	dh_installmenu
-#	dh_installdebconf	
 	dh_installlogrotate
-#	dh_installemacsen
-#	dh_installcatalogs
-#	dh_installpam
-#	dh_installmime
 	dh_installinit
-#	dh_installcron
-#	dh_installinfo
-#	dh_undocumented
 	dh_installman
+	dh_install -a
 	dh_link
 	dh_strip
 	dh_compress
 	dh_fixperms
-#	dh_perl
-#	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol

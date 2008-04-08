@@ -21,7 +21,6 @@
 #include "DTLSRConfig.h"
 
 #include "BundleRouter.h"
-#include "DuplicateCache.h"
 #include "MultiGraph.h"
 #include "TableBasedRouter.h"
 #include "RouteEntry.h"

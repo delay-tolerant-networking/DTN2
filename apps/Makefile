@@ -29,6 +29,7 @@ SINGLE_SOURCE_APPS := 			\
 	dtncpd/dtncpd			\
 	dtnping/dtnping			\
 	dtnping/dtntraceroute		\
+	dtnping/dtnreporter		\
 	dtnperf/dtnperf-client		\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\
@@ -50,7 +51,7 @@ include $(SRCDIR)/dtn-version.mk
 
 DTN_LIBS_STATIC := ../applib/libdtnapi.a ../applib/libdtnapi++.a
 DTN_LIBS := ../applib/libdtnapi.a $(OASYS_COMPAT_LDFLAGS)
-DTN_LIBS++ := $(DTN_LIBS) ../applib/libdtnapi++.a $(OASYS_LDFLAGS)
+DTN_LIBS++ := $(DTN_LIBS) ../applib/libdtnapi++.a $(OASYS_LDFLAGS) $(EXTLIB_LDFLAGS)
 
 # Fake build target in case the api lib doesn't exist, but allows us
 # to include it as a dependency above so the apps get properly rebuilt
@@ -104,7 +105,7 @@ dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
 		     dtntunnel/UDPTunnel.o \
 		     $(DTN_LIBS_STATIC)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS++)
 
 #
 # Rules for tca_admin
@@ -119,7 +120,7 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_rpc.o \
                 tca_admin/libs/sha1.o \
 		$(DTN_LIBS_STATIC)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(OASYS_LDFLAGS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS++)
 
 #
 # Default rule for all single source apps

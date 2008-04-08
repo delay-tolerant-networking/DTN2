@@ -1027,7 +1027,8 @@ APIClient::handle_send()
 
         if ((file = fopen(filename, "r")) == NULL)
         {
-            log_err("payload file %s can't be opened!", filename);
+            log_err("payload file %s can't be opened: %s",
+                    filename, strerror(errno));
             return DTN_EINVAL;
         }
         
@@ -1275,14 +1276,18 @@ APIClient::handle_recv()
         spec.metadata.metadata_val = (dtn_extension_block_t *)buf;
     }
 
-    // XXX/demmer verify bundle size constraints
-    payload.location = location;
-    
+    size_t payload_len = b->payload().length();
+
+    if (location == DTN_PAYLOAD_MEM && payload_len > DTN_MAX_BUNDLE_MEM)
+    {
+        log_debug("app requested memory delivery but payload is too big (%zu bytes)... "
+                  "using files instead",
+                  payload_len);
+        location = DTN_PAYLOAD_FILE;
+    }
+
     if (location == DTN_PAYLOAD_MEM) {
         // the app wants the payload in memory
-        // XXX/demmer verify bounds
-
-        size_t payload_len = b->payload().length();
         payload.buf.buf_len = payload_len;
         if (payload_len != 0) {
             buf.reserve(payload_len);
@@ -1294,9 +1299,7 @@ APIClient::handle_recv()
         
     } else if (location == DTN_PAYLOAD_FILE) {
         char *tdir, templ[64];
-
-        // XXX/demmer do this with a hard link
-
+        
         tdir = getenv("TMP");
         if (tdir == NULL) {
             tdir = getenv("TEMP");
@@ -1304,7 +1307,7 @@ APIClient::handle_recv()
         if (tdir == NULL) {
             tdir = "/tmp";
         }
-
+        
         snprintf(templ, sizeof(templ), "%s/bundlePayload_XXXXXX", tdir);
 
         if (tmpfile.mkstemp(templ) == -1) {
@@ -1317,13 +1320,7 @@ APIClient::handle_recv()
                      strerror(errno));
         }
         
-        if (b->payload().location() == BundlePayload::MEMORY) {
-            tmpfile.writeall((char*)b->payload().memory_buf()->buf(),
-                             b->payload().length());
-            
-        } else {
-            b->payload().copy_file(&tmpfile);
-        }
+        b->payload().copy_file(&tmpfile);
 
         payload.filename.filename_val = (char*)tmpfile.path();
         payload.filename.filename_len = tmpfile.path_len() + 1;
@@ -1333,6 +1330,8 @@ APIClient::handle_recv()
         log_err("payload location %d not understood", location);
         return DTN_EINVAL;
     }
+
+    payload.location = location;
     
     /*
      * If the bundle is a status report, parse it and copy out the

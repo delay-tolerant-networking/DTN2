@@ -35,14 +35,14 @@
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
-#define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
-#define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
-#define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
-#define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
-#define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_BLOCK_LEN 1024         /* length of block data (currently 1K) */
-#define DTN_MAX_BLOCKS 256             /* number of blocks in bundle */
+#define DTN_MAX_ENDPOINT_ID 256 /* max endpoint_id size (bytes) */
+#define DTN_MAX_PATH_LEN PATH_MAX /* max path length */
+#define DTN_MAX_EXEC_LEN ARG_MAX /* length of string passed to exec() */
+#define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
+#define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
+#define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
+#define DTN_MAX_BLOCK_LEN 1024 /* length of block data (currently 1K) */
+#define DTN_MAX_BLOCKS 256 /* number of blocks in bundle */
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -54,14 +54,14 @@
  */
 
 bool_t
-xdr_dtn_endpoint_id_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_endpoint_id_t *objp;
+xdr_dtn_endpoint_id_t (XDR *xdrs, dtn_endpoint_id_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_opaque(xdrs, objp->uri, DTN_MAX_ENDPOINT_ID))
-		return (FALSE);
-	return (TRUE);
+	int i;
+	 if (!xdr_opaque (xdrs, objp->uri, DTN_MAX_ENDPOINT_ID))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -69,14 +69,13 @@ xdr_dtn_endpoint_id_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_reg_id_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_reg_id_t *objp;
+xdr_dtn_reg_id_t (XDR *xdrs, dtn_reg_id_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_u_int(xdrs, objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_u_int (xdrs, objp))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -84,14 +83,13 @@ xdr_dtn_reg_id_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_timeval_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_timeval_t *objp;
+xdr_dtn_timeval_t (XDR *xdrs, dtn_timeval_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_u_int(xdrs, objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_u_int (xdrs, objp))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -100,16 +98,15 @@ xdr_dtn_timeval_t(xdrs, objp)
 #define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
 
 bool_t
-xdr_dtn_timestamp_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_timestamp_t *objp;
+xdr_dtn_timestamp_t (XDR *xdrs, dtn_timestamp_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_u_int(xdrs, &objp->secs))
-		return (FALSE);
-	if (!xdr_u_int(xdrs, &objp->seqno))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_u_int (xdrs, &objp->secs))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->seqno))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -122,14 +119,15 @@ xdr_dtn_timestamp_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_service_tag_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_service_tag_t *objp;
+xdr_dtn_service_tag_t (XDR *xdrs, dtn_service_tag_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_vector(xdrs, (char *)objp->tag, DTN_MAX_ENDPOINT_ID, sizeof(char), (xdrproc_t)xdr_char))
-		return (FALSE);
-	return (TRUE);
+	int i;
+	 if (!xdr_vector (xdrs, (char *)objp->tag, DTN_MAX_ENDPOINT_ID,
+		sizeof (char), (xdrproc_t) xdr_char))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -152,14 +150,13 @@ xdr_dtn_service_tag_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_reg_flags_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_reg_flags_t *objp;
+xdr_dtn_reg_flags_t (XDR *xdrs, dtn_reg_flags_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_enum(xdrs, (enum_t *)objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -167,24 +164,23 @@ xdr_dtn_reg_flags_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_reg_info_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_reg_info_t *objp;
+xdr_dtn_reg_info_t (XDR *xdrs, dtn_reg_info_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_dtn_endpoint_id_t(xdrs, &objp->endpoint))
-		return (FALSE);
-	if (!xdr_dtn_reg_id_t(xdrs, &objp->regid))
-		return (FALSE);
-	if (!xdr_u_int(xdrs, &objp->flags))
-		return (FALSE);
-	if (!xdr_dtn_timeval_t(xdrs, &objp->expiration))
-		return (FALSE);
-	if (!xdr_bool(xdrs, &objp->init_passive))
-		return (FALSE);
-	if (!xdr_bytes(xdrs, (char **)&objp->script.script_val, (u_int *)&objp->script.script_len, DTN_MAX_EXEC_LEN))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->endpoint))
+		 return FALSE;
+	 if (!xdr_dtn_reg_id_t (xdrs, &objp->regid))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->flags))
+		 return FALSE;
+	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
+		 return FALSE;
+	 if (!xdr_bool (xdrs, &objp->init_passive))
+		 return FALSE;
+	 if (!xdr_bytes (xdrs, (char **)&objp->script.script_val, (u_int *) &objp->script.script_len, DTN_MAX_EXEC_LEN))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -196,14 +192,13 @@ xdr_dtn_reg_info_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_bundle_priority_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_bundle_priority_t *objp;
+xdr_dtn_bundle_priority_t (XDR *xdrs, dtn_bundle_priority_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_enum(xdrs, (enum_t *)objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -223,14 +218,13 @@ xdr_dtn_bundle_priority_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_bundle_delivery_opts_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_bundle_delivery_opts_t *objp;
+xdr_dtn_bundle_delivery_opts_t (XDR *xdrs, dtn_bundle_delivery_opts_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_enum(xdrs, (enum_t *)objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -247,14 +241,13 @@ xdr_dtn_bundle_delivery_opts_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_extension_block_flags_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_extension_block_flags_t *objp;
+xdr_dtn_extension_block_flags_t (XDR *xdrs, dtn_extension_block_flags_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_enum(xdrs, (enum_t *)objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -262,18 +255,17 @@ xdr_dtn_extension_block_flags_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_extension_block_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_extension_block_t *objp;
+xdr_dtn_extension_block_t (XDR *xdrs, dtn_extension_block_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_u_int(xdrs, &objp->type))
-		return (FALSE);
-	if (!xdr_u_int(xdrs, &objp->flags))
-		return (FALSE);
-	if (!xdr_bytes(xdrs, (char **)&objp->data.data_val, (u_int *)&objp->data.data_len, DTN_MAX_BLOCK_LEN))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_u_int (xdrs, &objp->type))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->flags))
+		 return FALSE;
+	 if (!xdr_bytes (xdrs, (char **)&objp->data.data_val, (u_int *) &objp->data.data_len, DTN_MAX_BLOCK_LEN))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -283,32 +275,33 @@ xdr_dtn_extension_block_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_bundle_spec_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_bundle_spec_t *objp;
+xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_dtn_endpoint_id_t(xdrs, &objp->source))
-		return (FALSE);
-	if (!xdr_dtn_endpoint_id_t(xdrs, &objp->dest))
-		return (FALSE);
-	if (!xdr_dtn_endpoint_id_t(xdrs, &objp->replyto))
-		return (FALSE);
-	if (!xdr_dtn_bundle_priority_t(xdrs, &objp->priority))
-		return (FALSE);
-	if (!xdr_int(xdrs, &objp->dopts))
-		return (FALSE);
-	if (!xdr_dtn_timeval_t(xdrs, &objp->expiration))
-		return (FALSE);
-	if (!xdr_dtn_timestamp_t(xdrs, &objp->creation_ts))
-		return (FALSE);
-	if (!xdr_dtn_reg_id_t(xdrs, &objp->delivery_regid))
-		return (FALSE);
-	if (!xdr_array(xdrs, (char **)&objp->blocks.blocks_val, (u_int *)&objp->blocks.blocks_len, DTN_MAX_BLOCKS, sizeof(dtn_extension_block_t), (xdrproc_t)xdr_dtn_extension_block_t))
-		return (FALSE);
-	if (!xdr_array(xdrs, (char **)&objp->metadata.metadata_val, (u_int *)&objp->metadata.metadata_len, DTN_MAX_BLOCKS, sizeof(dtn_extension_block_t), (xdrproc_t)xdr_dtn_extension_block_t))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
+		 return FALSE;
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->dest))
+		 return FALSE;
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->replyto))
+		 return FALSE;
+	 if (!xdr_dtn_bundle_priority_t (xdrs, &objp->priority))
+		 return FALSE;
+	 if (!xdr_int (xdrs, &objp->dopts))
+		 return FALSE;
+	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->creation_ts))
+		 return FALSE;
+	 if (!xdr_dtn_reg_id_t (xdrs, &objp->delivery_regid))
+		 return FALSE;
+	 if (!xdr_array (xdrs, (char **)&objp->blocks.blocks_val, (u_int *) &objp->blocks.blocks_len, DTN_MAX_BLOCKS,
+		sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
+		 return FALSE;
+	 if (!xdr_array (xdrs, (char **)&objp->metadata.metadata_val, (u_int *) &objp->metadata.metadata_len, DTN_MAX_BLOCKS,
+		sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -320,34 +313,32 @@ xdr_dtn_bundle_spec_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_bundle_id_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_bundle_id_t *objp;
+xdr_dtn_bundle_id_t (XDR *xdrs, dtn_bundle_id_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_dtn_endpoint_id_t(xdrs, &objp->source))
-		return (FALSE);
-	if (!xdr_dtn_timestamp_t(xdrs, &objp->creation_ts))
-		return (FALSE);
-	if (!xdr_u_int(xdrs, &objp->frag_offset))
-		return (FALSE);
-	if (!xdr_u_int(xdrs, &objp->orig_length))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->creation_ts))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->frag_offset))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->orig_length))
+		 return FALSE;
+	return TRUE;
 }
 /**
  * Bundle Status Report "Reason Code" flags
  */
 
 bool_t
-xdr_dtn_status_report_reason_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_status_report_reason_t *objp;
+xdr_dtn_status_report_reason_t (XDR *xdrs, dtn_status_report_reason_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_enum(xdrs, (enum_t *)objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
 }
 /**
  * Bundle Status Report status flags that indicate which timestamps in
@@ -355,14 +346,13 @@ xdr_dtn_status_report_reason_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_status_report_flags_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_status_report_flags_t *objp;
+xdr_dtn_status_report_flags_t (XDR *xdrs, dtn_status_report_flags_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_enum(xdrs, (enum_t *)objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -370,30 +360,29 @@ xdr_dtn_status_report_flags_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_bundle_status_report_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_bundle_status_report_t *objp;
+xdr_dtn_bundle_status_report_t (XDR *xdrs, dtn_bundle_status_report_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_dtn_bundle_id_t(xdrs, &objp->bundle_id))
-		return (FALSE);
-	if (!xdr_dtn_status_report_reason_t(xdrs, &objp->reason))
-		return (FALSE);
-	if (!xdr_dtn_status_report_flags_t(xdrs, &objp->flags))
-		return (FALSE);
-	if (!xdr_dtn_timestamp_t(xdrs, &objp->receipt_ts))
-		return (FALSE);
-	if (!xdr_dtn_timestamp_t(xdrs, &objp->custody_ts))
-		return (FALSE);
-	if (!xdr_dtn_timestamp_t(xdrs, &objp->forwarding_ts))
-		return (FALSE);
-	if (!xdr_dtn_timestamp_t(xdrs, &objp->delivery_ts))
-		return (FALSE);
-	if (!xdr_dtn_timestamp_t(xdrs, &objp->deletion_ts))
-		return (FALSE);
-	if (!xdr_dtn_timestamp_t(xdrs, &objp->ack_by_app_ts))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_dtn_bundle_id_t (xdrs, &objp->bundle_id))
+		 return FALSE;
+	 if (!xdr_dtn_status_report_reason_t (xdrs, &objp->reason))
+		 return FALSE;
+	 if (!xdr_dtn_status_report_flags_t (xdrs, &objp->flags))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->receipt_ts))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->custody_ts))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->forwarding_ts))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->delivery_ts))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->deletion_ts))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->ack_by_app_ts))
+		 return FALSE;
+	return TRUE;
 }
 
 /**
@@ -420,29 +409,27 @@ xdr_dtn_bundle_status_report_t(xdrs, objp)
  */
 
 bool_t
-xdr_dtn_bundle_payload_location_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_bundle_payload_location_t *objp;
+xdr_dtn_bundle_payload_location_t (XDR *xdrs, dtn_bundle_payload_location_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_enum(xdrs, (enum_t *)objp))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
 }
 
 bool_t
-xdr_dtn_bundle_payload_t(xdrs, objp)
-	XDR *xdrs;
-	dtn_bundle_payload_t *objp;
+xdr_dtn_bundle_payload_t (XDR *xdrs, dtn_bundle_payload_t *objp)
 {
+	register int32_t *buf;
 
-	if (!xdr_dtn_bundle_payload_location_t(xdrs, &objp->location))
-		return (FALSE);
-	if (!xdr_bytes(xdrs, (char **)&objp->filename.filename_val, (u_int *)&objp->filename.filename_len, DTN_MAX_PATH_LEN))
-		return (FALSE);
-	if (!xdr_bytes(xdrs, (char **)&objp->buf.buf_val, (u_int *)&objp->buf.buf_len, DTN_MAX_BUNDLE_MEM))
-		return (FALSE);
-	if (!xdr_pointer(xdrs, (char **)&objp->status_report, sizeof(dtn_bundle_status_report_t), (xdrproc_t)xdr_dtn_bundle_status_report_t))
-		return (FALSE);
-	return (TRUE);
+	 if (!xdr_dtn_bundle_payload_location_t (xdrs, &objp->location))
+		 return FALSE;
+	 if (!xdr_bytes (xdrs, (char **)&objp->filename.filename_val, (u_int *) &objp->filename.filename_len, DTN_MAX_PATH_LEN))
+		 return FALSE;
+	 if (!xdr_bytes (xdrs, (char **)&objp->buf.buf_val, (u_int *) &objp->buf.buf_len, DTN_MAX_BUNDLE_MEM))
+		 return FALSE;
+	 if (!xdr_pointer (xdrs, (char **)&objp->status_report, sizeof (dtn_bundle_status_report_t), (xdrproc_t) xdr_dtn_bundle_status_report_t))
+		 return FALSE;
+	return TRUE;
 }

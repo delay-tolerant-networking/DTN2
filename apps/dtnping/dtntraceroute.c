@@ -55,6 +55,7 @@ main(int argc, const char** argv)
     int ret;
     dtn_handle_t handle;
     dtn_endpoint_id_t source_eid;
+    dtn_endpoint_id_t replyto_eid;
     dtn_reg_info_t reginfo;
     dtn_reg_id_t regid;
     dtn_bundle_spec_t ping_spec;
@@ -128,12 +129,27 @@ main(int argc, const char** argv)
         dtn_build_local_eid(handle, &source_eid, demux);
     }
 
-    // set the source and replyto eids in the bundle spec
     if (debug) printf("source_eid [%s]\n", source_eid.uri);
     dtn_copy_eid(&ping_spec.source, &source_eid);
-    dtn_copy_eid(&ping_spec.replyto, &source_eid);
     
+    // Make the replyto EID
+    if ( replyto_eid_str[0]!=0 ) {
+        if (dtn_parse_eid_string(&replyto_eid, replyto_eid_str)) {
+            fprintf(stderr, "invalid replyto eid string '%s'\n",
+                    replyto_eid_str);
+            exit(1);
+        }
+        dtn_copy_eid(&ping_spec.replyto, &replyto_eid);
+        printf("using user-supplied replyto\n");
+    } else {
+        dtn_copy_eid(&ping_spec.replyto, &source_eid);
+        printf("using default replyto\n");
+    }
+
     // now create a new registration based on the source
+    // if the replyto EID is unspecified or the same as the
+    // source EID then we'll get status reports, otherwise
+    // they'll go somewhere else.
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &source_eid);
     reginfo.flags = DTN_REG_DROP;
@@ -305,6 +321,10 @@ doOptions(int argc, const char **argv)
         switch (c) {
         case 'e':
             expiration = atoi(optarg);
+            break;
+        case 'r':
+            strcpy(replyto_eid_str, optarg);
+	    printf("Setting replyto_eid_str to: %s\n", replyto_eid_str);
             break;
         case 'd':
             strcpy(dest_eid_str, optarg);

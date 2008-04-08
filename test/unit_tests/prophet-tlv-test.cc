@@ -1,3 +1,4 @@
+#include <dtn-config.h>
 #include <oasys/util/UnitTest.h>
 #include <oasys/util/ScratchBuffer.h>
 #include <oasys/util/StringBuffer.h>

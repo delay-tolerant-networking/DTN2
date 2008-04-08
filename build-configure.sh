@@ -30,7 +30,10 @@ echo "build-configure: building aclocal.m4..."
 rm -f aclocal.m4
 cat aclocal/*.ac > aclocal.m4
 
-if [ -d ../oasys ] ; then
+if [ -d "$1" ] ; then
+    oasys_dir=$1
+
+elif [ -d ../oasys ] ; then
     oasys_dir=../oasys
 
 elif [ -d /usr/share/oasys ] ; then
@@ -41,7 +44,7 @@ else
     exit 1
 fi
 
-echo "build-configure: loading oasys functions into aclocal.m4..."
+echo "build-configure: loading oasys functions from $oasys_dir into aclocal.m4..."
 cat $oasys_dir/aclocal/*.ac >> aclocal.m4
 
 echo "build-configure: running autoheader to build dtn-config.h.in..."

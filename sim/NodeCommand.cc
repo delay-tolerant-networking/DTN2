@@ -76,6 +76,24 @@ NodeCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         subcmd = argv[2];
     }
 
+    // first we need to handle the set command since it's normally
+    // handled by the TclCommand base class
+    if (subcmd != NULL && strcmp(subcmd, "set") == 0) {
+        TclCommand* cmdobj = NULL;
+        if      (strcmp(cmd, "bundle")  == 0) cmdobj = &bundle_cmd_;
+        else if (strcmp(cmd, "link")    == 0) cmdobj = &link_cmd_;
+        else if (strcmp(cmd, "param")   == 0) cmdobj = &param_cmd_;
+        else if (strcmp(cmd, "route")   == 0) cmdobj = &route_cmd_;
+        else if (strcmp(cmd, "storage") == 0) cmdobj = &storage_cmd_;
+        else 
+        {
+            resultf("node: unsupported subcommand %s", cmd);
+            return TCL_ERROR;
+        }
+        
+        return cmdobj->cmd_set(objc - 1, objv + 1, interp);
+    }
+        
     if (strcmp(cmd, "bundle") == 0)
     {
         return bundle_cmd_.exec(objc - 1, objv + 1, interp);

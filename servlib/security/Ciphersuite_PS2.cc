@@ -324,9 +324,9 @@ Ciphersuite_PS2::prepare(const Bundle*    bundle,
             locals->set_security_dest(dynamic_cast<BP_Local_CS*>(source->locals())->security_dest());
         }
         
-        log_debug_p(log, "Ciphersuite_PS2::prepare() local_eid %s bundle->source_ %s", local_eid.c_str(), bundle->source_.c_str());
+        log_debug_p(log, "Ciphersuite_PS2::prepare() local_eid %s bundle->source_ %s", local_eid.c_str(), bundle->source().c_str());
         // if not, and we didn't create the bundle, specify ourselves as sec-src
-        if ( (locals->security_src().length() == 0) && (local_eid != bundle->source_))
+        if ( (locals->security_src().length() == 0) && (local_eid != bundle->source()))
             locals->set_security_src(local_eid.str());
         
         // if we now have one, add it to list, etc
@@ -446,14 +446,14 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
     
     param_len = 0;
     
-    if ( bundle->is_fragment_ ) {
+    if ( bundle->is_fragment() ) {
         log_debug_p(log, "Ciphersuite_PS2::generate() bundle is fragment");
         ptr = &fragment_item[2];
         rem = sizeof(fragment_item) - 2;
-        temp = SDNV::encode(bundle->frag_offset_, ptr, rem);
+        temp = SDNV::encode(bundle->frag_offset(), ptr, rem);
         ptr += temp;
         rem -= temp;
-        temp += SDNV::encode(bundle->payload_.length(), ptr, rem);
+        temp += SDNV::encode(bundle->payload().length(), ptr, rem);
         fragment_item[0] = CS_fragment_offset_and_length_field;
         fragment_item[1] = temp;    //guaranteed to fit as a "one-byte SDNV"
         param_len += 2 + temp;
@@ -468,7 +468,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
         
         ptr = params->buf();
         
-        if ( bundle->is_fragment_ ) 
+        if ( bundle->is_fragment() ) 
             memcpy(ptr, fragment_item, 2 + temp);
     }
     
@@ -733,7 +733,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
                         +   8       //creation SDNV #2
                         +   8;      //lifetime SDNV
     
-    if ( bundle->is_fragment_ ) 
+    if ( bundle->is_fragment() ) 
         header_len +=   8       //fragment offset SDNV
                         +   8;      //total-length SDNV
     
@@ -789,7 +789,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     primary.lifetime = htonq(primary.lifetime);
     digest( bundle, block, &*iter, &primary.lifetime, sizeof(primary.lifetime), r);
     
-    if ( bundle->is_fragment_ ) {
+    if ( bundle->is_fragment() ) {
         primary.fragment_offset = htonq(primary.fragment_offset);
         digest( bundle, block, &*iter, &primary.fragment_offset, sizeof(primary.fragment_offset), r);
         primary.original_length = htonq(primary.original_length);
@@ -1132,7 +1132,7 @@ Ciphersuite_PS2::read_primary(const Bundle*    bundle,
     PBP_READ_SDNV(&primary.lifetime);
     PBP_READ_SDNV(&primary.dictionary_length);
     *dict = reinterpret_cast<char*>(buf);
-    if (bundle->is_fragment_) {
+    if (bundle->is_fragment()) {
         PBP_READ_SDNV(&primary.fragment_offset);
         PBP_READ_SDNV(&primary.original_length);
     }

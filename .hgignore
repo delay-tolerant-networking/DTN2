@@ -3,12 +3,8 @@ syntax: glob
 # some defaults pulled from the CVS manual then modified
 tags
 TAGS
+\.\#*
 *~
-#*
-.#*
-,*
-_$*
-*$
 .del-*
 *.a
 *.olb
@@ -51,6 +47,7 @@ apps/dtnmoteproxy/dtnmoteproxy
 apps/dtnperf/dtnperf-client
 apps/dtnperf/dtnperf-server
 apps/dtnping/dtnping
+apps/dtnping/dtnreporter
 apps/dtnping/dtntraceroute
 apps/dtnrecv/dtnrecv
 apps/dtnsend/dtnsend
@@ -61,3 +58,4 @@ apps/num2sdnv/sdnv2num
 daemon/dtnd
 sim/dtnsim
 test/unit_tests/*-test
+oasys

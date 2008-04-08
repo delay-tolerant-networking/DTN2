@@ -35,7 +35,7 @@ namespace dtn {
 TableBasedRouter::TableBasedRouter(const char* classname,
                                    const std::string& name)
     : BundleRouter(classname, name),
-      dupcache_(1024)
+      reception_cache_(1024) // XXX/demmer configurable??
 {
     route_table_ = new RouteTable(name);
 }
@@ -51,6 +51,11 @@ void
 TableBasedRouter::add_route(RouteEntry *entry)
 {
     route_table_->add_entry(entry);
+
+    // clear the reception cache when the routes change since we might
+    // want to send a bundle back where it came from
+    reception_cache_.evict_all();
+    
     reroute_all_bundles();        
 }
 
@@ -60,6 +65,10 @@ TableBasedRouter::del_route(const EndpointIDPattern& dest)
 {
     route_table_->del_entries(dest);
 
+    // clear the reception cache when the routes change since we might
+    // want to send a bundle back where it came from
+    reception_cache_.evict_all();
+    
     // XXX/demmer this needs to reroute bundles, cancelling them from
     // their old route destinations
 }
@@ -78,7 +87,12 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
     Bundle* bundle = event->bundleref_.object();
     log_debug("handle bundle received: *%p", bundle);
 
-    if (dupcache_.is_duplicate(bundle)) {
+    EndpointID remote_eid(EndpointID::NULL_EID());
+    if (event->link_ != NULL) {
+        remote_eid = event->link_->remote_eid();
+    }
+    if (! reception_cache_.add_entry(bundle, remote_eid))
+    {
         log_info("ignoring duplicate bundle: *%p", bundle);
         BundleDaemon::post_at_head(new BundleNotNeededEvent(bundle));
         return;
@@ -93,31 +107,50 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 
 //----------------------------------------------------------------------
 void
+TableBasedRouter::remove_from_deferred(const BundleRef& bundle, int actions)
+{
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    oasys::ScopeLock l(cm->lock(), "TableBasedRouter::remove_from_deferred");
+
+    const LinkSet* links = cm->links();
+    LinkSet::const_iterator iter;
+    for (iter = links->begin(); iter != links->end(); ++iter) {
+        DeferredList* deferred = deferred_list(*iter);
+        ForwardingInfo info;
+        if (deferred->find(bundle, &info))
+        {
+            if (info.action() & actions) {
+                log_debug("removing bundle *%p from link *%p deferred list",
+                          bundle.object(), (*iter).object());
+                deferred->del(bundle);
+            }
+        }
+    }
+}
+
+//----------------------------------------------------------------------
+void
 TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
-    Bundle* bundle = event->bundleref_.object();
-    (void)bundle;
-    log_debug("handle bundle transmitted: *%p", bundle);
-
-    // if this is a subscribe message, fill in the session information
-    // with the current upstream (i.e. whoever we sent the subscribe
-    // to) XXX/demmer this should maybe get an ack??
-    if (bundle->session_flags() == Session::SUBSCRIBE) {
-        log_debug("tranmitted subscribe message, setting upstream");
-        Session* session = sessions_.lookup_session(bundle->session_eid());
-        ASSERT(session);
-        session->set_upstream(Subscriber(event->link_->remote_eid()));
-    }
+    const BundleRef& bundle = event->bundleref_;
+    log_debug("handle bundle transmitted: *%p", bundle.object());
 
     // if the bundle has a deferred single-copy transmission for
     // forwarding on any links, then remove the forwarding log entries
-    ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    oasys::ScopeLock l(cm->lock(), "TableBasedRouter::handle_bundle_transmitted");
+    remove_from_deferred(bundle, ForwardingInfo::FORWARD_ACTION);
     
-    // if the link queue has free space, then check the list of
-    // unrouted bundles to see if any should be routed to this link
+    // check if the transmission means that we can send another bundle
+    // on the link
     const LinkRef& link = event->contact_->link();
     check_next_hop(link);
+}
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::delete_bundle(const BundleRef& bundle)
+{
+    log_debug("delete bundle: *%p", bundle.object());
+    remove_from_deferred(bundle, ForwardingInfo::ANY_ACTION);
 }
 
 //----------------------------------------------------------------------
@@ -194,6 +227,22 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
     if (route == NULL)
         return false;
 
+    // simple RPF check -- if the bundle was received from the given
+    // node, then don't send it back as long as the entry is still in
+    // the reception cache (meaning our routes haven't changed).
+    EndpointID prevhop;
+    if (reception_cache_.lookup(bundle, &prevhop))
+    {
+        if (prevhop == route->link()->remote_eid() &&
+            prevhop != EndpointID::NULL_EID())
+        {
+            log_debug("should_fwd bundle %d: "
+                      "skip %s since bundle arrived from the same node",
+                      bundle->bundleid(), route->link()->name());
+            return false;
+        }
+    }
+
     return BundleRouter::should_fwd(bundle, route->link(), route->action());
 }
 
@@ -248,6 +297,7 @@ TableBasedRouter::handle_contact_down(ContactDownEvent* event)
                       link->params().potential_downtime_);
             RerouteTimer* t = new RerouteTimer(this, link);
             t->schedule_in(link->params().potential_downtime_ * 1000);
+            
             reroute_timers_[link->name_str()] = t;
         }
     }
@@ -485,9 +535,10 @@ TableBasedRouter::route_bundle(Bundle* bundle)
                    bundle->bundleid());
         return 0;
     }
-    
-    route_table_->get_matching(bundle->dest(), &matches);
-    
+
+    LinkRef null_link("TableBasedRouter::route_bundle");
+    route_table_->get_matching(bundle->dest(), null_link, &matches);
+
     // sort the matching routes by priority, allowing subclasses to
     // override the way in which the sorting occurs
     sort_routes(bundle, &matches);
@@ -634,6 +685,13 @@ TableBasedRouter::reroute_all_bundles()
 }
 
 //----------------------------------------------------------------------
+void
+TableBasedRouter::recompute_routes()
+{
+    reroute_all_bundles();
+}
+
+//----------------------------------------------------------------------
 TableBasedRouter::DeferredList::DeferredList(const char* logpath,
                                              const LinkRef& link)
     : RouterInfo(),
@@ -648,6 +706,19 @@ void
 TableBasedRouter::DeferredList::dump_stats(oasys::StringBuffer* buf)
 {
     buf->appendf(" -- %zu bundles_deferred", count_);
+}
+
+//----------------------------------------------------------------------
+bool
+TableBasedRouter::DeferredList::find(const BundleRef& bundle,
+                                     ForwardingInfo* info)
+{
+    InfoMap::const_iterator iter = info_.find(bundle->bundleid());
+    if (iter == info_.end()) {
+        return false;
+    }
+    *info = iter->second;
+    return true;
 }
 
 //----------------------------------------------------------------------

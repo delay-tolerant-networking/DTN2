@@ -703,6 +703,8 @@ BUILD_SYSTEM
 OASYS_INCDIR
 OASYS_LIBDIR
 OASYS_ETCDIR
+OASYS_LDFLAGS
+OASYS_COMPAT_LDFLAGS
 OASYS_VERSION
 EXTLIB_CFLAGS
 EXTLIB_LDFLAGS
@@ -1314,7 +1316,8 @@ Optional Packages:
   --with-cxx=CXX          name (or path) of the C++ compiler to use
   --with-extra-cflags=?   additional options to pass to the compiler
   --with-extra-ldflags=?  additional options to pass to the linker
-  --with-oasys=DIR        location of an oasys installation (default ../oasys)
+  --with-oasys=DIR        location of an oasys installation (default ../oasys
+                          or /usr)
   --with-bonjour          compile in bonjour support (default try)
   --with-bsp              enable Bundle Security Protocol support
                           (EXPERIMENTAL)
@@ -3999,7 +4002,12 @@ echo "${ECHO_T}$oasys_cv_prog_gcc_w_no_long_double" >&6; }
 
 
 
-    ac_oasysdir=../oasys
+    rm -f oasys
+
+    ac_oasysver_major=1
+    ac_oasysver_minor=3
+    ac_oasysdir=
+
 
 # Check whether --with-oasys was given.
 if test "${with_oasys+set}" = set; then
@@ -4007,30 +4015,27 @@ if test "${with_oasys+set}" = set; then
 fi
 
 
-    { echo "$as_me:$LINENO: checking for an oasys installation" >&5
-echo $ECHO_N "checking for an oasys installation... $ECHO_C" >&6; }
+    { echo "$as_me:$LINENO: checking for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)" >&5
+echo $ECHO_N "checking for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)... $ECHO_C" >&6; }
 
-    # XXX/demmer fix this all to do a real compilation test
-
-    if test "$ac_oasysdir" = ../oasys -a ! -d ../oasys ; then
-        ac_oasysdir=/usr
+    if test "$ac_oasysdir" = "" ; then
+       if test -d ../oasys ; then
+          ac_oasysdir=../oasys
+       else
+          ac_oasysdir=/usr
+       fi
     fi
 
     #
-    # This is a bit strange since when we're done, OASYS_INCDIR points
-    # to the parent of where the oasys header files are, OASYS_LIBDIR
-    # points to the directory where the libraries are, and
+    # Set the oasys paths properly. OASYS_INCDIR points to the parent
+    # directory containing the oasys header files or the source
+    # directory itself with a symlink (include/oasys -> .),
+    # OASYS_LIBDIR points to the directory where the libraries are.
     # OASYS_ETCDIR points to where the various scripts are.
     #
-    if test "$ac_oasysdir" = ../oasys ; then
-        OASYS_INCDIR=".."
-        OASYS_LIBDIR="../oasys/lib"
-        OASYS_ETCDIR="../oasys"
-    else
-        OASYS_INCDIR="$ac_oasysdir/include"
-        OASYS_LIBDIR="$ac_oasysdir/lib"
-        OASYS_ETCDIR="$ac_oasysdir/share/oasys"
-    fi
+    OASYS_INCDIR="$ac_oasysdir/include"
+    OASYS_LIBDIR="$ac_oasysdir/lib"
+    OASYS_ETCDIR="$ac_oasysdir/share/oasys"
 
     if test ! -d $OASYS_INCDIR ; then
        { { echo "$as_me:$LINENO: error: nonexistent oasys include directory $OASYS_INCDIR" >&5
@@ -4050,6 +4055,14 @@ echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
+    if test "$ac_oasysver_major" = "" ; then
+       ac_oasysver_major=1
+    fi
+
+    if test "$ac_oasysver_minor" = "" ; then
+       ac_oasysver_minor=1
+    fi
+
 
     #
     # XXX/demmer is there a better way to make the paths absolute??
@@ -4060,6 +4073,23 @@ echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
 
     OASYS_VERSION=`$OASYS_ETCDIR/tools/extract-version $OASYS_ETCDIR/oasys-version.dat version`
 
+    #
+    # By default, oasys apps link statically to make it easier when
+    # linking with a source directory.
+    #
+
+    if test -f $OASYS_LIBDIR/liboasys-$OASYS_VERSION.a ; then
+	OASYS_LDFLAGS="$OASYS_LIBDIR/liboasys-$OASYS_VERSION.a"
+	OASYS_COMPAT_LDFLAGS="$OASYS_LIBDIR/liboasyscompat-$OASYS_VERSION.a"
+
+    elif test "$ac_oasysdir" = /usr ; then
+	OASYS_LDFLAGS="-loasys-$OASYS_VERSION"
+	OASYS_COMPAT_LDFLAGS="-loasyscompat-$OASYS_VERSION"
+
+    else
+	OASYS_LDFLAGS="-L$OASYS_LIBDIR -loasys-$OASYS_VERSION"
+	OASYS_COMPAT_LDFLAGS="-L$OASYS_LIBDIR -loasyscompat-$OASYS_VERSION"
+    fi
 
 
 
@@ -4072,8 +4102,86 @@ echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
 
 
 
-    { echo "$as_me:$LINENO: result: $ac_oasysdir (version $OASYS_VERSION)" >&5
-echo "${ECHO_T}$ac_oasysdir (version $OASYS_VERSION)" >&6; }
+
+
+
+    #
+    # Check the settings to make sure that we can build a program.
+    #
+    ac_save_CFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS -I$OASYS_INCDIR"
+
+    ac_save_LDFLAGS=$LDFLAGS
+    LDFLAGS="$LDFLAGS $OASYS_LDFLAGS"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+	#include <oasys/oasys-version.h>
+	#if (OASYS_VERSION_MAJOR != ${ac_oasysver_major}) || \
+            (OASYS_VERSION_MINOR <  ${ac_oasysver_minor})
+	#error incorrect oasys version (wanted ${ac_oasysver_major}.${ac_oasysver_minor})
+	#endif
+
+int
+main ()
+{
+
+          const char* s = oasys_version;
+	  (void)s;
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+
+          { echo "$as_me:$LINENO: result: $ac_oasysdir" >&5
+echo "${ECHO_T}$ac_oasysdir" >&6; }
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+          { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+	  { { echo "$as_me:$LINENO: error: can't find compatible oasys install (version $ac_oasysver_major.$ac_oasysver_minor or better) at $ac_oasysdir" >&5
+echo "$as_me: error: can't find compatible oasys install (version $ac_oasysver_major.$ac_oasysver_minor or better) at $ac_oasysdir" >&2;}
+   { (exit 1); exit 1; }; }
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+
+    #
+    # Create a symlink to the oasys directory for the test scripts
+    #
+    ln -s $ac_oasysdir oasys
+
+    CFLAGS=$ac_save_CFLAGS
+    LDFLAGS=$ac_save_LDFLAGS
 
 
 # -------------------------------------------------------------------------
@@ -6166,6 +6274,8 @@ BUILD_SYSTEM!$BUILD_SYSTEM$ac_delim
 OASYS_INCDIR!$OASYS_INCDIR$ac_delim
 OASYS_LIBDIR!$OASYS_LIBDIR$ac_delim
 OASYS_ETCDIR!$OASYS_ETCDIR$ac_delim
+OASYS_LDFLAGS!$OASYS_LDFLAGS$ac_delim
+OASYS_COMPAT_LDFLAGS!$OASYS_COMPAT_LDFLAGS$ac_delim
 OASYS_VERSION!$OASYS_VERSION$ac_delim
 EXTLIB_CFLAGS!$EXTLIB_CFLAGS$ac_delim
 EXTLIB_LDFLAGS!$EXTLIB_LDFLAGS$ac_delim
@@ -6178,7 +6288,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 80; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 82; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

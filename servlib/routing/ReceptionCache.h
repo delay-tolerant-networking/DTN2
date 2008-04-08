@@ -1,5 +1,5 @@
 /*
- *    Copyright 2007 Intel Corporation
+ *    Copyright 2007-2008 Intel Corporation
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
  *    limitations under the License.
  */
 
-#ifndef _DUPLICATECACHE_H_
-#define _DUPLICATECACHE_H_
+#ifndef _RECEPTIONCACHE_H_
+#define _RECEPTIONCACHE_H_
 
 #include <oasys/debug/Logger.h>
 #include <oasys/util/Cache.h>
@@ -28,36 +28,39 @@ namespace dtn {
 /**
  * Utility class for routers to use to maintain a cache of recently
  * received bundles, indexed by GbofId. Useful for routers to detect
- * duplicate receptions.
+ * reception receptions.
  */
-class DuplicateCache {
+class ReceptionCache {
 public:
     /**
      * Constructor that takes the number of entries to maintain.
      */
-    DuplicateCache(size_t capacity);
+    ReceptionCache(size_t capacity);
     
     /**
-     * Adds this bundle to the cache, returning whether or not it was
-     * already in there (i.e. has been seen before);
+     * Try to add the bundle to the cache. If it already exists in the
+     * cache, adding it agail fails, and the method returns false.
      */
-    bool is_duplicate(Bundle* bundle);
+    bool add_entry(const Bundle* bundle, const EndpointID& prevhop);
+
+    /**
+     * Check if the given bundle is in the cache, returning the EID of
+     * the node from which it arrived (if known).
+     */
+    bool lookup(const Bundle* bundle, EndpointID* prevhop);
+
+    /**
+     * Flush the cache.
+     */
+    void evict_all();
 
 protected:
-    /**
-     * Cache value class.
-     */
-    struct Val {
-        int count_;
-    };
-
-    /// The cache
-    typedef oasys::CacheCapacityHelper<GbofId, Val> CacheCapacityHelper;
-    typedef oasys::Cache<GbofId, Val, CacheCapacityHelper> Cache;
+    typedef oasys::CacheCapacityHelper<GbofId, EndpointID> CacheCapacityHelper;
+    typedef oasys::Cache<GbofId, EndpointID, CacheCapacityHelper> Cache;
     Cache cache_;
 };
 
 } // namespace dtn
 
 
-#endif /* _DUPLICATECACHE_H_ */
+#endif /* _RECEPTIONCACHE_H_ */

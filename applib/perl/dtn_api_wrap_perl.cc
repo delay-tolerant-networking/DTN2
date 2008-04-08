@@ -2112,120 +2112,6 @@ XS(_wrap_delete_dtn_endpoint_id_t) {
 }
 
 
-XS(_wrap_xdr_dtn_endpoint_id_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_endpoint_id_t *arg2 = (dtn_endpoint_id_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_endpoint_id_t(XDR *,dtn_endpoint_id_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_endpoint_id_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "2"" of type '" "dtn_endpoint_id_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_endpoint_id_t * >(argp2);
-    result = xdr_dtn_endpoint_id_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_reg_id_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_reg_id_t *arg2 = (dtn_reg_id_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_reg_id_t(XDR *,dtn_reg_id_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_u_int, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_id_t" "', argument " "2"" of type '" "dtn_reg_id_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_reg_id_t * >(argp2);
-    result = xdr_dtn_reg_id_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_timeval_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_timeval_t *arg2 = (dtn_timeval_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_timeval_t(XDR *,dtn_timeval_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timeval_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_u_int, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timeval_t" "', argument " "2"" of type '" "dtn_timeval_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_timeval_t * >(argp2);
-    result = xdr_dtn_timeval_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
 XS(_wrap_dtn_timestamp_t_secs_set) {
   {
     dtn_timestamp_t *arg1 = (dtn_timestamp_t *) 0 ;
@@ -2412,44 +2298,6 @@ XS(_wrap_delete_dtn_timestamp_t) {
 }
 
 
-XS(_wrap_xdr_dtn_timestamp_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_timestamp_t *arg2 = (dtn_timestamp_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_timestamp_t(XDR *,dtn_timestamp_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timestamp_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_timestamp_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timestamp_t" "', argument " "2"" of type '" "dtn_timestamp_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_timestamp_t * >(argp2);
-    result = xdr_dtn_timestamp_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
 XS(_wrap_dtn_service_tag_t_tag_set) {
   {
     dtn_service_tag_t *arg1 = (dtn_service_tag_t *) 0 ;
@@ -2562,82 +2410,6 @@ XS(_wrap_delete_dtn_service_tag_t) {
     
     XSRETURN(argvi);
   fail:
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_service_tag_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_service_tag_t *arg2 = (dtn_service_tag_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_service_tag_t(XDR *,dtn_service_tag_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_service_tag_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_service_tag_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_service_tag_t" "', argument " "2"" of type '" "dtn_service_tag_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_service_tag_t * >(argp2);
-    result = xdr_dtn_service_tag_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_reg_flags_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_reg_flags_t *arg2 = (dtn_reg_flags_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_reg_flags_t(XDR *,dtn_reg_flags_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_reg_flags_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_flags_t" "', argument " "2"" of type '" "dtn_reg_flags_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_reg_flags_t * >(argp2);
-    result = xdr_dtn_reg_flags_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
     
     SWIG_croak_null();
   }
@@ -3252,158 +3024,6 @@ XS(_wrap_delete_dtn_reg_info_t_script) {
 }
 
 
-XS(_wrap_xdr_dtn_reg_info_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_reg_info_t *arg2 = (dtn_reg_info_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_reg_info_t(XDR *,dtn_reg_info_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_info_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_info_t" "', argument " "2"" of type '" "dtn_reg_info_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_reg_info_t * >(argp2);
-    result = xdr_dtn_reg_info_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_bundle_priority_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_bundle_priority_t *arg2 = (dtn_bundle_priority_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_bundle_priority_t(XDR *,dtn_bundle_priority_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_priority_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "2"" of type '" "dtn_bundle_priority_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_bundle_priority_t * >(argp2);
-    result = xdr_dtn_bundle_priority_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_bundle_delivery_opts_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_bundle_delivery_opts_t *arg2 = (dtn_bundle_delivery_opts_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_bundle_delivery_opts_t(XDR *,dtn_bundle_delivery_opts_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_delivery_opts_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "2"" of type '" "dtn_bundle_delivery_opts_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_bundle_delivery_opts_t * >(argp2);
-    result = xdr_dtn_bundle_delivery_opts_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_extension_block_flags_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_extension_block_flags_t *arg2 = (dtn_extension_block_flags_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_extension_block_flags_t(XDR *,dtn_extension_block_flags_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_extension_block_flags_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "2"" of type '" "dtn_extension_block_flags_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_extension_block_flags_t * >(argp2);
-    result = xdr_dtn_extension_block_flags_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
 XS(_wrap_dtn_extension_block_t_type_set) {
   {
     dtn_extension_block_t *arg1 = (dtn_extension_block_t *) 0 ;
@@ -3800,44 +3420,6 @@ XS(_wrap_delete_dtn_extension_block_t_data) {
     
     XSRETURN(argvi);
   fail:
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_extension_block_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_extension_block_t *arg2 = (dtn_extension_block_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_extension_block_t(XDR *,dtn_extension_block_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_extension_block_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_t" "', argument " "2"" of type '" "dtn_extension_block_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_extension_block_t * >(argp2);
-    result = xdr_dtn_extension_block_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
     
     SWIG_croak_null();
   }
@@ -4846,44 +4428,6 @@ XS(_wrap_delete_dtn_bundle_spec_t_blocks) {
 }
 
 
-XS(_wrap_xdr_dtn_bundle_spec_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_bundle_spec_t *arg2 = (dtn_bundle_spec_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_bundle_spec_t(XDR *,dtn_bundle_spec_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_spec_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "2"" of type '" "dtn_bundle_spec_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_bundle_spec_t * >(argp2);
-    result = xdr_dtn_bundle_spec_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
 XS(_wrap_dtn_bundle_id_t_source_set) {
   {
     dtn_bundle_id_t *arg1 = (dtn_bundle_id_t *) 0 ;
@@ -5196,120 +4740,6 @@ XS(_wrap_delete_dtn_bundle_id_t) {
     
     XSRETURN(argvi);
   fail:
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_bundle_id_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_bundle_id_t *arg2 = (dtn_bundle_id_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_bundle_id_t(XDR *,dtn_bundle_id_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_id_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_id_t" "', argument " "2"" of type '" "dtn_bundle_id_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_bundle_id_t * >(argp2);
-    result = xdr_dtn_bundle_id_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_status_report_reason_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_status_report_reason_t *arg2 = (dtn_status_report_reason_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_status_report_reason_t(XDR *,dtn_status_report_reason_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_status_report_reason_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "2"" of type '" "dtn_status_report_reason_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_status_report_reason_t * >(argp2);
-    result = xdr_dtn_status_report_reason_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_status_report_flags_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_status_report_flags_t *arg2 = (dtn_status_report_flags_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_status_report_flags_t(XDR *,dtn_status_report_flags_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_status_report_flags_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "2"" of type '" "dtn_status_report_flags_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_status_report_flags_t * >(argp2);
-    result = xdr_dtn_status_report_flags_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
     
     SWIG_croak_null();
   }
@@ -5956,82 +5386,6 @@ XS(_wrap_delete_dtn_bundle_status_report_t) {
 }
 
 
-XS(_wrap_xdr_dtn_bundle_status_report_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_bundle_status_report_t *arg2 = (dtn_bundle_status_report_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_bundle_status_report_t(XDR *,dtn_bundle_status_report_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_status_report_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "2"" of type '" "dtn_bundle_status_report_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_bundle_status_report_t * >(argp2);
-    result = xdr_dtn_bundle_status_report_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
-XS(_wrap_xdr_dtn_bundle_payload_location_t) {
-  {
-    XDR *arg1 = (XDR *) 0 ;
-    dtn_bundle_payload_location_t *arg2 = (dtn_bundle_payload_location_t *) 0 ;
-    bool_t result;
-    void *argp1 = 0 ;
-    int res1 = 0 ;
-    void *argp2 = 0 ;
-    int res2 = 0 ;
-    int argvi = 0;
-    dXSARGS;
-    
-    if ((items < 2) || (items > 2)) {
-      SWIG_croak("Usage: xdr_dtn_bundle_payload_location_t(XDR *,dtn_bundle_payload_location_t *);");
-    }
-    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-    if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "1"" of type '" "XDR *""'"); 
-    }
-    arg1 = reinterpret_cast< XDR * >(argp1);
-    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_payload_location_t, 0 |  0 );
-    if (!SWIG_IsOK(res2)) {
-      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "2"" of type '" "dtn_bundle_payload_location_t *""'"); 
-    }
-    arg2 = reinterpret_cast< dtn_bundle_payload_location_t * >(argp2);
-    result = xdr_dtn_bundle_payload_location_t(arg1,arg2);
-    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
-    
-    
-    XSRETURN(argvi);
-  fail:
-    
-    
-    SWIG_croak_null();
-  }
-}
-
-
 XS(_wrap_dtn_bundle_payload_t_location_set) {
   {
     dtn_bundle_payload_t *arg1 = (dtn_bundle_payload_t *) 0 ;
@@ -6636,6 +5990,652 @@ XS(_wrap_delete_dtn_bundle_payload_t_filename) {
     
     XSRETURN(argvi);
   fail:
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_endpoint_id_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_endpoint_id_t *arg2 = (dtn_endpoint_id_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_endpoint_id_t(XDR *,dtn_endpoint_id_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_endpoint_id_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "2"" of type '" "dtn_endpoint_id_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_endpoint_id_t * >(argp2);
+    result = xdr_dtn_endpoint_id_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_reg_id_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_reg_id_t *arg2 = (dtn_reg_id_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_reg_id_t(XDR *,dtn_reg_id_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_u_int, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_id_t" "', argument " "2"" of type '" "dtn_reg_id_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_reg_id_t * >(argp2);
+    result = xdr_dtn_reg_id_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_timeval_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_timeval_t *arg2 = (dtn_timeval_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_timeval_t(XDR *,dtn_timeval_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timeval_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_u_int, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timeval_t" "', argument " "2"" of type '" "dtn_timeval_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_timeval_t * >(argp2);
+    result = xdr_dtn_timeval_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_timestamp_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_timestamp_t *arg2 = (dtn_timestamp_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_timestamp_t(XDR *,dtn_timestamp_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timestamp_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_timestamp_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timestamp_t" "', argument " "2"" of type '" "dtn_timestamp_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_timestamp_t * >(argp2);
+    result = xdr_dtn_timestamp_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_service_tag_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_service_tag_t *arg2 = (dtn_service_tag_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_service_tag_t(XDR *,dtn_service_tag_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_service_tag_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_service_tag_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_service_tag_t" "', argument " "2"" of type '" "dtn_service_tag_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_service_tag_t * >(argp2);
+    result = xdr_dtn_service_tag_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_reg_flags_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_reg_flags_t *arg2 = (dtn_reg_flags_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_reg_flags_t(XDR *,dtn_reg_flags_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_reg_flags_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_flags_t" "', argument " "2"" of type '" "dtn_reg_flags_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_reg_flags_t * >(argp2);
+    result = xdr_dtn_reg_flags_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_reg_info_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_reg_info_t *arg2 = (dtn_reg_info_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_reg_info_t(XDR *,dtn_reg_info_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_info_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_info_t" "', argument " "2"" of type '" "dtn_reg_info_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_reg_info_t * >(argp2);
+    result = xdr_dtn_reg_info_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_bundle_priority_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_bundle_priority_t *arg2 = (dtn_bundle_priority_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_bundle_priority_t(XDR *,dtn_bundle_priority_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_priority_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "2"" of type '" "dtn_bundle_priority_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_bundle_priority_t * >(argp2);
+    result = xdr_dtn_bundle_priority_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_bundle_delivery_opts_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_bundle_delivery_opts_t *arg2 = (dtn_bundle_delivery_opts_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_bundle_delivery_opts_t(XDR *,dtn_bundle_delivery_opts_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_delivery_opts_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "2"" of type '" "dtn_bundle_delivery_opts_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_bundle_delivery_opts_t * >(argp2);
+    result = xdr_dtn_bundle_delivery_opts_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_extension_block_flags_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_extension_block_flags_t *arg2 = (dtn_extension_block_flags_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_extension_block_flags_t(XDR *,dtn_extension_block_flags_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_extension_block_flags_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "2"" of type '" "dtn_extension_block_flags_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_extension_block_flags_t * >(argp2);
+    result = xdr_dtn_extension_block_flags_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_extension_block_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_extension_block_t *arg2 = (dtn_extension_block_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_extension_block_t(XDR *,dtn_extension_block_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_extension_block_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_t" "', argument " "2"" of type '" "dtn_extension_block_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_extension_block_t * >(argp2);
+    result = xdr_dtn_extension_block_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_bundle_spec_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_bundle_spec_t *arg2 = (dtn_bundle_spec_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_bundle_spec_t(XDR *,dtn_bundle_spec_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_spec_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "2"" of type '" "dtn_bundle_spec_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_bundle_spec_t * >(argp2);
+    result = xdr_dtn_bundle_spec_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_bundle_id_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_bundle_id_t *arg2 = (dtn_bundle_id_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_bundle_id_t(XDR *,dtn_bundle_id_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_id_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_id_t" "', argument " "2"" of type '" "dtn_bundle_id_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_bundle_id_t * >(argp2);
+    result = xdr_dtn_bundle_id_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_status_report_reason_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_status_report_reason_t *arg2 = (dtn_status_report_reason_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_status_report_reason_t(XDR *,dtn_status_report_reason_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_status_report_reason_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "2"" of type '" "dtn_status_report_reason_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_status_report_reason_t * >(argp2);
+    result = xdr_dtn_status_report_reason_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_status_report_flags_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_status_report_flags_t *arg2 = (dtn_status_report_flags_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_status_report_flags_t(XDR *,dtn_status_report_flags_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_status_report_flags_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "2"" of type '" "dtn_status_report_flags_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_status_report_flags_t * >(argp2);
+    result = xdr_dtn_status_report_flags_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_bundle_status_report_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_bundle_status_report_t *arg2 = (dtn_bundle_status_report_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_bundle_status_report_t(XDR *,dtn_bundle_status_report_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_status_report_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "2"" of type '" "dtn_bundle_status_report_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_bundle_status_report_t * >(argp2);
+    result = xdr_dtn_bundle_status_report_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
+    
+    SWIG_croak_null();
+  }
+}
+
+
+XS(_wrap_xdr_dtn_bundle_payload_location_t) {
+  {
+    XDR *arg1 = (XDR *) 0 ;
+    dtn_bundle_payload_location_t *arg2 = (dtn_bundle_payload_location_t *) 0 ;
+    bool_t result;
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    void *argp2 = 0 ;
+    int res2 = 0 ;
+    int argvi = 0;
+    dXSARGS;
+    
+    if ((items < 2) || (items > 2)) {
+      SWIG_croak("Usage: xdr_dtn_bundle_payload_location_t(XDR *,dtn_bundle_payload_location_t *);");
+    }
+    res1 = SWIG_ConvertPtr(ST(0), &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "1"" of type '" "XDR *""'"); 
+    }
+    arg1 = reinterpret_cast< XDR * >(argp1);
+    res2 = SWIG_ConvertPtr(ST(1), &argp2,SWIGTYPE_p_dtn_bundle_payload_location_t, 0 |  0 );
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "2"" of type '" "dtn_bundle_payload_location_t *""'"); 
+    }
+    arg2 = reinterpret_cast< dtn_bundle_payload_location_t * >(argp2);
+    result = xdr_dtn_bundle_payload_location_t(arg1,arg2);
+    ST(argvi) = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN | 0); argvi++ ;
+    
+    
+    XSRETURN(argvi);
+  fail:
+    
     
     SWIG_croak_null();
   }
@@ -10100,22 +10100,16 @@ static swig_command_info swig_commands[] = {
 {"dtnapic::dtn_endpoint_id_t_uri_get", _wrap_dtn_endpoint_id_t_uri_get},
 {"dtnapic::new_dtn_endpoint_id_t", _wrap_new_dtn_endpoint_id_t},
 {"dtnapic::delete_dtn_endpoint_id_t", _wrap_delete_dtn_endpoint_id_t},
-{"dtnapic::xdr_dtn_endpoint_id_t", _wrap_xdr_dtn_endpoint_id_t},
-{"dtnapic::xdr_dtn_reg_id_t", _wrap_xdr_dtn_reg_id_t},
-{"dtnapic::xdr_dtn_timeval_t", _wrap_xdr_dtn_timeval_t},
 {"dtnapic::dtn_timestamp_t_secs_set", _wrap_dtn_timestamp_t_secs_set},
 {"dtnapic::dtn_timestamp_t_secs_get", _wrap_dtn_timestamp_t_secs_get},
 {"dtnapic::dtn_timestamp_t_seqno_set", _wrap_dtn_timestamp_t_seqno_set},
 {"dtnapic::dtn_timestamp_t_seqno_get", _wrap_dtn_timestamp_t_seqno_get},
 {"dtnapic::new_dtn_timestamp_t", _wrap_new_dtn_timestamp_t},
 {"dtnapic::delete_dtn_timestamp_t", _wrap_delete_dtn_timestamp_t},
-{"dtnapic::xdr_dtn_timestamp_t", _wrap_xdr_dtn_timestamp_t},
 {"dtnapic::dtn_service_tag_t_tag_set", _wrap_dtn_service_tag_t_tag_set},
 {"dtnapic::dtn_service_tag_t_tag_get", _wrap_dtn_service_tag_t_tag_get},
 {"dtnapic::new_dtn_service_tag_t", _wrap_new_dtn_service_tag_t},
 {"dtnapic::delete_dtn_service_tag_t", _wrap_delete_dtn_service_tag_t},
-{"dtnapic::xdr_dtn_service_tag_t", _wrap_xdr_dtn_service_tag_t},
-{"dtnapic::xdr_dtn_reg_flags_t", _wrap_xdr_dtn_reg_flags_t},
 {"dtnapic::dtn_reg_info_t_endpoint_set", _wrap_dtn_reg_info_t_endpoint_set},
 {"dtnapic::dtn_reg_info_t_endpoint_get", _wrap_dtn_reg_info_t_endpoint_get},
 {"dtnapic::dtn_reg_info_t_regid_set", _wrap_dtn_reg_info_t_regid_set},
@@ -10135,10 +10129,6 @@ static swig_command_info swig_commands[] = {
 {"dtnapic::dtn_reg_info_t_script_script_val_get", _wrap_dtn_reg_info_t_script_script_val_get},
 {"dtnapic::new_dtn_reg_info_t_script", _wrap_new_dtn_reg_info_t_script},
 {"dtnapic::delete_dtn_reg_info_t_script", _wrap_delete_dtn_reg_info_t_script},
-{"dtnapic::xdr_dtn_reg_info_t", _wrap_xdr_dtn_reg_info_t},
-{"dtnapic::xdr_dtn_bundle_priority_t", _wrap_xdr_dtn_bundle_priority_t},
-{"dtnapic::xdr_dtn_bundle_delivery_opts_t", _wrap_xdr_dtn_bundle_delivery_opts_t},
-{"dtnapic::xdr_dtn_extension_block_flags_t", _wrap_xdr_dtn_extension_block_flags_t},
 {"dtnapic::dtn_extension_block_t_type_set", _wrap_dtn_extension_block_t_type_set},
 {"dtnapic::dtn_extension_block_t_type_get", _wrap_dtn_extension_block_t_type_get},
 {"dtnapic::dtn_extension_block_t_flags_set", _wrap_dtn_extension_block_t_flags_set},
@@ -10152,7 +10142,6 @@ static swig_command_info swig_commands[] = {
 {"dtnapic::dtn_extension_block_t_data_data_val_get", _wrap_dtn_extension_block_t_data_data_val_get},
 {"dtnapic::new_dtn_extension_block_t_data", _wrap_new_dtn_extension_block_t_data},
 {"dtnapic::delete_dtn_extension_block_t_data", _wrap_delete_dtn_extension_block_t_data},
-{"dtnapic::xdr_dtn_extension_block_t", _wrap_xdr_dtn_extension_block_t},
 {"dtnapic::dtn_bundle_spec_t_source_set", _wrap_dtn_bundle_spec_t_source_set},
 {"dtnapic::dtn_bundle_spec_t_source_get", _wrap_dtn_bundle_spec_t_source_get},
 {"dtnapic::dtn_bundle_spec_t_dest_set", _wrap_dtn_bundle_spec_t_dest_set},
@@ -10185,7 +10174,6 @@ static swig_command_info swig_commands[] = {
 {"dtnapic::dtn_bundle_spec_t_blocks_blocks_val_get", _wrap_dtn_bundle_spec_t_blocks_blocks_val_get},
 {"dtnapic::new_dtn_bundle_spec_t_blocks", _wrap_new_dtn_bundle_spec_t_blocks},
 {"dtnapic::delete_dtn_bundle_spec_t_blocks", _wrap_delete_dtn_bundle_spec_t_blocks},
-{"dtnapic::xdr_dtn_bundle_spec_t", _wrap_xdr_dtn_bundle_spec_t},
 {"dtnapic::dtn_bundle_id_t_source_set", _wrap_dtn_bundle_id_t_source_set},
 {"dtnapic::dtn_bundle_id_t_source_get", _wrap_dtn_bundle_id_t_source_get},
 {"dtnapic::dtn_bundle_id_t_creation_ts_set", _wrap_dtn_bundle_id_t_creation_ts_set},
@@ -10196,9 +10184,6 @@ static swig_command_info swig_commands[] = {
 {"dtnapic::dtn_bundle_id_t_orig_length_get", _wrap_dtn_bundle_id_t_orig_length_get},
 {"dtnapic::new_dtn_bundle_id_t", _wrap_new_dtn_bundle_id_t},
 {"dtnapic::delete_dtn_bundle_id_t", _wrap_delete_dtn_bundle_id_t},
-{"dtnapic::xdr_dtn_bundle_id_t", _wrap_xdr_dtn_bundle_id_t},
-{"dtnapic::xdr_dtn_status_report_reason_t", _wrap_xdr_dtn_status_report_reason_t},
-{"dtnapic::xdr_dtn_status_report_flags_t", _wrap_xdr_dtn_status_report_flags_t},
 {"dtnapic::dtn_bundle_status_report_t_bundle_id_set", _wrap_dtn_bundle_status_report_t_bundle_id_set},
 {"dtnapic::dtn_bundle_status_report_t_bundle_id_get", _wrap_dtn_bundle_status_report_t_bundle_id_get},
 {"dtnapic::dtn_bundle_status_report_t_reason_set", _wrap_dtn_bundle_status_report_t_reason_set},
@@ -10219,8 +10204,6 @@ static swig_command_info swig_commands[] = {
 {"dtnapic::dtn_bundle_status_report_t_ack_by_app_ts_get", _wrap_dtn_bundle_status_report_t_ack_by_app_ts_get},
 {"dtnapic::new_dtn_bundle_status_report_t", _wrap_new_dtn_bundle_status_report_t},
 {"dtnapic::delete_dtn_bundle_status_report_t", _wrap_delete_dtn_bundle_status_report_t},
-{"dtnapic::xdr_dtn_bundle_status_report_t", _wrap_xdr_dtn_bundle_status_report_t},
-{"dtnapic::xdr_dtn_bundle_payload_location_t", _wrap_xdr_dtn_bundle_payload_location_t},
 {"dtnapic::dtn_bundle_payload_t_location_set", _wrap_dtn_bundle_payload_t_location_set},
 {"dtnapic::dtn_bundle_payload_t_location_get", _wrap_dtn_bundle_payload_t_location_get},
 {"dtnapic::dtn_bundle_payload_t_status_report_set", _wrap_dtn_bundle_payload_t_status_report_set},
@@ -10241,6 +10224,23 @@ static swig_command_info swig_commands[] = {
 {"dtnapic::dtn_bundle_payload_t_filename_filename_val_get", _wrap_dtn_bundle_payload_t_filename_filename_val_get},
 {"dtnapic::new_dtn_bundle_payload_t_filename", _wrap_new_dtn_bundle_payload_t_filename},
 {"dtnapic::delete_dtn_bundle_payload_t_filename", _wrap_delete_dtn_bundle_payload_t_filename},
+{"dtnapic::xdr_dtn_endpoint_id_t", _wrap_xdr_dtn_endpoint_id_t},
+{"dtnapic::xdr_dtn_reg_id_t", _wrap_xdr_dtn_reg_id_t},
+{"dtnapic::xdr_dtn_timeval_t", _wrap_xdr_dtn_timeval_t},
+{"dtnapic::xdr_dtn_timestamp_t", _wrap_xdr_dtn_timestamp_t},
+{"dtnapic::xdr_dtn_service_tag_t", _wrap_xdr_dtn_service_tag_t},
+{"dtnapic::xdr_dtn_reg_flags_t", _wrap_xdr_dtn_reg_flags_t},
+{"dtnapic::xdr_dtn_reg_info_t", _wrap_xdr_dtn_reg_info_t},
+{"dtnapic::xdr_dtn_bundle_priority_t", _wrap_xdr_dtn_bundle_priority_t},
+{"dtnapic::xdr_dtn_bundle_delivery_opts_t", _wrap_xdr_dtn_bundle_delivery_opts_t},
+{"dtnapic::xdr_dtn_extension_block_flags_t", _wrap_xdr_dtn_extension_block_flags_t},
+{"dtnapic::xdr_dtn_extension_block_t", _wrap_xdr_dtn_extension_block_t},
+{"dtnapic::xdr_dtn_bundle_spec_t", _wrap_xdr_dtn_bundle_spec_t},
+{"dtnapic::xdr_dtn_bundle_id_t", _wrap_xdr_dtn_bundle_id_t},
+{"dtnapic::xdr_dtn_status_report_reason_t", _wrap_xdr_dtn_status_report_reason_t},
+{"dtnapic::xdr_dtn_status_report_flags_t", _wrap_xdr_dtn_status_report_flags_t},
+{"dtnapic::xdr_dtn_bundle_status_report_t", _wrap_xdr_dtn_bundle_status_report_t},
+{"dtnapic::xdr_dtn_bundle_payload_location_t", _wrap_xdr_dtn_bundle_payload_location_t},
 {"dtnapic::xdr_dtn_bundle_payload_t", _wrap_xdr_dtn_bundle_payload_t},
 {"dtnapic::dtn_strerror", _wrap_dtn_strerror},
 {"dtnapic::dtn_open", _wrap_dtn_open},
@@ -10618,11 +10618,6 @@ XS(SWIG_init) {
     SvREADONLY_on(sv);
   }
   
-  /*@SWIG:%set_constant@*/ do {
-    SV *sv = get_sv((char*) SWIG_prefix "RPCGEN_VERSION", TRUE | 0x2);
-    sv_setsv(sv, SWIG_From_int  SWIG_PERL_CALL_ARGS_1(static_cast< int >(199506)));
-    SvREADONLY_on(sv);
-  } while(0) /*@SWIG@*/;
   /*@SWIG:%set_constant@*/ do {
     SV *sv = get_sv((char*) SWIG_prefix "DTN_MAX_ENDPOINT_ID", TRUE | 0x2);
     sv_setsv(sv, SWIG_From_int  SWIG_PERL_CALL_ARGS_1(static_cast< int >(256)));

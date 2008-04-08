@@ -121,6 +121,13 @@ public:
      * set to a value from BundleProtocol::status_report_reason_t
      */
     virtual bool accept_bundle(Bundle* bundle, int* errp);
+
+    /**
+     * Synchronous indicating that the bundle is being deleted from
+     * the system and that the router should remove it from any lists
+     * where it may be queued.
+     */
+    virtual void delete_bundle(const BundleRef& bundle);
     
     /**
      * Format the given StringBuffer with current routing info.

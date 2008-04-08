@@ -20,7 +20,7 @@
 #include <oasys/util/StringUtils.h>
 
 #include "BundleRouter.h"
-#include "DuplicateCache.h"
+#include "ReceptionCache.h"
 #include "RouterInfo.h"
 #include "reg/Registration.h"
 #include "session/SessionTable.h"
@@ -80,7 +80,7 @@ protected:
     void handle_session_bundle(BundleReceivedEvent* event);
     void add_subscriber(Session* session, const EndpointID& peer);
     /// @}
-    
+
     /**
      * Dump the routing state.
      */
@@ -150,13 +150,29 @@ protected:
     virtual void reroute_all_bundles();
 
     /**
+     * Generic hook in response to the command line indication that we
+     * should reroute all bundles.
+     */
+    virtual void recompute_routes();
+
+    /**
      * When new links are added or opened, and if we're configured to
      * add nexthop routes, try to add a new route for the given link.
      */
     void add_nexthop_route(const LinkRef& link);
 
-    /// Cache to check for duplicates
-    DuplicateCache dupcache_;
+    /**
+     * Hook to tell the router that the bundle should be deleted.
+     */
+    void delete_bundle(const BundleRef& bundle);
+
+    /**
+     * Remove matching deferred transmission entries.
+     */
+    void remove_from_deferred(const BundleRef& bundle, int actions);
+    
+    /// Cache to check for duplicates and to implement a simple RPF check
+    ReceptionCache reception_cache_;
 
     /// The routing table
     RouteTable* route_table_;
@@ -203,6 +219,10 @@ protected:
         /// Accessor for the forwarding info associated with the
         /// bundle, which must be on the list
         const ForwardingInfo& info(const BundleRef& bundle);
+
+        /// Check if the bundle is on the list. If so, return its
+        /// forwarding info.
+        bool find(const BundleRef& bundle, ForwardingInfo* info);
 
         /// Add a new bundle/info pair to the deferred list
         bool add(const BundleRef& bundle, const ForwardingInfo& info);

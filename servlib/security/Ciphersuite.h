@@ -125,9 +125,9 @@ public:
     virtual int consume(Bundle* bundle, BlockInfo* block,
                         u_char* buf, size_t len) = 0;
 
-    virtual int reload_post_process(const Bundle* bundle,
-                                    const BlockInfoVec* block_list,
-                                    const BlockInfo*    block);
+    virtual int reload_post_process(Bundle*       bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block);
 
     /**
      * Validate the block. This is called after all blocks in the

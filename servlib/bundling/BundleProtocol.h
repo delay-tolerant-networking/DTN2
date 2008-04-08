@@ -57,6 +57,12 @@ public:
     static void init_default_processors();
 
     /**
+     * Give the processors a chance to chew on the bundle after
+     * reloading from disk.
+     */
+    static void reload_post_process(Bundle* bundle);
+
+    /**
      * Generate a BlockInfoVec for the outgoing link and put it into
      * xmit_blocks_.
      *
@@ -159,7 +165,7 @@ public:
     /**
      * The current version of the bundling protocol.
      */
-    static const int CURRENT_VERSION = 0x05;
+    static const int CURRENT_VERSION = 0x06;
     
     static const unsigned PREAMBLE_FIXED_LENGTH = 1;
 

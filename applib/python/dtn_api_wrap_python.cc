@@ -3153,99 +3153,6 @@ SWIGINTERN PyObject *dtn_endpoint_id_t_swigregister(PyObject *SWIGUNUSEDPARM(sel
   return SWIG_Py_Void();
 }
 
-SWIGINTERN PyObject *_wrap_xdr_dtn_endpoint_id_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_endpoint_id_t *arg2 = (dtn_endpoint_id_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_endpoint_id_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_endpoint_id_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "2"" of type '" "dtn_endpoint_id_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_endpoint_id_t * >(argp2);
-  result = xdr_dtn_endpoint_id_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_reg_id_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_reg_id_t *arg2 = (dtn_reg_id_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_reg_id_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_u_int, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_id_t" "', argument " "2"" of type '" "dtn_reg_id_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_reg_id_t * >(argp2);
-  result = xdr_dtn_reg_id_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_timeval_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_timeval_t *arg2 = (dtn_timeval_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_timeval_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timeval_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_u_int, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timeval_t" "', argument " "2"" of type '" "dtn_timeval_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_timeval_t * >(argp2);
-  result = xdr_dtn_timeval_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_dtn_timestamp_t_secs_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   dtn_timestamp_t *arg1 = (dtn_timestamp_t *) 0 ;
@@ -3410,37 +3317,6 @@ SWIGINTERN PyObject *dtn_timestamp_t_swigregister(PyObject *SWIGUNUSEDPARM(self)
   return SWIG_Py_Void();
 }
 
-SWIGINTERN PyObject *_wrap_xdr_dtn_timestamp_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_timestamp_t *arg2 = (dtn_timestamp_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_timestamp_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timestamp_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_timestamp_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timestamp_t" "', argument " "2"" of type '" "dtn_timestamp_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_timestamp_t * >(argp2);
-  result = xdr_dtn_timestamp_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_dtn_service_tag_t_tag_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   dtn_service_tag_t *arg1 = (dtn_service_tag_t *) 0 ;
@@ -3541,68 +3417,6 @@ SWIGINTERN PyObject *dtn_service_tag_t_swigregister(PyObject *SWIGUNUSEDPARM(sel
   SWIG_TypeNewClientData(SWIGTYPE_p_dtn_service_tag_t, SWIG_NewClientData(obj));
   return SWIG_Py_Void();
 }
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_service_tag_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_service_tag_t *arg2 = (dtn_service_tag_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_service_tag_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_service_tag_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_service_tag_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_service_tag_t" "', argument " "2"" of type '" "dtn_service_tag_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_service_tag_t * >(argp2);
-  result = xdr_dtn_service_tag_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_reg_flags_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_reg_flags_t *arg2 = (dtn_reg_flags_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_reg_flags_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_reg_flags_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_flags_t" "', argument " "2"" of type '" "dtn_reg_flags_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_reg_flags_t * >(argp2);
-  result = xdr_dtn_reg_flags_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
 
 SWIGINTERN PyObject *_wrap_dtn_reg_info_t_endpoint_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
@@ -4129,130 +3943,6 @@ SWIGINTERN PyObject *dtn_reg_info_t_script_swigregister(PyObject *SWIGUNUSEDPARM
   return SWIG_Py_Void();
 }
 
-SWIGINTERN PyObject *_wrap_xdr_dtn_reg_info_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_reg_info_t *arg2 = (dtn_reg_info_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_reg_info_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_info_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_info_t" "', argument " "2"" of type '" "dtn_reg_info_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_reg_info_t * >(argp2);
-  result = xdr_dtn_reg_info_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_priority_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_priority_t *arg2 = (dtn_bundle_priority_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_priority_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_priority_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "2"" of type '" "dtn_bundle_priority_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_priority_t * >(argp2);
-  result = xdr_dtn_bundle_priority_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_delivery_opts_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_delivery_opts_t *arg2 = (dtn_bundle_delivery_opts_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_delivery_opts_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_delivery_opts_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "2"" of type '" "dtn_bundle_delivery_opts_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_delivery_opts_t * >(argp2);
-  result = xdr_dtn_bundle_delivery_opts_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_extension_block_flags_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_extension_block_flags_t *arg2 = (dtn_extension_block_flags_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_extension_block_flags_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_extension_block_flags_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "2"" of type '" "dtn_extension_block_flags_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_extension_block_flags_t * >(argp2);
-  result = xdr_dtn_extension_block_flags_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_dtn_extension_block_t_type_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   dtn_extension_block_t *arg1 = (dtn_extension_block_t *) 0 ;
@@ -4602,37 +4292,6 @@ SWIGINTERN PyObject *dtn_extension_block_t_data_swigregister(PyObject *SWIGUNUSE
   SWIG_TypeNewClientData(SWIGTYPE_p_dtn_extension_block_t_data, SWIG_NewClientData(obj));
   return SWIG_Py_Void();
 }
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_extension_block_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_extension_block_t *arg2 = (dtn_extension_block_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_extension_block_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_extension_block_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_t" "', argument " "2"" of type '" "dtn_extension_block_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_extension_block_t * >(argp2);
-  result = xdr_dtn_extension_block_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
 
 SWIGINTERN PyObject *_wrap_dtn_bundle_spec_t_source_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
@@ -5472,37 +5131,6 @@ SWIGINTERN PyObject *dtn_bundle_spec_t_blocks_swigregister(PyObject *SWIGUNUSEDP
   return SWIG_Py_Void();
 }
 
-SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_spec_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_spec_t *arg2 = (dtn_bundle_spec_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_spec_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_spec_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "2"" of type '" "dtn_bundle_spec_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_spec_t * >(argp2);
-  result = xdr_dtn_bundle_spec_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_dtn_bundle_id_t_source_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   dtn_bundle_id_t *arg1 = (dtn_bundle_id_t *) 0 ;
@@ -5772,99 +5400,6 @@ SWIGINTERN PyObject *dtn_bundle_id_t_swigregister(PyObject *SWIGUNUSEDPARM(self)
   SWIG_TypeNewClientData(SWIGTYPE_p_dtn_bundle_id_t, SWIG_NewClientData(obj));
   return SWIG_Py_Void();
 }
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_id_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_id_t *arg2 = (dtn_bundle_id_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_id_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_id_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_id_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_id_t" "', argument " "2"" of type '" "dtn_bundle_id_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_id_t * >(argp2);
-  result = xdr_dtn_bundle_id_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_status_report_reason_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_status_report_reason_t *arg2 = (dtn_status_report_reason_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_status_report_reason_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_status_report_reason_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "2"" of type '" "dtn_status_report_reason_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_status_report_reason_t * >(argp2);
-  result = xdr_dtn_status_report_reason_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_status_report_flags_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_status_report_flags_t *arg2 = (dtn_status_report_flags_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_status_report_flags_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_status_report_flags_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "2"" of type '" "dtn_status_report_flags_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_status_report_flags_t * >(argp2);
-  result = xdr_dtn_status_report_flags_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
 
 SWIGINTERN PyObject *_wrap_dtn_bundle_status_report_t_bundle_id_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
@@ -6385,68 +5920,6 @@ SWIGINTERN PyObject *dtn_bundle_status_report_t_swigregister(PyObject *SWIGUNUSE
   return SWIG_Py_Void();
 }
 
-SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_status_report_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_status_report_t *arg2 = (dtn_bundle_status_report_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_status_report_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_status_report_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "2"" of type '" "dtn_bundle_status_report_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_status_report_t * >(argp2);
-  result = xdr_dtn_bundle_status_report_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_payload_location_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  XDR *arg1 = (XDR *) 0 ;
-  dtn_bundle_payload_location_t *arg2 = (dtn_bundle_payload_location_t *) 0 ;
-  bool_t result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_payload_location_t",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "1"" of type '" "XDR *""'"); 
-  }
-  arg1 = reinterpret_cast< XDR * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_payload_location_t, 0 |  0 );
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "2"" of type '" "dtn_bundle_payload_location_t *""'"); 
-  }
-  arg2 = reinterpret_cast< dtn_bundle_payload_location_t * >(argp2);
-  result = xdr_dtn_bundle_payload_location_t(arg1,arg2);
-  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_dtn_bundle_payload_t_location_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   dtn_bundle_payload_t *arg1 = (dtn_bundle_payload_t *) 0 ;
@@ -6966,6 +6439,533 @@ SWIGINTERN PyObject *dtn_bundle_payload_t_filename_swigregister(PyObject *SWIGUN
   SWIG_TypeNewClientData(SWIGTYPE_p_dtn_bundle_payload_t_filename, SWIG_NewClientData(obj));
   return SWIG_Py_Void();
 }
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_endpoint_id_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_endpoint_id_t *arg2 = (dtn_endpoint_id_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_endpoint_id_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_endpoint_id_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_endpoint_id_t" "', argument " "2"" of type '" "dtn_endpoint_id_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_endpoint_id_t * >(argp2);
+  result = xdr_dtn_endpoint_id_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_reg_id_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_reg_id_t *arg2 = (dtn_reg_id_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_reg_id_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_u_int, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_id_t" "', argument " "2"" of type '" "dtn_reg_id_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_reg_id_t * >(argp2);
+  result = xdr_dtn_reg_id_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_timeval_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_timeval_t *arg2 = (dtn_timeval_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_timeval_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timeval_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_u_int, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timeval_t" "', argument " "2"" of type '" "dtn_timeval_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_timeval_t * >(argp2);
+  result = xdr_dtn_timeval_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_timestamp_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_timestamp_t *arg2 = (dtn_timestamp_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_timestamp_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_timestamp_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_timestamp_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_timestamp_t" "', argument " "2"" of type '" "dtn_timestamp_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_timestamp_t * >(argp2);
+  result = xdr_dtn_timestamp_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_service_tag_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_service_tag_t *arg2 = (dtn_service_tag_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_service_tag_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_service_tag_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_service_tag_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_service_tag_t" "', argument " "2"" of type '" "dtn_service_tag_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_service_tag_t * >(argp2);
+  result = xdr_dtn_service_tag_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_reg_flags_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_reg_flags_t *arg2 = (dtn_reg_flags_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_reg_flags_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_reg_flags_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_flags_t" "', argument " "2"" of type '" "dtn_reg_flags_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_reg_flags_t * >(argp2);
+  result = xdr_dtn_reg_flags_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_reg_info_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_reg_info_t *arg2 = (dtn_reg_info_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_reg_info_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_reg_info_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_reg_info_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_reg_info_t" "', argument " "2"" of type '" "dtn_reg_info_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_reg_info_t * >(argp2);
+  result = xdr_dtn_reg_info_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_priority_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_priority_t *arg2 = (dtn_bundle_priority_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_priority_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_priority_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_priority_t" "', argument " "2"" of type '" "dtn_bundle_priority_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_priority_t * >(argp2);
+  result = xdr_dtn_bundle_priority_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_delivery_opts_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_delivery_opts_t *arg2 = (dtn_bundle_delivery_opts_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_delivery_opts_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_delivery_opts_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_delivery_opts_t" "', argument " "2"" of type '" "dtn_bundle_delivery_opts_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_delivery_opts_t * >(argp2);
+  result = xdr_dtn_bundle_delivery_opts_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_extension_block_flags_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_extension_block_flags_t *arg2 = (dtn_extension_block_flags_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_extension_block_flags_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_extension_block_flags_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_flags_t" "', argument " "2"" of type '" "dtn_extension_block_flags_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_extension_block_flags_t * >(argp2);
+  result = xdr_dtn_extension_block_flags_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_extension_block_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_extension_block_t *arg2 = (dtn_extension_block_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_extension_block_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_extension_block_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_extension_block_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_extension_block_t" "', argument " "2"" of type '" "dtn_extension_block_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_extension_block_t * >(argp2);
+  result = xdr_dtn_extension_block_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_spec_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_spec_t *arg2 = (dtn_bundle_spec_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_spec_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_spec_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_spec_t" "', argument " "2"" of type '" "dtn_bundle_spec_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_spec_t * >(argp2);
+  result = xdr_dtn_bundle_spec_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_id_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_id_t *arg2 = (dtn_bundle_id_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_id_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_id_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_id_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_id_t" "', argument " "2"" of type '" "dtn_bundle_id_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_id_t * >(argp2);
+  result = xdr_dtn_bundle_id_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_status_report_reason_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_status_report_reason_t *arg2 = (dtn_status_report_reason_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_status_report_reason_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_status_report_reason_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_reason_t" "', argument " "2"" of type '" "dtn_status_report_reason_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_status_report_reason_t * >(argp2);
+  result = xdr_dtn_status_report_reason_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_status_report_flags_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_status_report_flags_t *arg2 = (dtn_status_report_flags_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_status_report_flags_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_status_report_flags_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_status_report_flags_t" "', argument " "2"" of type '" "dtn_status_report_flags_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_status_report_flags_t * >(argp2);
+  result = xdr_dtn_status_report_flags_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_status_report_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_status_report_t *arg2 = (dtn_bundle_status_report_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_status_report_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_status_report_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_status_report_t" "', argument " "2"" of type '" "dtn_bundle_status_report_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_status_report_t * >(argp2);
+  result = xdr_dtn_bundle_status_report_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_payload_location_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  XDR *arg1 = (XDR *) 0 ;
+  dtn_bundle_payload_location_t *arg2 = (dtn_bundle_payload_location_t *) 0 ;
+  bool_t result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:xdr_dtn_bundle_payload_location_t",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_XDR, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "1"" of type '" "XDR *""'"); 
+  }
+  arg1 = reinterpret_cast< XDR * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_dtn_bundle_payload_location_t, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "xdr_dtn_bundle_payload_location_t" "', argument " "2"" of type '" "dtn_bundle_payload_location_t *""'"); 
+  }
+  arg2 = reinterpret_cast< dtn_bundle_payload_location_t * >(argp2);
+  result = xdr_dtn_bundle_payload_location_t(arg1,arg2);
+  resultobj = SWIG_NewPointerObj((new bool_t(static_cast< const bool_t& >(result))), SWIGTYPE_p_bool_t, SWIG_POINTER_OWN |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
 
 SWIGINTERN PyObject *_wrap_xdr_dtn_bundle_payload_t(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
@@ -9785,9 +9785,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"new_dtn_endpoint_id_t", _wrap_new_dtn_endpoint_id_t, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_endpoint_id_t", _wrap_delete_dtn_endpoint_id_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_endpoint_id_t_swigregister", dtn_endpoint_id_t_swigregister, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_endpoint_id_t", _wrap_xdr_dtn_endpoint_id_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_reg_id_t", _wrap_xdr_dtn_reg_id_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_timeval_t", _wrap_xdr_dtn_timeval_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_timestamp_t_secs_set", _wrap_dtn_timestamp_t_secs_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_timestamp_t_secs_get", _wrap_dtn_timestamp_t_secs_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_timestamp_t_seqno_set", _wrap_dtn_timestamp_t_seqno_set, METH_VARARGS, NULL},
@@ -9795,14 +9792,11 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"new_dtn_timestamp_t", _wrap_new_dtn_timestamp_t, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_timestamp_t", _wrap_delete_dtn_timestamp_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_timestamp_t_swigregister", dtn_timestamp_t_swigregister, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_timestamp_t", _wrap_xdr_dtn_timestamp_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_service_tag_t_tag_set", _wrap_dtn_service_tag_t_tag_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_service_tag_t_tag_get", _wrap_dtn_service_tag_t_tag_get, METH_VARARGS, NULL},
 	 { (char *)"new_dtn_service_tag_t", _wrap_new_dtn_service_tag_t, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_service_tag_t", _wrap_delete_dtn_service_tag_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_service_tag_t_swigregister", dtn_service_tag_t_swigregister, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_service_tag_t", _wrap_xdr_dtn_service_tag_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_reg_flags_t", _wrap_xdr_dtn_reg_flags_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_reg_info_t_endpoint_set", _wrap_dtn_reg_info_t_endpoint_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_reg_info_t_endpoint_get", _wrap_dtn_reg_info_t_endpoint_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_reg_info_t_regid_set", _wrap_dtn_reg_info_t_regid_set, METH_VARARGS, NULL},
@@ -9824,10 +9818,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"new_dtn_reg_info_t_script", _wrap_new_dtn_reg_info_t_script, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_reg_info_t_script", _wrap_delete_dtn_reg_info_t_script, METH_VARARGS, NULL},
 	 { (char *)"dtn_reg_info_t_script_swigregister", dtn_reg_info_t_script_swigregister, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_reg_info_t", _wrap_xdr_dtn_reg_info_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_bundle_priority_t", _wrap_xdr_dtn_bundle_priority_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_bundle_delivery_opts_t", _wrap_xdr_dtn_bundle_delivery_opts_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_extension_block_flags_t", _wrap_xdr_dtn_extension_block_flags_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_extension_block_t_type_set", _wrap_dtn_extension_block_t_type_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_extension_block_t_type_get", _wrap_dtn_extension_block_t_type_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_extension_block_t_flags_set", _wrap_dtn_extension_block_t_flags_set, METH_VARARGS, NULL},
@@ -9843,7 +9833,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"new_dtn_extension_block_t_data", _wrap_new_dtn_extension_block_t_data, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_extension_block_t_data", _wrap_delete_dtn_extension_block_t_data, METH_VARARGS, NULL},
 	 { (char *)"dtn_extension_block_t_data_swigregister", dtn_extension_block_t_data_swigregister, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_extension_block_t", _wrap_xdr_dtn_extension_block_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_spec_t_source_set", _wrap_dtn_bundle_spec_t_source_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_spec_t_source_get", _wrap_dtn_bundle_spec_t_source_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_spec_t_dest_set", _wrap_dtn_bundle_spec_t_dest_set, METH_VARARGS, NULL},
@@ -9879,7 +9868,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"new_dtn_bundle_spec_t_blocks", _wrap_new_dtn_bundle_spec_t_blocks, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_bundle_spec_t_blocks", _wrap_delete_dtn_bundle_spec_t_blocks, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_spec_t_blocks_swigregister", dtn_bundle_spec_t_blocks_swigregister, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_bundle_spec_t", _wrap_xdr_dtn_bundle_spec_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_id_t_source_set", _wrap_dtn_bundle_id_t_source_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_id_t_source_get", _wrap_dtn_bundle_id_t_source_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_id_t_creation_ts_set", _wrap_dtn_bundle_id_t_creation_ts_set, METH_VARARGS, NULL},
@@ -9891,9 +9879,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"new_dtn_bundle_id_t", _wrap_new_dtn_bundle_id_t, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_bundle_id_t", _wrap_delete_dtn_bundle_id_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_id_t_swigregister", dtn_bundle_id_t_swigregister, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_bundle_id_t", _wrap_xdr_dtn_bundle_id_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_status_report_reason_t", _wrap_xdr_dtn_status_report_reason_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_status_report_flags_t", _wrap_xdr_dtn_status_report_flags_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_status_report_t_bundle_id_set", _wrap_dtn_bundle_status_report_t_bundle_id_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_status_report_t_bundle_id_get", _wrap_dtn_bundle_status_report_t_bundle_id_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_status_report_t_reason_set", _wrap_dtn_bundle_status_report_t_reason_set, METH_VARARGS, NULL},
@@ -9915,8 +9900,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"new_dtn_bundle_status_report_t", _wrap_new_dtn_bundle_status_report_t, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_bundle_status_report_t", _wrap_delete_dtn_bundle_status_report_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_status_report_t_swigregister", dtn_bundle_status_report_t_swigregister, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_bundle_status_report_t", _wrap_xdr_dtn_bundle_status_report_t, METH_VARARGS, NULL},
-	 { (char *)"xdr_dtn_bundle_payload_location_t", _wrap_xdr_dtn_bundle_payload_location_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_payload_t_location_set", _wrap_dtn_bundle_payload_t_location_set, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_payload_t_location_get", _wrap_dtn_bundle_payload_t_location_get, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_payload_t_status_report_set", _wrap_dtn_bundle_payload_t_status_report_set, METH_VARARGS, NULL},
@@ -9940,6 +9923,23 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"new_dtn_bundle_payload_t_filename", _wrap_new_dtn_bundle_payload_t_filename, METH_VARARGS, NULL},
 	 { (char *)"delete_dtn_bundle_payload_t_filename", _wrap_delete_dtn_bundle_payload_t_filename, METH_VARARGS, NULL},
 	 { (char *)"dtn_bundle_payload_t_filename_swigregister", dtn_bundle_payload_t_filename_swigregister, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_endpoint_id_t", _wrap_xdr_dtn_endpoint_id_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_reg_id_t", _wrap_xdr_dtn_reg_id_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_timeval_t", _wrap_xdr_dtn_timeval_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_timestamp_t", _wrap_xdr_dtn_timestamp_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_service_tag_t", _wrap_xdr_dtn_service_tag_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_reg_flags_t", _wrap_xdr_dtn_reg_flags_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_reg_info_t", _wrap_xdr_dtn_reg_info_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_bundle_priority_t", _wrap_xdr_dtn_bundle_priority_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_bundle_delivery_opts_t", _wrap_xdr_dtn_bundle_delivery_opts_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_extension_block_flags_t", _wrap_xdr_dtn_extension_block_flags_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_extension_block_t", _wrap_xdr_dtn_extension_block_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_bundle_spec_t", _wrap_xdr_dtn_bundle_spec_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_bundle_id_t", _wrap_xdr_dtn_bundle_id_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_status_report_reason_t", _wrap_xdr_dtn_status_report_reason_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_status_report_flags_t", _wrap_xdr_dtn_status_report_flags_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_bundle_status_report_t", _wrap_xdr_dtn_bundle_status_report_t, METH_VARARGS, NULL},
+	 { (char *)"xdr_dtn_bundle_payload_location_t", _wrap_xdr_dtn_bundle_payload_location_t, METH_VARARGS, NULL},
 	 { (char *)"xdr_dtn_bundle_payload_t", _wrap_xdr_dtn_bundle_payload_t, METH_VARARGS, NULL},
 	 { (char *)"dtn_strerror", _wrap_dtn_strerror, METH_VARARGS, NULL},
 	 { (char *)"dtn_open", _wrap_dtn_open, METH_VARARGS, NULL},
@@ -10696,7 +10696,6 @@ SWIGEXPORT void SWIG_init(void) {
   SWIG_InstallConstants(d,swig_const_table);
   
   
-  SWIG_Python_SetConstant(d, "RPCGEN_VERSION",SWIG_From_int(static_cast< int >(199506)));
   SWIG_Python_SetConstant(d, "DTN_MAX_ENDPOINT_ID",SWIG_From_int(static_cast< int >(256)));
   SWIG_Python_SetConstant(d, "DTN_MAX_AUTHDATA",SWIG_From_int(static_cast< int >(1024)));
   SWIG_Python_SetConstant(d, "DTN_MAX_REGION_LEN",SWIG_From_int(static_cast< int >(64)));

@@ -58,6 +58,7 @@ BundleDaemon* oasys::Singleton<BundleDaemon, false>::instance_ = NULL;
 
 BundleDaemon::Params::Params()
     :  early_deletion_(true),
+       suppress_duplicates_(true),
        accept_custody_(true),
        reactive_frag_enabled_(true),
        retry_reliable_unacked_(true),
@@ -169,6 +170,7 @@ BundleDaemon::post_event(BundleEvent* event, bool at_back)
 {
     log_debug("posting event (%p) with type %s (at %s)",
               event, event->type_str(), at_back ? "back" : "head");
+    event->posted_time_.get_time();
     eventq_->push(event, at_back);
 }
 
@@ -373,7 +375,8 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
     if (state != ForwardingInfo::NONE)
     {
         ASSERT(state == ForwardingInfo::DELIVERED);
-        log_debug("delivering bundle *%p to registration %d (%s) since already delivered",
+        log_debug("not delivering bundle *%p to registration %d (%s) "
+                  "since already delivered",
                   bundle, registration->regid(),
                   registration->endpoint().c_str());
         return;
@@ -447,7 +450,7 @@ BundleDaemon::handle_bundle_delete(BundleDeleteRequest* request)
         log_info("BUNDLE_DELETE: bundle *%p (reason %s)",
                  request->bundle_.object(),
                  BundleStatusReport::reason_to_str(request->reason_));
-        delete_bundle(request->bundle_.object(), request->reason_);
+        delete_bundle(request->bundle_, request->reason_);
     }
 }
 
@@ -468,7 +471,8 @@ BundleDaemon::handle_bundle_accept(BundleAcceptRequest* request)
 void
 BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 {
-    Bundle* bundle = event->bundleref_.object();
+    const BundleRef& bundleref = event->bundleref_;
+    Bundle* bundle = bundleref.object();
 
     // update statistics and store an appropriate event descriptor
     const char* source_str = "";
@@ -509,13 +513,13 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
         oasys::StaticStringBuffer<1024> buf;
-        buf.appendf("BUNDLE_RECEIVED%s: (%u bytes recvd)\n",
-                    source_str, event->bytes_received_);
+        buf.appendf("BUNDLE_RECEIVED%s: prevhop %s (%u bytes recvd)\n",
+                    source_str, event->prevhop_.c_str(), event->bytes_received_);
         bundle->format_verbose(&buf);
         log_multiline(oasys::LOG_DEBUG, buf.c_str());
     } else {
-        log_info("BUNDLE_RECEIVED%s *%p (%u bytes recvd)",
-                 source_str, bundle, event->bytes_received_);
+        log_info("BUNDLE_RECEIVED%s *%p prevhop %s (%u bytes recvd)",
+                 source_str, bundle, event->prevhop_.c_str(), event->bytes_received_);
     }
     
     // log a warning if the bundle doesn't have any expiration time or
@@ -612,7 +616,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
          * not giving the reception event to the router.
          */
         if (!accept_bundle) {
-            delete_bundle(bundle, deletion_reason);
+            delete_bundle(bundleref, deletion_reason);
             event->daemon_only_ = true;
             return;
         }
@@ -639,13 +643,32 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                                     BundleProtocol::CUSTODY_REDUNDANT_RECEPTION);
         }
 
-        // since we don't want the bundle to be processed by the rest
-        // of the system, we mark the event as daemon_only (meaning it
-        // won't be forwarded to routers) and return, which should
-        // eventually remove all references on the bundle and then it
-        // will be deleted
-        event->daemon_only_ = true;
-        return;
+        if (params_.suppress_duplicates_) {
+            // since we don't want the bundle to be processed by the rest
+            // of the system, we mark the event as daemon_only (meaning it
+            // won't be forwarded to routers) and return, which should
+            // eventually remove all references on the bundle and then it
+            // will be deleted
+            event->daemon_only_ = true;
+            return;
+        }
+
+        // The BP says that the "dispatch pending" retention constraint
+        // must be removed from this bundle if there is a duplicate we
+        // currently have custody of. This would cause the bundle to have
+        // no retention constraints and it now "may" be discarded. Assuming
+        // this means it is supposed to be discarded, we have to suppress
+        // a duplicate in this situation regardless of the parameter
+        // setting. We would then be relying on the custody transfer timer
+        // to cause a new forwarding attempt in the case of routing loops
+        // instead of the receipt of a duplicate, so in theory we can indeed
+        // suppress this bundle. It may not be strictly required to do so,
+        // in which case we can remove the following block.
+        if (bundle->custody_requested() && duplicate->local_custody()) {
+            event->daemon_only_ = true;
+            return;
+        }
+
     }
 
     /*
@@ -671,7 +694,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * reload from the data store, then if we have local custody, make
      * sure it's added to the custody bundles list.
      */
-    if (bundle->custody_requested() && params_.accept_custody_)
+    if (bundle->custody_requested() && params_.accept_custody_
+        && (duplicate == NULL || !duplicate->local_custody()))
     {
         if (event->source_ != EVENTSRC_STORE) {
             accept_custody(bundle);
@@ -679,6 +703,18 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         } else if (bundle->local_custody()) {
             custody_bundles_->push_back(bundle);
         }
+    }
+
+    /*
+     * If this bundle is a duplicate and it has not been suppressed, we
+     * can assume the bundle it duplicates has already been delivered or
+     * added to the fragment manager if required, so do not do so again.
+     * We can bounce out now.
+     * XXX/jmmikkel If the extension blocks differ and we care to
+     * do something with them, we can't bounce out quite yet.
+     */
+    if (duplicate != NULL) {
+        return;
     }
 
     /*
@@ -878,13 +914,6 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         // forwarding are known to be unable to send bundles back to
         // this node
     }
-
-    /*
-     * Check if we should can delete the bundle from the pending list,
-     * i.e. we don't have custody and it's not being transmitted
-     * anywhere else.
-     */
-    try_delete_from_pending(bundle);
 }
 
 //----------------------------------------------------------------------
@@ -933,13 +962,6 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
                                     BundleProtocol::CUSTODY_NO_ADDTL_INFO);
         }
     }
-    
-    /*
-     * Finally, check if we can and should delete the bundle from the
-     * pending list, i.e. we don't have custody and it's not being
-     * transmitted anywhere else.
-     */
-    try_delete_from_pending(bundle);
 }
 
 //----------------------------------------------------------------------
@@ -949,9 +971,9 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     // update statistics
     stats_.expired_bundles_++;
     
-    Bundle* bundle = event->bundleref_.object();
+    const BundleRef& bundle = event->bundleref_;
 
-    log_info("BUNDLE_EXPIRED *%p", bundle);
+    log_info("BUNDLE_EXPIRED *%p", bundle.object());
 
     // note that there may or may not still be a pending expiration
     // timer, since this event may be coming from the console, so we
@@ -1023,7 +1045,7 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
     // If the request does not have a link name, the bundle itself has been
     // canceled (probably by an application).
     else {
-        delete_bundle(br.object());
+        delete_bundle(br);
     }
 }
 
@@ -1863,9 +1885,18 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
              event->data_.succeeded_ ? "succeeded" : "failed",
              CustodySignal::reason_to_str(event->data_.reason_));
 
+    GbofId gbof_id;
+    gbof_id.source_ = event->data_.orig_source_eid_;
+    gbof_id.creation_ts_ = event->data_.orig_creation_tv_;
+    gbof_id.is_fragment_
+        = event->data_.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT;
+    gbof_id.frag_length_
+        = gbof_id.is_fragment_ ? event->data_.orig_frag_length_ : 0;
+    gbof_id.frag_offset_
+        = gbof_id.is_fragment_ ? event->data_.orig_frag_offset_ : 0;
+
     BundleRef orig_bundle =
-        custody_bundles_->find(event->data_.orig_source_eid_,
-                               event->data_.orig_creation_tv_);
+        custody_bundles_->find(gbof_id);
     
     if (orig_bundle == NULL) {
         log_warn("received custody signal for bundle %s %u.%u "
@@ -2023,6 +2054,44 @@ BundleDaemon::handle_status_request(StatusRequest* request)
 }
 
 //----------------------------------------------------------------------
+void
+BundleDaemon::event_handlers_completed(BundleEvent* event)
+{
+    /**
+     * Once bundle transmission or delivery has been processed by the
+     * router, check to see if it's still needed, otherwise we delete
+     * it.
+     * 
+     * XXX/demmer we might want to add reception here too, although
+     * then the router would need to mark the bundles that it still
+     * needs to route.
+     */
+    Bundle* bundle = NULL;
+    if (event->type_ == BUNDLE_TRANSMITTED) {
+        bundle = ((BundleTransmittedEvent*)event)->bundleref_.object();
+    } else if (event->type_ == BUNDLE_DELIVERED) {
+        bundle = ((BundleTransmittedEvent*)event)->bundleref_.object();
+    }
+
+    if (bundle != NULL) {
+        try_delete_from_pending(bundle);
+    }
+
+    /**
+     * Once the bundle expired event has been processed, the bundle
+     * shouldn't exist on any more lists.
+     */
+    if (event->type_ == BUNDLE_EXPIRED) {
+        bundle = ((BundleExpiredEvent*)event)->bundleref_.object();
+        size_t num_mappings = bundle->num_mappings();
+        if (num_mappings != 0) {
+            log_warn("expired bundle *%p still has %zu mappings",
+                     bundle, num_mappings);
+        }
+    }
+}
+
+//----------------------------------------------------------------------
 bool
 BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 {
@@ -2173,8 +2242,11 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
 
 //----------------------------------------------------------------------
 bool
-BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
+BundleDaemon::delete_bundle(const BundleRef& bundleref,
+                            status_report_reason_t reason)
 {
+    Bundle* bundle = bundleref.object();
+    
     ++stats_.deleted_bundles_;
     
     // send a bundle deletion status report if we have custody or the
@@ -2197,6 +2269,9 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     if (bundle->is_fragment()) {
         fragmentmgr_->delete_fragment(bundle);
     }
+
+    // notify the router that it's time to delete the bundle
+    router_->delete_bundle(bundleref);
 
     // delete the bundle from the pending list
     log_debug("pending_bundles size %zd", pending_bundles_->size());
@@ -2241,6 +2316,7 @@ BundleDaemon::find_duplicate(Bundle* b)
     oasys::ScopeLock l(pending_bundles_->lock(), 
                        "BundleDaemon::find_duplicate");
     log_debug("pending_bundles size %zd", pending_bundles_->size());
+    Bundle *found = NULL;
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
@@ -2253,14 +2329,25 @@ BundleDaemon::find_duplicate(Bundle* b)
             (b->creation_ts().seqno_   == b2->creation_ts().seqno_) &&
             (b->is_fragment()          == b2->is_fragment()) &&
             (b->frag_offset()          == b2->frag_offset()) &&
-            (b->orig_length()          == b2->orig_length()) &&
+            /*(b->orig_length()          == b2->orig_length()) &&*/
             (b->payload().length()     == b2->payload().length()))
         {
-            return b2;
+            // b is a duplicate of b2
+            found = b2;
+            /*
+             * If we are not suppressing duplicates, we might have custody of
+             * one of any number of duplicates, so if this one does not have
+             * custody, keep looking until we find one that does have custody
+             * or we run out of choices. If we are suppressing duplicates
+             * there's no need to keep looking.
+             */
+            if (params_.suppress_duplicates_ || b2->local_custody()) {
+                break;
+            }
         }
     }
 
-    return NULL;
+    return found;
 }
 
 //----------------------------------------------------------------------
@@ -2292,6 +2379,8 @@ BundleDaemon::handle_event(BundleEvent* event)
         router_->handle_event(event);
         contactmgr_->handle_event(event);
     }
+
+    event_handlers_completed(event);
 
     stats_.events_processed_++;
 
@@ -2377,6 +2466,8 @@ BundleDaemon::load_bundles()
             doa_bundles.push_back(bundle);
             continue;
         }
+
+        BundleProtocol::reload_post_process(bundle);
 
         BundleReceivedEvent e(bundle, EVENTSRC_STORE);
         handle_event(&e);
@@ -2480,7 +2571,23 @@ BundleDaemon::run()
             
             oasys::Time now;
             now.get_time();
-        
+
+            
+            if (now >= event->posted_time_) {
+                oasys::Time in_queue;
+                in_queue = now - event->posted_time_;
+                if (in_queue.sec_ > 2) {
+                    log_warn_p(LOOP_LOG, "event %s was in queue for %u.%u seconds",
+                               event->type_str(), in_queue.sec_, in_queue.usec_);
+                }
+            } else {
+                log_warn_p(LOOP_LOG, "time moved backwards: "
+                           "now %u.%u, event posted_time %u.%u",
+                           now.sec_, now.usec_,
+                           event->posted_time_.sec_, event->posted_time_.usec_);
+            }
+            
+            
             log_debug_p(LOOP_LOG, "BundleDaemon: handling event %s",
                         event->type_str());
             // handle the event

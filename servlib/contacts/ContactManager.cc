@@ -454,16 +454,17 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
         strncpy(name, link_name->c_str(), sizeof(name));
         
         while (find_link(name) != NULL) {
-            snprintf(name, sizeof(name), "%d-%s", opportunistic_cnt_,
-                     link_name->c_str());
+            snprintf(name, sizeof(name), "%s-%d",
+                     link_name->c_str(), opportunistic_cnt_);
+                     
             opportunistic_cnt_++;
         }
     }
     
     else {
         do {
-            snprintf(name, sizeof(name), "opportunistic-%d",
-                    opportunistic_cnt_);
+            snprintf(name, sizeof(name), "link-%d",
+                    opportunistic_cnt_); 
             opportunistic_cnt_++;
         } while (find_link(name) != NULL);
     }

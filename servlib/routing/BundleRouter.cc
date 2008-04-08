@@ -118,33 +118,22 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
         return false;
     }
 
-    // check if we're trying to send it right back where it came from
-    //
-    // XXX/demmer this is bad -- some routing schemes might want to do
-    // this
-    if (link->remote_eid() == bundle->prevhop() &&
-        link->remote_eid() != EndpointID::NULL_EID())
-    {
-        log_debug("should_fwd bundle %d: "
-                  "skip %s since remote eid %s == bundle prevhop",
-                  bundle->bundleid(), link->name(),
-                  link->remote_eid().c_str());
-        return false;
-    }
-
     // check if we've already sent or are in the process of sending
     // the bundle to the node via some other link
-    size_t count = bundle->fwdlog()->get_count(
-        link->remote_eid(),
-        ForwardingInfo::TRANSMITTED | ForwardingInfo::QUEUED);
-
-    if (count > 0)
+    if (link->remote_eid() != EndpointID::NULL_EID())
     {
-        log_debug("should_fwd bundle %d: "
-                  "skip %s since already sent %zu times to remote eid %s",
-                  bundle->bundleid(), link->name(),
-                  count, link->remote_eid().c_str());
-        return false;
+        size_t count = bundle->fwdlog()->get_count(
+            link->remote_eid(),
+            ForwardingInfo::TRANSMITTED | ForwardingInfo::QUEUED);
+        
+        if (count > 0)
+        {
+            log_debug("should_fwd bundle %d: "
+                      "skip %s since already sent or queued %zu times for remote eid %s",
+                      bundle->bundleid(), link->name(),
+                      count, link->remote_eid().c_str());
+            return false;
+        }
     }
 
     // if the bundle has a a singleton destination endpoint, then
@@ -159,7 +148,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
 
         if (count > 0) {
             log_debug("should_fwd bundle %d: "
-                      "skip %s since already transmitted (count %zu)",
+                      "skip %s since already transmitted or queued (count %zu)",
                       bundle->bundleid(), link->name(), count);
             return false;
         } else {
@@ -210,6 +199,13 @@ BundleRouter::accept_bundle(Bundle* bundle, int* errp)
 
     *errp = 0;
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+BundleRouter::delete_bundle(const BundleRef& bundle)
+{
+    (void)bundle;
 }
 
 //----------------------------------------------------------------------

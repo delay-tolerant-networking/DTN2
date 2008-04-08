@@ -262,9 +262,9 @@ Ciphersuite::parse(BlockInfo* block)
 
 //----------------------------------------------------------------------
 int
-Ciphersuite::reload_post_process(const Bundle* bundle,
-                                 const BlockInfoVec* block_list,
-                                 const BlockInfo*    block)
+Ciphersuite::reload_post_process(Bundle*       bundle,
+                                 BlockInfoVec* block_list,
+                                 BlockInfo*    block)
 {
     (void)bundle;
     (void)block_list;
@@ -320,7 +320,8 @@ Ciphersuite::destination_is_local_node(const Bundle*    bundle,
     cs_flags = locals->cs_flags();
     
     // this is a very clunky way to get the "base" portion of the bundle destination
-    std::string bundle_dest_str = bundle->dest_.uri().scheme() + "://" + bundle->dest_.uri().host();
+    std::string bundle_dest_str = bundle->dest().uri().scheme() + "://" +
+                                  bundle->dest().uri().host();
     EndpointID        dest_node(bundle_dest_str);
     
     
@@ -357,7 +358,8 @@ Ciphersuite::source_is_local_node(const Bundle* bundle, const BlockInfo* block)
     cs_flags = locals->cs_flags();
     
     // this is a very clunky way to get the "base" portion of the bundle destination
-    std::string bundle_src_str = bundle->source_.uri().scheme() + "://" + bundle->source_.uri().host();
+    std::string bundle_src_str = bundle->source().uri().scheme() + "://" +
+                                 bundle->source().uri().host();
     EndpointID        src_node(bundle_src_str);
     
     
@@ -440,8 +442,8 @@ Ciphersuite::create_correlator(const Bundle*       bundle,
     if ( block_list == NULL )
         return 1LLU;
         
-    if ( bundle->is_fragment_ ) {
-        result = bundle->frag_offset_ << 24;
+    if ( bundle->is_fragment() ) {
+        result = bundle->frag_offset() << 24;
     }
     
     for ( iter = block_list->begin();

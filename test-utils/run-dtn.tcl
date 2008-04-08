@@ -36,6 +36,7 @@ source "$base_test_dir/../test-utils/import.tcl"
 set import::path [list \
 	$base_test_dir/../test-utils \
 	$base_test_dir/../oasys/tclcmd \
+	$base_test_dir/oasys/tclcmd \
 	$base_test_dir/test-utils \
 	$base_test_dir/test/nets \
 	]

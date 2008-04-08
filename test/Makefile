@@ -81,7 +81,7 @@ unit_tests/%-test.o: unit_tests/%-test.cc
 %-test: unit_tests/%-test
 unit_tests/%-test: unit_tests/%-test.o 
 	@rm -f $@; mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $< $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(OASYS_LDFLAGS)
+	$(CXX) $(CXXFLAGS) $< $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(EXTLIB_LDFLAGS)
 
 #
 # As one exception, the bundle-timestamp-test can't have -Wcast-align

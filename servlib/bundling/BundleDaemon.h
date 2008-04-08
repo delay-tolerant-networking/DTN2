@@ -210,6 +210,10 @@ public:
         /// all routers / registrations have handled it
         bool early_deletion_;
 
+        /// Whether or not to skip routing decisions for and delete duplicate
+        /// bundles
+        bool suppress_duplicates_;
+
         /// Whether or not to accept custody when requested
         bool accept_custody_;
 
@@ -355,6 +359,10 @@ protected:
     void handle_cla_parameters_report(CLAParametersReportEvent* event);
     ///@}
 
+    /// @{
+    void event_handlers_completed(BundleEvent* event);
+    /// @}
+
     typedef BundleProtocol::custody_signal_reason_t custody_signal_reason_t;
     typedef BundleProtocol::status_report_flag_t status_report_flag_t;
     typedef BundleProtocol::status_report_reason_t status_report_reason_t;
@@ -418,7 +426,7 @@ protected:
      * for the bundle if necessary, removes the bundle from the pending
      * list, and sends a bundle deletion status report if necessary.
      */
-    bool delete_bundle(Bundle* bundle,
+    bool delete_bundle(const BundleRef& bundle,
                        status_report_reason_t reason =
                            BundleProtocol::REASON_NO_ADDTL_INFO);
     

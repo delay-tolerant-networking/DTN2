@@ -278,6 +278,11 @@ public:
     oasys::Notifier* processed_notifier_;
 
     /**
+     * Slot to record the time that the event was put into the queue.
+     */
+    oasys::Time posted_time_;
+
+    /**
      * Used for printing
      */
     const char* type_str() {

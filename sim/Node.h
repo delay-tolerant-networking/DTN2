@@ -27,6 +27,7 @@
 #include "storage/BundleStore.h"
 #include "storage/LinkStore.h"
 #include "storage/GlobalStore.h"
+#include "storage/ProphetStore.h"
 #include "storage/RegistrationStore.h"
 
 using namespace dtn;
@@ -152,6 +153,7 @@ protected:
     DTNStorageConfig     storage_config_;
     oasys::DurableStore* store_;
     BundleStore*         bundle_store_;
+    ProphetStore*        prophet_store_;
     LinkStore*           link_store_;
     RegistrationStore*   reg_store_;
     /// @}

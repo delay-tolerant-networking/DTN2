@@ -1,3 +1,4 @@
+#include <dtn-config.h>
 #include <oasys/util/UnitTest.h>
 #include <netinet/in.h>
 #include <sys/types.h>
