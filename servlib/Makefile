@@ -119,6 +119,7 @@ NAMING_SRCS :=					\
 	naming/SessionScheme.cc			\
 	naming/DTNScheme.cc			\
 	naming/EthernetScheme.cc		\
+	naming/SessionScheme.cc			\
 	naming/StringScheme.cc			\
 	naming/WildcardScheme.cc		\
 	naming/TCAScheme.cc			\
@@ -182,7 +183,6 @@ SESSION_SRCS :=					\
 	session/Subscriber.cc			\
 
 OLD_STORAGE_SRCS :=				\
-	storage/GlobalStore.cc			\
 	storage/PersistentStore.cc		\
 	storage/StorageConfig.cc		\
 	storage/BerkeleyDBStore.cc		\

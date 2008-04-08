@@ -334,7 +334,7 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
 
     dtn_bundle_payload_location_t location =
         (dtn_bundle_payload_location_t)payload_location;
-    
+
     int err = dtn_recv(h, &spec, location, &payload, timeout);
     if (err != DTN_SUCCESS) {
         return NULL;
