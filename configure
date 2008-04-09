@@ -704,6 +704,7 @@ OASYS_INCDIR
 OASYS_LIBDIR
 OASYS_ETCDIR
 OASYS_LDFLAGS
+OASYS_LDFLAGS_STATIC
 OASYS_COMPAT_LDFLAGS
 OASYS_VERSION
 EXTLIB_CFLAGS
@@ -4075,8 +4076,10 @@ echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
 
     #
     # By default, oasys apps link statically to make it easier when
-    # linking with a source directory.
+    # linking with a source directory, and for building the test apps
+    # that are part of the library itself.
     #
+    OASYS_LDFLAGS_STATIC="$OASYS_LIBDIR/liboasys-$OASYS_VERSION.a"
 
     if test -f $OASYS_LIBDIR/liboasys-$OASYS_VERSION.a ; then
 	OASYS_LDFLAGS="$OASYS_LIBDIR/liboasys-$OASYS_VERSION.a"
@@ -4090,6 +4093,7 @@ echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
 	OASYS_LDFLAGS="-L$OASYS_LIBDIR -loasys-$OASYS_VERSION"
 	OASYS_COMPAT_LDFLAGS="-L$OASYS_LIBDIR -loasyscompat-$OASYS_VERSION"
     fi
+
 
 
 
@@ -6275,6 +6279,7 @@ OASYS_INCDIR!$OASYS_INCDIR$ac_delim
 OASYS_LIBDIR!$OASYS_LIBDIR$ac_delim
 OASYS_ETCDIR!$OASYS_ETCDIR$ac_delim
 OASYS_LDFLAGS!$OASYS_LDFLAGS$ac_delim
+OASYS_LDFLAGS_STATIC!$OASYS_LDFLAGS_STATIC$ac_delim
 OASYS_COMPAT_LDFLAGS!$OASYS_COMPAT_LDFLAGS$ac_delim
 OASYS_VERSION!$OASYS_VERSION$ac_delim
 EXTLIB_CFLAGS!$EXTLIB_CFLAGS$ac_delim
@@ -6288,7 +6293,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 82; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 83; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
