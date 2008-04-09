@@ -52,7 +52,7 @@ inline class MultiGraph<_NodeInfo,_EdgeInfo>::Node*
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::find_node(const std::string& id) const
 {
-    class NodeVector::const_iterator iter;
+    typename NodeVector::const_iterator iter;
     for (iter = this->nodes_.begin(); iter != this->nodes_.end(); ++iter) {
         if ((*iter)->id_ == id) {
             return *iter;
@@ -111,7 +111,7 @@ inline class MultiGraph<_NodeInfo,_EdgeInfo>::Edge*
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::find_edge(const Node* a, const Node* b, const _EdgeInfo& info)
 {
-    class EdgeVector::const_iterator iter;
+    typename EdgeVector::const_iterator iter;
     for (iter = a->out_edges_.begin(); iter != a->out_edges_.end(); ++iter) {
         const Edge* edge = *iter;
         if ((edge->dest() == b) && (edge->info() == info))
@@ -155,7 +155,7 @@ inline bool
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::Node::del_edge(Edge* edge)
 {
-    class EdgeVector::iterator ei, ei2;
+    typename EdgeVector::iterator ei, ei2;
     for (ei = this->out_edges_.begin();
          ei != this->out_edges_.end(); ++ei)
     {
@@ -231,7 +231,7 @@ MultiGraph<_NodeInfo,_EdgeInfo>
     SearchInfo info(bundle);
     
     // first clear the existing distances
-    for (class NodeVector::iterator i = this->nodes_.begin();
+    for (typename NodeVector::iterator i = this->nodes_.begin();
          i != this->nodes_.end(); ++i)
     {
         (*i)->distance_ = 0xffffffff;
@@ -250,7 +250,7 @@ MultiGraph<_NodeInfo,_EdgeInfo>
         const Node* cur = q.top();
         q.pop();
 
-        for (class EdgeVector::const_iterator ei = cur->out_edges_.begin();
+        for (typename EdgeVector::const_iterator ei = cur->out_edges_.begin();
              ei != cur->out_edges_.end(); ++ei)
         {
             Edge* edge = *ei;
@@ -373,8 +373,8 @@ MultiGraph<_NodeInfo,_EdgeInfo>
 {
     oasys::StringAppender sa(buf, sz);
     
-    class NodeVector::const_iterator ni;
-    class EdgeVector::const_iterator ei;
+    typename NodeVector::const_iterator ni;
+    typename EdgeVector::const_iterator ei;
     
     for (ni = this->nodes_.begin(); ni != this->nodes_.end(); ++ni)
     {
@@ -399,8 +399,8 @@ inline int
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::NodeVector::format(char* buf, size_t sz) const
 {
-    class oasys::StringAppender sa(buf, sz);
-    class NodeVector::const_iterator i;
+    typename oasys::StringAppender sa(buf, sz);
+    typename NodeVector::const_iterator i;
     for (i = this->begin(); i != this->end(); ++i)
     {
         sa.appendf("%s%s",
@@ -416,8 +416,8 @@ inline int
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::EdgeVector::format(char* buf, size_t sz) const
 {
-    class oasys::StringAppender sa(buf, sz);
-    class EdgeVector::const_iterator i;
+    typename oasys::StringAppender sa(buf, sz);
+    typename EdgeVector::const_iterator i;
     for (i = this->begin(); i != this->end(); ++i)
     {
         sa.appendf("%s[%s -> %s(%s)]",
@@ -435,7 +435,7 @@ inline void
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::EdgeVector::debug_format(oasys::StringBuffer* buf) const
 {
-    class EdgeVector::const_iterator i;
+    typename EdgeVector::const_iterator i;
     for (i = this->begin(); i != this->end(); ++i)
     {
         buf->appendf("\t%s -> %s (%s) (distance %u)\n",
