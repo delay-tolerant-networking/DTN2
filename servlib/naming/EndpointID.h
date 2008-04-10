@@ -55,6 +55,15 @@ public:
     }
 
     /**
+     * Construct the endpoint id from the given string.
+     */
+    EndpointID(const char* str, size_t len)
+        : uri_(), scheme_(NULL), valid_(false), is_pattern_(false)
+    {
+        uri_.assign(str, len);
+        validate();
+    }
+    /**
      * Construct the endpoint id from another.
      */
     EndpointID(const EndpointID& other)
