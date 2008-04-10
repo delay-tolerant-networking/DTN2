@@ -108,7 +108,18 @@ TableBasedRouter::remove_from_deferred(const BundleRef& bundle, int actions)
     const LinkSet* links = cm->links();
     LinkSet::const_iterator iter;
     for (iter = links->begin(); iter != links->end(); ++iter) {
-        DeferredList* deferred = deferred_list(*iter);
+        const LinkRef& link = *iter;
+
+        // a bundle might be deleted immediately after being loaded
+        // from storage, meaning that remove_from_deferred is called
+        // before the deferred list is created (since the link isn't
+        // fully set up yet). so just skip the link if there's no
+        // router info, and therefore no deferred list
+        if (link->router_info() == NULL) {
+            continue;
+        }
+        
+        DeferredList* deferred = deferred_list(link);
         ForwardingInfo info;
         if (deferred->find(bundle, &info))
         {
