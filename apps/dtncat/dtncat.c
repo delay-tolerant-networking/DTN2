@@ -55,6 +55,8 @@ int receive_receipts    = 0;    // request per hop arrival receipt
 int wait_for_report     = 0;    // wait for bundle status reports
 int bundle_count	= -1;	// # bundles to receive (-l option)
 int session_flags       = 0;    // use pub/sub session flags
+char* sequence_id       = 0;    // use the given sequence id
+char* obsoletes_id      = 0;    // use the given obsoletes id
 
 #define DEFAULT_BUNDLE_COUNT	1
 #define FAILURE_SCRIPT ""
@@ -330,7 +332,16 @@ to_bundles()
         // request receive receipt
         bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
     }
-    
+
+    if (sequence_id) {
+        bundle_spec.sequence_id.data.data_val = sequence_id;
+        bundle_spec.sequence_id.data.data_len = strlen(sequence_id);
+    }
+
+    if (obsoletes_id) {
+        bundle_spec.obsoletes_id.data.data_val = obsoletes_id;
+        bundle_spec.obsoletes_id.data.data_len = strlen(obsoletes_id);
+    }
 
     if ((bytes = fill_payload(&primary_payload)) < 0) {
 	fprintf(stderr, "%s: error reading bundle data\n",
@@ -388,7 +399,6 @@ void print_usage()
     fprintf(stderr, "common options:\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h/H help\n");
-    fprintf(stderr, " -S Use session flags (publish/subscribe)\n");
     fprintf(stderr, " -i <regid> registration id for listening\n");
     fprintf(stderr, "receive only options (-l option required):\n");
     fprintf(stderr, " -l <eid> receive bundles destined for eid (instead of sending)\n");
@@ -404,6 +414,8 @@ void print_usage()
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
+    fprintf(stderr, " -S <sequence_id> sequence id vector\n");
+    fprintf(stderr, " -O <obsoletes_id> obsoletes id vector\n");
     
     return;
 }
@@ -417,7 +429,7 @@ parse_options(int argc, char**argv)
     progname = argv[0];
 
     while (!done) {
-        c = getopt(argc, argv, "l:vhHSr:s:d:e:wDFRcCi:n:");
+        c = getopt(argc, argv, "l:vhHr:s:d:e:wDFRcCi:n:S:O:");
         switch (c) {
 	case 'l':
 	    from_bundles_flag = 1;
@@ -431,9 +443,6 @@ parse_options(int argc, char**argv)
             print_usage();
             exit(EXIT_SUCCESS);
             return;
-        case 'S':
-            session_flags = 1;
-            break;
         case 'r':
             arg_replyto = optarg;
 	    lopts++;
@@ -482,6 +491,12 @@ parse_options(int argc, char**argv)
 	    bundle_count = atoi(optarg);
 	    lopts++;
 	    break;
+        case 'S':
+            sequence_id = optarg;
+            break;
+        case 'O':
+            obsoletes_id = optarg;
+            break;
         case -1:
             done = 1;
             break;
