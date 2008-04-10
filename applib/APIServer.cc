@@ -914,6 +914,31 @@ APIClient::handle_send()
     // expiration time
     b->set_expiration(spec.expiration);
 
+    // sequence id and obsoletes id
+    if (spec.sequence_id.data.data_len != 0)
+    {
+        std::string str(spec.sequence_id.data.data_val,
+                        spec.sequence_id.data.data_len);
+        
+        bool ok = b->mutable_sequence_id()->parse(str);
+        if (! ok) {
+            log_err("invalid sequence id '%s'", str.c_str());
+            return DTN_EINVAL;
+        }
+    }
+
+    if (spec.obsoletes_id.data.data_len != 0)
+    {
+        std::string str(spec.obsoletes_id.data.data_val,
+                        spec.obsoletes_id.data.data_len);
+        
+        bool ok = b->mutable_obsoletes_id()->parse(str);
+        if (! ok) {
+            log_err("invalid obsoletes id '%s'", str.c_str());
+            return DTN_EINVAL;
+        }
+    }
+
     // extension blocks
     for (u_int i = 0; i < spec.blocks.blocks_len; i++) {
         dtn_extension_block_t* block = &spec.blocks.blocks_val[i];

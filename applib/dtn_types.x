@@ -218,6 +218,17 @@ struct dtn_extension_block_t {
 
 %
 %/**
+% * A Sequence ID is a vector of (EID, counter) values in the following
+% * text format:
+% *
+% *    < (EID1 counter1) (EID2 counter2) ... >
+% */
+struct dtn_sequence_id_t {
+    opaque data<DTN_MAX_BLOCK_LEN>;
+};
+
+%
+%/**
 % * Bundle metadata. The delivery_regid is ignored when sending
 % * bundles, but is filled in by the daemon with the registration
 % * id where the bundle was received.
@@ -231,6 +242,8 @@ struct dtn_bundle_spec_t {
     dtn_timeval_t		expiration;
     dtn_timestamp_t		creation_ts;
     dtn_reg_id_t		delivery_regid;
+    dtn_sequence_id_t           sequence_id;
+    dtn_sequence_id_t           obsoletes_id;
     dtn_extension_block_t       blocks<DTN_MAX_BLOCKS>;
     dtn_extension_block_t       metadata<DTN_MAX_BLOCKS>;
 };
