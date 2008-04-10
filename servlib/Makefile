@@ -52,6 +52,8 @@ BUNDLING_SRCS := 				\
 	bundling/PrimaryBlockProcessor.cc	\
 	bundling/SDNV.cc			\
 	bundling/SessionBlockProcessor.cc	\
+	bundling/SequenceID.cc			\
+	bundling/SequenceIDBlockProcessor.cc	\
 	bundling/UnknownBlockProcessor.cc	\
 
 CONTACT_SRCS :=					\

@@ -31,8 +31,9 @@
 #include "BundleTimestamp.h"
 #include "CustodyTimer.h"
 #include "ForwardingLog.h"
-#include "naming/EndpointID.h"
 #include "MetadataBlock.h"
+#include "SequenceID.h"
+#include "naming/EndpointID.h"
 
 namespace dtn {
 
@@ -224,6 +225,8 @@ public:
     bool              local_custody()     const { return local_custody_; }
     const std::string& owner()            const { return owner_; }
     bool              fragmented_incoming() const { return fragmented_incoming_; }
+    const SequenceID& sequence_id()       const { return sequence_id_; }
+    const SequenceID& obsoletes_id()      const { return obsoletes_id_; }
     const EndpointID& session_eid()       const { return session_eid_; }
     u_int8_t          session_flags()     const { return session_flags_; }
     const BundlePayload& payload()        const { return payload_; }
@@ -261,6 +264,8 @@ public:
     void set_owner(const std::string& s) { owner_ = s; }
     void set_fragmented_incoming(bool t) { fragmented_incoming_ = t; }
     void set_creation_ts(const BundleTimestamp& ts) { creation_ts_ = ts; }
+    SequenceID* mutable_sequence_id()  { return &sequence_id_; }
+    SequenceID* mutable_obsoletes_id() { return &obsoletes_id_; }
     EndpointID* mutable_session_eid()  { return &session_eid_; }
     void set_session_flags(u_int8_t f) { session_flags_ = f; }
     void test_set_bundleid(u_int32_t id) { bundleid_ = id; }
@@ -306,6 +311,8 @@ private:
     u_int32_t expiration_;	///< Bundle expiration time
     u_int32_t frag_offset_;	///< Offset of fragment in original bundle
     u_int32_t orig_length_;	///< Length of original bundle
+    SequenceID sequence_id_;	///< Sequence id vector
+    SequenceID obsoletes_id_;	///< Obsoletes id vector
     EndpointID session_eid_;	///< Session eid
     u_int8_t session_flags_;	///< Session flags
     BundlePayload payload_;	///< Reference to the payload

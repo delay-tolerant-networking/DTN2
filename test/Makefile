@@ -54,6 +54,7 @@ BINFILES :=					\
 	unit_tests/route-multigraph-test	\
 	unit_tests/route-table-test		\
 	unit_tests/sdnv-test			\
+	unit_tests/sequence-id-test		\
 
 unit_tests: $(BINFILES)
 
@@ -74,12 +75,12 @@ COMPONENT_LIBS := \
 #
 # Default pattern rule to build the tests
 #
+.PRECIOUS: unit_tests/%-test.o
 unit_tests/%-test.o: unit_tests/%-test.cc
 	@rm -f $@; mkdir -p $(@D)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-%-test: unit_tests/%-test
-unit_tests/%-test: unit_tests/%-test.o 
+unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
 	@rm -f $@; mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $< $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(OASYS_LDFLAGS) $(EXTLIB_LDFLAGS)
 

@@ -175,6 +175,8 @@ protocol_test(Bundle* b1, int chunks)
     CHECK_EQUAL(b1->frag_offset(),          b2->frag_offset());
     CHECK_EQUAL(b1->orig_length(),          b2->orig_length());
     CHECK_EQUAL(b1->payload().length(),     b2->payload().length());
+    CHECK_EQUALSTR(b1->sequence_id().to_str(),  b2->sequence_id().to_str());
+    CHECK_EQUALSTR(b1->obsoletes_id().to_str(), b2->obsoletes_id().to_str());
 
     b2->payload().read_data(0, b2->payload().length(), payload2);
 
@@ -465,6 +467,77 @@ Bundle* init_BigDictionary()
 
 DECLARE_BP_TESTS(BigDictionary);
 
+Bundle* init_SequenceID()
+{
+    Bundle* bundle = new_bundle();
+    bundle->mutable_payload()->set_data("test payload");
+    
+    bundle->mutable_source()->assign("dtn://source.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
+    bundle->set_expiration(1000);
+    bundle->set_creation_ts(BundleTimestamp(10101010, 44556677));
+
+    bundle->mutable_sequence_id()->add(EndpointID("dtn://source.dtn/test"), 1);
+    bundle->mutable_sequence_id()->add(EndpointID("dtn://dest.dtn/test"), 2);
+    bundle->mutable_sequence_id()->add(EndpointID("dtn://other.dtn/test"), 3);
+    bundle->mutable_sequence_id()->add(EndpointID("http://foo.com"), 10);
+
+    return bundle;
+}
+
+DECLARE_BP_TESTS(SequenceID);
+
+Bundle* init_ObsoletesID()
+{
+    Bundle* bundle = new_bundle();
+    bundle->mutable_payload()->set_data("test payload");
+    
+    bundle->mutable_source()->assign("dtn://source.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
+    bundle->set_expiration(1000);
+    bundle->set_creation_ts(BundleTimestamp(10101010, 44556677));
+
+    bundle->mutable_obsoletes_id()->add(EndpointID("dtn://source.dtn/test"), 1);
+    bundle->mutable_obsoletes_id()->add(EndpointID("dtn://dest.dtn/test"), 2);
+    bundle->mutable_obsoletes_id()->add(EndpointID("dtn://other.dtn/test"), 3);
+    bundle->mutable_obsoletes_id()->add(EndpointID("http://foo.com"), 10);
+
+    return bundle;
+}
+
+DECLARE_BP_TESTS(ObsoletesID);
+
+Bundle* init_SequenceAndObsoletesID()
+{
+    Bundle* bundle = new_bundle();
+    bundle->mutable_payload()->set_data("test payload");
+    
+    bundle->mutable_source()->assign("dtn://source.dtn/test");
+    bundle->mutable_dest()->assign("dtn://dest.dtn/test");
+    bundle->mutable_custodian()->assign("dtn:none");
+    bundle->mutable_replyto()->assign("dtn:none");
+    bundle->set_expiration(1000);
+    bundle->set_creation_ts(BundleTimestamp(10101010, 44556677));
+
+    bundle->mutable_sequence_id()->add(EndpointID("dtn://source.dtn/test"), 1);
+    bundle->mutable_sequence_id()->add(EndpointID("dtn://dest.dtn/test"), 2);
+    bundle->mutable_sequence_id()->add(EndpointID("dtn://other.dtn/test"), 3);
+    bundle->mutable_sequence_id()->add(EndpointID("http://foo.com"), 10);
+
+    bundle->mutable_obsoletes_id()->add(EndpointID("dtn://source.dtn/test2"), 1);
+    bundle->mutable_obsoletes_id()->add(EndpointID("dtn://dest.dtn/test"), 3);
+    bundle->mutable_obsoletes_id()->add(EndpointID("dtn://someoneelse.dtn/test"), 10);
+    bundle->mutable_obsoletes_id()->add(EndpointID("http://bar.com"), 10);
+
+    return bundle;
+}
+
+DECLARE_BP_TESTS(SequenceAndObsoletesID);
+
 DECLARE_TESTER(BundleProtocolTest) {
     ADD_TEST(Init);
     ADD_BP_TESTS(Basic);
@@ -473,6 +546,9 @@ DECLARE_TESTER(BundleProtocolTest) {
     ADD_BP_TESTS(RandomPayload);
     ADD_BP_TESTS(UnknownBlocks);
     ADD_BP_TESTS(BigDictionary);
+    ADD_BP_TESTS(SequenceID);
+    ADD_BP_TESTS(ObsoletesID);
+    ADD_BP_TESTS(SequenceAndObsoletesID);
 
     // XXX/demmer add tests for malformed / mangled headers, too long
     // sdnv's, etc

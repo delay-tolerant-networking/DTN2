@@ -35,6 +35,7 @@
 #include "PrimaryBlockProcessor.h"
 #include "SDNV.h"
 #include "SessionBlockProcessor.h"
+#include "SequenceIDBlockProcessor.h"
 #include "UnknownBlockProcessor.h"
 
 #ifdef BSP_ENABLED
@@ -77,6 +78,10 @@ BundleProtocol::init_default_processors()
     BundleProtocol::register_processor(new PreviousHopBlockProcessor());
     BundleProtocol::register_processor(new MetadataBlockProcessor());
     BundleProtocol::register_processor(new SessionBlockProcessor());
+    BundleProtocol::register_processor(
+        new SequenceIDBlockProcessor(BundleProtocol::SEQUENCE_ID_BLOCK));
+    BundleProtocol::register_processor(
+        new SequenceIDBlockProcessor(BundleProtocol::OBSOLETES_ID_BLOCK));
 }
 
 //----------------------------------------------------------------------
