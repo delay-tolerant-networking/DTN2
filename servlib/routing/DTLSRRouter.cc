@@ -615,7 +615,9 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
                       stale_lsa.object());
             stale_lsa->set_owner("DO_NOT_FORWARD");
             
-            BundleDaemon::post_at_head(new BundleNotNeededEvent(stale_lsa.object()));
+            BundleDaemon::post_at_head(
+                new BundleDeleteRequest(stale_lsa.object(),
+                                        BundleProtocol::REASON_NO_ADDTL_INFO));
             found_stale_lsa = true;
             
 //             oasys::StringBuffer buf("Stale LSA: ");
