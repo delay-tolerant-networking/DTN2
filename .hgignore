@@ -59,3 +59,11 @@ daemon/dtnd
 sim/dtnsim
 test/unit_tests/*-test
 oasys
+
+# debian package build ignores
+debian/dtn
+debian/dtn.substvars
+debian/python-dtn
+debian/python-dtn.substvars
+debian/*.debhelper
+files
