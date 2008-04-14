@@ -110,11 +110,16 @@ test::script {
 
     tell_dtnd * bundle reset_stats
     
-    testlog "sending another bundle, waiting for it to be deferred on both links"
-    set timestamp2 [dtn::tell_dtnd 0 sendbundle $source $dest expiration=120]
-    dtn::wait_for_bundle_stats 2 {1 pending}
-    dtn::wait_for_link_stats 2 $cl-link:2-3 {1 bundles_deferred}
-    dtn::wait_for_link_stats 2 alt-$cl-link:2-3 {1 bundles_deferred}
+    testlog "sending another set of bundles, waiting for them to be deferred on both links"
+    dtn::tell_dtnd 0 sendbundle $source $dest expiration=120
+    dtn::tell_dtnd 0 sendbundle $source $dest expiration=120
+    dtn::tell_dtnd 0 sendbundle $source $dest expiration=120
+    dtn::tell_dtnd 0 sendbundle $source $dest expiration=120
+    dtn::tell_dtnd 0 sendbundle $source $dest expiration=120
+    
+    dtn::wait_for_bundle_stats 2 {5 pending}
+    dtn::wait_for_link_stats 2 $cl-link:2-3 {5 bundles_deferred}
+    dtn::wait_for_link_stats 2 alt-$cl-link:2-3 {5 bundles_deferred}
 
     testlog "adding links between node 1 and node 3"
     tell_dtnd 1 link add $cl-link:1-3 $addr3 opportunistic tcp remote_eid=dtn://host-3
@@ -134,12 +139,12 @@ test::script {
     tell_dtnd 2 route del dtn://host-3/*
     tell_dtnd 2 route add dtn://host-3/* $cl-link:2-1
 
-    testlog "checking that it was properly sent from node 2"
+    testlog "checking that bundles were properly sent from node 2"
     dtn::wait_for_link_stats 2 $cl-link:2-3 {0 bundles_deferred}
     dtn::wait_for_link_stats 2 alt-$cl-link:2-3 {0 bundles_deferred}
 
-    testlog "checking that it was delivered"
-    dtn::wait_for_bundle_stats 3 {1 delivered}
+    testlog "checking that bundles were delivered"
+    dtn::wait_for_bundle_stats 3 {5 delivered}
 
     testlog "making sure no bundles are pending"
     dtn::wait_for_bundle_stats 0 {0 pending}
