@@ -152,7 +152,9 @@ SequenceIDBlockProcessor::consume(Bundle* bundle, BlockInfo* block,
         length -= sdnv_len;
 
         log_debug_p("/dtn/bundle/protocol",
-                    "parsed sequence id entry %s %llu",
+                    "parsed %s id entry %s %llu",
+                    (block_type() == BundleProtocol::SEQUENCE_ID_BLOCK) ?
+                    "sequence" : "obsoletes",
                     block->eid_list()[i].c_str(), U64FMT(counter));
             
         mutable_sequence_id->add(block->eid_list()[i], counter);
