@@ -73,16 +73,19 @@ proc check {} {
     dtn::check test_reg_exists 0 11
 
     dtn::check_reg_data 0 10   \
-	    regid        10        \
-	    endpoint     $reg_eid1 \
-	    expiration   10        \
-	    action       1
+	    regid          10        \
+	    endpoint       $reg_eid1 \
+	    expiration     10        \
+	    failure_action 1         \
+	    session_flags  0
 
-    dtn::check_reg_data 0 11   \
-	    regid        11        \
-	    endpoint     $reg_eid2 \
-	    expiration   30        \
-	    action       0
+
+    dtn::check_reg_data 0 11         \
+	    regid          11        \
+	    endpoint       $reg_eid2 \
+	    expiration     30        \
+	    failure_action 0         \
+	    session_flags  0
 }
 
 test::script {
