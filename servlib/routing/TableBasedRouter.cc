@@ -249,6 +249,11 @@ TableBasedRouter::handle_contact_up(ContactUpEvent* event)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
 
+    if (! link->isopen()) {
+        log_err("contact up(*%p): event delivered but link not open",
+                link.object());
+    }
+
     add_nexthop_route(link);
     check_next_hop(link);
 
@@ -570,6 +575,13 @@ TableBasedRouter::sort_routes(Bundle* bundle, RouteEntryVec* routes)
 void
 TableBasedRouter::check_next_hop(const LinkRef& next_hop)
 {
+    // if the link isn't open, there's nothing to do now
+    if (! next_hop->isopen()) {
+        log_debug("check_next_hop %s -> %s: link not open...",
+                  next_hop->name(), next_hop->nexthop());
+        return;
+    }
+    
     // if the link queue doesn't have space (based on the low water
     // mark) don't do anything
     if (! next_hop->queue_has_space()) {
