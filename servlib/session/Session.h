@@ -17,6 +17,7 @@
 #ifndef _SESSION_H_
 #define _SESSION_H_
 
+#include <oasys/debug/Formatter.h>
 #include <oasys/debug/Logger.h>
 
 #include "Subscriber.h"
@@ -29,7 +30,9 @@ namespace dtn {
 /**
  * Class to manage a session.
  */
-class Session : public RouteEntryInfo, public oasys::Logger
+class Session : public oasys::Formatter,
+                public oasys::Logger,
+                public RouteEntryInfo
 {
 public:
     /**
@@ -52,6 +55,9 @@ public:
 
     Session(const EndpointID& eid);
     virtual ~Session();
+
+    /// virtual from Formatter
+    virtual int format(char* buf, size_t sz) const;
 
     void set_upstream(const Subscriber& subscriber);
     void add_subscriber(const Subscriber& subscriber);

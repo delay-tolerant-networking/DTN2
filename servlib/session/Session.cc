@@ -43,6 +43,13 @@ Session::~Session()
 }
 
 //----------------------------------------------------------------------
+int
+Session::format(char* buf, size_t sz) const
+{
+    return snprintf(buf, sz, "session id %u [%s]", id(), eid().c_str());
+}
+
+//----------------------------------------------------------------------
 const char*
 Session::flag_str(u_int flags)
 {
