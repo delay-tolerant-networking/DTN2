@@ -213,38 +213,6 @@ AC_DEFUN(AC_CONFIG_OPENSSL, [
     fi
 ])
 dnl
-dnl    Copyright 2007 Intel Corporation
-dnl 
-dnl    Licensed under the Apache License, Version 2.0 (the "License");
-dnl    you may not use this file except in compliance with the License.
-dnl    You may obtain a copy of the License at
-dnl 
-dnl        http://www.apache.org/licenses/LICENSE-2.0
-dnl 
-dnl    Unless required by applicable law or agreed to in writing, software
-dnl    distributed under the License is distributed on an "AS IS" BASIS,
-dnl    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-dnl    See the License for the specific language governing permissions and
-dnl    limitations under the License.
-dnl
-
-dnl
-dnl Autoconf support for finding apr and setting appropriate configure 
-dnl variables. 
-dnl
-
-AC_DEFUN(AC_CONFIG_APR, [
-    apr_version=1
-
-    APR_FIND_APR("", "", 1, ${apr_version})
-    if test "$apr_found" = "no"; then
-        AC_MSG_ERROR([Apache Portable Runtime (APR) library not found. Install it and re-run configure.])
-    fi
-
-    EXTLIB_CFLAGS="$EXTLIB_CFLAGS `$apr_config --includes`"
-    EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS `$apr_config --link-ld --libs`"
-])
-dnl
 dnl    Copyright 2006 Intel Corporation
 dnl 
 dnl    Licensed under the Apache License, Version 2.0 (the "License");
@@ -1895,8 +1863,10 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
 
     #
     # By default, oasys apps link statically to make it easier when
-    # linking with a source directory.
+    # linking with a source directory, and for building the test apps
+    # that are part of the library itself.
     #
+    OASYS_LDFLAGS_STATIC="$OASYS_LIBDIR/liboasys-$OASYS_VERSION.a"
 
     if test -f $OASYS_LIBDIR/liboasys-$OASYS_VERSION.a ; then
 	OASYS_LDFLAGS="$OASYS_LIBDIR/liboasys-$OASYS_VERSION.a"
@@ -1915,6 +1885,7 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
     AC_SUBST(OASYS_LIBDIR)
     AC_SUBST(OASYS_ETCDIR)
     AC_SUBST(OASYS_LDFLAGS)
+    AC_SUBST(OASYS_LDFLAGS_STATIC)
     AC_SUBST(OASYS_COMPAT_LDFLAGS)
     AC_SUBST(OASYS_VERSION)
 
@@ -2305,7 +2276,7 @@ dnl Checks for header files.
 dnl -------------------------------------------------------------------------
 AC_DEFUN(AC_OASYS_SYSTEM_HEADERS, [
     AC_HEADER_STDC
-    AC_CHECK_HEADERS([err.h execinfo.h stdint.h string.h synch.h termios.h sys/cdefs.h sys/types.h])
+    AC_CHECK_HEADERS([err.h execinfo.h stdint.h string.h synch.h sys/cdefs.h sys/types.h])
 ])
 
 dnl -------------------------------------------------------------------------
@@ -2861,10 +2832,11 @@ AC_DEFUN(AC_CONFIG_ZLIB, [
         AC_MSG_RESULT($ac_use_zlib)
 
         dnl
-        dnl Look for the compress() function in libz
+        dnl Look for the compress() and compressBound() functions in libz
         dnl
         AC_EXTLIB_PREPARE
         AC_SEARCH_LIBS(compress, z, ac_has_libz="yes") 
+        AC_SEARCH_LIBS(compressBound, z, ac_zlib_has_compressBound="yes") 
         AC_EXTLIB_SAVE
 
         dnl
@@ -2879,6 +2851,11 @@ AC_DEFUN(AC_CONFIG_ZLIB, [
           AC_DEFINE(OASYS_ZLIB_ENABLED, 1,
               [whether zlib support is enabled])
           AC_MSG_RESULT(yes)
+
+	  if test "$ac_zlib_has_compressBound" = yes ; then
+	      AC_DEFINE(OASYS_ZLIB_HAS_COMPRESS_BOUND, 1,
+                  [whether zlib contains compressBound])
+	  fi
 
 	elif test "$ac_use_zlib" = "try" ; then
           AC_MSG_RESULT(no)
