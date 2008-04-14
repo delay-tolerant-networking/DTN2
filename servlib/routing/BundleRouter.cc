@@ -202,6 +202,21 @@ BundleRouter::accept_bundle(Bundle* bundle, int* errp)
 }
 
 //----------------------------------------------------------------------
+bool
+BundleRouter::can_delete_bundle(const BundleRef& bundle)
+{
+    size_t num_mappings = bundle->num_mappings();
+    if (num_mappings > 1) {
+        log_debug("can_delete_bundle(*%p): not deleting because "
+                  "bundle has %zu list mappings",
+                  bundle, num_mappings);
+        return false;
+    }
+    
+    return true;
+}
+
+//----------------------------------------------------------------------
 void
 BundleRouter::delete_bundle(const BundleRef& bundle)
 {

@@ -306,7 +306,6 @@ protected:
     void handle_bundle_transmitted(BundleTransmittedEvent* event);
     void handle_bundle_delivered(BundleDeliveredEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
-    void handle_bundle_not_needed(BundleNotNeededEvent* event);
     void handle_bundle_free(BundleFreeEvent* event);
     void handle_bundle_send(BundleSendRequest* event);
     void handle_bundle_cancel(BundleCancelRequest* event);
@@ -411,14 +410,14 @@ protected:
      * Remove the bundle from the pending list and data store, and
      * cancel the expiration timer.
      */
-    bool delete_from_pending(Bundle* bundle);
-
+    bool delete_from_pending(const BundleRef& bundle);
+    
     /**
-     * Check if we should delete this bundle, called once it's been
-     * transmitted or delivered at least once. If so, call
-     * delete_from_pending.
+     * Check if we should delete this bundle, called just after
+     * arrival, once it's been transmitted or delivered at least once,
+     * or when we release custody.
      */
-    bool try_delete_from_pending(Bundle* bundle);
+    bool try_to_delete(const BundleRef& bundle);
 
     /**
      * Delete (rather than silently discard) a bundle, e.g., an expired
