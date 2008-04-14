@@ -302,6 +302,8 @@ public:
         bool   delivery_rcpt_;
         bool   deletion_rcpt_;
         u_int  expiration_;
+        std::string sequence_id_;
+        std::string obsoletes_id_;
         char   payload_data_[DTN_MAX_BUNDLE_MEM];
         size_t payload_data_len_;
         char   payload_file_[DTN_MAX_PATH_LEN];
@@ -311,15 +313,38 @@ public:
         char   block_content_[DTN_MAX_BLOCK_LEN];
         size_t block_content_len_;
     };
-
+    
     // we use a single parser and options struct for the command for
     // improved efficiency
     oasys::OptParser parser_;
     SendOpts opts_;
 
-    void init_opts() {
-        memset(&opts_, 0, sizeof(opts_));
-        opts_.expiration_ = 5 * 60;
+    void init_opts()
+    {
+        memset(&opts_.source_,  0, sizeof(opts_.source_));
+        memset(&opts_.dest_,    0, sizeof(opts_.dest_));
+        memset(&opts_.replyto_, 0, sizeof(opts_.replyto_));
+        
+        opts_.priority_      = COS_NORMAL;
+        opts_.custody_xfer_  = 0;
+        opts_.receive_rcpt_  = 0;
+        opts_.custody_rcpt_  = 0;
+        opts_.forward_rcpt_  = 0;
+        opts_.delivery_rcpt_ = 0;
+        opts_.deletion_rcpt_ = 0;
+        opts_.expiration_    = 5 * 60;
+        opts_.sequence_id_   = "";
+        opts_.obsoletes_id_  = "";
+
+        memset(&opts_.payload_data_, 0, sizeof(opts_.payload_data_));
+        opts_.payload_data_len_ = 0;
+        memset(&opts_.payload_file_, 0, sizeof(opts_.payload_file_));
+        opts_.payload_file_len_ = 0;
+        
+        opts_.block_type_  = 0;
+        opts_.block_flags_ = 0;
+        memset(&opts_.block_content_, 0, sizeof(opts_.block_content_));
+        opts_.block_content_len_ = 0;
     }
 
     DTNSendCommand() : TclCommand("dtn_send")
@@ -343,6 +368,10 @@ public:
                                           &opts_.deletion_rcpt_));
         parser_.addopt(new oasys::UIntOpt("expiration",
                                           &opts_.expiration_));
+        parser_.addopt(new oasys::StringOpt("sequence_id",
+                                            &opts_.sequence_id_));
+        parser_.addopt(new oasys::StringOpt("obsoletes_id",
+                                            &opts_.obsoletes_id_));
         parser_.addopt(new oasys::CharBufOpt("payload_data",
                                              opts_.payload_data_,
                                              &opts_.payload_data_len_,
@@ -418,6 +447,16 @@ public:
         if (opts_.deletion_rcpt_) spec.dopts |= DOPTS_DELETE_RCPT;
         spec.expiration = opts_.expiration_;
 
+        if (opts_.sequence_id_ != "") {
+            spec.sequence_id.data.data_val = const_cast<char*>(opts_.sequence_id_.c_str());
+            spec.sequence_id.data.data_len = opts_.sequence_id_.length();
+        }
+        
+        if (opts_.obsoletes_id_ != "") {
+            spec.obsoletes_id.data.data_val = const_cast<char*>(opts_.obsoletes_id_.c_str());
+            spec.obsoletes_id.data.data_len = opts_.obsoletes_id_.length();
+        }
+        
         dtn_bundle_payload_t payload;
         memset(&payload, 0, sizeof(payload));
         if (opts_.payload_data_len_ != 0) {
@@ -624,11 +663,49 @@ public:
         }
         
         dtn_free_payload(&payload);
-        resultf("source %s dest %s replyto %s creation_ts %u.%u payload_size %d",
-                spec.source.uri, spec.dest.uri, spec.replyto.uri,
-                spec.creation_ts.secs, spec.creation_ts.seqno,
-                payload_size);
+
+        Tcl_Obj* result = Tcl_NewListObj(0, NULL);
+
+#define APPEND_STRING_VAL(key, val, val_len)                                 \
+        if (Tcl_ListObjAppendElement(interp, result,                         \
+                                     Tcl_NewStringObj(key, -1)) != TCL_OK || \
+            Tcl_ListObjAppendElement(interp, result,                         \
+                                     Tcl_NewStringObj(val, val_len)) != TCL_OK)\
+        {                                                                    \
+            resultf("error appending list element");                         \
+            return TCL_ERROR;                                                \
+        }
+
+#define APPEND_INT_VAL(key, val)                                             \
+        if (Tcl_ListObjAppendElement(interp, result,                         \
+                                     Tcl_NewStringObj(key, -1)) != TCL_OK || \
+            Tcl_ListObjAppendElement(interp, result,                         \
+                                     Tcl_NewIntObj(val)) != TCL_OK)          \
+        {                                                                    \
+            resultf("error appending list element");                         \
+            return TCL_ERROR;                                                \
+        }
+
+        APPEND_STRING_VAL("source",  spec.source.uri,  -1);
+        APPEND_STRING_VAL("dest",    spec.dest.uri,    -1);
+        APPEND_STRING_VAL("replyto", spec.replyto.uri, -1);
+
+        char tmp[256];
+        snprintf(tmp, 256, "%u.%u", spec.creation_ts.secs, spec.creation_ts.seqno);
         
+        APPEND_STRING_VAL("creation_ts", tmp, -1);
+
+        APPEND_INT_VAL("payload_size", payload_size);
+
+        APPEND_STRING_VAL("sequence_id",
+                          spec.sequence_id.data.data_val,
+                          spec.sequence_id.data.data_len);
+        APPEND_STRING_VAL("obsoletes_id",
+                          spec.obsoletes_id.data.data_val,
+                          spec.obsoletes_id.data.data_len);
+        
+        set_objresult(result);
+
         return TCL_OK;
     }
 };
