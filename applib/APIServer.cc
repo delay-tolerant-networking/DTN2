@@ -1229,6 +1229,20 @@ APIClient::handle_recv()
     spec.creation_ts.seqno = b->creation_ts().seqno_;
     spec.delivery_regid = reg->regid();
 
+    // copy out the sequence id and obsoletes id
+    std::string sequence_id_str, obsoletes_id_str;
+    if (! b->sequence_id().empty()) {
+        sequence_id_str = b->sequence_id().to_str();
+        spec.sequence_id.data.data_val = const_cast<char*>(sequence_id_str.c_str());
+        spec.sequence_id.data.data_len = sequence_id_str.length();
+    }
+
+    if (! b->obsoletes_id().empty()) {
+        obsoletes_id_str = b->obsoletes_id().to_str();
+        spec.obsoletes_id.data.data_val = const_cast<char*>(obsoletes_id_str.c_str());
+        spec.obsoletes_id.data.data_len = obsoletes_id_str.length();
+    }
+
     // copy extension blocks
     unsigned int blocks_found = 0;
     unsigned int data_len = 0;
