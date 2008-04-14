@@ -119,15 +119,15 @@ int
 Bundle::format(char* buf, size_t sz) const
 {
     if (is_admin()) {
-        return snprintf(buf, sz, "bundle id %d %s -> %s [%zu byte payload, is_admin]",
+        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload, is_admin]",
                         bundleid_, source_.c_str(), dest_.c_str(),
                         payload_.length());
     } else if (is_fragment()) {
-        return snprintf(buf, sz, "bundle id %d %s -> %s [%zu byte payload, fragment @%u/%u]",
+        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload, fragment @%u/%u]",
                         bundleid_, source_.c_str(), dest_.c_str(),
                         payload_.length(), frag_offset_, orig_length_);
     } else {
-        return snprintf(buf, sz, "bundle id %d %s -> %s [%zu byte payload]",
+        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload]",
                         bundleid_, source_.c_str(), dest_.c_str(),
                         payload_.length());
     }
