@@ -81,6 +81,85 @@ TableBasedRouter::handle_event(BundleEvent* event)
 }
 
 //----------------------------------------------------------------------
+Session*
+TableBasedRouter::get_session_for_bundle(Bundle* bundle)
+{
+    if (bundle->sequence_id().empty()  &&
+        bundle->obsoletes_id().empty() &&
+        bundle->session_eid().length() == 0)
+    {
+        log_debug("get_session_for_bundle: bundle id %u not a session bundle",
+                  bundle->bundleid());
+        return NULL;
+    }
+
+    EndpointID session_eid = bundle->session_eid();
+    if (session_eid.length() == 0)
+    {
+        session_eid.assign(std::string("dtn-session:") +
+                           bundle->source().str() +
+                           "," +
+                           bundle->dest().str());
+        ASSERT(session_eid.valid());
+    }
+
+    Session* session = sessions_.get_session(session_eid);
+    log_debug("get_session_for_bundle: *%p *%p", bundle, session);
+    return session;
+}
+
+//----------------------------------------------------------------------
+bool
+TableBasedRouter::add_bundle_to_session(Bundle* bundle, Session* session)
+{
+    // XXX/demmer is this the right deletion reason for obsoletes??
+    static BundleProtocol::status_report_reason_t deletion_reason =
+        BundleProtocol::REASON_DEPLETED_STORAGE;
+    
+    log_debug("adding *%p to *%p", bundle, session);
+    
+    oasys::ScopeLock l(session->bundles()->lock(),
+                       "TableBasedRouter::add_subscriber");
+    BundleList::iterator iter = session->bundles()->begin();
+    while (iter != session->bundles()->end())
+    {
+        Bundle* old_bundle = *iter;
+        ++iter; // in case we remove the bundle from the list
+
+        // first check if the newly arriving bundle causes an old one
+        // to be obsolete
+        if (bundle->obsoletes_id() >= old_bundle->sequence_id())
+        {
+            log_debug("*%p obsoletes *%p... removing old bundle",
+                      bundle, old_bundle);
+            
+            bool ok = session->bundles()->erase(old_bundle);
+            ASSERT(ok);
+            BundleDaemon::post_at_head(
+                new BundleDeleteRequest(old_bundle, deletion_reason));
+            continue;
+        }
+
+        // next check if the existing bundle obsoletes this one
+        if (old_bundle->obsoletes_id() >= bundle->sequence_id())
+        {
+            log_debug("*%p obsoletes *%p... ignoring new arrival",
+                      old_bundle, bundle);
+            BundleDaemon::post_at_head(
+                new BundleDeleteRequest(bundle, deletion_reason));
+            return false;
+        }
+
+        log_debug("compared *%p and *%p, nothing is obsoleted",
+                  old_bundle, bundle);
+    }
+
+    session->bundles()->push_back(bundle);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
@@ -88,21 +167,36 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
     log_debug("handle bundle received: *%p", bundle);
 
     EndpointID remote_eid(EndpointID::NULL_EID());
+
     if (event->link_ != NULL) {
         remote_eid = event->link_->remote_eid();
     }
+
     if (! reception_cache_.add_entry(bundle, remote_eid))
     {
         log_info("ignoring duplicate bundle: *%p", bundle);
-        BundleDaemon::post_at_head(new BundleNotNeededEvent(bundle));
+        BundleDaemon::post_at_head(
+            new BundleDeleteRequest(bundle, BundleProtocol::REASON_NO_ADDTL_INFO));
         return;
     }
 
-    if (bundle->session_flags() != 0) {
-        handle_session_bundle(event);
-    } else {
-        route_bundle(bundle);
+    // check if the bundle is part of a session, either because it has
+    // a sequence id and/or obsoletes id, or because it has an
+    // explicit session eid
+    Session* session = get_session_for_bundle(bundle);
+    if (session != NULL)
+    {
+        // add the bundle to the session list, which checks whether 
+        // it obsoletes any existing bundles on the session, as well
+        // as whether the bundle itself is obsolete on arrival.
+        bool should_route = add_bundle_to_session(bundle, session);
+        if (! should_route) {
+            log_debug("session bundle %u is DOA", bundle->bundleid());
+            return; // don't route it 
+        }
     }
+    
+    route_bundle(bundle);
 }
 
 //----------------------------------------------------------------------
@@ -138,7 +232,7 @@ TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
     // if the bundle has a deferred single-copy transmission for
     // forwarding on any links, then remove the forwarding log entries
     remove_from_deferred(bundle, ForwardingInfo::FORWARD_ACTION);
-    
+
     // check if the transmission means that we can send another bundle
     // on the link
     const LinkRef& link = event->contact_->link();
@@ -146,11 +240,60 @@ TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 }
 
 //----------------------------------------------------------------------
+bool
+TableBasedRouter::can_delete_bundle(const BundleRef& bundle)
+{
+    log_debug("can_delete_bundle: checking if we can delete *%p",
+              bundle.object());
+
+    // check if we haven't yet done anything with this bundle
+    if (bundle->fwdlog()->get_count(ForwardingInfo::TRANSMITTED |
+                                    ForwardingInfo::DELIVERED) == 0)
+    {
+        log_debug("can_delete_bundle(%u): not yet transmitted or delivered",
+                  bundle->bundleid());
+        return false;
+    }
+
+    // check if we have local custody
+    if (bundle->local_custody()) {
+        log_debug("can_delete_bundle(%u): not deleting because we have custody",
+                  bundle->bundleid());
+        return false;
+    }
+
+    // check if the bundle is part of a session with subscribers
+    Session* session = get_session_for_bundle(bundle.object());
+    if (session && !session->subscribers().empty())
+    {
+        log_debug("can_delete_bundle(%u): session has subscribers",
+                  bundle->bundleid());
+        return false;
+    }
+
+    log_debug("can_delete_bundle(%u): ok to delete", bundle->bundleid());
+    return true;
+}
+    
+//----------------------------------------------------------------------
 void
 TableBasedRouter::delete_bundle(const BundleRef& bundle)
 {
-    log_debug("delete bundle: *%p", bundle.object());
+    log_debug("delete *%p", bundle.object());
+
     remove_from_deferred(bundle, ForwardingInfo::ANY_ACTION);
+
+    Session* session = get_session_for_bundle(bundle.object());
+    if (session)
+    {
+        bool ok = session->bundles()->erase(bundle);
+        (void)ok;
+        
+        log_debug("delete_bundle: removing *%p from *%p: %s",
+                  bundle.object(), session, ok ? "success" : "not in session list");
+    }
+
+    // XXX/demmer clean up empty sessions?
 }
 
 //----------------------------------------------------------------------
@@ -165,15 +308,6 @@ TableBasedRouter::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     if (!bundle->expired()) {
         route_bundle(bundle);
     }
-}
-
-//----------------------------------------------------------------------
-void
-TableBasedRouter::handle_bundle_expired(BundleExpiredEvent* event)
-{
-    // XXX/demmer need to remove expired bundles from relevant session
-    // lists
-    (void)event;
 }
 
 //----------------------------------------------------------------------

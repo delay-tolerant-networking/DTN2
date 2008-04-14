@@ -59,7 +59,6 @@ protected:
     virtual void handle_bundle_received(BundleReceivedEvent* event);
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
     virtual void handle_bundle_cancelled(BundleSendCancelledEvent* event);
-    virtual void handle_bundle_expired(BundleExpiredEvent* event);
     virtual void handle_route_add(RouteAddEvent* event);
     virtual void handle_route_del(RouteDelEvent* event);
     virtual void handle_contact_up(ContactUpEvent* event);
@@ -75,6 +74,8 @@ protected:
 
 
     /// @{ Session management helper functions
+    Session* get_session_for_bundle(Bundle* bundle);
+    bool add_bundle_to_session(Bundle* bundle, Session* session);
     bool subscribe_to_session(Session* session);
     bool find_session_upstream(Session* session);
     void handle_session_bundle(BundleReceivedEvent* event);
@@ -161,6 +162,11 @@ protected:
      */
     void add_nexthop_route(const LinkRef& link);
 
+    /**
+     * Hook to ask the router if the bundle can be deleted.
+     */
+    bool can_delete_bundle(const BundleRef& bundle);
+    
     /**
      * Hook to tell the router that the bundle should be deleted.
      */
