@@ -740,6 +740,11 @@ APIClient::handle_unbind()
             ASSERT(api_reg->active());
             api_reg->set_active(false);
 
+            if (reg->expired()) {
+                log_debug("removing expired registration %d", reg->regid());
+                BundleDaemon::post(new RegistrationExpiredEvent(reg));
+            }
+            
             log_info("DTN_UNBIND: unbound from registration %d", regid);
             return DTN_SUCCESS;
         }
@@ -1486,6 +1491,7 @@ APIClient::handle_begin_poll()
             return DTN_ECOMM;
         }
 
+        log_debug("got DTN_CANCEL_POLL while blocked in poll");
         // immediately send the response to the poll cancel, then
         // we return from the handler which will follow it with the
         // response code to the original poll request
