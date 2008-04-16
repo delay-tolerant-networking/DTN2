@@ -203,6 +203,7 @@ struct dtn_bundle_id {
 //----------------------------------------------------------------------
 dtn_bundle_id*
 dtn_send(int           handle,
+         int           regid,
          const string& source,
          const string& dest,
          const string& replyto,
@@ -210,7 +211,9 @@ dtn_send(int           handle,
          unsigned int  dopts,
          unsigned int  expiration,
          unsigned int  payload_location,
-         const string& payload_data)
+         const string& payload_data,
+         const string& sequence_id = "",
+         const string& obsoletes_id = "")
 {
     dtn_handle_t h = find_handle(handle);
     if (!h) return NULL;
@@ -224,6 +227,16 @@ dtn_send(int           handle,
     spec.priority   = (dtn_bundle_priority_t)priority;
     spec.dopts      = dopts;
     spec.expiration = expiration;
+
+    if (sequence_id.length() != 0) {
+        spec.sequence_id.data.data_val = const_cast<char*>(sequence_id.c_str());
+        spec.sequence_id.data.data_len = sequence_id.length();
+    }
+
+    if (obsoletes_id.length() != 0) {
+        spec.obsoletes_id.data.data_val = const_cast<char*>(obsoletes_id.c_str());
+        spec.obsoletes_id.data.data_len = obsoletes_id.length();
+    }
 
     dtn_bundle_payload_t payload;
     memset(&payload, 0, sizeof(payload));
@@ -251,7 +264,7 @@ dtn_send(int           handle,
 
     dtn_bundle_id_t id;
     memset(&id, 0, sizeof(id));
-    int err = dtn_send(h, &spec, &payload, &id);
+    int err = dtn_send(h, regid, &spec, &payload, &id);
     if (err != DTN_SUCCESS) {
         return NULL;
     }
@@ -315,6 +328,8 @@ struct dtn_bundle {
     unsigned int creation_secs;
     unsigned int creation_seqno;
     unsigned int delivery_regid;
+    string       sequence_id;
+    string       obsoletes_id;
     string       payload;
     dtn_status_report* status_report;
 };
