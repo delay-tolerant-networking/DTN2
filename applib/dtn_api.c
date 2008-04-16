@@ -357,6 +357,7 @@ dtn_unbind(dtn_handle_t h, dtn_reg_id_t regid)
 //----------------------------------------------------------------------
 int
 dtn_send(dtn_handle_t h,
+         dtn_reg_id_t regid,
          dtn_bundle_spec_t* spec,
          dtn_bundle_payload_t* payload,
          dtn_bundle_id_t* id)
@@ -372,7 +373,8 @@ dtn_send(dtn_handle_t h,
     }
 
     // pack the arguments
-    if ((!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
+    if ((!xdr_dtn_reg_id_t(xdr_encode, &regid)) ||
+        (!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
         (!xdr_dtn_bundle_payload_t(xdr_encode, payload))) {
         handle->err = DTN_EXDR;
         return -1;
