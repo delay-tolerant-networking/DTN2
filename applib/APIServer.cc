@@ -398,6 +398,7 @@ APIClient::run()
         if (send_response(ret) != 0) {
             return;
         }
+
         // if there was an IPC communication error or unknown message
         // type, close terminate the session
         // XXX/matt we could potentially close on all errors, not just these 2
@@ -772,6 +773,7 @@ APIClient::handle_unbind()
 int
 APIClient::handle_send()
 {
+    dtn_reg_id_t regid;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
 
@@ -779,7 +781,8 @@ APIClient::handle_send()
     memset(&payload, 0, sizeof(payload));
     
     /* Unpack the arguments */
-    if (!xdr_dtn_bundle_spec_t(&xdr_decode_, &spec) ||
+    if (!xdr_dtn_reg_id_t(&xdr_decode_, &regid) ||
+        !xdr_dtn_bundle_spec_t(&xdr_decode_, &spec) ||
         !xdr_dtn_bundle_payload_t(&xdr_decode_, &payload))
     {
         log_err("error in xdr unpacking arguments");
