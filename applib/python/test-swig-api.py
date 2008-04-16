@@ -30,10 +30,17 @@ if (h == -1):
 
 print "handle is", h;
 
+print "creating a registration for a random eid string"
+regid = dtn_register(h, "dtn://foo/bar/baz", DTN_REG_DROP, 0, 0, "");
+print "created new registration -- id %d" % regid;
+
+print "unbinding registration "
+dtn_unbind(h, regid)
+
 src = dtn_build_local_eid(h, "src");
 dst = dtn_build_local_eid(h, "dst");
 
-print "src is", src, "dst is, dst";
+print "src is", src, "dst is", dst;
 
 regid = dtn_find_registration(h, dst);
 if (regid != -1):
@@ -43,9 +50,8 @@ else:
     regid = dtn_register(h, dst, DTN_REG_DROP, 10, 0, "");
     print "created new registration -- id regid";
 
-
 print "sending a bundle in memory...";
-id = dtn_send(h, regid, src, dst, "dtn:none", COS_NORMAL,
+id = dtn_send(h, src, dst, "dtn:none", COS_NORMAL,
 	      0, 30, DTN_PAYLOAD_MEM, "test payload");
 
 print "bundle id: ", id;
@@ -80,7 +86,7 @@ else:
     print "  ", dtn_strerror(dtn_errno(h));
 
 print "testing expiration status report"
-id = dtn_send(h, regid, src, "dtn://somewhere_over_the_rainbow",
+id = dtn_send(h, src, "dtn://somewhere_over_the_rainbow",
               dst, COS_NORMAL,
 	      DOPTS_DELETE_RCPT, 2, DTN_PAYLOAD_MEM, "test payload");
 
