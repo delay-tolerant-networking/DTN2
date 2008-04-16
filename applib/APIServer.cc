@@ -306,12 +306,14 @@ APIClient::run()
         xdr_setpos(&xdr_encode_, 0);
         xdr_setpos(&xdr_decode_, 0);
 
-        // read the incoming message into the fourth byte of the
-        // buffer, since the typecode + message length is only five
-        // bytes long, but the XDR engines are set to point at the
-        // eighth byte of the buffer
-        ret = read(&buf_[3], DTN_MAX_API_MSG);
-            
+        // read the typecode and length of the incoming message into
+        // the fourth byte of the, since the pair is five bytes long
+        // and the XDR engines are set to point at the eighth byte of
+        // the buffer
+        log_debug("waiting for next message... total sent/rcvd: %zu/%zu",
+                  total_sent_, total_rcvd_);
+        
+        ret = read(&buf_[3], 5);
         if (ret <= 0) {
             log_warn("client disconnected without calling dtn_close");
             close_client();
