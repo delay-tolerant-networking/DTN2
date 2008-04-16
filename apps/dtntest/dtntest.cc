@@ -291,6 +291,7 @@ oasys::EnumOpt::Case PriorityCases[] = {
 class DTNSendCommand : public oasys::TclCommand {
 public:
     struct SendOpts {
+        int    regid_;
         dtn_endpoint_id_t source_;
         dtn_endpoint_id_t dest_;
         dtn_endpoint_id_t replyto_;
@@ -321,6 +322,8 @@ public:
 
     void init_opts()
     {
+        opts_.regid_ = DTN_REGID_NONE;
+        
         memset(&opts_.source_,  0, sizeof(opts_.source_));
         memset(&opts_.dest_,    0, sizeof(opts_.dest_));
         memset(&opts_.replyto_, 0, sizeof(opts_.replyto_));
@@ -349,6 +352,7 @@ public:
 
     DTNSendCommand() : TclCommand("dtn_send")
     {
+        parser_.addopt(new oasys::IntOpt("regid", &opts_.regid_));
         parser_.addopt(new dtn::APIEndpointIDOpt("source", &opts_.source_));
         parser_.addopt(new dtn::APIEndpointIDOpt("dest", &opts_.dest_));
         parser_.addopt(new dtn::APIEndpointIDOpt("replyto", &opts_.replyto_));
@@ -485,7 +489,7 @@ public:
         dtn_bundle_id_t id;
         memset(&id, 0, sizeof(id));
         
-        int ret = dtn_send(h, &spec, &payload, &id);
+        int ret = dtn_send(h, opts_.regid_, &spec, &payload, &id);
         if (ret != DTN_SUCCESS) {
             resultf("error in dtn_send: %s",
                     dtn_strerror(dtn_errno(h)));

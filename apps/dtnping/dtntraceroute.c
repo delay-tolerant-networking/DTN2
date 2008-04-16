@@ -185,7 +185,7 @@ main(int argc, const char** argv)
                     (char*)&payload_contents, sizeof(payload_contents));
         
     memset(&bundle_id, 0, sizeof(bundle_id));
-    if ((ret = dtn_send(handle, &ping_spec, &ping_payload, &bundle_id)) != 0) {
+    if ((ret = dtn_send(handle, regid, &ping_spec, &ping_payload, &bundle_id)) != 0) {
         fprintf(stderr, "error sending bundle: %d (%s)\n",
                 ret, dtn_strerror(dtn_errno(handle)));
         exit(1);

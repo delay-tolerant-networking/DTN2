@@ -325,7 +325,7 @@ DTNTunnel::send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid)
     dtn_bundle_id_t bundle_id;
     memset(&bundle_id, 0, sizeof(bundle_id));
 
-    err = dtn_send(send_handle_, &spec, &payload, &bundle_id);
+    err = dtn_send(send_handle_, DTN_REG_DEFER, &spec, &payload, &bundle_id);
 
     if (err != 0) {
         return dtn_errno(send_handle_);

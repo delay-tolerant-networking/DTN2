@@ -271,7 +271,7 @@ reader_thread(void *p)
  
             memset(&bundle_id, 0, sizeof(bundle_id));
                         
-            if ((ret = dtn_send(handle, &bundle_spec, &send_payload,
+            if ((ret = dtn_send(handle, regid, &bundle_spec, &send_payload,
                                 &bundle_id)) != 0)
             {
                 fprintf(stderr, "error sending bundle: %d (%s)\n",

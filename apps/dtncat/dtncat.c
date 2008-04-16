@@ -350,7 +350,7 @@ to_bundles()
     }
 
     memset(&bundle_id, 0, sizeof(bundle_id));
-    if ((ret = dtn_send(handle, &bundle_spec, &primary_payload,
+    if ((ret = dtn_send(handle, regid, &bundle_spec, &primary_payload,
                         &bundle_id)) != 0) {
 	fprintf(stderr, "%s: error sending bundle: %d (%s)\n",
 	    progname, ret, dtn_strerror(dtn_errno(handle)));

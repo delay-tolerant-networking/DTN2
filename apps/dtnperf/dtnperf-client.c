@@ -404,7 +404,7 @@ int main(int argc, char** argv)
             // send the bundle
             if (debug) printf("\t[debug] sending the bundle...");
             memset(&bundle_id, 0, sizeof(bundle_id));
-            if ((ret = dtn_send(handle, &bundle_spec, &send_payload, &bundle_id)) != 0) {
+            if ((ret = dtn_send(handle, regid, &bundle_spec, &send_payload, &bundle_id)) != 0) {
                 fprintf(stderr, "error sending bundle: %d (%s)\n",
                         ret, dtn_strerror(dtn_errno(handle)));
                 exit(1);
@@ -563,7 +563,7 @@ int main(int argc, char** argv)
                     // send the bundle
                     if (debug) printf("\t\t[debug] sending copy %d...", i+1);
                     memset(&bundle_id, 0, sizeof(bundle_id));
-                    if ((ret = dtn_send(handle, &bundle_spec, &send_payload, &bundle_id)) != 0) {
+                    if ((ret = dtn_send(handle, regid, &bundle_spec, &send_payload, &bundle_id)) != 0) {
                         fprintf(stderr, "error sending bundle: %d (%s)\n",
                                 ret, dtn_strerror(dtn_errno(handle)));
                         exit(1);
