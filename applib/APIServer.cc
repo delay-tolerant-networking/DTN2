@@ -186,7 +186,9 @@ APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port, APIServer *parent)
     : Thread("APIClient", DELETE_ON_EXIT),
       TCPClient(fd, addr, port, "/dtn/apiclient"),
       notifier_(logpath_),
-      parent_(parent)
+      parent_(parent),
+      total_sent_(0),
+      total_rcvd_(0)
 {
     // note that we skip space for the message length and code/status
     xdrmem_create(&xdr_encode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_ENCODE);
@@ -243,6 +245,8 @@ APIClient::handle_handshake()
         return -1;
     }
 
+    total_rcvd_ += ret;
+
     message_type = ntohl(handshake) >> 16;
     ipc_version = (u_int16_t) (ntohl(handshake) & 0x0ffff);
 
@@ -263,6 +267,8 @@ APIClient::handle_handshake()
         return -1;
     }
 
+    total_sent_ += ret;
+    
     if (ipc_version != DTN_IPC_VERSION) {
         log_err("handshake (0x%x)'s version %d != DTN_IPC_VERSION (%d)",
                 handshake, ipc_version, DTN_IPC_VERSION);
@@ -311,6 +317,7 @@ APIClient::run()
             close_client();
             return;
         }
+        total_rcvd_ += ret;
         
         if (ret < 5) {
             log_err("ack!! can't handle really short read...");
@@ -334,19 +341,22 @@ APIClient::run()
         // skipping the header bytes and the already-read amount
         if (ret < (int)len) {
             int toget = len - ret;
+            log_debug("reading remainder of message... total sent/rcvd: %zu/%zu",
+                      total_sent_, total_rcvd_);
             if (readall(&buf_[8 + ret], toget) != toget) {
                 log_err("error reading message remainder: %s",
                         strerror(errno));
                 close_client();
                 return;
             }
+            total_rcvd_ += toget;
         }
 
         // check if someone has told us to quit by setting the
         // should_stop flag. if so, we're all done
         if (should_stop()) {
-          close_client();
-          return;
+            close_client();
+            return;
         }
 
         // dispatch to the handler routine
@@ -424,12 +434,16 @@ APIClient::send_response(int ret)
     memcpy(buf_,     &ret, sizeof(ret));
     memcpy(&buf_[4], &len, sizeof(len));
 
-    log_debug("sending %d byte reply message", msglen);
+    log_debug("sending %d byte reply message... total sent/rcvd: %zu/%zu",
+              msglen, total_sent_, total_rcvd_);
+    
     if (writeall(buf_, msglen) != (int)msglen) {
         log_err("error sending reply: %s", strerror(errno));
         close_client();
         return -1;
     }
+
+    total_sent_ += msglen;
 
     return 0;
 }
@@ -1491,6 +1505,8 @@ APIClient::handle_begin_poll()
             return DTN_ECOMM;
         }
 
+        total_rcvd_ += 5;
+
         log_debug("got DTN_CANCEL_POLL while blocked in poll");
         // immediately send the response to the poll cancel, then
         // we return from the handler which will follow it with the
@@ -1710,8 +1726,8 @@ APIClient::wait_for_notify(const char*       operation,
     }
     
     log_debug("wait_for_notify(%s): "
-              "blocking to get events from %zu registrations (timeout %d)",
-              operation, npollfds - 1, timeout);
+              "blocking to get events from %zu sources (timeout %d)",
+              operation, npollfds, timeout);
     int nready = oasys::IO::poll_multiple(&pollfds[0], npollfds, timeout,
                                           NULL, logpath_);
 

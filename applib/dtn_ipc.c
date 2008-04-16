@@ -56,6 +56,7 @@ dtnipc_msgtoa(u_int8_t type)
         CASE(DTN_BEGIN_POLL);
         CASE(DTN_CANCEL_POLL);
         CASE(DTN_CANCEL);
+        CASE(DTN_SESSION_UPDATE);
 
     default:
         return "(unknown type)";
@@ -80,6 +81,11 @@ dtnipc_open(dtnipc_handle_t* handle)
 
     // zero out the handle
     memset(handle, 0, sizeof(dtnipc_handle_t));
+
+    // check for debugging
+    if (getenv("DTNAPI_DEBUG") != 0) {
+        handle->debug = 1;
+    }
     
     // note that we leave eight bytes free to be used for the framing
     // -- the type code and length for send (which is only five
@@ -133,9 +139,18 @@ dtnipc_open(dtnipc_handle_t* handle)
     
     ret = connect(handle->sock, (const struct sockaddr*)&sa, sizeof(sa));
     if (ret != 0) {
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: error connecting to server: %s\n",
+                    strerror(errno));
+        }
+
         handle->err = DTN_ECOMM;
         dtnipc_close(handle);
         return -1;
+    }
+
+    if (handle->debug) {
+        fprintf(stderr, "dtn_ipc: connected to server: fd %d\n", handle->sock);
     }
 
     // send the session initiation to the server on the handshake
@@ -144,22 +159,34 @@ dtnipc_open(dtnipc_handle_t* handle)
     handshake = htonl(DTN_OPEN << 16 | dtnipc_version);
     ret = write(handle->sock, &handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: handshake error\n");
+        }
         handle->err = DTN_ECOMM;
         dtnipc_close(handle);
         return -1;
     }
+    handle->total_sent += ret;
 
     // wait for the handshake response
     handshake = 0;
     ret = read(handle->sock, &handshake, sizeof(handshake));
     if (ret != sizeof(handshake) || (ntohl(handshake) >> 16) != DTN_OPEN) {
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: handshake error\n");
+        }
         dtnipc_close(handle);
         handle->err = DTN_ECOMM;
         return -1;
     }
 
+    handle->total_rcvd += ret;
+
     remote_version = (ntohl(handshake) & 0x0ffff);
     if (remote_version != dtnipc_version) {
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: version mismatch\n");
+        }
         dtnipc_close(handle);
         handle->err = DTN_EVERSION;
         return -1;
@@ -206,7 +233,7 @@ int
 dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
 {
     int ret;
-    u_int32_t len, msglen;
+    u_int32_t len, msglen, origlen;
     
     // pack the message code in the fourth byte of the buffer and the
     // message length into the next four. we don't use xdr routines
@@ -224,10 +251,20 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
     xdr_setpos(&handle->xdr_encode, 0);
     
     // send the message, looping until it's all sent
+    origlen = msglen;
     char* bp = &handle->buf[3];
     do {
         ret = write(handle->sock, bp, msglen);
+        handle->total_sent += ret;
         
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: send(%s) wrote %d/%d bytes (%s) "
+                    "(total sent/rcvd %u/%u)\n",
+                    dtnipc_msgtoa(type), ret, origlen,
+                    ret == -1 ? strerror(errno) : "success",
+                    handle->total_sent, handle->total_rcvd);
+        }
+
         if (ret <= 0) {
             if (errno == EINTR)
                 continue;
@@ -241,7 +278,7 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
         msglen -= ret;
         
     } while (msglen > 0);
-    
+
     return 0;
 }
 
@@ -265,6 +302,7 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
 
     // read the status code and length
     ret = read(handle->sock, handle->buf, 8);
+    handle->total_rcvd += ret;
 
     // make sure we got it all
     if (ret != 8) {
@@ -279,12 +317,26 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
     
     memcpy(&len, &handle->buf[4], sizeof(len));
     len = ntohl(len);
+    
+    if (handle->debug) {
+        fprintf(stderr, "dtn_ipc: recv() read %d/8 bytes for status (%s): "
+                "status %d len %d (total sent/rcvd %u/%u)\n",
+                ret, ret == -1 ? strerror(errno) : "success",
+                *status, len, handle->total_sent, handle->total_rcvd);
+    }
 
     // read the rest of the message 
     nread = 8;
     while (nread < len + 8) {
         ret = read(handle->sock,
                    &handle->buf[nread], sizeof(handle->buf) - nread);
+        handle->total_rcvd += ret;
+        
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: recv() read %d/%d bytes (%s)\n",
+                    ret, len, ret == -1 ? strerror(errno) : "success");
+        }
+
         if (ret <= 0) {
             if (errno == EINTR)
                 continue;

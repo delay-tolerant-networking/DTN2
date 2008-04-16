@@ -67,9 +67,12 @@ struct dtnipc_handle {
     int sock;				///< Socket file descriptor
     int err;				///< Error code
     int in_poll;			///< Flag to register a call to poll()
+    int debug;				///< Debug flag for channel
     char buf[DTN_MAX_API_MSG];		///< send/recv buffer
     XDR xdr_encode;			///< XDR encoder
     XDR xdr_decode;			///< XDR decoder
+    unsigned int total_sent;		///< Counter for debugging
+    unsigned int total_rcvd;		///< Counter for debugging
 };
 
 typedef struct dtnipc_handle dtnipc_handle_t;

@@ -131,6 +131,8 @@ protected:
     APIRegistrationList* sessions_;
     oasys::Notifier notifier_;
     APIServer* parent_;
+    size_t total_sent_;
+    size_t total_rcvd_;
 };
 
 } // namespace dtn
