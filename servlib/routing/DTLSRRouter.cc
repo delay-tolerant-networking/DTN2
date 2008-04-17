@@ -171,7 +171,8 @@ DTLSRRouter::DTLSRRouter()
       announce_tag_("dtlsr"),
       announce_eid_("dtn://*/dtlsr?*"),
       current_lsas_("DTLSRRouter::current_lsas"),
-      update_lsa_timer_(this)
+      periodic_lsa_timer_(this),
+      delayed_lsa_timer_(this)
 {
     // override add_nexthop_routes since it just confuses things
     config_.add_nexthop_routes_ = false;
@@ -209,7 +210,8 @@ DTLSRRouter::initialize()
     }
     
     if (config()->lsa_interval_ != 0) {
-        update_lsa_timer_.schedule_in(config()->lsa_interval_ * 1000);
+        periodic_lsa_timer_.set_interval(config()->lsa_interval_ * 1000);
+        periodic_lsa_timer_.schedule_in(config()->lsa_interval_ * 1000);
     }
 }
 
@@ -223,6 +225,36 @@ DTLSRRouter::get_routing_state(oasys::StringBuffer* buf)
     buf->appendf("DTLSR Routing Graph:\n*%p", &graph_);
     buf->appendf("Current routing table:\n");
     TableBasedRouter::get_routing_state(buf);
+}
+
+//----------------------------------------------------------------------
+bool
+DTLSRRouter::can_delete_bundle(const BundleRef& bundle)
+{
+    if (! TableBasedRouter::can_delete_bundle(bundle)) {
+        return false;
+    }
+
+    if (current_lsas_.contains(bundle)) {
+        log_debug("can_delete_bundle(%u): current lsa", bundle->bundleid());
+        return false;
+    }
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+void
+DTLSRRouter::delete_bundle(const BundleRef& bundle)
+{
+    TableBasedRouter::delete_bundle(bundle);
+
+    if (current_lsas_.contains(bundle))
+    {
+        log_crit("deleting bundle id %u whilea still on current lsas list",
+                 bundle->bundleid());
+        current_lsas_.erase(bundle);
+    }
 }
 
 //----------------------------------------------------------------------
@@ -261,24 +293,15 @@ DTLSRRouter::handle_bundle_expired(BundleExpiredEvent* e)
     // remove the node from the routing graph?
     oasys::ScopeLock l(current_lsas_.lock(),
                        "DTLSRRouter::handle_bundle_expired");
-    for (BundleList::iterator iter = current_lsas_.begin();
-         iter != current_lsas_.end(); ++iter)
+
+    if (current_lsas_.contains(bundle))
     {
-        if (*iter == bundle) {
-            log_notice("current lsa for %s expired... kicking links",
-                       bundle->source().c_str());
-//             oasys::StringBuffer buf;
-//             bundle->format_verbose(&buf);
-//             log_multiline(oasys::LOG_NOTICE, buf.c_str());
-
-            handle_lsa_expired(bundle);
-            current_lsas_.erase(iter);
-            
-            goto done;
-        }
+        log_notice("current lsa for %s expired... kicking links",
+                   bundle->source().c_str());
+        handle_lsa_expired(bundle);
+        current_lsas_.erase(bundle);
     }
-
-done:
+    
     TableBasedRouter::handle_bundle_expired(e);
 }
     
@@ -315,9 +338,8 @@ DTLSRRouter::handle_contact_up(ContactUpEvent* e)
     invalidate_routes();
     recompute_routes();
     
-    // send a new lsa to include the new link
-    // XXX/demmer could wait?
-    send_lsa();
+    // schedule a new lsa to include the new link
+    schedule_lsa();
 
     // now let the superclass have a turn at the event
     TableBasedRouter::handle_contact_up(e);
@@ -361,7 +383,7 @@ DTLSRRouter::handle_contact_down(ContactDownEvent* e)
     recompute_routes();
 
     // inform peers
-    send_lsa();
+    schedule_lsa();
     
     if (! config()->keep_down_links_) {
         remove_edge(edge);
@@ -396,29 +418,55 @@ DTLSRRouter::handle_link_deleted(LinkDeletedEvent* e)
 void
 DTLSRRouter::handle_registration_added(RegistrationAddedEvent* event)
 {
+    Registration* reg = event->registration_;
+    const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
+    
     TableBasedRouter::handle_registration_added(event);
 
-    // XXX/demmer fixme
-    
-//     Registration* reg = event->registration_;
-//     if (reg->session_flags() & Session::CUSTODY) {
-//         Session* session = sessions_.lookup_session(reg->endpoint());
-//         ASSERT(session != NULL);
+    // to handle registration for endpoint identifiers that aren't
+    // covered by our local_eid pattern, we add a node to the graph
+    // with an infinite-bandwidth edge from our local node to it.
+    //
+    // session registrations don't get announced, except for custody
+    // ones which get the 'dtn-session:' prefix added on
+    if (reg->endpoint().subsume(local_eid)) {
+        return; // nothing to do
+    }
 
-//         // For group endpoint ids that aren't covered by the standard
-//         // host-specific wildcard patterns, add a local route for the
-//         // EID that just points to our local eid (since it's ignored
-//         // for matching sessions anyway). That way it's conveyed along
-//         // with other route imports.
+    std::string eid;
+    if (reg->session_flags() == 0)
+    {
+        eid = reg->endpoint().str();
+    }
+    else if (reg->session_flags() == Session::CUSTODY)
+    {
+        eid = std::string("dtn-session:") + reg->endpoint().str();
+    }
+    else
+    {
+        return; // ignore non-custody registrations
+    }
+    
+    RoutingGraph::Node* node = graph_.find_node(eid);
+    if (node == NULL) {
+        log_debug("handle_registration added: adding new graph node for %s",
+                  eid.c_str());
+        node = graph_.add_node(eid, NodeInfo());
+    }
+
+    EdgeInfo ei(std::string("reg-") + eid);
+    ei.is_registration_ = true;
+    ei.params_.bw_      = 0xffffffff;
+    
+    RoutingGraph::Edge* edge = graph_.find_edge(local_node_, node, ei);
+    if (edge == NULL) {
+        log_debug("handle_registration added: adding new edge node for %s",
+                  ei.id_.c_str());
+        edge = graph_.add_edge(local_node_, node, ei);
         
-//         const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
-//         if (! reg->endpoint().subsume(local_eid))
-//         {
-//             RouteEntry* e = new RouteEntry(reg->endpoint(), local_eid);
-//             e->set_info(session);
-//             route_table_->add_entry(e);
-//         }
-//     }
+        // send a new lsa to announce the new edge
+        schedule_lsa();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -428,7 +476,6 @@ DTLSRRouter::remove_edge(RoutingGraph::Edge* edge)
     log_debug("remove_edge %s", edge->info().id_.c_str());
     bool ok = graph_.del_edge(local_node_, edge);
     ASSERT(ok);
-    
 }
 
 //----------------------------------------------------------------------
@@ -512,13 +559,10 @@ DTLSRRouter::recompute_routes()
         LinkRef link = cm->find_link(edge->info().id_.c_str());
         if (link == NULL) {
 
-            // XXX/demmer this is a bug... we might have sent out an
-            // LSA that we then get back from the network, which may
-            // contain an old (high) lsa seqno, but then also may
-            // contain references to bogus links
-            
-            log_crit("internal error: link %s not in local link table!!",
-                     edge->info().id_.c_str());
+            // it's possible that this is a local registration link,
+            // so just ignore it
+            log_debug("link %s not in local link table... ignoring it",
+                      edge->info().id_.c_str());
             continue;
         }
 
@@ -594,6 +638,15 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
         
         return false;
     }
+    else
+    {
+        log_info("update_current_lsa: "
+                 "got new LSA (seqno %u > last %u || "
+                 "creation_ts %u > last %u)",
+                 seqno, node->info().last_lsa_seqno_,
+                 bundle->creation_ts().seconds_,
+                 node->info().last_lsa_creation_ts_);
+    }
 
     oasys::ScopeLock l(current_lsas_.lock(),
                        "DTLSRRouter::update_current_lsa");
@@ -608,7 +661,6 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
             stale_lsa = *iter;
 
             current_lsas_.erase(iter);
-
 
             // XXX/demmer need a better way to cancel transmissions
             log_debug("cancelling pending transmissions for *%p",
@@ -691,7 +743,7 @@ DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
         // sent previously, but our link configuration has changed so
         // we no longer have the link
         if (a == local_node_) {
-            LinkRef link("DTLSRRouter::send_lsa");
+            LinkRef link("DTLSRRouter::handle_lsa");
             link = BundleDaemon::instance()->contactmgr()->
                    find_link(ls->id_.c_str());
             if (link == NULL) {
@@ -699,7 +751,6 @@ DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
                          ls->id_.c_str());
                 continue;
             }
-            
         }
 
         // find or add the node
@@ -777,8 +828,10 @@ DTLSRRouter::generate_link_state(LinkState* ls,
 
     // XXX/demmer maybe the edge info should be tied to the link
     // itself somehow?
-    ls->params_.qcount_ = link->bundles_queued();
-    ls->params_.qsize_  = link->bytes_queued();
+    if (link != NULL) {
+        ls->params_.qcount_ = link->bundles_queued();
+        ls->params_.qsize_  = link->bytes_queued();
+    }
     
     if (edge->info().last_update_.sec_ != 0) {
         ls->elapsed_ = edge->info().last_update_.elapsed_ms();
@@ -790,11 +843,40 @@ DTLSRRouter::generate_link_state(LinkState* ls,
 
 //----------------------------------------------------------------------
 void
-DTLSRRouter::UpdateLSATimer::timeout(const struct timeval& now)
+DTLSRRouter::TransmitLSATimer::timeout(const struct timeval& now)
 {
     (void)now;
     router_->send_lsa();
-    schedule_in(router_->config()->lsa_interval_ * 1000);
+    if (interval_ != 0) {
+        schedule_in(interval_);
+    }
+}
+
+//----------------------------------------------------------------------
+void
+DTLSRRouter::schedule_lsa()
+{
+    if (delayed_lsa_timer_.pending()) {
+        log_debug("schedule_lsa: delayed LSA transmission already pending");
+        return;
+    }
+
+    u_int elapsed = (oasys::Time::now() - last_lsa_transmit_).in_seconds();
+    if (elapsed > config()->min_lsa_interval_)
+    {
+        log_debug("schedule_lsa: %u seconds since last LSA transmission, "
+                  "sending one immediately", elapsed);
+        send_lsa();
+    }
+    else
+    {
+        u_int delay = std::min(config()->min_lsa_interval_,
+                               config()->min_lsa_interval_ - elapsed);
+        log_debug("schedule_lsa: %u seconds since last LSA transmission, "
+                  "min interval %u, delaying LSA for %u seconds",
+                  elapsed, config()->min_lsa_interval_, delay);
+        delayed_lsa_timer_.schedule_in(delay * 1000);
+    }
 }
 
 //----------------------------------------------------------------------
@@ -813,17 +895,23 @@ DTLSRRouter::send_lsa()
          ei != local_node_->out_edges().end();
          ++ei)
     {
-        LinkRef link("DTLSRRouter::send_lsa");
-        link = BundleDaemon::instance()->contactmgr()->
-               find_link((*ei)->info().id_.c_str());
-        ASSERT(link != NULL);
-        
         LinkState ls;
+        LinkRef link("DTLSRRouter::send_lsa");
+
+        // if the edge is a local registration, there's no link, we
+        // just pretend there's a zero-delay, infinite-bandwidth link
+        // to the other endpoint
+        if (! (*ei)->info().is_registration_) {
+            link = BundleDaemon::instance()->contactmgr()->
+                   find_link((*ei)->info().id_.c_str());
+            ASSERT(link != NULL);
+        }
+        
         generate_link_state(&ls, *ei, link);
         lsa.links_.push_back(ls);
     }
 
-    log_debug("send_lsa: generated %zu link states for local ndoe",
+    log_debug("send_lsa: generated %zu link states for local node",
               lsa.links_.size());
 
     Bundle* bundle = new TempBundle();
@@ -851,6 +939,8 @@ DTLSRRouter::send_lsa()
     // XXX/demmer this would really be better done with
     // BundleActions::inject_bundle
     BundleDaemon::post_at_head(new BundleReceivedEvent(bundle, EVENTSRC_ROUTER));
+
+    last_lsa_transmit_.get_time();
 }
 
 } // namespace dtn
