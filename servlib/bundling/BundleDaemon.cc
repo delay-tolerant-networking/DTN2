@@ -42,6 +42,7 @@
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
+#include "session/Session.h"
 #include "storage/BundleStore.h"
 #include "storage/RegistrationStore.h"
 
@@ -382,6 +383,19 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
         return;
     }
 
+    
+    // if this is a session registration and doesn't have either the
+    // SUBSCRIBE or CUSTODY bits (i.e. it's publish-only), don't
+    // deliver the bundle
+    if (registration->session_flags() == Session::PUBLISH)
+    {
+        log_debug("not delivering bundle *%p to registration %d (%s) "
+                  "since it's a publish-only session registration",
+                  bundle, registration->regid(),
+                  registration->endpoint().c_str());
+        return;
+    }
+
     log_debug("delivering bundle *%p to registration %d (%s)",
               bundle, registration->regid(),
               registration->endpoint().c_str());
@@ -400,13 +414,6 @@ BundleDaemon::check_local_delivery(Bundle* bundle, bool deliver)
 {
     log_debug("checking for matching registrations for bundle *%p", bundle);
 
-    // XXX/demmer should ignore deliver for non-subscriber registrations
-    
-//     if (bundle->session_flags() != 0) {
-//         log_debug("ignoring local delivery for session bundle *%p", bundle);
-//         deliver = false;
-//     }
-    
     RegistrationList matches;
     RegistrationList::iterator iter;
 
