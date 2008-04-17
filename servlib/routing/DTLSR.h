@@ -43,7 +43,7 @@ public:
     class LinkParams : public oasys::SerializableObject {
     public:
         LinkParams() :
-            state_(LINK_UP), cost_(0), delay_(0), bw_(0) {}
+            state_(LINK_UP), cost_(0), delay_(0), bw_(0), qcount_(0), qsize_(0) {}
         
         LinkParams(const oasys::Builder&) {}
         virtual ~LinkParams() {}
