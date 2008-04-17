@@ -22,6 +22,7 @@
 
 #include "Subscriber.h"
 #include "bundling/BundleList.h"
+#include "bundling/SequenceID.h"
 #include "naming/EndpointID.h"
 #include "routing/RouteEntry.h"
 
@@ -44,8 +45,7 @@ public:
         RESUBSCRIBE = 1<<2,
         UNSUBSCRIBE = 1<<3,
         PUBLISH     = 1<<4,
-        CUSTODY     = 1<<5,
-        DATA        = 1<<6
+        CUSTODY     = 1<<5
     } flags_t;
 
     /**
@@ -66,7 +66,8 @@ public:
     const EndpointID&     eid()             const { return eid_;}
     const Subscriber&     upstream()        const { return upstream_; }
     const SubscriberList& subscribers()     const { return subscribers_; }
-    BundleList*           bundles()               { return &bundles_;}
+    BundleList*           bundles()               { return &bundles_; }
+    SequenceID*           sequence_id()           { return &sequence_id_; }
 
 protected:
     u_int32_t  id_;              ///< Unique session id (for logging)
@@ -74,6 +75,7 @@ protected:
     Subscriber upstream_;        ///< Subscriber in direction of a custodian
     SubscriberList subscribers_; ///< Local + downstream subscribers
     BundleList bundles_;         ///< Currently-resident session bundles
+    SequenceID sequence_id_;     ///< SequenceID that covers all bundles
 };
 
 } // namespace dtn

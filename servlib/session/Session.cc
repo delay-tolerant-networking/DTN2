@@ -61,7 +61,6 @@ Session::flag_str(u_int flags)
     case UNSUBSCRIBE: return "Session::UNSUBSCRIBE";
     case PUBLISH:     return "Session::PUBLISH";
     case CUSTODY:     return "Session::CUSTODY";
-    case DATA:        return "Session::DATA";
     default: {
         static char buf[256];
         snprintf(buf, sizeof(buf), "Session::UNKNOWN(0x%x)", flags);
