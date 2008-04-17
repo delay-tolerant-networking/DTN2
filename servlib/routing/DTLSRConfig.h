@@ -102,6 +102,12 @@ public:
     u_int lsa_interval_;
 
     /**
+     * Minimum interval (in seconds) between LSA transmission. Default
+     * is once per five seconds.
+     */
+    u_int min_lsa_interval_;
+    
+    /**
      * Expiration time for lsa announcements (default is
      * infinite).
      */
