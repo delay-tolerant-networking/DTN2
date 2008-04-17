@@ -85,6 +85,10 @@ public:
     }
     /// @}
 
+    /// Update the sequence id to include the max of all current
+    /// entries and the new one.
+    void update(const SequenceID& other);
+
     /// An entry in the vector
     struct Entry {
         Entry() : eid_(), counter_(0) {}

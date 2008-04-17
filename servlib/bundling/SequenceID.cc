@@ -254,4 +254,30 @@ SequenceID::compare_counters(u_int64_t left, u_int64_t right)
     return GT;
 }
 
+//----------------------------------------------------------------------
+void
+SequenceID::update(const SequenceID& other)
+{
+    for (const_iterator other_entry = other.begin();
+         other_entry != other.end();
+         ++other_entry)
+    {
+        iterator my_entry = begin();
+        while (my_entry != end()) {
+            if (other_entry->eid_ == my_entry->eid_)
+                break;
+            ++my_entry;
+        }
+
+        if (my_entry == end())
+        {
+            add(other_entry->eid_, other_entry->counter_);
+        }
+        else if (other_entry->counter_ > my_entry->counter_)
+        {
+            my_entry->counter_ = other_entry->counter_;
+        }
+    }
+}
+
 } // namespace dtn
