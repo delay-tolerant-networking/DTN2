@@ -209,7 +209,7 @@ BundleRouter::can_delete_bundle(const BundleRef& bundle)
     if (num_mappings > 1) {
         log_debug("can_delete_bundle(*%p): not deleting because "
                   "bundle has %zu list mappings",
-                  bundle, num_mappings);
+                  bundle.object(), num_mappings);
         return false;
     }
     
