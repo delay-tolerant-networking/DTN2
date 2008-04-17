@@ -902,15 +902,11 @@ APIClient::handle_send()
         return DTN_EINVAL;
     }
     
-    // Look up the destination eid to see if there's a session
-    // registration that matches, to set the bundle's session fields
-    // appropriately.
-    // XXX/demmer should this be the destination or a specific session
-    // field in the bundle?
-    Registration* reg = reg_table->get(EndpointIDPattern(b->dest()));
+    // Now look up the registration ID passed in to see if the bundle
+    // was sent as part of a session
+    Registration* reg = reg_table->get(regid);
     if (reg && reg->session_flags() != 0) {
-        b->mutable_session_eid()->assign(reg->endpoint());
-        b->set_session_flags(Session::DATA);
+        b->mutable_session_eid()->assign(std::string("dtn-session:") + reg->endpoint().str());
     }
 
     // delivery options
