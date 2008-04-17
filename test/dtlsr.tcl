@@ -43,7 +43,7 @@ test::script {
 
     testlog "Adding registrations"
     foreach node [net::nodelist] {
-        dtn::tell_dtnd $node tcl_registration dtn://$node/test
+        dtn::tell_dtnd $node tcl_registration dtn://host-$node/test
     }
 
     testlog "Opening links in a tree"
@@ -53,6 +53,8 @@ test::script {
     tell_dtnd 3 link open $cl-link:3-4
 
     testlog "Waiting for routes to settle"
+    after 10000
+    
     dtn::wait_for_route 0 dtn://host-1/* $cl-link:0-1 {}
     dtn::wait_for_route 0 dtn://host-2/* $cl-link:0-1 {}
     dtn::wait_for_route 0 dtn://host-3/* $cl-link:0-3 {}
@@ -84,7 +86,7 @@ test::script {
     tell_dtnd 1 link close $cl-link:1-2
     tell_dtnd 3 link close $cl-link:3-4
 
-    after 2000
+    after 5000
 
     dtn::wait_for_route 0 dtn://host-1/* $cl-link:0-1 {}
     dtn::wait_for_route 0 dtn://host-2/* $cl-link:0-1 {}
@@ -110,6 +112,46 @@ test::script {
     dtn::wait_for_route 4 dtn://host-1/* $cl-link:4-3 {}
     dtn::wait_for_route 4 dtn://host-2/* $cl-link:4-3 {}
     dtn::wait_for_route 4 dtn://host-3/* $cl-link:4-3 {}
+
+    testlog "Opening in a different overlay tree, checking that routes switch"
+    tell_dtnd 0 link open $cl-link:0-2
+    tell_dtnd 1 link open $cl-link:1-3
+    tell_dtnd 2 link open $cl-link:2-3
+    tell_dtnd 3 link open $cl-link:3-4
+
+    dtn::wait_for_route 0 dtn://host-1/* $cl-link:0-2 {}
+    dtn::wait_for_route 0 dtn://host-2/* $cl-link:0-2 {}
+    dtn::wait_for_route 0 dtn://host-3/* $cl-link:0-2 {}
+    dtn::wait_for_route 0 dtn://host-4/* $cl-link:0-2 {}
+
+    dtn::wait_for_route 1 dtn://host-0/* $cl-link:1-3 {}
+    dtn::wait_for_route 1 dtn://host-2/* $cl-link:1-3 {}
+    dtn::wait_for_route 1 dtn://host-3/* $cl-link:1-3 {}
+    dtn::wait_for_route 1 dtn://host-4/* $cl-link:1-3 {}
+    
+    dtn::wait_for_route 2 dtn://host-0/* $cl-link:2-0 {}
+    dtn::wait_for_route 2 dtn://host-1/* $cl-link:2-3 {}
+    dtn::wait_for_route 2 dtn://host-3/* $cl-link:2-3 {}
+    dtn::wait_for_route 2 dtn://host-4/* $cl-link:2-3 {}
+    
+    dtn::wait_for_route 3 dtn://host-0/* $cl-link:3-2 {}
+    dtn::wait_for_route 3 dtn://host-1/* $cl-link:3-1 {}
+    dtn::wait_for_route 3 dtn://host-2/* $cl-link:3-2 {}
+    dtn::wait_for_route 3 dtn://host-4/* $cl-link:3-4 {}
+
+    dtn::wait_for_route 4 dtn://host-0/* $cl-link:4-3 {}
+    dtn::wait_for_route 4 dtn://host-1/* $cl-link:4-3 {}
+    dtn::wait_for_route 4 dtn://host-2/* $cl-link:4-3 {}
+    dtn::wait_for_route 4 dtn://host-3/* $cl-link:4-3 {}
+    
+    testlog "Adding a non-subsumed registration on node 0"
+    tell_dtnd 0 tcl_registration foo:bar
+
+    testlog "Checking that routes include non-subsumed registration"
+    dtn::wait_for_route 1 foo:bar        $cl-link:1-3 {}
+    dtn::wait_for_route 2 foo:bar        $cl-link:2-0 {}
+    dtn::wait_for_route 3 foo:bar        $cl-link:3-2 {}
+    dtn::wait_for_route 4 foo:bar        $cl-link:4-3 {}
 
     testlog "Test success!"
 }
