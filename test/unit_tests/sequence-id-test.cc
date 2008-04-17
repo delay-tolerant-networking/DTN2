@@ -181,11 +181,39 @@ DECLARE_TEST(Update) {
     return UNIT_TEST_PASSED;
 }
 
+DECLARE_TEST(Assign) {
+    SequenceID seq;
+
+    DO(seq.assign(parse_sequence_id("<>")));
+    CHECK_EQUALSTR(seq.to_str(), "<>");
+    
+    DO(seq.assign(parse_sequence_id("<(dtn://host-0 1)>")));
+    CHECK_EQUALSTR(seq.to_str(), "<(dtn://host-0 1)>");
+    
+    DO(seq.assign(parse_sequence_id("<(dtn://host-1 1)>")));
+    CHECK_EQUALSTR(seq.to_str(), "<(dtn://host-1 1)>");
+    
+    DO(seq.assign(parse_sequence_id("<(dtn://host-0 2) (dtn://host-1 2)>")));
+    CHECK_EQUALSTR(seq.to_str(), "<(dtn://host-0 2) (dtn://host-1 2)>");
+    
+    DO(seq.assign(parse_sequence_id("<(dtn://host-0 1) (dtn://host-1 1)>")));
+    CHECK_EQUALSTR(seq.to_str(), "<(dtn://host-0 1) (dtn://host-1 1)>");
+    
+    DO(seq.assign(parse_sequence_id("<(dtn://host-0 2) (dtn://host-1 2)>")));
+    CHECK_EQUALSTR(seq.to_str(), "<(dtn://host-0 2) (dtn://host-1 2)>");
+
+    DO(seq.assign(parse_sequence_id("<(dtn://host-0 0) (dtn://host-1 0) (dtn://host-2 0)>")));
+    CHECK_EQUALSTR(seq.to_str(), "<(dtn://host-0 0) (dtn://host-1 0) (dtn://host-2 0)>");
+    
+    return UNIT_TEST_PASSED;
+}
+
 DECLARE_TESTER(SequenceIDTester) {
     ADD_TEST(Basic);
     ADD_TEST(Parse);
     ADD_TEST(Compare);
     ADD_TEST(Update);
+    ADD_TEST(Assign);
 }
 
 DECLARE_TEST_FILE(SequenceIDTester, "sequence id test");

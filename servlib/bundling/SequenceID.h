@@ -85,6 +85,9 @@ public:
     }
     /// @}
 
+    /// Reset the SequenceID to be a copy of the other
+    void assign(const SequenceID& other);
+    
     /// Update the sequence id to include the max of all current
     /// entries and the new one.
     void update(const SequenceID& other);

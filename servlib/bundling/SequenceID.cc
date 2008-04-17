@@ -256,6 +256,13 @@ SequenceID::compare_counters(u_int64_t left, u_int64_t right)
 
 //----------------------------------------------------------------------
 void
+SequenceID::assign(const SequenceID& other)
+{
+    vector_ = other.vector_;
+}
+
+//----------------------------------------------------------------------
+void
 SequenceID::update(const SequenceID& other)
 {
     for (const_iterator other_entry = other.begin();
