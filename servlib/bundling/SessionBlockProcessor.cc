@@ -40,7 +40,7 @@ SessionBlockProcessor::prepare(const Bundle*           bundle,
                                const LinkRef&          link,
                                BlockInfo::list_owner_t list)
 {
-    if (bundle->session_flags() == 0) {
+    if (bundle->session_eid().length() == 0) {
         return BP_SUCCESS;
     }
     
@@ -59,8 +59,7 @@ SessionBlockProcessor::generate(const Bundle*  bundle,
 {
     (void)link;
 
-    ASSERT(bundle->session_flags() != 0);
-    ASSERT(bundle->session_eid()   != EndpointID::NULL_EID());
+    ASSERT(bundle->session_eid().length() != 0);
 
     // add the eid to the dictionary
     block->add_eid(bundle->session_eid());
