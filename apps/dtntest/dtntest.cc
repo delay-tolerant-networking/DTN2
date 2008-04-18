@@ -715,6 +715,51 @@ public:
 };
 
 //----------------------------------------------------------------------
+class DTNSessionUpdateCommand : public oasys::TclCommand {
+public:
+    DTNSessionUpdateCommand() : TclCommand("dtn_session_update")
+    {
+    }
+    
+    int exec(int argc, const char **argv,  Tcl_Interp* interp)
+    {
+        (void)argc;
+        (void)argv;
+        (void)interp;
+
+        // need cmd, handle, and timeout
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 1, 3, 3);
+            return TCL_ERROR;
+        }
+
+        int n = atoi(argv[1]);
+        HandleMap::iterator iter = State::instance()->handles_.find(n);
+        if (iter == State::instance()->handles_.end()) {
+            resultf("invalid dtn handle %d", n);
+            return TCL_ERROR;
+        }
+        dtn_handle_t h = iter->second;
+
+        int timeout = atoi(argv[2]);
+
+        unsigned int status = 0;
+        dtn_endpoint_id_t session;
+        memset(session.uri, 0, sizeof(session.uri));
+
+        int err = dtn_session_update(h, &status, &session, timeout);
+        if (err != DTN_SUCCESS) {
+            resultf("error in dtn_session_update: %s",
+                    dtn_strerror(dtn_errno(h)));
+            return TCL_ERROR;
+        }
+
+        resultf("%u %s", status, session.uri);
+        return TCL_OK;
+    }
+};
+
+//----------------------------------------------------------------------
 class DTNPollChannelCommand : public oasys::TclCommand {
 public:
     DTNPollChannelCommand() : TclCommand("dtn_poll_channel")
@@ -912,6 +957,7 @@ main(int argc, char** argv)
     interp->reg(new DTNUnbindCommand());
     interp->reg(new DTNSendCommand());
     interp->reg(new DTNRecvCommand());
+    interp->reg(new DTNSessionUpdateCommand());
     interp->reg(new DTNPollChannelCommand());
     interp->reg(new DTNBeginPollCommand());
     interp->reg(new DTNCancelPollCommand());
