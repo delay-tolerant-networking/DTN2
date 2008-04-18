@@ -906,7 +906,7 @@ APIClient::handle_send()
     // was sent as part of a session
     Registration* reg = reg_table->get(regid);
     if (reg && reg->session_flags() != 0) {
-        b->mutable_session_eid()->assign(std::string("dtn-session:") + reg->endpoint().str());
+        b->mutable_session_eid()->assign(reg->endpoint().str());
     }
 
     // delivery options
