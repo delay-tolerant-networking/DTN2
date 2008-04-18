@@ -154,6 +154,48 @@ DECLARE_TEST(Compare) {
     return UNIT_TEST_PASSED;
 }
 
+// macro to test comparison operator overloads
+#define CHECK_COMPARE_OP(neg, s1str, op, s2str)                        \
+    CHECK(neg (parse_sequence_id(s1str) op parse_sequence_id(s2str)));
+
+DECLARE_TEST(CompareOperators) {
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 0)>", ==, "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 0)>", <,  "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 0)>", <=, "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 0)>", !=, "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 0)>", >,  "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 0)>", >=, "<(dtn://host-0 0)>");
+
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", ==, "<(dtn://host-0 2)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", <,  "<(dtn://host-0 2)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", <=, "<(dtn://host-0 2)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", !=, "<(dtn://host-0 2)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", >,  "<(dtn://host-0 2)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", >=, "<(dtn://host-0 2)>");
+
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 2)>", ==, "<(dtn://host-0 1)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 2)>", <,  "<(dtn://host-0 1)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 2)>", <=, "<(dtn://host-0 1)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 2)>", !=, "<(dtn://host-0 1)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 2)>", >,  "<(dtn://host-0 1)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 2)>", >=, "<(dtn://host-0 1)>");
+
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", ==, "<(dtn://host-1 1)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", <,  "<(dtn://host-1 1)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", <=, "<(dtn://host-1 1)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", !=, "<(dtn://host-1 1)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", >,  "<(dtn://host-1 1)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", >=, "<(dtn://host-1 1)>");
+
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", ==, "<>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", <,  "<>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", <=, "<>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", !=, "<>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", >,  "<>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", >=, "<>");
+    return UNIT_TEST_PASSED;
+}
+
 DECLARE_TEST(Update) {
     SequenceID seq;
 
@@ -212,6 +254,7 @@ DECLARE_TESTER(SequenceIDTester) {
     ADD_TEST(Basic);
     ADD_TEST(Parse);
     ADD_TEST(Compare);
+    ADD_TEST(CompareOperators);
     ADD_TEST(Update);
     ADD_TEST(Assign);
 }
