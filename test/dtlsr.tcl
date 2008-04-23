@@ -53,7 +53,7 @@ test::script {
     tell_dtnd 3 link open $cl-link:3-4
 
     testlog "Waiting for routes to settle"
-    after 10000
+    dtn::wait_for_stats_on_all_links * {0 bundles_inflight 0 bundles_queued}
     
     dtn::wait_for_route 0 dtn://host-1/* $cl-link:0-1 {}
     dtn::wait_for_route 0 dtn://host-2/* $cl-link:0-1 {}
@@ -88,6 +88,8 @@ test::script {
 
     after 5000
 
+    dtn::wait_for_stats_on_all_links * {0 bundles_inflight}
+    
     dtn::wait_for_route 0 dtn://host-1/* $cl-link:0-1 {}
     dtn::wait_for_route 0 dtn://host-2/* $cl-link:0-1 {}
     dtn::wait_for_route 0 dtn://host-3/* $cl-link:0-3 {}
@@ -119,6 +121,8 @@ test::script {
     tell_dtnd 2 link open $cl-link:2-3
     tell_dtnd 3 link open $cl-link:3-4
 
+    dtn::wait_for_stats_on_all_links * {0 bundles_inflight 0 bundles_queued}
+    
     dtn::wait_for_route 0 dtn://host-1/* $cl-link:0-2 {}
     dtn::wait_for_route 0 dtn://host-2/* $cl-link:0-2 {}
     dtn::wait_for_route 0 dtn://host-3/* $cl-link:0-2 {}
@@ -146,6 +150,7 @@ test::script {
     
     testlog "Adding a non-subsumed registration on node 0"
     tell_dtnd 0 tcl_registration foo:bar
+    dtn::wait_for_stats_on_all_links * {0 bundles_inflight 0 bundles_queued}
 
     testlog "Checking that routes include non-subsumed registration"
     dtn::wait_for_route 1 foo:bar        $cl-link:1-3 {}
