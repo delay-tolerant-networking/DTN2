@@ -74,6 +74,7 @@ public:
         CANCELLED        = 1 << 3, ///< Transmission cancelled
         CUSTODY_TIMEOUT  = 1 << 4, ///< Custody transfer timeout
         DELIVERED        = 1 << 5, ///< Delivered to local registration
+        SUPPRESSED       = 1 << 6, ///< Transmission suppressed
     } state_t;
 
     /**
@@ -92,6 +93,7 @@ public:
         case CANCELLED: 	return "CANCELLED";
         case CUSTODY_TIMEOUT:	return "CUSTODY_TIMEOUT";
         case DELIVERED:      	return "DELIVERED";
+        case SUPPRESSED:      	return "SUPPRESSED";
 
         default:
             NOTREACHED;

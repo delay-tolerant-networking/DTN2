@@ -207,6 +207,21 @@ ForwardingLog::add_entry(const Registration* reg,
 }
 
 //----------------------------------------------------------------------
+void
+ForwardingLog::add_entry(const EndpointID&        eid,
+                         ForwardingInfo::action_t action,
+                         state_t                  state)
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
+
+    oasys::StringBuffer name("eid-%s", eid.c_str());
+    CustodyTimerSpec custody_timer;
+    
+    log_.push_back(ForwardingInfo(state, action, name.c_str(), 0xffffffff,
+                                  eid, custody_timer));
+}
+
+//----------------------------------------------------------------------
 bool
 ForwardingLog::update(const LinkRef& link, state_t state)
 {
