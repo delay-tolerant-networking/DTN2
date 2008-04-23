@@ -581,15 +581,52 @@ namespace eval dtn {
     # separate procedure because this one requires an explicit list
     # argument to allow for optional timeout argument
     proc wait_for_link_stats {id link stat_list {timeout 30000}} {
-	foreach {val stat_type} $stat_list {
-	    do_until "wait for node $id's link $link stat $stat_type = $val" \
-		    $timeout {
-		if {[test_link_stats $id $link $val $stat_type]} {
-		    break
+        do_until "wait for node $id's link $link stats $stat_list" $timeout {
+            set ok 1
+            foreach {val stat_type} $stat_list {
+		if {! [test_link_stats $id $link $val $stat_type]} {
+		    set ok false
+                    break
 		}
-		after 500
 	    }
+            
+            if {$ok} {
+                return
+            }
+            
+            after 500
 	}
+    }
+
+    # utility function to wait until no bundles are queued for
+    # transmission or in flight
+    proc wait_for_stats_on_all_links {id stat_list {timeout 30000}} {
+        do_until "wait_for_stats_on_all_links $id $stat_list" $timeout {
+            if {$id == "*"} {
+                set ids [net::nodelist]
+            } else {
+                set ids $id
+            }
+
+            # to make sure that all links meet the criteria, we use
+            # wait_for_link_stats so that any error includes the
+            # specific link/stat pair that failed to match
+            if [catch {
+                foreach id $ids {
+                    foreach l [tell_dtnd $id link names] {
+                        wait_for_link_stats $id $l $stat_list 1000
+                    }
+                }
+            } err] {
+                if {[do_timeout_remaining] == 0} {
+                    error $err
+                } else {
+                    continue
+                }
+            }
+            
+            break
+        }
     }
 
     # route state functions
