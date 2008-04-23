@@ -87,10 +87,15 @@ public:
         int default_priority_;
 
         /// Maximum number of route_to entries to follow for a lookup
+        /// (default 10)
         int max_route_to_chain_;
 
-        /// Storage quota for bundle payloads
+        /// Storage quota for bundle payloads (default unlimited)
         u_int64_t storage_quota_;
+
+        /// Timeout for upstream session subscriptions in seconds
+        /// (default is ten minutes)
+        u_int subscription_timeout_;
         
     } config_;
     

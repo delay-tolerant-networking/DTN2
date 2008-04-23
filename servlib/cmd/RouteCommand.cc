@@ -64,6 +64,11 @@ RouteCommand::RouteCommand()
                                "length",
                                "Maximum number of route_to links to follow"));
 
+    bind_var(new oasys::UIntOpt("subscription_timeout",
+                                &BundleRouter::config_.subscription_timeout_,
+                                "timeout",
+                                "Default timeout for upstream subscription"));
+             
     bind_var(new oasys::StringOpt("dtlsr_area",
                                   &DTLSRConfig::instance()->area_,
                                   "area", "Administrative area for the local node"));

@@ -42,7 +42,9 @@ BundleRouter::Config::Config()
       open_discovered_links_(true),
       default_priority_(0),
       max_route_to_chain_(10),
-      storage_quota_(0) {}
+      storage_quota_(0),
+      subscription_timeout_(600)
+{}
 
 BundleRouter::Config BundleRouter::config_;
 
@@ -135,7 +137,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
             return false;
         }
     }
-
+    
     // if the bundle has a a singleton destination endpoint, then
     // check if we already forwarded it or are planning to forward it
     // somewhere else. if so, we shouldn't forward it again
