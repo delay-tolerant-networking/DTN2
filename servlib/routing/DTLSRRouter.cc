@@ -631,10 +631,11 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
                  seqno, node->info().last_lsa_seqno_,
                  bundle->creation_ts().seconds_,
                  node->info().last_lsa_creation_ts_);
-        
-        // XXX/demmer this is a big gross hack to make sure the stale
-        // lsa isn't forwarded.
-        bundle->set_owner("DO_NOT_FORWARD");
+
+        // suppress forwarding of the stale LSA
+        bundle->fwdlog()->add_entry(EndpointIDPattern::WILDCARD_EID(),
+                                    ForwardingInfo::FORWARD_ACTION,
+                                    ForwardingInfo::SUPPRESSED);
         
         return false;
     }
@@ -662,10 +663,12 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
 
             current_lsas_.erase(iter);
 
-            // XXX/demmer need a better way to cancel transmissions
             log_debug("cancelling pending transmissions for *%p",
                       stale_lsa.object());
-            stale_lsa->set_owner("DO_NOT_FORWARD");
+
+            stale_lsa->fwdlog()->add_entry(EndpointIDPattern::WILDCARD_EID(),
+                                           ForwardingInfo::FORWARD_ACTION,
+                                           ForwardingInfo::SUPPRESSED);
             
             BundleDaemon::post_at_head(
                 new BundleDeleteRequest(stale_lsa.object(),
@@ -712,8 +715,9 @@ DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
         log_debug("handle_lsa: ignoring LSA since area %s != local area %s",
                   lsa_area.c_str(), config()->area_.c_str());
 
-        // XXX/demmer this is also an ugly hack
-        bundle->set_owner("DO_NOT_FORWARD");
+        bundle->fwdlog()->add_entry(EndpointIDPattern::WILDCARD_EID(),
+                                    ForwardingInfo::FORWARD_ACTION,
+                                    ForwardingInfo::SUPPRESSED);
         return;
     }
     
