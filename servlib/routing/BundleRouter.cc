@@ -136,6 +136,22 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
                       count, link->remote_eid().c_str());
             return false;
         }
+
+        // check whether transmission was suppressed. this could be
+        // coupled with the previous one but it's better to have a
+        // separate log message
+        count = bundle->fwdlog()->get_count(
+            link->remote_eid(),
+            ForwardingInfo::SUPPRESSED);
+        
+        if (count > 0)
+        {
+            log_debug("should_fwd bundle %d: "
+                      "skip %s since transmission suppressed to remote eid %s",
+                      bundle->bundleid(), link->name(),
+                      link->remote_eid().c_str());
+            return false;
+        }
     }
     
     // if the bundle has a a singleton destination endpoint, then
