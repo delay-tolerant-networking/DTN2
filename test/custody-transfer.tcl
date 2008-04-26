@@ -78,7 +78,7 @@ test::script {
     dtn::tell_dtnd 2 link open tcp-link:2-3
 
     dtn::wait_for_bundle_stats 3 {1 delivered}
-    dtn::wait_for_bundle 3 "$src,$timestamp" 30000
+    dtn::wait_for_bundle 3 "$src,$timestamp" 30
     
     dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
     dtn::wait_for_bundle_stats 1 {0 pending 0 custody}
@@ -144,7 +144,7 @@ test::script {
     dtn::wait_for_bundle_stats 3 {1 received 1 transmitted}
     
     dtn::wait_for_bundle_stats 3 {1 delivered}
-    dtn::wait_for_bundle 3 "$src,$timestamp" 30000
+    dtn::wait_for_bundle 3 "$src,$timestamp" 30
     
     dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
     dtn::wait_for_bundle_stats 1 {0 pending 0 custody}
@@ -207,7 +207,7 @@ test::script {
     dtn::tell_dtnd 1 route add $dst_route tcp-link:1-2
 
     dtn::wait_for_bundle_stats 3 {1 delivered}
-    dtn::wait_for_bundle 3 "$src,$timestamp" 30000
+    dtn::wait_for_bundle 3 "$src,$timestamp" 30
     
     dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
     dtn::wait_for_bundle_stats 1 {0 pending 0 custody}

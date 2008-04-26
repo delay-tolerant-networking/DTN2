@@ -63,7 +63,7 @@ test::script {
     }
 
     testlog "waiting for all to be transmitted"
-    dtn::wait_for_bundle_stats 0 {0 pending 20 transmitted} 60000
+    dtn::wait_for_bundle_stats 0 {0 pending 20 transmitted} 60
     
     testlog "checking they were load balanced"
     dtn::check_link_stats 0 tcp-link:0-1 10 bundles_transmitted
@@ -96,7 +96,7 @@ test::script {
     }
 
     testlog "waiting for all to be transmitted"
-    dtn::wait_for_bundle_stats 0 {0 pending 20 transmitted} 60000
+    dtn::wait_for_bundle_stats 0 {0 pending 20 transmitted} 60
     
     testlog "checking they all went on one link"
     dtn::wait_for_link_stats 0 tcp-link:0-1 {20 bundles_transmitted}
@@ -131,7 +131,7 @@ test::script {
     }
 
     testlog "waiting for all to be transmitted"
-    dtn::wait_for_bundle_stats 0 {0 pending 40 transmitted} 60000
+    dtn::wait_for_bundle_stats 0 {0 pending 40 transmitted} 60
     
     testlog "checking they all went on both links"
     dtn::wait_for_link_stats 0 tcp-link:0-1 {20 bundles_transmitted}
@@ -168,7 +168,7 @@ test::script {
     # how many will actually get delivered
 
     testlog "waiting for all to be transmitted on both links"
-    dtn::wait_for_bundle_stats 0 {0 pending 0 delivered 40 transmitted} 60000
+    dtn::wait_for_bundle_stats 0 {0 pending 0 delivered 40 transmitted} 60
     dtn::wait_for_link_stats 0 tcp-link:0-1 {20 bundles_transmitted}
     dtn::wait_for_link_stats 0 tcp-link:0-2 {20 bundles_transmitted}
 

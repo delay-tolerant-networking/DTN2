@@ -25,7 +25,7 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ALWAYSON tcp true
 
-proc wait_for_file {id path {timeout 30000}} {
+proc wait_for_file {id path {timeout 30}} {
     do_until "in wait for file $path at node $id" $timeout {
         if {[tell_dtnd $id file exists $path]} {
             return

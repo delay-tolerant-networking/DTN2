@@ -43,7 +43,7 @@ test::script {
 	# won't ever arrive at the destination
 	if {$sr_option != "deletion_rcpt"} {
 	    testlog "Waiting for bundle arrival at $dest"
-	    dtn::wait_for_bundle 0 "$source,$timestamp" 5000
+	    dtn::wait_for_bundle 0 "$source,$timestamp" 5
 	}
     
 	set sr_guid "$source,$timestamp,$dest_node"
@@ -53,7 +53,7 @@ test::script {
 	    set sr_guid "$source,$timestamp,$node_name"
 
 	    testlog "  Waiting for SR arrival from $node_name to $sr_dest"
-	    dtn::wait_for_sr $last_node $sr_guid 5000
+	    dtn::wait_for_sr $last_node $sr_guid 5
 	    
 	    testlog "  Verifying received SR has field \"$sr_field\""
 	    dtn::check_sr_fields $last_node $sr_guid $sr_field

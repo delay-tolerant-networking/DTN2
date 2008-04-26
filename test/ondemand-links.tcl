@@ -57,12 +57,12 @@ test::script {
     set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest]
 
     testlog "waiting for bundle arrival"
-    dtn::wait_for_bundle 2 "$source,$timestamp" 5000
+    dtn::wait_for_bundle 2 "$source,$timestamp" 5
     
     testlog "sanity checking stats"
-    dtn::wait_for_bundle_stats 0 {1 received 1 transmitted} 5000
-    dtn::wait_for_bundle_stats 1 {1 received 1 transmitted} 5000
-    dtn::wait_for_bundle_stats 2 {1 received 0 transmitted} 5000
+    dtn::wait_for_bundle_stats 0 {1 received 1 transmitted} 5
+    dtn::wait_for_bundle_stats 1 {1 received 1 transmitted} 5
+    dtn::wait_for_bundle_stats 2 {1 received 0 transmitted} 5
 
     testlog "checking that link is open"
     dtn::wait_for_link_state 0 $cl-link:0-1 OPEN
@@ -90,12 +90,12 @@ test::script {
     dtn::wait_for_link_state 0 $cl-link:0-1 {AVAILABLE OPEN}
 
     testlog "waiting for bundle arrival"
-    dtn::wait_for_bundle 2 "$source,$timestamp" 5000
+    dtn::wait_for_bundle 2 "$source,$timestamp" 5
     
     testlog "sanity checking stats"
-    dtn::wait_for_bundle_stats 0 {2 received 2 transmitted} 5000
-    dtn::wait_for_bundle_stats 1 {1 received 1 transmitted} 5000
-    dtn::wait_for_bundle_stats 2 {2 received 0 transmitted} 5000
+    dtn::wait_for_bundle_stats 0 {2 received 2 transmitted} 5
+    dtn::wait_for_bundle_stats 1 {1 received 1 transmitted} 5
+    dtn::wait_for_bundle_stats 2 {2 received 0 transmitted} 5
 
     testlog "waiting for the idle timer to close the link"
     dtn::wait_for_link_state 0 $cl-link:0-1 AVAILABLE
@@ -113,7 +113,7 @@ test::script {
     dtn::wait_for_link_state 0 $cl-link:0-1 OPEN
     
     testlog "waiting for bundle arrival"
-    dtn::wait_for_bundle 2 "$source,$timestamp" 5000
+    dtn::wait_for_bundle 2 "$source,$timestamp" 5
 
     testlog "forcibly closing the link"
     dtn::tell_dtnd 0 link close $cl-link:0-1

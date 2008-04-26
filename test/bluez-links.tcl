@@ -50,11 +50,11 @@ test::script {
     after 2000
 
     testlog "waiting for arrival"
-    dtn::wait_for_bundle 1 "$source,$timestamp" 9000
+    dtn::wait_for_bundle 1 "$source,$timestamp" 9
 
     testlog "sanity checking stats"
-    dtn::wait_for_bundle_stats 0 {1 received 1 transmitted} 5000
-    dtn::wait_for_bundle_stats 1 {1 received 0 transmitted} 5000
+    dtn::wait_for_bundle_stats 0 {1 received 1 transmitted} 5
+    dtn::wait_for_bundle_stats 1 {1 received 0 transmitted} 5
 
     testlog "Test success!"
 }

@@ -57,7 +57,7 @@ test::script {
     set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest]
 
     testlog "waiting for bundle arrival"
-    dtn::wait_for_bundle 2 "$source,$timestamp" 5000
+    dtn::wait_for_bundle 2 "$source,$timestamp" 5
     
     testlog "killing daemon 1"
     dtn::stop_dtnd 1
@@ -82,7 +82,7 @@ test::script {
     set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest]
 
     testlog "waiting for bundle arrival"
-    dtn::wait_for_bundle 2 "$source,$timestamp" 5000
+    dtn::wait_for_bundle 2 "$source,$timestamp" 5
     
     testlog "waiting for the idle timer, making sure the link is open"
     after 10000
@@ -102,7 +102,7 @@ test::script {
     dtn::wait_for_link_state 0 $cl-link:0-1 OPEN
 
     testlog "waiting for bundle arrival"
-    dtn::wait_for_bundle 2 "$source,$timestamp" 5000
+    dtn::wait_for_bundle 2 "$source,$timestamp" 5
 
     testlog "test success!"
 }

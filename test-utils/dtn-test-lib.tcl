@@ -259,7 +259,7 @@ namespace eval dtn {
 	}
     }
 
-    proc wait_for_bundle {id bundle_guid {timeout 30000}} {
+    proc wait_for_bundle {id bundle_guid {timeout 30}} {
 	do_until "wait_for_bundle $bundle_guid" $timeout {
 	    if {![catch {check_bundle_arrived $id $bundle_guid}]} {
 		break
@@ -300,7 +300,7 @@ namespace eval dtn {
 	}
     }
 
-    proc wait_for_sr {id sr_guid {timeout 30000}} {
+    proc wait_for_sr {id sr_guid {timeout 30}} {
 	do_until "wait_for_sr $sr_guid" $timeout {
 	    if {![catch {check_sr_arrived $id $sr_guid}]} {
 		break
@@ -406,7 +406,7 @@ namespace eval dtn {
 	return true
     }
 
-    proc wait_for_bundle_stat {id val stat_type {timeout 30000}} {
+    proc wait_for_bundle_stat {id val stat_type {timeout 30}} {
 	do_until "in wait for node $id's stat $stat_type = $val" $timeout {
 	    if {[test_bundle_stats $id $val $stat_type]} {
 		break
@@ -417,7 +417,7 @@ namespace eval dtn {
 
     # separate procedure because this one requires an explicit list
     # argument to allow for optional timeout argument
-    proc wait_for_bundle_stats {id stat_list {timeout 30000}} {
+    proc wait_for_bundle_stats {id stat_list {timeout 30}} {
 	foreach {val stat_type} $stat_list {
 	    do_until "in wait for node $id's stat $stat_type = $val" $timeout {
 		if {[test_bundle_stats $id $val $stat_type]} {
@@ -461,7 +461,7 @@ namespace eval dtn {
 	return true
     }
 
-    proc wait_for_daemon_stat {id val stat_type {timeout 30000}} {
+    proc wait_for_daemon_stat {id val stat_type {timeout 30}} {
 	do_until "in wait for node $id's daemon stat $stat_type = $val" $timeout {
 	    if {[test_daemon_stats $id $val $stat_type]} {
 		break
@@ -472,7 +472,7 @@ namespace eval dtn {
 
     # separate procedure because this one requires an explicit list
     # argument to allow for optional timeout argument
-    proc wait_for_daemon_stats {id stat_list {timeout 30000}} {
+    proc wait_for_daemon_stats {id stat_list {timeout 30}} {
 	foreach {val stat_type} $stat_list {
 	    do_until "in wait for node $id's daemon stat $stat_type = $val" $timeout {
 		if {[test_daemon_stats $id $val $stat_type]} {
@@ -494,7 +494,7 @@ namespace eval dtn {
 	}
     }
 
-    proc wait_for_link_state { id link states {timeout 30000} } {
+    proc wait_for_link_state { id link states {timeout 30} } {
 	do_until "waiting for link state $states" $timeout {
 	    foreach state $states {
 		if {![catch {check_link_state $id $link $state}]} {
@@ -568,7 +568,7 @@ namespace eval dtn {
 	return true
     }
 
-    proc wait_for_link_stat {id link val stat_type {timeout 30000}} {
+    proc wait_for_link_stat {id link val stat_type {timeout 30}} {
 	do_until "wait for node $id's link $link stat $stat_type = $val" \
 		$timeout {
 	    if {[test_link_stats $id $link $val $stat_type]} {
@@ -580,7 +580,7 @@ namespace eval dtn {
 
     # separate procedure because this one requires an explicit list
     # argument to allow for optional timeout argument
-    proc wait_for_link_stats {id link stat_list {timeout 30000}} {
+    proc wait_for_link_stats {id link stat_list {timeout 30}} {
         do_until "wait for node $id's link $link stats $stat_list" $timeout {
             set ok 1
             foreach {val stat_type} $stat_list {
@@ -600,7 +600,7 @@ namespace eval dtn {
 
     # utility function to wait until no bundles are queued for
     # transmission or in flight
-    proc wait_for_stats_on_all_links {id stat_list {timeout 30000}} {
+    proc wait_for_stats_on_all_links {id stat_list {timeout 30}} {
         do_until "wait_for_stats_on_all_links $id $stat_list" $timeout {
             if {$id == "*"} {
                 set ids [net::nodelist]
@@ -614,7 +614,7 @@ namespace eval dtn {
             if [catch {
                 foreach id $ids {
                     foreach l [tell_dtnd $id link names] {
-                        wait_for_link_stats $id $l $stat_list 1000
+                        wait_for_link_stats $id $l $stat_list 1
                     }
                 }
             } err] {
@@ -668,7 +668,7 @@ namespace eval dtn {
         }
     }
 
-    proc wait_for_route {id dest link params {timeout 30000}} {
+    proc wait_for_route {id dest link params {timeout 30}} {
         do_until "wait for node $id's route to $dest: link $link $params" \
                 $timeout {
             if {[test_route $id $dest $link $params ]} {
