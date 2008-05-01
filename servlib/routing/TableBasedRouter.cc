@@ -1130,6 +1130,7 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
                               "forwarding %s bundle to upstream registration",
                               Session::flag_str(bundle->session_flags()));
                     upstream.reg()->session_notify_list()->push_back(bundle);
+                    should_route = false;
                 }
                 else
                 {
