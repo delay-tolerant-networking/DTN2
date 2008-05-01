@@ -529,6 +529,22 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  source_str, bundle, event->prevhop_.c_str(), event->bytes_received_);
     }
     
+    // log the reception in the bundle's forwarding log
+    if (event->source_ == EVENTSRC_PEER)
+    {
+        bundle->fwdlog()->add_entry(event->link_,
+                                    ForwardingInfo::FORWARD_ACTION,
+                                    ForwardingInfo::RECEIVED);
+    }
+    else if (event->source_ == EVENTSRC_APP)
+    {
+        if (event->registration_ != NULL) {
+            bundle->fwdlog()->add_entry(event->registration_,
+                                        ForwardingInfo::FORWARD_ACTION,
+                                        ForwardingInfo::RECEIVED);
+        }
+    }
+
     // log a warning if the bundle doesn't have any expiration time or
     // has a creation time that's in the future. in either case, we
     // proceed as normal
@@ -2056,16 +2072,14 @@ void
 BundleDaemon::event_handlers_completed(BundleEvent* event)
 {
     /**
-     * Once bundle transmission or delivery has been processed by the
-     * router, check to see if it's still needed, otherwise we delete
-     * it.
-     * 
-     * XXX/demmer we might want to add reception here too, although
-     * then the router would need to mark the bundles that it still
-     * needs to route.
+     * Once bundle reception, transmission or delivery has been
+     * processed by the router, check to see if it's still needed,
+     * otherwise we delete it.
      */
     BundleRef bundle("BundleDaemon::event_handlers_completed");
-    if (event->type_ == BUNDLE_TRANSMITTED) {
+    if (event->type_ == BUNDLE_RECEIVED) {
+        bundle = ((BundleReceivedEvent*)event)->bundleref_;
+    } else if (event->type_ == BUNDLE_TRANSMITTED) {
         bundle = ((BundleTransmittedEvent*)event)->bundleref_;
     } else if (event->type_ == BUNDLE_DELIVERED) {
         bundle = ((BundleTransmittedEvent*)event)->bundleref_;
