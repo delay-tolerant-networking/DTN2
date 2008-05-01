@@ -163,8 +163,9 @@ ForwardingLog::get_count(const EndpointID& eid,
     Log::const_iterator iter;
     for (iter = log_.begin(); iter != log_.end(); ++iter)
     {
-        if (eid == iter->remote_eid() &&
-            (iter->state()  & states) != 0 &&
+        if ((iter->remote_eid() == EndpointIDPattern::WILDCARD_EID() ||
+             iter->remote_eid() == eid) &&
+            (iter->state()  & states)  != 0 &&
             (iter->action() & actions) != 0)
         {
             ++ret;
