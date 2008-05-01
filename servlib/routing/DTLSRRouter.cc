@@ -733,6 +733,17 @@ DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
     if (! update_current_lsa(a, bundle, lsa->seqno_)) {
         return; // stale lsa
     }
+
+    // don't send the LSA back where we got it from
+    ForwardingInfo info;
+    if (bundle->fwdlog()->get_latest_entry(ForwardingInfo::RECEIVED, &info))
+    {
+        log_debug("handle_lsa: suppressing transmission back to %s",
+                  info.remote_eid().c_str());
+        bundle->fwdlog()->add_entry(info.remote_eid(),
+                                    ForwardingInfo::FORWARD_ACTION,
+                                    ForwardingInfo::SUPPRESSED);
+    }
     
     // XXX/demmer here we should drop all the links that aren't
     // present in the LSA...
