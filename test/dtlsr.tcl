@@ -80,6 +80,13 @@ test::script {
     dtn::wait_for_route 4 dtn://host-2/* $cl-link:4-3 {}
     dtn::wait_for_route 4 dtn://host-3/* $cl-link:4-3 {}
 
+    testlog "Sanity checking stats"
+    dtn::check_bundle_stats 0 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 1 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 2 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 3 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 4 {5 pending 0 expired 0 duplicate}
+
     testlog "Closing links, making sure routes stay"
     tell_dtnd 0 link close $cl-link:0-1
     tell_dtnd 0 link close $cl-link:0-3
