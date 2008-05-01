@@ -2071,6 +2071,8 @@ BundleDaemon::handle_status_request(StatusRequest* request)
 void
 BundleDaemon::event_handlers_completed(BundleEvent* event)
 {
+    log_debug("event handlers completed for (%p) %s", event, event->type_str());
+    
     /**
      * Once bundle reception, transmission or delivery has been
      * processed by the router, check to see if it's still needed,
