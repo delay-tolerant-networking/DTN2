@@ -790,6 +790,13 @@ TableBasedRouter::sort_routes(Bundle* bundle, RouteEntryVec* routes)
 void
 TableBasedRouter::check_next_hop(const LinkRef& next_hop)
 {
+    // if the link isn't available, then we don't do anything
+    if (! next_hop->isavailable()) {
+        log_debug("check_next_hop %s -> %s: link not available...",
+                  next_hop->name(), next_hop->nexthop());
+        return;
+    }
+    
     // if the link queue doesn't have space (based on the low water
     // mark) don't do anything
     if (! next_hop->queue_has_space()) {
