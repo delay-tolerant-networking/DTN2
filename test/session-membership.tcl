@@ -126,11 +126,11 @@ test::script {
     dtn::wait_for_route 4 dtn://host-3/* $cl-link:4-2 {}
 
     testlog "sanity checking stats"
-    dtn::check_bundle_stats 0 {5 pending 0 duplicate}
-    dtn::check_bundle_stats 1 {5 pending 0 duplicate}
-    dtn::check_bundle_stats 2 {5 pending 0 duplicate}
-    dtn::check_bundle_stats 3 {5 pending 0 duplicate}
-    dtn::check_bundle_stats 4 {5 pending 0 duplicate}
+    dtn::check_bundle_stats 0 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 1 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 2 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 3 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 4 {5 pending 0 expired 0 duplicate}
 
     testlog "creating custodian registration on node 1"
     set custodian_regid [tell_dtntest 1 dtn_register $h1 \
@@ -176,11 +176,11 @@ test::script {
     dtn::wait_for_bundle_stats 3 {6 pending}
 
     testlog "sanity checking stats"
-    dtn::check_bundle_stats 0 {6 pending 0 duplicate}
-    dtn::check_bundle_stats 1 {6 pending 0 duplicate}
-    dtn::check_bundle_stats 2 {5 pending 0 duplicate}
-    dtn::check_bundle_stats 3 {6 pending 0 duplicate}
-    dtn::check_bundle_stats 4 {5 pending 0 duplicate}
+    dtn::check_bundle_stats 0 {6 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 1 {6 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 2 {5 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 3 {6 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 4 {5 pending 0 expired 0 duplicate}
 
     testlog "subscribing at node 4"
     set subscriber_4 [tell_dtntest 4 dtn_register $h4 \
@@ -203,11 +203,11 @@ test::script {
     dtn::wait_for_bundle_stats 4 {6 pending}
     
     testlog "sanity checking stats"
-    dtn::check_bundle_stats 0 {6 pending 0 duplicate}
-    dtn::check_bundle_stats 1 {6 pending 0 duplicate}
-    dtn::check_bundle_stats 2 {6 pending 0 duplicate}
-    dtn::check_bundle_stats 3 {6 pending 0 duplicate}
-    dtn::check_bundle_stats 4 {6 pending 0 duplicate}
+    dtn::check_bundle_stats 0 {6 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 1 {6 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 2 {6 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 3 {6 pending 0 expired 0 duplicate}
+    dtn::check_bundle_stats 4 {6 pending 0 expired 0 duplicate}
 
     testlog "sending a non-obsoleting bundle"
     tell_dtntest 0 dtn_send $h0 regid=$publisher_0 \
