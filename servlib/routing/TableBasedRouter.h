@@ -76,10 +76,13 @@ protected:
     /// @{ Session management helper functions
     Session* get_session_for_bundle(Bundle* bundle);
     bool add_bundle_to_session(Bundle* bundle, Session* session);
-    bool subscribe_to_session(Session* session);
+    bool subscribe_to_session(int action, Session* session);
+    
     bool find_session_upstream(Session* session);
-    void handle_session_bundle(BundleReceivedEvent* event);
-    void add_subscriber(Session* session, const EndpointID& peer);
+    bool handle_session_bundle(BundleReceivedEvent* event);
+    void add_subscriber(Session*          session,
+                        const EndpointID& peer,
+                        const SequenceID& known_seqid);
     /// @}
 
     /**
@@ -249,6 +252,16 @@ protected:
 
     /// Helper accessor to return the deferred queue for a link
     DeferredList* deferred_list(const LinkRef& link);
+
+    /// Timer class used to periodically refresh subscriptions
+    class ResubscribeTimer : public oasys::Timer {
+    public:
+        ResubscribeTimer(TableBasedRouter* router, Session* session);
+        virtual void timeout(const struct timeval& now);
+
+        TableBasedRouter* router_;
+        Session*          session_;
+    };
 };
 
 } // namespace dtn

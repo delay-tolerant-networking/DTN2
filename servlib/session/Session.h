@@ -26,6 +26,10 @@
 #include "naming/EndpointID.h"
 #include "routing/RouteEntry.h"
 
+namespace oasys {
+class Timer;
+}
+
 namespace dtn {
 
 /**
@@ -36,16 +40,20 @@ class Session : public oasys::Formatter,
                 public RouteEntryInfo
 {
 public:
+    class ResubscribeTimer;
+    
     /**
-     * Type for session-related flags.
+     * Type for session-related flags. XXX/demmer should split these
+     * into two enums.
      */
     typedef enum {
-        NONE        = 0,
-        SUBSCRIBE   = 1<<1,
-        RESUBSCRIBE = 1<<2,
-        UNSUBSCRIBE = 1<<3,
-        PUBLISH     = 1<<4,
-        CUSTODY     = 1<<5
+        NONE             = 0,
+        SUBSCRIBE        = 1<<1,
+        RESUBSCRIBE      = 1<<2,
+        UNSUBSCRIBE      = 1<<3,
+        SUBSCRIPTION_ACK = 1<<4,
+        PUBLISH          = 1<<5,
+        CUSTODY          = 1<<6
     } flags_t;
 
     /**
@@ -61,13 +69,15 @@ public:
 
     void set_upstream(const Subscriber& subscriber);
     void add_subscriber(const Subscriber& subscriber);
-
+    void set_resubscribe_timer(oasys::Timer* t) { resubscribe_timer_ = t; }
+    
     u_int32_t             id()              const { return id_; }
     const EndpointID&     eid()             const { return eid_;}
     const Subscriber&     upstream()        const { return upstream_; }
     const SubscriberList& subscribers()     const { return subscribers_; }
     BundleList*           bundles()               { return &bundles_; }
     SequenceID*           sequence_id()           { return &sequence_id_; }
+    oasys::Timer*         resubscribe_timer()     { return resubscribe_timer_; }
 
 protected:
     u_int32_t  id_;              ///< Unique session id (for logging)
@@ -76,6 +86,7 @@ protected:
     SubscriberList subscribers_; ///< Local + downstream subscribers
     BundleList bundles_;         ///< Currently-resident session bundles
     SequenceID sequence_id_;     ///< SequenceID that covers all bundles
+    oasys::Timer* resubscribe_timer_; ///< Timer to re-send subscribe message
 };
 
 } // namespace dtn
