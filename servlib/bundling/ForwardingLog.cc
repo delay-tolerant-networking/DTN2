@@ -109,6 +109,26 @@ ForwardingLog::get_latest_entry(const Registration* reg) const
 }
 
 //----------------------------------------------------------------------
+bool
+ForwardingLog::get_latest_entry(state_t state, ForwardingInfo* info) const
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::get_latest_state");
+
+    // iterate backwards through the vector to get the latest entry
+    Log::const_reverse_iterator iter;
+    for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
+    {
+        if (iter->state() == state)
+        {
+            *info = *iter;
+            return true;
+        }
+    }
+    
+    return false;
+}
+    
+//----------------------------------------------------------------------
 size_t
 ForwardingLog::get_count(unsigned int states,
                          unsigned int actions) const
@@ -189,6 +209,16 @@ ForwardingLog::add_entry(const LinkRef& link,
     
     log_.push_back(ForwardingInfo(state, action, link->name_str(), 0xffffffff,
                                   link->remote_eid(), custody_timer));
+}
+
+//----------------------------------------------------------------------
+void
+ForwardingLog::add_entry(const LinkRef& link,
+                         ForwardingInfo::action_t action,
+                         state_t state)
+{
+    CustodyTimerSpec default_spec;
+    add_entry(link, action, state, default_spec);
 }
 
 //----------------------------------------------------------------------
