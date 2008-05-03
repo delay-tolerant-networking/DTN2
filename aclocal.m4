@@ -464,7 +464,7 @@ dnl
 dnl Main macro for finding a usable db installation 
 dnl
 AC_DEFUN(AC_CONFIG_DB, [
-    ac_dbvers='4.5 4.4 4.3 4.2'
+    ac_dbvers='4.5 4.4 4.3 4.2 4.1'
     ac_dbdir='yes'
 
     AC_ARG_WITH(db,
@@ -1253,27 +1253,6 @@ AC_DEFUN(AC_OASYS_CONFIG_GCC_OPTS, [
 	 	       [additional options to pass to the linker]),
                        EXTRA_LDFLAGS=$withval)
     AC_SUBST(EXTRA_LDFLAGS)
-
-    AC_CACHE_CHECK([whether gcc accepts -Wno-long-double (Apple OSX only)],
-	           oasys_cv_prog_gcc_w_no_long_double, [
-        CPPFLAGS="$CPPFLAGS -Wno-long-double"
-	AC_LINK_IFELSE(
-	  AC_LANG_PROGRAM(
-	    [],
-            [/* nothing */]
-	  ),
-          [ 
-              oasys_cv_prog_gcc_w_no_long_double=yes
-          ],
-          [
-              oasys_cv_prog_gcc_w_no_long_double=no
-          ])
-        CPPFLAGS=$CPPFLAGS_save
-    ])
-
-    if test $oasys_cv_prog_gcc_w_no_long_double = yes ; then
-        CPPFLAGS="$CPPFLAGS -Wno-long-double"
-    fi
 ])
 
 dnl
