@@ -60,7 +60,7 @@ AC_DEFUN(AC_CONFIG_EXTERNAL_DP, [
     dnl
     dnl First make sure we even want it
     dnl
-    AC_MSG_CHECKING(whether to enable external convergence layer support)
+    AC_MSG_CHECKING(whether to enable external decision plane support)
     if test "$ac_edp" = no; then
         AC_MSG_RESULT(no)
         EXTERNAL_DP_ENABLED=0
@@ -69,7 +69,7 @@ AC_DEFUN(AC_CONFIG_EXTERNAL_DP, [
 
         AC_OASYS_SUPPORTS(XERCES_C_ENABLED)
 	if test $ac_oasys_supports_result != yes ; then
-	    AC_MSG_ERROR([external convergence layer support requires xerces... install it or configure --disable-ecl])
+	    AC_MSG_ERROR([external decision plane support requires xerces... install it or configure --disable-edp])
 	fi
 
         AC_DEFINE_UNQUOTED(EXTERNAL_DP_ENABLED, 1, [whether external decision plane support is enabled])

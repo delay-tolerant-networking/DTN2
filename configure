@@ -5014,8 +5014,8 @@ if test "${enable_edp+set}" = set; then
   enableval=$enable_edp; ac_edp=$enableval
 fi
 
-                { echo "$as_me:$LINENO: checking whether to enable external convergence layer support" >&5
-echo $ECHO_N "checking whether to enable external convergence layer support... $ECHO_C" >&6; }
+                { echo "$as_me:$LINENO: checking whether to enable external decision plane support" >&5
+echo $ECHO_N "checking whether to enable external decision plane support... $ECHO_C" >&6; }
     if test "$ac_edp" = no; then
         { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
@@ -5094,8 +5094,8 @@ echo "${ECHO_T}$ac_oasys_supports_result" >&6; }
     fi
 
 	if test $ac_oasys_supports_result != yes ; then
-	    { { echo "$as_me:$LINENO: error: external convergence layer support requires xerces... install it or configure --disable-ecl" >&5
-echo "$as_me: error: external convergence layer support requires xerces... install it or configure --disable-ecl" >&2;}
+	    { { echo "$as_me:$LINENO: error: external decision plane support requires xerces... install it or configure --disable-edp" >&5
+echo "$as_me: error: external decision plane support requires xerces... install it or configure --disable-edp" >&2;}
    { (exit 1); exit 1; }; }
 	fi
 
