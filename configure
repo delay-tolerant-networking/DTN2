@@ -3933,71 +3933,6 @@ fi
 
 
 
-    { echo "$as_me:$LINENO: checking whether gcc accepts -Wno-long-double (Apple OSX only)" >&5
-echo $ECHO_N "checking whether gcc accepts -Wno-long-double (Apple OSX only)... $ECHO_C" >&6; }
-if test "${oasys_cv_prog_gcc_w_no_long_double+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-        CPPFLAGS="$CPPFLAGS -Wno-long-double"
-	cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-int
-main ()
-{
-/* nothing */
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext &&
-       $as_test_x conftest$ac_exeext; then
-
-              oasys_cv_prog_gcc_w_no_long_double=yes
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              oasys_cv_prog_gcc_w_no_long_double=no
-
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-        CPPFLAGS=$CPPFLAGS_save
-
-fi
-{ echo "$as_me:$LINENO: result: $oasys_cv_prog_gcc_w_no_long_double" >&5
-echo "${ECHO_T}$oasys_cv_prog_gcc_w_no_long_double" >&6; }
-
-    if test $oasys_cv_prog_gcc_w_no_long_double = yes ; then
-        CPPFLAGS="$CPPFLAGS -Wno-long-double"
-    fi
-
 
                     BUILD_SYSTEM=`uname -s || echo UNKNOWN | sed 's/CYGWIN.*/CYGWIN/'`
 
@@ -5079,8 +5014,8 @@ if test "${enable_edp+set}" = set; then
   enableval=$enable_edp; ac_edp=$enableval
 fi
 
-                { echo "$as_me:$LINENO: checking whether to enable external convergence layer support" >&5
-echo $ECHO_N "checking whether to enable external convergence layer support... $ECHO_C" >&6; }
+                { echo "$as_me:$LINENO: checking whether to enable external decision plane support" >&5
+echo $ECHO_N "checking whether to enable external decision plane support... $ECHO_C" >&6; }
     if test "$ac_edp" = no; then
         { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
@@ -5159,8 +5094,8 @@ echo "${ECHO_T}$ac_oasys_supports_result" >&6; }
     fi
 
 	if test $ac_oasys_supports_result != yes ; then
-	    { { echo "$as_me:$LINENO: error: external convergence layer support requires xerces... install it or configure --disable-ecl" >&5
-echo "$as_me: error: external convergence layer support requires xerces... install it or configure --disable-ecl" >&2;}
+	    { { echo "$as_me:$LINENO: error: external decision plane support requires xerces... install it or configure --disable-edp" >&5
+echo "$as_me: error: external decision plane support requires xerces... install it or configure --disable-edp" >&2;}
    { (exit 1); exit 1; }; }
 	fi
 

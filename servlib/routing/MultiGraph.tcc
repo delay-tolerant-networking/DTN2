@@ -399,7 +399,7 @@ inline int
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::NodeVector::format(char* buf, size_t sz) const
 {
-    typename oasys::StringAppender sa(buf, sz);
+    oasys::StringAppender sa(buf, sz);
     typename NodeVector::const_iterator i;
     for (i = this->begin(); i != this->end(); ++i)
     {
@@ -416,7 +416,7 @@ inline int
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::EdgeVector::format(char* buf, size_t sz) const
 {
-    typename oasys::StringAppender sa(buf, sz);
+    oasys::StringAppender sa(buf, sz);
     typename EdgeVector::const_iterator i;
     for (i = this->begin(); i != this->end(); ++i)
     {

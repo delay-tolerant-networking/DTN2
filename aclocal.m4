@@ -60,7 +60,7 @@ AC_DEFUN(AC_CONFIG_EXTERNAL_DP, [
     dnl
     dnl First make sure we even want it
     dnl
-    AC_MSG_CHECKING(whether to enable external convergence layer support)
+    AC_MSG_CHECKING(whether to enable external decision plane support)
     if test "$ac_edp" = no; then
         AC_MSG_RESULT(no)
         EXTERNAL_DP_ENABLED=0
@@ -69,7 +69,7 @@ AC_DEFUN(AC_CONFIG_EXTERNAL_DP, [
 
         AC_OASYS_SUPPORTS(XERCES_C_ENABLED)
 	if test $ac_oasys_supports_result != yes ; then
-	    AC_MSG_ERROR([external convergence layer support requires xerces... install it or configure --disable-ecl])
+	    AC_MSG_ERROR([external decision plane support requires xerces... install it or configure --disable-edp])
 	fi
 
         AC_DEFINE_UNQUOTED(EXTERNAL_DP_ENABLED, 1, [whether external decision plane support is enabled])
@@ -464,7 +464,7 @@ dnl
 dnl Main macro for finding a usable db installation 
 dnl
 AC_DEFUN(AC_CONFIG_DB, [
-    ac_dbvers='4.5 4.4 4.3 4.2'
+    ac_dbvers='4.5 4.4 4.3 4.2 4.1'
     ac_dbdir='yes'
 
     AC_ARG_WITH(db,
@@ -1253,27 +1253,6 @@ AC_DEFUN(AC_OASYS_CONFIG_GCC_OPTS, [
 	 	       [additional options to pass to the linker]),
                        EXTRA_LDFLAGS=$withval)
     AC_SUBST(EXTRA_LDFLAGS)
-
-    AC_CACHE_CHECK([whether gcc accepts -Wno-long-double (Apple OSX only)],
-	           oasys_cv_prog_gcc_w_no_long_double, [
-        CPPFLAGS="$CPPFLAGS -Wno-long-double"
-	AC_LINK_IFELSE(
-	  AC_LANG_PROGRAM(
-	    [],
-            [/* nothing */]
-	  ),
-          [ 
-              oasys_cv_prog_gcc_w_no_long_double=yes
-          ],
-          [
-              oasys_cv_prog_gcc_w_no_long_double=no
-          ])
-        CPPFLAGS=$CPPFLAGS_save
-    ])
-
-    if test $oasys_cv_prog_gcc_w_no_long_double = yes ; then
-        CPPFLAGS="$CPPFLAGS -Wno-long-double"
-    fi
 ])
 
 dnl
