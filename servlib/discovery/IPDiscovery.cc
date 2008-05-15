@@ -78,23 +78,26 @@ IPDiscovery::configure(int argc, const char* argv[])
         return false;
     }
 
-    // Assume everything is broadcast unless unicast flag is set
-    // or if multicast address is set
-    if (! unicast)
+    socket_.set_remote_addr(remote_addr_);
+
+    // Assume everything is broadcast unless unicast flag is set or if
+    // the remote address is a multicast address
+    static in_addr_t mcast_mask = inet_addr("224.0.0.0");
+    if (unicast)
     {
-        socket_.set_remote_addr(remote_addr_);
-        in_addr_t mcast_addr = inet_addr("224.0.0.0");
-        // infer multicast option from remote address
-        if ((mcast_addr & remote_addr_) == mcast_addr)
-        {
-            socket_.params_.multicast_ = true;
-            socket_.params_.mcast_ttl_ = mcast_ttl_;
-        }
-        // everything else is assumed broadcast
-        else
-        {
-            socket_.params_.broadcast_ = true;
-        }
+        log_debug("configuring unicast socket for address %s", intoa(remote_addr_));
+    }
+    else if ((remote_addr_ == 0xffffffff) ||
+             ((remote_addr_ & mcast_mask) != mcast_mask))
+    {
+        log_debug("configuring broadcast socket for address %s", intoa(remote_addr_));
+        socket_.params_.broadcast_ = true;
+    }
+    else
+    {
+        log_debug("configuring multicast socket for address %s", intoa(remote_addr_));
+        socket_.params_.multicast_ = true;
+        socket_.params_.mcast_ttl_ = mcast_ttl_;
     }
 
     // allow new announce registration to upset poll() in run() below
