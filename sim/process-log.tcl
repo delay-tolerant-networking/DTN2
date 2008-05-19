@@ -84,8 +84,8 @@ foreach key [lsort [array names counts]] {
     }
     incr total($what) $counts($key)
 
-    if [info exists delay($node,$source,$dest)] {
-        incr total(delay) $delay($node,$source,$dest)
+    if [info exists delays($node,$source,$dest)] {
+        incr total(delay) $delays($node,$source,$dest)
     }
 }
 
