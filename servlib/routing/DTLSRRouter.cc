@@ -540,7 +540,6 @@ DTLSRRouter::recompute_routes()
             continue;
         }
 
-        // XXX/demmer the node info should store a list of eids
         EndpointIDPattern dest_eid(dest->id());
         dest_eid.append_service_tag("*");
         ASSERT(dest_eid.valid());

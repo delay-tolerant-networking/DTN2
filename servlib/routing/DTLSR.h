@@ -95,7 +95,6 @@ public:
 
         u_int32_t        seqno_; ///< Strictly increasing sequence
                                  ///  number for this source
-        EndpointIDVector eids_;  ///< Reachable endpoints at the node
         LinkStateVec     links_; ///< Vector of link states
     };
 
