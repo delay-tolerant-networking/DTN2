@@ -875,7 +875,7 @@ DTLSRRouter::schedule_lsa()
         return;
     }
 
-    u_int elapsed = (oasys::Time::now() - last_lsa_transmit_).in_seconds();
+    u_int elapsed = (oasys::Time::now() - last_lsa_transmit_).sec_;
     if (elapsed > config()->min_lsa_interval_)
     {
         log_debug("schedule_lsa: %u seconds since last LSA transmission, "
