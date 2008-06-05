@@ -51,7 +51,7 @@ else:
     print "created new registration -- id regid";
 
 print "sending a bundle in memory...";
-id = dtn_send(h, src, dst, "dtn:none", COS_NORMAL,
+id = dtn_send(h, regid, src, dst, "dtn:none", COS_NORMAL,
 	      0, 30, DTN_PAYLOAD_MEM, "test payload");
 
 print "bundle id: ", id;
@@ -86,7 +86,7 @@ else:
     print "  ", dtn_strerror(dtn_errno(h));
 
 print "testing expiration status report"
-id = dtn_send(h, src, "dtn://somewhere_over_the_rainbow",
+id = dtn_send(h, regid, src, "dtn://somewhere_over_the_rainbow",
               dst, COS_NORMAL,
 	      DOPTS_DELETE_RCPT, 2, DTN_PAYLOAD_MEM, "test payload");
 

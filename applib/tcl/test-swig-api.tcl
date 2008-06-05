@@ -18,7 +18,7 @@
 # SWIG exported dtn api example in tcl
 #
 
-load libdtntcl[info sharedlibextension] dtn
+load libdtntcl[info sharedlibextension] dtnapi
 
 set h [dtn_open]
 if {$h == -1} {
@@ -41,7 +41,7 @@ if {$regid != -1} {
 }
 
 puts "sending a bundle in memory..."
-set id [dtn_send $h $src $dst dtn:none $COS_NORMAL 0 30 $DTN_PAYLOAD_MEM "test payload"]
+set id [dtn_send $h $regid $src $dst dtn:none $COS_NORMAL 0 30 $DTN_PAYLOAD_MEM "test payload"]
 
 puts "bundle id:"
 puts "  source: [dtn_bundle_id_source_get $id]"
