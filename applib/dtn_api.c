@@ -357,6 +357,7 @@ dtn_unbind(dtn_handle_t h, dtn_reg_id_t regid)
 //----------------------------------------------------------------------
 int
 dtn_send(dtn_handle_t h,
+         dtn_reg_id_t regid,
          dtn_bundle_spec_t* spec,
          dtn_bundle_payload_t* payload,
          dtn_bundle_id_t* id)
@@ -372,7 +373,8 @@ dtn_send(dtn_handle_t h,
     }
 
     // pack the arguments
-    if ((!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
+    if ((!xdr_dtn_reg_id_t(xdr_encode, &regid)) ||
+        (!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
         (!xdr_dtn_bundle_payload_t(xdr_encode, payload))) {
         handle->err = DTN_EXDR;
         return -1;
@@ -535,6 +537,57 @@ dtn_recv(dtn_handle_t h,
         return -1;
     }
     
+    return 0;
+}
+
+//----------------------------------------------------------------------
+int
+dtn_session_update(dtn_handle_t       h,
+                   unsigned int*      status,
+                   dtn_endpoint_id_t* session,
+                   dtn_timeval_t      timeout)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
+
+    if (handle->in_poll) {
+        handle->in_poll = 0;
+        
+        int poll_status = 0;
+        if (dtnipc_recv(handle, &poll_status) != 0) {
+            return -1;
+        }
+        
+        if (poll_status != DTN_SUCCESS) {
+            handle->err = poll_status;
+            return -1;
+        }
+    }
+    
+    // pack the arguments
+    if ((!xdr_dtn_timeval_t(xdr_encode, &timeout)))
+    {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send_recv(handle, DTN_SESSION_UPDATE) < 0) {
+        return -1;
+    }
+
+    memset(status, 0, sizeof(*status));
+    memset(session, 0, sizeof(*session));
+    
+    // unpack the status / session
+    if (!xdr_u_int(xdr_decode, status) ||
+        !xdr_dtn_endpoint_id_t(xdr_decode, session))
+    {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
     return 0;
 }
 

@@ -109,6 +109,26 @@ ForwardingLog::get_latest_entry(const Registration* reg) const
 }
 
 //----------------------------------------------------------------------
+bool
+ForwardingLog::get_latest_entry(state_t state, ForwardingInfo* info) const
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::get_latest_state");
+
+    // iterate backwards through the vector to get the latest entry
+    Log::const_reverse_iterator iter;
+    for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
+    {
+        if (iter->state() == state)
+        {
+            *info = *iter;
+            return true;
+        }
+    }
+    
+    return false;
+}
+    
+//----------------------------------------------------------------------
 size_t
 ForwardingLog::get_count(unsigned int states,
                          unsigned int actions) const
@@ -143,8 +163,9 @@ ForwardingLog::get_count(const EndpointID& eid,
     Log::const_iterator iter;
     for (iter = log_.begin(); iter != log_.end(); ++iter)
     {
-        if (eid == iter->remote_eid() &&
-            (iter->state()  & states) != 0 &&
+        if ((iter->remote_eid() == EndpointIDPattern::WILDCARD_EID() ||
+             iter->remote_eid() == eid) &&
+            (iter->state()  & states)  != 0 &&
             (iter->action() & actions) != 0)
         {
             ++ret;
@@ -193,6 +214,16 @@ ForwardingLog::add_entry(const LinkRef& link,
 
 //----------------------------------------------------------------------
 void
+ForwardingLog::add_entry(const LinkRef& link,
+                         ForwardingInfo::action_t action,
+                         state_t state)
+{
+    CustodyTimerSpec default_spec;
+    add_entry(link, action, state, default_spec);
+}
+
+//----------------------------------------------------------------------
+void
 ForwardingLog::add_entry(const Registration* reg,
                          ForwardingInfo::action_t action,
                          state_t state)
@@ -204,6 +235,21 @@ ForwardingLog::add_entry(const Registration* reg,
     
     log_.push_back(ForwardingInfo(state, action, name.c_str(), reg->regid(),
                                   reg->endpoint(), spec));
+}
+
+//----------------------------------------------------------------------
+void
+ForwardingLog::add_entry(const EndpointID&        eid,
+                         ForwardingInfo::action_t action,
+                         state_t                  state)
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
+
+    oasys::StringBuffer name("eid-%s", eid.c_str());
+    CustodyTimerSpec custody_timer;
+    
+    log_.push_back(ForwardingInfo(state, action, name.c_str(), 0xffffffff,
+                                  eid, custody_timer));
 }
 
 //----------------------------------------------------------------------

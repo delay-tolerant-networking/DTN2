@@ -19,19 +19,28 @@
 # SWIG exported dtn api example in perl
 #
 
+import sys
 from dtnapi import *;
+from select import select
 
 h = dtn_open();
 if (h == -1):
     print "error in dtn_open";
-    exit(1);
+    sys.exit(1);
 
 print "handle is", h;
+
+print "creating a registration for a random eid string"
+regid = dtn_register(h, "dtn://foo/bar/baz", DTN_REG_DROP, 0, 0, "");
+print "created new registration -- id %d" % regid;
+
+print "unbinding registration "
+dtn_unbind(h, regid)
 
 src = dtn_build_local_eid(h, "src");
 dst = dtn_build_local_eid(h, "dst");
 
-print "src is", src, "dst is, dst";
+print "src is", src, "dst is", dst;
 
 regid = dtn_find_registration(h, dst);
 if (regid != -1):
@@ -40,7 +49,6 @@ if (regid != -1):
 else:
     regid = dtn_register(h, dst, DTN_REG_DROP, 10, 0, "");
     print "created new registration -- id regid";
-
 
 print "sending a bundle in memory...";
 id = dtn_send(h, src, dst, "dtn:none", COS_NORMAL,
@@ -77,8 +85,41 @@ if (bundle or (dtn_errno(h) != DTN_ETIMEOUT)):
 else:
     print "  ", dtn_strerror(dtn_errno(h));
 
+print "testing expiration status report"
+id = dtn_send(h, src, "dtn://somewhere_over_the_rainbow",
+              dst, COS_NORMAL,
+	      DOPTS_DELETE_RCPT, 2, DTN_PAYLOAD_MEM, "test payload");
+
+bundle = dtn_recv(h, DTN_PAYLOAD_MEM, 10000);
+if not bundle:
+    print "error: expected to receive deletion status report"
+    sys.exit(1)
+    
+print dtn_status_report_reason_to_str(bundle.status_report.reason)
+
+print "testing poll"
+fd = dtn_poll_fd(h)
+dtn_begin_poll(h, 5000)
+rd, wr, err = select([fd], [], [], 2)
+print "should be a poll timeout", rd, wr, err
+
+rd, wr, err = select([fd], [], [], 10)
+print "should be read ready", rd, wr, err
+
+print "should timeout twice:"
+bundle = dtn_recv(h, DTN_PAYLOAD_MEM, 0);
+if (bundle or (dtn_errno(h) != DTN_ETIMEOUT)):
+    print "  bundle is bundle, errno is", dtn_errno(h);
+else:
+    print "  ", dtn_strerror(dtn_errno(h));
+
+bundle = dtn_recv(h, DTN_PAYLOAD_MEM, 0);
+if (bundle or (dtn_errno(h) != DTN_ETIMEOUT)):
+    print "  bundle is bundle, errno is", dtn_errno(h);
+else:
+    print "  ", dtn_strerror(dtn_errno(h));
+
+dtn_cancel_poll(h)
+
 dtn_close(h);
-
-
-
 

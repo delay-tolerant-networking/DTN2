@@ -62,7 +62,7 @@ test::script {
         set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest]
         
         testlog "Waiting for bundle arrival"
-        dtn::wait_for_bundle $n "$source,$timestamp" 30000
+        dtn::wait_for_bundle $n "$source,$timestamp" 30
 
         testlog "Checking bundle data"
         dtn::check_bundle_data $n "$source,$timestamp" \
@@ -86,7 +86,7 @@ test::script {
         set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest custody]
         
         testlog "Waiting for bundle arrival"
-        dtn::wait_for_bundle $n "$source,$timestamp" 30000
+        dtn::wait_for_bundle $n "$source,$timestamp" 30
 
         testlog "Checking bundle data"
         dtn::check_bundle_data $n "$source,$timestamp" \

@@ -65,6 +65,26 @@ proc config {args} {
     dtn::config_dtntest
 }
 
+proc config_netapid {} {
+    global env
+    manifest::file $env(HOME)/work/api/src/core/netapid netapid
+    
+    foreach id [net::nodelist] {
+	set addr $net::listen_addr($id)
+	set port [dtn::get_port netapid $id]
+	
+	conf::add netapid $id [subst -nocommands {
+[core]
+addr: $addr
+port: $port
+stack: dtn
+
+[dtn]
+
+        } ]
+    }
+}
+    
 #
 # Standard manifest
 #
@@ -91,6 +111,7 @@ proc get_port {what id} {
 	udp	{ set port [expr $dtn_portbase + 2] }
 	dtntest	{ set port [expr $dtn_portbase + 3] }
 	misc	{ set port [expr $dtn_portbase + 4] }
+	netapid { set port [expr $dtn_portbase + 5] }
 	default { return -1 }
     }
 

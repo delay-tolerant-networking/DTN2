@@ -21,6 +21,7 @@
 #include "SchemeTable.h"
 #include "DTNScheme.h"
 #include "EthernetScheme.h"
+#include "SessionScheme.h"
 #include "StringScheme.h"
 #include "WildcardScheme.h"
 #include "TCAScheme.h"
@@ -40,6 +41,7 @@ SchemeTable::SchemeTable()
     table_["eth"] = EthernetScheme::instance();
 #endif
     table_["tca"] = TCAScheme::instance();
+    table_["dtn-session"] = SessionScheme::instance();
 }
 
 //----------------------------------------------------------------------

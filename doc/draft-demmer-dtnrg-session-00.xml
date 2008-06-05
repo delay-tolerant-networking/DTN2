@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+    <!ENTITY rfc2119 PUBLIC '' 
+      'http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml'>
+]>
+
+<rfc category="exp" ipr="full3978" docName="draft-irtf-dtnrg-tcp-clayer-00.txt">
+ 
+<?xml-stylesheet type="text/xsl" href="rfc2629.xslt" ?>
+
+<?rfc toc="yes"?>
+<?rfc sortrefs="yes" ?>
+<?rfc iprnotified="no"?>
+<?rfc compact="yes"?>
+
+<front>
+   <title abbrev="DTN Session Layer Protocol">
+      Delay Tolerant Networking Session Layer Protocol
+   </title>
+
+   <workgroup>Delay Tolerant Networking Research Group</workgroup>
+
+   <author initials="M.J." surname="Demmer" fullname="Michael J. Demmer">
+      <organization abbrev="UC Berkeley">
+         University of California, Berkeley
+      </organization>
+
+      <address>
+         <postal>
+            <street>Computer Science Division</street>
+            <street>445 Soda Hall</street>
+            <city>Berkeley</city>
+            <region>CA</region>
+            <code>94720-1776</code>
+            <country>US</country>
+         </postal>
+
+         <email>demmer@cs.berkeley.edu</email>
+      </address>
+   </author>
+
+   <date month="February" year="2008"/>
+
+   <abstract>
+      <t>
+         This document describes a session layer extension to the
+         Delay Tolerant Networking (DTN) Bundle Protocol.
+      </t>
+   </abstract>
+
+</front>
+
+<middle>
+
+<section title="Introduction">
+
+<t>
+   TBD
+</t>
+   
+</section> <!-- Introduction -->
+
+<section title="Requirements notation">
+   <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+      NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
+      "OPTIONAL" in this document are to be interpreted as described
+      in <xref target="RFC2119"/>.</t> </section>
+
+<section title="Security Considerations">
+<t>
+   TBD
+</t>
+
+</section>
+
+<section title="IANA Considerations">
+<t>
+   None.
+</t>
+</section>
+
+</middle>
+
+<back>
+<references>
+   <reference anchor="RFC2119">
+      <front>
+         <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+         <author initials="S." surname="Bradner" fullname="Scott Bradner">
+            <organization abbrev="Harvard University">
+               Harvard University
+            </organization>
+         </author>
+         <date month="March" year="1997"/>
+      </front>
+      <seriesInfo name="RFC" value="2119"/>
+   </reference>
+
+   <reference anchor="refs.dtnarch">
+      <front>
+         <title>Delay-Tolerant Network Architecture</title>
+         <author initials="V." surname="Cerf et al" fullname="Vinton Cerf">
+            <organization abbrev="MCI/Jet Propulsion Laboratory">
+               MCI/Jet Propulsion Laboratory
+            </organization>
+         </author>
+         <date month="April" year="2007"/>
+      </front>
+      <seriesInfo name="RFC" value="4838"/>
+   </reference>
+   
+   <reference anchor="refs.dtnimpl" target="http://www.dtnrg.org/Code"> 
+      <front>
+         <title>Delay Tolerant Networking Reference Implementation</title>
+         <author initials="" surname="DTNRG" fullname="Delay Tolerant Networking Research Group">
+         </author>
+      </front>
+   </reference>
+</references>
+</back>
+
+</rfc>

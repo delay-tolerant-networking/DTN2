@@ -77,7 +77,7 @@ proc get_link_name {cl src dst} {
 #
 # Add a link and optionally a route from a to b.
 #
-proc config_link {id peerid type cl with_routes link_args} {
+proc config_link {id peerid type cl link_args} {
     global dtn::link_names net::internal_host bluez::btaddr
     
     set peeraddr $net::internal_host($peerid)
@@ -123,8 +123,7 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 	# link to next hop in chain (except for last one) and routes
 	# to non-immediate neighbors
 	if { $id != $last } {
-	    set link [config_link $id [expr $id + 1] \
-	         $type $cl $with_routes $link_args]
+	    set link [config_link $id [expr $id + 1] $type $cl $link_args]
 
             if {$with_routes} {
                 for {set dest [expr $id + 2]} {$dest <= $last} {incr dest} {
@@ -136,8 +135,7 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 	
 	# and previous a hop in chain as well
 	if { $id != 0 } {
-	    set link [config_link $id [expr $id - 1] \
-	        $type $cl $with_routes $link_args]
+	    set link [config_link $id [expr $id - 1] $type $cl $link_args]
             
 	    if {$with_routes} {
 		for {set dest [expr $id - 2]} {$dest >= 0} {incr dest -1} {
@@ -160,8 +158,7 @@ proc config_mesh_topology {type cl with_routes {link_args ""}} {
     foreach a [net::nodelist] {
         foreach b [net::nodelist] {
             if {$a != $b} {
-                set link [config_link $a $b\
-                        $type $cl $with_routes $link_args]
+                set link [config_link $a $b $type $cl $link_args]
             }
 
             if {$with_routes} {
@@ -274,8 +271,8 @@ proc config_twolevel_topology {type cl with_routes {link_args ""}} {
  
     foreach id [net::nodelist] {
 	if { $id != 0 } {
-	    config_link 0   $id $type $cl $with_routes $link_args
-	    config_link $id 0   $type $cl $with_routes $link_args
+	    config_link 0   $id $type $cl $link_args
+	    config_link $id 0   $type $cl $link_args
 	}
     }
 }
@@ -291,32 +288,32 @@ proc config_twolevel_topology {type cl with_routes {link_args ""}} {
 proc config_diamond_topology {type cl with_routes {link_args ""}} {
     dtn::config_topology_common $with_routes
      
-    config_link 0 1 $type $cl $with_routes $link_args
-    config_link 0 2 $type $cl $with_routes $link_args
+    config_link 0 1 $type $cl $link_args
+    config_link 0 2 $type $cl $link_args
 
     if {$with_routes} {
         conf::add dtnd 0 "route add [get_eid 3]/* $cl-link:0-1"
         conf::add dtnd 0 "route add [get_eid 3]/* $cl-link:0-2"
     }
     
-    config_link 1 0 $type $cl $with_routes $link_args
-    config_link 1 3 $type $cl $with_routes $link_args
+    config_link 1 0 $type $cl $link_args
+    config_link 1 3 $type $cl $link_args
 
     if {$with_routes} {
         conf::add dtnd 1 "route add [get_eid 2]/* $cl-link:1-0"
         conf::add dtnd 1 "route add [get_eid 2]/* $cl-link:1-3"
     }
     
-    config_link 2 0 $type $cl $with_routes $link_args
-    config_link 2 3 $type $cl $with_routes $link_args
+    config_link 2 0 $type $cl $link_args
+    config_link 2 3 $type $cl $link_args
 
     if {$with_routes} {
         conf::add dtnd 2 "route add [get_eid 1]/* $cl-link:2-0"
         conf::add dtnd 2 "route add [get_eid 1]/* $cl-link:2-3"
     }
     
-    config_link 3 1 $type $cl $with_routes $link_args
-    config_link 3 2 $type $cl $with_routes $link_args
+    config_link 3 1 $type $cl $link_args
+    config_link 3 2 $type $cl $link_args
 
     if {$with_routes} {
         conf::add dtnd 3 "route add [get_eid 0]/* $cl-link:3-1"

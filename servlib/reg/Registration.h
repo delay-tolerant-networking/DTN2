@@ -39,7 +39,10 @@ class Bundle;
  *
  * Registration state is stored persistently in the database.
  */
-class Registration : public oasys::SerializableObject, public oasys::Logger {
+class Registration : public oasys::Formatter,
+                     public oasys::SerializableObject,
+                     public oasys::Logger
+{
 public:
     /**
      * Reserved registration identifiers.
@@ -76,7 +79,8 @@ public:
      */
     Registration(u_int32_t regid,
                  const EndpointIDPattern& endpoint,
-                 int action,
+                 u_int32_t failure_action,
+                 u_int32_t session_flags,
                  u_int32_t expiration,
                  const std::string& script = "");
 
@@ -95,8 +99,11 @@ public:
     const u_int32_t          durable_key()       const { return regid_; }
     const u_int32_t          regid()             const { return regid_; }
     const EndpointIDPattern& endpoint()          const { return endpoint_; } 
-    const failure_action_t   failure_action()    const {
-        return static_cast<failure_action_t>(failure_action_); }
+    failure_action_t         failure_action()    const
+    {
+        return static_cast<failure_action_t>(failure_action_);
+    }
+    const u_int32_t          session_flags()     const { return session_flags_; }
     const std::string&       script()            const { return script_; }
     const u_int32_t          expiration()        const { return expiration_; }
     const bool               active()            const { return active_; }
@@ -105,6 +112,11 @@ public:
     void set_active(bool a)  { active_ = a; }
     void set_expired(bool e) { expired_ = e; }
     //@}
+
+    /**
+     * Virtual from Formatter
+     */
+    int format(char* buf, size_t sz) const;
 
     /**
      * Virtual from SerializableObject.
@@ -139,6 +151,7 @@ protected:
     u_int32_t regid_;
     EndpointIDPattern endpoint_;
     u_int32_t failure_action_;	
+    u_int32_t session_flags_;	
     std::string script_;
     u_int32_t expiration_;
     u_int32_t creation_time_;

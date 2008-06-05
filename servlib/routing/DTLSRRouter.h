@@ -42,6 +42,8 @@ public:
     /// @{ Virtual from BundleRouter
     void initialize();
     void get_routing_state(oasys::StringBuffer* buf);
+    bool can_delete_bundle(const BundleRef& bundle);
+    void delete_bundle(const BundleRef& bundle);
     /// @}
     
     /// @{ Event handlers 
@@ -51,6 +53,7 @@ public:
     void handle_contact_down(ContactDownEvent* e);
     void handle_link_created(LinkCreatedEvent* e);
     void handle_link_deleted(LinkDeletedEvent* e);
+    void handle_registration_added(RegistrationAddedEvent* event);
     /// @}
 
 protected:
@@ -87,17 +90,19 @@ protected:
     //----------------------------------------------------------------------
     /// Class used for per-edge state in the graph (the link)
     struct EdgeInfo {
-        EdgeInfo(const std::string& id) : id_(id) {}
+        EdgeInfo(const std::string& id)
+            : id_(id), params_(), is_registration_(false) {}
         EdgeInfo(const std::string& id, const LinkParams& params)
-            : id_(id), params_(params) {}
-
+            : id_(id), params_(params), is_registration_(false) {}
+        
         bool operator==(const EdgeInfo& other) const {
             return id_ == other.id_;
         }
         
-        std::string id_;	  ///< link name
-        LinkParams  params_;	  ///< link params
-        oasys::Time last_update_; ///< last time this edge was updated
+        std::string id_;	      ///< link name
+        LinkParams  params_;	      ///< link params
+        oasys::Time last_update_;     ///< last time this edge was updated
+        bool        is_registration_; ///< whether edge is local
     };
 
     //----------------------------------------------------------------------
@@ -118,12 +123,16 @@ protected:
     };
 
     //----------------------------------------------------------------------
-    class UpdateLSATimer : public oasys::Timer {
+    class TransmitLSATimer : public oasys::Timer {
     public:
-        UpdateLSATimer(DTLSRRouter* router) : router_(router) {}
+        TransmitLSATimer(DTLSRRouter* router)
+            : router_(router), interval_(0) {}
         void timeout(const struct timeval& now);
+        void set_interval(int interval) { interval_ = interval; }
+
     protected:
         DTLSRRouter* router_;
+        int interval_;
     };
 
     /// @{ Helper functions
@@ -133,10 +142,12 @@ protected:
                              const LinkRef& link);
     bool update_current_lsa(RoutingGraph::Node* node,
                             Bundle* bundle, u_int32_t seqno);
+    void schedule_lsa();
     void send_lsa();
     void handle_lsa(Bundle* bundle, LSA* lsa);
     void handle_lsa_expired(Bundle* bundle);
     void drop_all_links(const EndpointID& source);
+    static bool is_dynamic_route(RouteEntry* entry);
     
     void remove_edge(RoutingGraph::Edge* edge);
     void adjust_uptime(RoutingGraph::Edge* edge);
@@ -158,19 +169,25 @@ protected:
     RoutingGraph::Node* local_node_;
     RoutingGraph::WeightFn* weight_fn_;
 
-    /// Bundle lists used to hold onto the most recent LSA / EIDA from
-    /// all other nodes.
+    /// Bundle lists used to hold onto the most recent LSA from all
+    /// other nodes.
     /// 
     /// XXX/demmer this would be better done using a retention
     /// constraint :)
     BundleList current_lsas_;
-    BundleList current_eidas_;
 
     /// The registration to receive lsa and eida announcements
     Reg* reg_;
 
-    /// Timer to periodically rebroadcast LSAs
-    UpdateLSATimer update_lsa_timer_;
+    /// Timer to periodically rebroadcast LSAs 
+    TransmitLSATimer periodic_lsa_timer_;
+
+    /// Timer used for a deferred LSA transmission, waiting for the
+    /// minimum interval
+    TransmitLSATimer delayed_lsa_timer_;
+
+    /// Time of the last LSA transmission
+    oasys::Time last_lsa_transmit_;
 
     /// Time of the last update of local graph
     oasys::Time last_update_;

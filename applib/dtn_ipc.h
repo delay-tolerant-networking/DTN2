@@ -45,7 +45,7 @@ extern "C" {
  * Make sure to bump this when changing any data structures, message
  * types, adding functions, etc.
  */
-#define DTN_IPC_VERSION 5
+#define DTN_IPC_VERSION 6
 
 /**
  * Default api ports. The handshake port is used for initial contact
@@ -67,9 +67,12 @@ struct dtnipc_handle {
     int sock;				///< Socket file descriptor
     int err;				///< Error code
     int in_poll;			///< Flag to register a call to poll()
+    int debug;				///< Debug flag for channel
     char buf[DTN_MAX_API_MSG];		///< send/recv buffer
     XDR xdr_encode;			///< XDR encoder
     XDR xdr_decode;			///< XDR decoder
+    unsigned int total_sent;		///< Counter for debugging
+    unsigned int total_rcvd;		///< Counter for debugging
 };
 
 typedef struct dtnipc_handle dtnipc_handle_t;
@@ -91,7 +94,8 @@ typedef enum {
     DTN_RECV			= 11,
     DTN_BEGIN_POLL		= 12,
     DTN_CANCEL_POLL		= 13,
-    DTN_CANCEL          	= 14
+    DTN_CANCEL          	= 14,
+    DTN_SESSION_UPDATE         	= 15
 } dtnapi_message_type_t;
 
 /**

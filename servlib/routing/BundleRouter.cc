@@ -42,7 +42,9 @@ BundleRouter::Config::Config()
       open_discovered_links_(true),
       default_priority_(0),
       max_route_to_chain_(10),
-      storage_quota_(0) {}
+      storage_quota_(0),
+      subscription_timeout_(600)
+{}
 
 BundleRouter::Config BundleRouter::config_;
 
@@ -134,8 +136,24 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
                       count, link->remote_eid().c_str());
             return false;
         }
-    }
 
+        // check whether transmission was suppressed. this could be
+        // coupled with the previous one but it's better to have a
+        // separate log message
+        count = bundle->fwdlog()->get_count(
+            link->remote_eid(),
+            ForwardingInfo::SUPPRESSED);
+        
+        if (count > 0)
+        {
+            log_debug("should_fwd bundle %d: "
+                      "skip %s since transmission suppressed to remote eid %s",
+                      bundle->bundleid(), link->name(),
+                      link->remote_eid().c_str());
+            return false;
+        }
+    }
+    
     // if the bundle has a a singleton destination endpoint, then
     // check if we already forwarded it or are planning to forward it
     // somewhere else. if so, we shouldn't forward it again
@@ -198,6 +216,21 @@ BundleRouter::accept_bundle(Bundle* bundle, int* errp)
     } 
 
     *errp = 0;
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+BundleRouter::can_delete_bundle(const BundleRef& bundle)
+{
+    size_t num_mappings = bundle->num_mappings();
+    if (num_mappings > 1) {
+        log_debug("can_delete_bundle(*%p): not deleting because "
+                  "bundle has %zu list mappings",
+                  bundle.object(), num_mappings);
+        return false;
+    }
+    
     return true;
 }
 

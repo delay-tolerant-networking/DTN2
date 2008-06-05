@@ -51,6 +51,9 @@ BUNDLING_SRCS := 				\
 	bundling/PreviousHopBlockProcessor.cc	\
 	bundling/PrimaryBlockProcessor.cc	\
 	bundling/SDNV.cc			\
+	bundling/SessionBlockProcessor.cc	\
+	bundling/SequenceID.cc			\
+	bundling/SequenceIDBlockProcessor.cc	\
 	bundling/UnknownBlockProcessor.cc	\
 
 CONTACT_SRCS :=					\
@@ -115,8 +118,10 @@ NAMING_SRCS :=					\
 	naming/EndpointIDOpt.cc			\
 	naming/Scheme.cc			\
 	naming/SchemeTable.cc			\
+	naming/SessionScheme.cc			\
 	naming/DTNScheme.cc			\
 	naming/EthernetScheme.cc		\
+	naming/SessionScheme.cc			\
 	naming/StringScheme.cc			\
 	naming/WildcardScheme.cc		\
 	naming/TCAScheme.cc			\
@@ -174,8 +179,12 @@ ROUTING_SRCS :=					\
 	routing/TcaControlBundle.cc             \
 	routing/TcaRouter.cc                    \
 
+SESSION_SRCS :=					\
+	session/Session.cc			\
+	session/SessionTable.cc			\
+	session/Subscriber.cc			\
+
 OLD_STORAGE_SRCS :=				\
-	storage/GlobalStore.cc			\
 	storage/PersistentStore.cc		\
 	storage/StorageConfig.cc		\
 	storage/BerkeleyDBStore.cc		\
@@ -217,6 +226,7 @@ SERVLIB_SRCS := 				\
 	$(PROPHET_SRCS) 			\
 	$(REGISTRATION_SRCS)			\
 	$(ROUTING_SRCS)				\
+	$(SESSION_SRCS)				\
 	$(STORAGE_SRCS)				\
 	$(SECURITY_SRCS)			\
 

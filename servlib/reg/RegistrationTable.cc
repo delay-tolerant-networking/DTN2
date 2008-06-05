@@ -215,16 +215,7 @@ RegistrationTable::dump(oasys::StringBuffer* buf) const
     RegistrationList::const_iterator i;
     for (i = reglist_.begin(); i != reglist_.end(); ++i)
     {
-        Registration* reg = *i;
-
-        buf->appendf("id %u: %s %s (%s%s) [expiration %d]\n",
-                     reg->regid(),
-                     reg->active() ? "active" : "passive",
-                     reg->endpoint().c_str(),
-                     Registration::failure_action_toa(reg->failure_action()),
-                     reg->failure_action() == Registration::EXEC ?
-                        reg->script().c_str() : "",
-                     reg->expiration());
+        buf->appendf("*%p\n", *i);
     }
 }
 

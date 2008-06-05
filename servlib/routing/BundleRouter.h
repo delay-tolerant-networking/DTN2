@@ -87,10 +87,15 @@ public:
         int default_priority_;
 
         /// Maximum number of route_to entries to follow for a lookup
+        /// (default 10)
         int max_route_to_chain_;
 
-        /// Storage quota for bundle payloads
+        /// Storage quota for bundle payloads (default unlimited)
         u_int64_t storage_quota_;
+
+        /// Timeout for upstream session subscriptions in seconds
+        /// (default is ten minutes)
+        u_int subscription_timeout_;
         
     } config_;
     
@@ -123,9 +128,18 @@ public:
     virtual bool accept_bundle(Bundle* bundle, int* errp);
 
     /**
-     * Synchronous indicating that the bundle is being deleted from
-     * the system and that the router should remove it from any lists
-     * where it may be queued.
+     * Synchronous probe indicating whether or not this bundle can be
+     * deleted by the system.
+     *
+     * The default implementation returns true if the bundle is queued
+     * on more than one list (i.e. the pending bundles list).
+     */
+    virtual bool can_delete_bundle(const BundleRef& bundle);
+
+    /**
+     * Synchronous call indicating that the bundle is being deleted
+     * from the system and that the router should remove it from any
+     * lists where it may be queued.
      */
     virtual void delete_bundle(const BundleRef& bundle);
     

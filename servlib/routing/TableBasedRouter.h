@@ -22,6 +22,8 @@
 #include "BundleRouter.h"
 #include "ReceptionCache.h"
 #include "RouterInfo.h"
+#include "reg/Registration.h"
+#include "session/SessionTable.h"
 
 namespace dtn {
 
@@ -65,6 +67,22 @@ protected:
     virtual void handle_link_created(LinkCreatedEvent* event);
     virtual void handle_link_deleted(LinkDeletedEvent* event);
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
+    virtual void handle_registration_added(RegistrationAddedEvent* event);
+    virtual void handle_registration_removed(RegistrationRemovedEvent* event);
+    virtual void handle_registration_expired(RegistrationExpiredEvent* event);
+    /// @}
+
+
+    /// @{ Session management helper functions
+    Session* get_session_for_bundle(Bundle* bundle);
+    bool add_bundle_to_session(Bundle* bundle, Session* session);
+    bool subscribe_to_session(int action, Session* session);
+    
+    bool find_session_upstream(Session* session);
+    bool handle_session_bundle(BundleReceivedEvent* event);
+    void add_subscriber(Session*          session,
+                        const EndpointID& peer,
+                        const SequenceID& known_seqid);
     /// @}
 
     /**
@@ -148,6 +166,11 @@ protected:
     void add_nexthop_route(const LinkRef& link);
 
     /**
+     * Hook to ask the router if the bundle can be deleted.
+     */
+    bool can_delete_bundle(const BundleRef& bundle);
+    
+    /**
      * Hook to tell the router that the bundle should be deleted.
      */
     void delete_bundle(const BundleRef& bundle);
@@ -162,6 +185,12 @@ protected:
 
     /// The routing table
     RouteTable* route_table_;
+
+    /// Session state management table
+    SessionTable sessions_;
+
+    /// Vector of session custodian registrations
+    RegistrationList session_custodians_;
 
     /// Timer class used to cancel transmission on down links after
     /// waiting for them to potentially reopen
@@ -223,6 +252,16 @@ protected:
 
     /// Helper accessor to return the deferred queue for a link
     DeferredList* deferred_list(const LinkRef& link);
+
+    /// Timer class used to periodically refresh subscriptions
+    class ResubscribeTimer : public oasys::Timer {
+    public:
+        ResubscribeTimer(TableBasedRouter* router, Session* session);
+        virtual void timeout(const struct timeval& now);
+
+        TableBasedRouter* router_;
+        Session*          session_;
+    };
 };
 
 } // namespace dtn

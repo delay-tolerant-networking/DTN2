@@ -136,14 +136,21 @@ xdr_dtn_service_tag_t (XDR *xdrs, dtn_service_tag_t *objp)
  */
 
 /**
- * Registration delivery failure actions
+ * Registration flags are a bitmask of the following:
+
+ * Delivery failure actions (exactly one must be selected):
  *     DTN_REG_DROP   - drop bundle if registration not active
  *     DTN_REG_DEFER  - spool bundle for later retrieval
  *     DTN_REG_EXEC   - exec program on bundle arrival
+ *
+ * Session flags:
+ *     DTN_SESSION_CUSTODY   - app assumes custody for the session
+ *     DTN_SESSION_PUBLISH   - creates a publication point
+ *     DTN_SESSION_SUBSCRIBE - create subscription for the session
  */
 
 bool_t
-xdr_dtn_reg_failure_action_t (XDR *xdrs, dtn_reg_failure_action_t *objp)
+xdr_dtn_reg_flags_t (XDR *xdrs, dtn_reg_flags_t *objp)
 {
 	register int32_t *buf;
 
@@ -165,7 +172,7 @@ xdr_dtn_reg_info_t (XDR *xdrs, dtn_reg_info_t *objp)
 		 return FALSE;
 	 if (!xdr_dtn_reg_id_t (xdrs, &objp->regid))
 		 return FALSE;
-	 if (!xdr_dtn_reg_failure_action_t (xdrs, &objp->failure_action))
+	 if (!xdr_u_int (xdrs, &objp->flags))
 		 return FALSE;
 	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
 		 return FALSE;
@@ -262,7 +269,26 @@ xdr_dtn_extension_block_t (XDR *xdrs, dtn_extension_block_t *objp)
 }
 
 /**
- * Bundle metadata.
+ * A Sequence ID is a vector of (EID, counter) values in the following
+ * text format:
+ *
+ *    < (EID1 counter1) (EID2 counter2) ... >
+ */
+
+bool_t
+xdr_dtn_sequence_id_t (XDR *xdrs, dtn_sequence_id_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_bytes (xdrs, (char **)&objp->data.data_val, (u_int *) &objp->data.data_len, DTN_MAX_BLOCK_LEN))
+		 return FALSE;
+	return TRUE;
+}
+
+/**
+ * Bundle metadata. The delivery_regid is ignored when sending
+ * bundles, but is filled in by the daemon with the registration
+ * id where the bundle was received.
  */
 
 bool_t
@@ -283,6 +309,12 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
 		 return FALSE;
 	 if (!xdr_dtn_timestamp_t (xdrs, &objp->creation_ts))
+		 return FALSE;
+	 if (!xdr_dtn_reg_id_t (xdrs, &objp->delivery_regid))
+		 return FALSE;
+	 if (!xdr_dtn_sequence_id_t (xdrs, &objp->sequence_id))
+		 return FALSE;
+	 if (!xdr_dtn_sequence_id_t (xdrs, &objp->obsoletes_id))
 		 return FALSE;
 	 if (!xdr_array (xdrs, (char **)&objp->blocks.blocks_val, (u_int *) &objp->blocks.blocks_len, DTN_MAX_BLOCKS,
 		sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
@@ -383,18 +415,15 @@ xdr_dtn_bundle_status_report_t (XDR *xdrs, dtn_bundle_status_report_t *objp)
  * When sending a bundle, if the location specifies that the payload
  * is in a temp file, then the daemon assumes ownership of the file
  * and should have sufficient permissions to move or rename it.
- * 
- * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
- * bundle payload that can be sent or received in memory.
- * 
+ *
  * When receiving a bundle that is a status report, then the
  * status_report pointer will be non-NULL and will point to a
  * dtn_bundle_status_report_t structure which contains the parsed fields
  * of the status report.
  *
- *     DTN_PAYLOAD_MEM		- copy contents from memory
- *     DTN_PAYLOAD_FILE	- file copy the contents of the file
- *     DTN_PAYLOAD_TEMP_FILE	- assume ownership of the file
+ *     DTN_PAYLOAD_MEM         - payload contents in memory
+ *     DTN_PAYLOAD_FILE        - payload contents in file
+ *     DTN_PAYLOAD_TEMP_FILE   - in file, assume ownership (send only)
  */
 
 bool_t

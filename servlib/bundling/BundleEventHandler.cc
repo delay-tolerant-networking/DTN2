@@ -49,10 +49,6 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_expired((BundleExpiredEvent*)e);
         break;
         
-    case BUNDLE_NOT_NEEDED:
-        handle_bundle_not_needed((BundleNotNeededEvent*)e);
-        break;
-        
     case BUNDLE_FREE:
         handle_bundle_free((BundleFreeEvent*)e);
         break;
@@ -307,14 +303,6 @@ BundleEventHandler::handle_bundle_delivered(BundleDeliveredEvent*)
  */
 void
 BundleEventHandler::handle_bundle_expired(BundleExpiredEvent*)
-{
-}
-
-/**
- * Default event handler when bundles are no longer needed.
- */
-void
-BundleEventHandler::handle_bundle_not_needed(BundleNotNeededEvent*)
 {
 }
 

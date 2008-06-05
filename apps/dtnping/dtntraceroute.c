@@ -152,7 +152,7 @@ main(int argc, const char** argv)
     // they'll go somewhere else.
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &source_eid);
-    reginfo.failure_action = DTN_REG_DROP;
+    reginfo.flags = DTN_REG_DROP;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.expiration = 0;
     if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
@@ -185,7 +185,7 @@ main(int argc, const char** argv)
                     (char*)&payload_contents, sizeof(payload_contents));
         
     memset(&bundle_id, 0, sizeof(bundle_id));
-    if ((ret = dtn_send(handle, &ping_spec, &ping_payload, &bundle_id)) != 0) {
+    if ((ret = dtn_send(handle, regid, &ping_spec, &ping_payload, &bundle_id)) != 0) {
         fprintf(stderr, "error sending bundle: %d (%s)\n",
                 ret, dtn_strerror(dtn_errno(handle)));
         exit(1);

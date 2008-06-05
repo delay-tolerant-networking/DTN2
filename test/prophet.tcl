@@ -89,7 +89,7 @@ test::script {
 
 #   Check that bundle is delivered to 0
     testlog "Waiting for bundle arrival on 0"
-    dtn::wait_for_bundle 0 "$source,$timestamp" 30000
+    dtn::wait_for_bundle 0 "$source,$timestamp" 30
     testlog "Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
          is_admin 0 source $source dest $dest

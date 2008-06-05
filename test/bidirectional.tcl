@@ -73,10 +73,10 @@ test::script {
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
     testlog " Waiting for senders / receivers to complete (up to 5 mins)"
-    run::wait_for_pid_exit 0     $sndpid1 [expr 5 * 60 * 1000]
-    run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60 * 1000]
-    run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60 * 1000]
-    run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60 * 1000]
+    run::wait_for_pid_exit 0     $sndpid1 [expr 5 * 60]
+    run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60]
+    run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60]
+    run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60]
 
     testlog " Waiting for all events to be processed"
     dtn::wait_for_daemon_stats 0 {0 pending_events}
@@ -142,10 +142,10 @@ test::script {
     }
 
     testlog " Waiting for senders / receivers to complete (up to 5 mins)"
-    run::wait_for_pid_exit 0     $sndpid1 [expr 5 * 60 * 1000]
-    run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60 * 1000]
-    run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60 * 1000]
-    run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60 * 1000]
+    run::wait_for_pid_exit 0     $sndpid1 [expr 5 * 60]
+    run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60]
+    run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60]
+    run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60]
      
     foreach node [list 0 $last] {
 	testlog " Checking bundle stats on node $node"

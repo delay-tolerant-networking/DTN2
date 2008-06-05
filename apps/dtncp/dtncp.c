@@ -127,7 +127,7 @@ main(int argc, char** argv)
     // create a new dtn registration to receive bundle status reports
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &bundle_spec.source);
-    reginfo.failure_action = DTN_REG_DEFER;
+    reginfo.flags = DTN_REG_DEFER;
     reginfo.regid = regid;
     reginfo.expiration = 0;
     if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
@@ -142,7 +142,7 @@ main(int argc, char** argv)
 
     memset(&bundle_id, 0, sizeof(bundle_id));
                 
-    if ((ret = dtn_send(handle, &bundle_spec, &send_payload,
+    if ((ret = dtn_send(handle, regid, &bundle_spec, &send_payload,
                         &bundle_id)) != 0) {
         fprintf(stderr, "error sending file bundle: %d (%s)\n",
                 ret, dtn_strerror(dtn_errno(handle)));

@@ -136,6 +136,14 @@ oasys::EnumOpt::Case FailureActionCases[] = {
     {0, 0}
 };
 
+//----------------------------------------------------------------------
+oasys::BitFlagOpt::Case SessionFlagCases[] = {
+    {"subscribe", DTN_SESSION_SUBSCRIBE},
+    {"publish",   DTN_SESSION_PUBLISH},
+    {"custody",   DTN_SESSION_CUSTODY},
+    {0, 0}
+};
+
 class DTNRegisterCommand : public oasys::TclCommand {
 public:
     oasys::OptParser parser_;
@@ -143,6 +151,7 @@ public:
     struct RegistrationOpts {
         dtn_endpoint_id_t endpoint_;
         int               failure_action_;
+        int               session_flags_;
         u_int             expiration_;
         std::string       script_;
         bool              init_passive_;
@@ -153,7 +162,8 @@ public:
     void init_opts() {
         memset(&opts_.endpoint_, 0, sizeof(opts_.endpoint_));
         opts_.failure_action_ = DTN_REG_DROP;
-        opts_.expiration_ = 0;
+        opts_.session_flags_ = 0;
+        opts_.expiration_ = 0xffffffff;
         opts_.script_ = "";
         opts_.init_passive_ = false;
     }
@@ -164,6 +174,9 @@ public:
         parser_.addopt(new oasys::EnumOpt("failure_action",
                                           FailureActionCases,
                                           &opts_.failure_action_));
+        parser_.addopt(new oasys::BitFlagOpt("session_flags",
+                                             SessionFlagCases,
+                                             &opts_.session_flags_));
         parser_.addopt(new oasys::UIntOpt("expiration", &opts_.expiration_));
         parser_.addopt(new oasys::StringOpt("script", &opts_.script_));
         parser_.addopt(new oasys::BoolOpt("init_passive",
@@ -203,7 +216,7 @@ public:
             return TCL_ERROR;
         }
         
-        if (opts_.expiration_ == 0) {
+        if (opts_.expiration_ == 0xffffffff) {
             resultf("must set expiration");
             return TCL_ERROR;
         }
@@ -212,8 +225,7 @@ public:
         memset(&reginfo, 0, sizeof(reginfo));
 
         dtn_copy_eid(&reginfo.endpoint, &opts_.endpoint_);
-        reginfo.failure_action =
-            (dtn_reg_failure_action_t)opts_.failure_action_;
+        reginfo.flags = opts_.failure_action_ | opts_.session_flags_;
         reginfo.expiration = opts_.expiration_;
         reginfo.script.script_len = opts_.script_.length();
         reginfo.script.script_val = (char*)opts_.script_.c_str();
@@ -279,6 +291,7 @@ oasys::EnumOpt::Case PriorityCases[] = {
 class DTNSendCommand : public oasys::TclCommand {
 public:
     struct SendOpts {
+        int    regid_;
         dtn_endpoint_id_t source_;
         dtn_endpoint_id_t dest_;
         dtn_endpoint_id_t replyto_;
@@ -290,6 +303,8 @@ public:
         bool   delivery_rcpt_;
         bool   deletion_rcpt_;
         u_int  expiration_;
+        std::string sequence_id_;
+        std::string obsoletes_id_;
         char   payload_data_[DTN_MAX_BUNDLE_MEM];
         size_t payload_data_len_;
         char   payload_file_[DTN_MAX_PATH_LEN];
@@ -299,19 +314,45 @@ public:
         char   block_content_[DTN_MAX_BLOCK_LEN];
         size_t block_content_len_;
     };
-
+    
     // we use a single parser and options struct for the command for
     // improved efficiency
     oasys::OptParser parser_;
     SendOpts opts_;
 
-    void init_opts() {
-        memset(&opts_, 0, sizeof(opts_));
-        opts_.expiration_ = 5 * 60;
+    void init_opts()
+    {
+        opts_.regid_ = DTN_REGID_NONE;
+        
+        memset(&opts_.source_,  0, sizeof(opts_.source_));
+        memset(&opts_.dest_,    0, sizeof(opts_.dest_));
+        memset(&opts_.replyto_, 0, sizeof(opts_.replyto_));
+        
+        opts_.priority_      = COS_NORMAL;
+        opts_.custody_xfer_  = 0;
+        opts_.receive_rcpt_  = 0;
+        opts_.custody_rcpt_  = 0;
+        opts_.forward_rcpt_  = 0;
+        opts_.delivery_rcpt_ = 0;
+        opts_.deletion_rcpt_ = 0;
+        opts_.expiration_    = 5 * 60;
+        opts_.sequence_id_   = "";
+        opts_.obsoletes_id_  = "";
+
+        memset(&opts_.payload_data_, 0, sizeof(opts_.payload_data_));
+        opts_.payload_data_len_ = 0;
+        memset(&opts_.payload_file_, 0, sizeof(opts_.payload_file_));
+        opts_.payload_file_len_ = 0;
+        
+        opts_.block_type_  = 0;
+        opts_.block_flags_ = 0;
+        memset(&opts_.block_content_, 0, sizeof(opts_.block_content_));
+        opts_.block_content_len_ = 0;
     }
 
     DTNSendCommand() : TclCommand("dtn_send")
     {
+        parser_.addopt(new oasys::IntOpt("regid", &opts_.regid_));
         parser_.addopt(new dtn::APIEndpointIDOpt("source", &opts_.source_));
         parser_.addopt(new dtn::APIEndpointIDOpt("dest", &opts_.dest_));
         parser_.addopt(new dtn::APIEndpointIDOpt("replyto", &opts_.replyto_));
@@ -331,6 +372,10 @@ public:
                                           &opts_.deletion_rcpt_));
         parser_.addopt(new oasys::UIntOpt("expiration",
                                           &opts_.expiration_));
+        parser_.addopt(new oasys::StringOpt("sequence_id",
+                                            &opts_.sequence_id_));
+        parser_.addopt(new oasys::StringOpt("obsoletes_id",
+                                            &opts_.obsoletes_id_));
         parser_.addopt(new oasys::CharBufOpt("payload_data",
                                              opts_.payload_data_,
                                              &opts_.payload_data_len_,
@@ -406,6 +451,16 @@ public:
         if (opts_.deletion_rcpt_) spec.dopts |= DOPTS_DELETE_RCPT;
         spec.expiration = opts_.expiration_;
 
+        if (opts_.sequence_id_ != "") {
+            spec.sequence_id.data.data_val = const_cast<char*>(opts_.sequence_id_.c_str());
+            spec.sequence_id.data.data_len = opts_.sequence_id_.length();
+        }
+        
+        if (opts_.obsoletes_id_ != "") {
+            spec.obsoletes_id.data.data_val = const_cast<char*>(opts_.obsoletes_id_.c_str());
+            spec.obsoletes_id.data.data_len = opts_.obsoletes_id_.length();
+        }
+        
         dtn_bundle_payload_t payload;
         memset(&payload, 0, sizeof(payload));
         if (opts_.payload_data_len_ != 0) {
@@ -434,7 +489,7 @@ public:
         dtn_bundle_id_t id;
         memset(&id, 0, sizeof(id));
         
-        int ret = dtn_send(h, &spec, &payload, &id);
+        int ret = dtn_send(h, opts_.regid_, &spec, &payload, &id);
         if (ret != DTN_SUCCESS) {
             resultf("error in dtn_send: %s",
                     dtn_strerror(dtn_errno(h)));
@@ -612,11 +667,94 @@ public:
         }
         
         dtn_free_payload(&payload);
-        resultf("source %s dest %s replyto %s creation_ts %u.%u payload_size %d",
-                spec.source.uri, spec.dest.uri, spec.replyto.uri,
-                spec.creation_ts.secs, spec.creation_ts.seqno,
-                payload_size);
+
+        Tcl_Obj* result = Tcl_NewListObj(0, NULL);
+
+#define APPEND_STRING_VAL(key, val, val_len)                                 \
+        if (Tcl_ListObjAppendElement(interp, result,                         \
+                                     Tcl_NewStringObj(key, -1)) != TCL_OK || \
+            Tcl_ListObjAppendElement(interp, result,                         \
+                                     Tcl_NewStringObj(val, val_len)) != TCL_OK)\
+        {                                                                    \
+            resultf("error appending list element");                         \
+            return TCL_ERROR;                                                \
+        }
+
+#define APPEND_INT_VAL(key, val)                                             \
+        if (Tcl_ListObjAppendElement(interp, result,                         \
+                                     Tcl_NewStringObj(key, -1)) != TCL_OK || \
+            Tcl_ListObjAppendElement(interp, result,                         \
+                                     Tcl_NewIntObj(val)) != TCL_OK)          \
+        {                                                                    \
+            resultf("error appending list element");                         \
+            return TCL_ERROR;                                                \
+        }
+
+        APPEND_STRING_VAL("source",  spec.source.uri,  -1);
+        APPEND_STRING_VAL("dest",    spec.dest.uri,    -1);
+        APPEND_STRING_VAL("replyto", spec.replyto.uri, -1);
+
+        char tmp[256];
+        snprintf(tmp, 256, "%u.%u", spec.creation_ts.secs, spec.creation_ts.seqno);
         
+        APPEND_STRING_VAL("creation_ts", tmp, -1);
+
+        APPEND_INT_VAL("payload_size", payload_size);
+
+        APPEND_STRING_VAL("sequence_id",
+                          spec.sequence_id.data.data_val,
+                          spec.sequence_id.data.data_len);
+        APPEND_STRING_VAL("obsoletes_id",
+                          spec.obsoletes_id.data.data_val,
+                          spec.obsoletes_id.data.data_len);
+        
+        set_objresult(result);
+
+        return TCL_OK;
+    }
+};
+
+//----------------------------------------------------------------------
+class DTNSessionUpdateCommand : public oasys::TclCommand {
+public:
+    DTNSessionUpdateCommand() : TclCommand("dtn_session_update")
+    {
+    }
+    
+    int exec(int argc, const char **argv,  Tcl_Interp* interp)
+    {
+        (void)argc;
+        (void)argv;
+        (void)interp;
+
+        // need cmd, handle, and timeout
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 1, 3, 3);
+            return TCL_ERROR;
+        }
+
+        int n = atoi(argv[1]);
+        HandleMap::iterator iter = State::instance()->handles_.find(n);
+        if (iter == State::instance()->handles_.end()) {
+            resultf("invalid dtn handle %d", n);
+            return TCL_ERROR;
+        }
+        dtn_handle_t h = iter->second;
+
+        int timeout = atoi(argv[2]);
+
+        unsigned int status = 0;
+        dtn_endpoint_id_t session;
+        memset(session.uri, 0, sizeof(session.uri));
+
+        int err = dtn_session_update(h, &status, &session, timeout);
+        if (err != DTN_SUCCESS) {
+            resultf("error in dtn_session_update: %s",
+                    dtn_strerror(dtn_errno(h)));
+            return TCL_ERROR;
+        }
+
+        resultf("%u %s", status, session.uri);
         return TCL_OK;
     }
 };
@@ -819,6 +957,7 @@ main(int argc, char** argv)
     interp->reg(new DTNUnbindCommand());
     interp->reg(new DTNSendCommand());
     interp->reg(new DTNRecvCommand());
+    interp->reg(new DTNSessionUpdateCommand());
     interp->reg(new DTNPollChannelCommand());
     interp->reg(new DTNBeginPollCommand());
     interp->reg(new DTNCancelPollCommand());

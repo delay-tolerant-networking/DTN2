@@ -84,7 +84,7 @@ dtn_build_local_eid(int handle, const char* service_tag)
 static int
 build_reginfo(dtn_reg_info_t* reginfo,
               const string&   endpoint,
-              unsigned int    action,
+              unsigned int    flags,
               unsigned int    expiration,
               bool            init_passive,
               const string&   script)
@@ -92,7 +92,7 @@ build_reginfo(dtn_reg_info_t* reginfo,
     memset(reginfo, 0, sizeof(dtn_reg_info_t));
     
     strcpy(reginfo->endpoint.uri, endpoint.c_str());
-    reginfo->failure_action    = (dtn_reg_failure_action_t)action;
+    reginfo->flags             = flags;
     reginfo->expiration        = expiration;
     reginfo->init_passive      = init_passive;
     reginfo->script.script_len = script.length();
@@ -105,7 +105,7 @@ build_reginfo(dtn_reg_info_t* reginfo,
 int
 dtn_register(int           handle,
              const string& endpoint,
-             unsigned int  action,
+             unsigned int  flags,
              int           expiration,
              bool          init_passive,
              const string& script)
@@ -114,7 +114,7 @@ dtn_register(int           handle,
     if (!h) return -1;
 
     dtn_reg_info_t reginfo;
-    build_reginfo(&reginfo, endpoint, action, expiration,
+    build_reginfo(&reginfo, endpoint, flags, expiration,
                   init_passive, script);
         
     dtn_reg_id_t regid = 0;
@@ -203,6 +203,7 @@ struct dtn_bundle_id {
 //----------------------------------------------------------------------
 dtn_bundle_id*
 dtn_send(int           handle,
+         int           regid,
          const string& source,
          const string& dest,
          const string& replyto,
@@ -210,7 +211,9 @@ dtn_send(int           handle,
          unsigned int  dopts,
          unsigned int  expiration,
          unsigned int  payload_location,
-         const string& payload_data)
+         const string& payload_data,
+         const string& sequence_id = "",
+         const string& obsoletes_id = "")
 {
     dtn_handle_t h = find_handle(handle);
     if (!h) return NULL;
@@ -224,6 +227,16 @@ dtn_send(int           handle,
     spec.priority   = (dtn_bundle_priority_t)priority;
     spec.dopts      = dopts;
     spec.expiration = expiration;
+
+    if (sequence_id.length() != 0) {
+        spec.sequence_id.data.data_val = const_cast<char*>(sequence_id.c_str());
+        spec.sequence_id.data.data_len = sequence_id.length();
+    }
+
+    if (obsoletes_id.length() != 0) {
+        spec.obsoletes_id.data.data_val = const_cast<char*>(obsoletes_id.c_str());
+        spec.obsoletes_id.data.data_len = obsoletes_id.length();
+    }
 
     dtn_bundle_payload_t payload;
     memset(&payload, 0, sizeof(payload));
@@ -251,7 +264,7 @@ dtn_send(int           handle,
 
     dtn_bundle_id_t id;
     memset(&id, 0, sizeof(id));
-    int err = dtn_send(h, &spec, &payload, &id);
+    int err = dtn_send(h, regid, &spec, &payload, &id);
     if (err != DTN_SUCCESS) {
         return NULL;
     }
@@ -314,6 +327,9 @@ struct dtn_bundle {
     unsigned int expiration;
     unsigned int creation_secs;
     unsigned int creation_seqno;
+    unsigned int delivery_regid;
+    string       sequence_id;
+    string       obsoletes_id;
     string       payload;
     dtn_status_report* status_report;
 };
@@ -333,7 +349,7 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
 
     dtn_bundle_payload_location_t location =
         (dtn_bundle_payload_location_t)payload_location;
-    
+
     int err = dtn_recv(h, &spec, location, &payload, timeout);
     if (err != DTN_SUCCESS) {
         return NULL;
@@ -348,6 +364,7 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
     bundle->expiration     = spec.expiration;
     bundle->creation_secs  = spec.creation_ts.secs;
     bundle->creation_seqno = spec.creation_ts.seqno;
+    bundle->delivery_regid = spec.delivery_regid;
 
     switch(location) {
     case DTN_PAYLOAD_MEM:
@@ -392,6 +409,35 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
     }
 
     return bundle;
+}
+
+//----------------------------------------------------------------------
+struct dtn_session_info {
+    unsigned int status;
+    string       session;
+};
+
+//----------------------------------------------------------------------
+dtn_session_info*
+dtn_session_update(int handle, int timeout)
+{
+    dtn_handle_t h = find_handle(handle);
+    if (!h) return NULL;
+
+    unsigned int status = 0;
+    dtn_endpoint_id_t session;
+    memset(&session, 0, sizeof(session));
+    
+    int err = dtn_session_update(h, &status, &session, timeout);
+    if (err != DTN_SUCCESS) {
+        return NULL;
+    }
+
+    dtn_session_info* s = new dtn_session_info();
+    s->status = status;
+    s->session = session.uri;
+
+    return s;
 }
 
 //----------------------------------------------------------------------

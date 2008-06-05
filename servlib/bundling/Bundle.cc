@@ -54,6 +54,7 @@ Bundle::init(u_int32_t id)
     expiration_		= 0;
     owner_              = "";
     fragmented_incoming_= false;
+    session_flags_      = 0;
 
     // as per the spec, the creation timestamp should be calculated as
     // seconds since 1/1/2000, and since the bundle id should be
@@ -118,15 +119,15 @@ int
 Bundle::format(char* buf, size_t sz) const
 {
     if (is_admin()) {
-        return snprintf(buf, sz, "bundle id %d %s -> %s [%zu byte payload, is_admin]",
+        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload, is_admin]",
                         bundleid_, source_.c_str(), dest_.c_str(),
                         payload_.length());
     } else if (is_fragment()) {
-        return snprintf(buf, sz, "bundle id %d %s -> %s [%zu byte payload, fragment @%u/%u]",
+        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload, fragment @%u/%u]",
                         bundleid_, source_.c_str(), dest_.c_str(),
                         payload_.length(), frag_offset_, orig_length_);
     } else {
-        return snprintf(buf, sz, "bundle id %d %s -> %s [%zu byte payload]",
+        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload]",
                         bundleid_, source_.c_str(), dest_.c_str(),
                         payload_.length());
     }
@@ -164,6 +165,10 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));
     buf->appendf("       orig_length: %d\n", orig_length_);
     buf->appendf("       frag_offset: %d\n", frag_offset_);
+    buf->appendf("       sequence_id: %s\n", sequence_id_.to_str().c_str());
+    buf->appendf("      obsoletes_id: %s\n", obsoletes_id_.to_str().c_str());
+    buf->appendf("       session_eid: %s\n", session_eid_.c_str());
+    buf->appendf("     session_flags: 0x%x\n", session_flags_);
     buf->append("\n");
 
     buf->appendf("forwarding log:\n");
@@ -234,6 +239,8 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("orig_length", &orig_length_);
     a->process("frag_offset", &frag_offset_);
     a->process("owner", &owner_);
+    a->process("session_eid", &session_eid_);    
+    a->process("session_flags", &session_flags_);    
     a->process("extended_id_seconds", &extended_id_.seconds_);
     a->process("extended_id_seqno", &extended_id_.seqno_);
     a->process("recv_blocks", &recv_blocks_);

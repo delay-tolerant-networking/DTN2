@@ -181,6 +181,9 @@ public:
         CONFIDENTIALITY_BLOCK       = 0x004,
         PREVIOUS_HOP_BLOCK          = 0x005,
         METADATA_BLOCK              = 0x008, ///< NOT IN SPEC YET
+        SESSION_BLOCK               = 0x009, ///< NOT IN SPEC YET
+        SEQUENCE_ID_BLOCK           = 0x010, ///< NOT IN SPEC YET
+        OBSOLETES_ID_BLOCK          = 0x011, ///< NOT IN SPEC YET
         API_EXTENSION_BLOCK         = 0x100, ///< INTERNAL ONLY -- NOT IN SPEC
         UNKNOWN_BLOCK               = 0x101, ///< INTERNAL ONLY -- NOT IN SPEC
     } bundle_block_type_t;

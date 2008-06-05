@@ -36,6 +36,7 @@ DTLSRConfig::DTLSRConfig()
       recompute_delay_(1),
       aging_interval_(5),
       lsa_interval_(3600),
+      min_lsa_interval_(5),
       lsa_lifetime_(24 * 3600)
 {
 }

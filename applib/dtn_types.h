@@ -111,18 +111,28 @@ typedef struct dtn_service_tag_t dtn_service_tag_t;
 #define DTN_REGID_NONE 0
 
 /**
- * Registration delivery failure actions
+ * Registration flags are a bitmask of the following:
+
+ * Delivery failure actions (exactly one must be selected):
  *     DTN_REG_DROP   - drop bundle if registration not active
  *     DTN_REG_DEFER  - spool bundle for later retrieval
  *     DTN_REG_EXEC   - exec program on bundle arrival
+ *
+ * Session flags:
+ *     DTN_SESSION_CUSTODY   - app assumes custody for the session
+ *     DTN_SESSION_PUBLISH   - creates a publication point
+ *     DTN_SESSION_SUBSCRIBE - create subscription for the session
  */
 
-enum dtn_reg_failure_action_t {
+enum dtn_reg_flags_t {
 	DTN_REG_DROP = 1,
 	DTN_REG_DEFER = 2,
 	DTN_REG_EXEC = 3,
+	DTN_SESSION_CUSTODY = 4,
+	DTN_SESSION_PUBLISH = 8,
+	DTN_SESSION_SUBSCRIBE = 16,
 };
-typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
+typedef enum dtn_reg_flags_t dtn_reg_flags_t;
 
 /**
  * Registration state.
@@ -131,7 +141,7 @@ typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
 struct dtn_reg_info_t {
 	dtn_endpoint_id_t endpoint;
 	dtn_reg_id_t regid;
-	dtn_reg_failure_action_t failure_action;
+	u_int flags;
 	dtn_timeval_t expiration;
 	bool_t init_passive;
 	struct {
@@ -226,7 +236,24 @@ struct dtn_extension_block_t {
 typedef struct dtn_extension_block_t dtn_extension_block_t;
 
 /**
- * Bundle metadata.
+ * A Sequence ID is a vector of (EID, counter) values in the following
+ * text format:
+ *
+ *    < (EID1 counter1) (EID2 counter2) ... >
+ */
+
+struct dtn_sequence_id_t {
+	struct {
+		u_int data_len;
+		char *data_val;
+	} data;
+};
+typedef struct dtn_sequence_id_t dtn_sequence_id_t;
+
+/**
+ * Bundle metadata. The delivery_regid is ignored when sending
+ * bundles, but is filled in by the daemon with the registration
+ * id where the bundle was received.
  */
 
 struct dtn_bundle_spec_t {
@@ -237,6 +264,9 @@ struct dtn_bundle_spec_t {
 	int dopts;
 	dtn_timeval_t expiration;
 	dtn_timestamp_t creation_ts;
+	dtn_reg_id_t delivery_regid;
+	dtn_sequence_id_t sequence_id;
+	dtn_sequence_id_t obsoletes_id;
 	struct {
 		u_int blocks_len;
 		dtn_extension_block_t *blocks_val;
@@ -320,7 +350,7 @@ typedef struct dtn_bundle_status_report_t dtn_bundle_status_report_t;
  * When sending a bundle, if the location specifies that the payload
  * is in a temp file, then the daemon assumes ownership of the file
  * and should have sufficient permissions to move or rename it.
- * 
+ *
  * When receiving a bundle that is a status report, then the
  * status_report pointer will be non-NULL and will point to a
  * dtn_bundle_status_report_t structure which contains the parsed fields
@@ -360,12 +390,13 @@ extern  bool_t xdr_dtn_reg_id_t (XDR *, dtn_reg_id_t*);
 extern  bool_t xdr_dtn_timeval_t (XDR *, dtn_timeval_t*);
 extern  bool_t xdr_dtn_timestamp_t (XDR *, dtn_timestamp_t*);
 extern  bool_t xdr_dtn_service_tag_t (XDR *, dtn_service_tag_t*);
-extern  bool_t xdr_dtn_reg_failure_action_t (XDR *, dtn_reg_failure_action_t*);
+extern  bool_t xdr_dtn_reg_flags_t (XDR *, dtn_reg_flags_t*);
 extern  bool_t xdr_dtn_reg_info_t (XDR *, dtn_reg_info_t*);
 extern  bool_t xdr_dtn_bundle_priority_t (XDR *, dtn_bundle_priority_t*);
 extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t*);
 extern  bool_t xdr_dtn_extension_block_flags_t (XDR *, dtn_extension_block_flags_t*);
 extern  bool_t xdr_dtn_extension_block_t (XDR *, dtn_extension_block_t*);
+extern  bool_t xdr_dtn_sequence_id_t (XDR *, dtn_sequence_id_t*);
 extern  bool_t xdr_dtn_bundle_spec_t (XDR *, dtn_bundle_spec_t*);
 extern  bool_t xdr_dtn_bundle_id_t (XDR *, dtn_bundle_id_t*);
 extern  bool_t xdr_dtn_status_report_reason_t (XDR *, dtn_status_report_reason_t*);
@@ -380,12 +411,13 @@ extern bool_t xdr_dtn_reg_id_t ();
 extern bool_t xdr_dtn_timeval_t ();
 extern bool_t xdr_dtn_timestamp_t ();
 extern bool_t xdr_dtn_service_tag_t ();
-extern bool_t xdr_dtn_reg_failure_action_t ();
+extern bool_t xdr_dtn_reg_flags_t ();
 extern bool_t xdr_dtn_reg_info_t ();
 extern bool_t xdr_dtn_bundle_priority_t ();
 extern bool_t xdr_dtn_bundle_delivery_opts_t ();
 extern bool_t xdr_dtn_extension_block_flags_t ();
 extern bool_t xdr_dtn_extension_block_t ();
+extern bool_t xdr_dtn_sequence_id_t ();
 extern bool_t xdr_dtn_bundle_spec_t ();
 extern bool_t xdr_dtn_bundle_id_t ();
 extern bool_t xdr_dtn_status_report_reason_t ();

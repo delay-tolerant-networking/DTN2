@@ -52,7 +52,7 @@ test::script {
     }
 
     testlog "Waiting for the bundle to arrive and to be reassembled"
-    dtn::wait_for_bundle 1 "dtn://host-0/test,$timestamp" 30000
+    dtn::wait_for_bundle 1 "dtn://host-0/test,$timestamp" 30
 
     testlog "Checking that no bundles are pending"
     dtn::wait_for_bundle_stats 0 {0 pending}

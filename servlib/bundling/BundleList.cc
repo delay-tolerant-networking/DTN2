@@ -328,6 +328,8 @@ BundleList::erase(iterator& iter, bool used_notifier)
 bool
 BundleList::contains(Bundle* bundle) const
 {
+    oasys::ScopeLock l(lock_, "BundleList::contains");
+    
     if (bundle == NULL) {
         return false;
     }
@@ -336,7 +338,6 @@ BundleList::contains(Bundle* bundle) const
 
 #define DEBUG_MAPPINGS
 #ifdef DEBUG_MAPPINGS
-    oasys::ScopeLock l(lock_, "BundleList::contains");
     bool ret2 = (std::find(begin(), end(), bundle) != end());
     ASSERT(ret == ret2);
 #endif

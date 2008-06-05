@@ -22,6 +22,7 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
+#include "session/Session.h"
 #include "storage/GlobalStore.h"
 
 namespace dtn {
@@ -42,14 +43,16 @@ Registration::failure_action_toa(failure_action_t action)
 //----------------------------------------------------------------------
 Registration::Registration(u_int32_t regid,
                            const EndpointIDPattern& endpoint,
-                           int action,
+                           u_int32_t failure_action,
+                           u_int32_t session_flags,
                            u_int32_t expiration,
                            const std::string& script)
     
     : Logger("Registration", "/dtn/registration/%d", regid),
       regid_(regid),
       endpoint_(endpoint),
-      failure_action_(action),
+      failure_action_(failure_action),
+      session_flags_(session_flags),
       script_(script),
       expiration_(expiration),
       expiration_timer_(NULL),
@@ -120,7 +123,8 @@ Registration::serialize(oasys::SerializeAction* a)
 {
     a->process("endpoint", &endpoint_);
     a->process("regid", &regid_);
-    a->process("action", &failure_action_);
+    a->process("failure_action", &failure_action_);
+    a->process("session_flags", &session_flags_);
     a->process("script", &script_);
     a->process("creation_time", &creation_time_);
     a->process("expiration", &expiration_);
@@ -131,6 +135,26 @@ Registration::serialize(oasys::SerializeAction* a)
     }
 
     logpathf("/dtn/registration/%d", regid_);
+}
+
+//----------------------------------------------------------------------
+int
+Registration::format(char* buf, size_t sz) const
+{
+    return snprintf(buf, sz,
+                    "id %u: %s %s (%s%s) [expiration %d%s%s%s%s]",
+                    regid(),
+                    active() ? "active" : "passive",
+                    endpoint().c_str(),
+                    failure_action_toa(failure_action()),
+                    failure_action() == Registration::EXEC ?
+                      script().c_str() : "",
+                    expiration(),
+                    session_flags() != 0 ? " session:" : "",
+                    (session_flags() & Session::CUSTODY) ? " custody" : "",
+                    (session_flags() & Session::PUBLISH) ? " publish" : "",
+                    (session_flags() & Session::SUBSCRIBE) ? " subscribe" : ""
+        );
 }
 
 //----------------------------------------------------------------------

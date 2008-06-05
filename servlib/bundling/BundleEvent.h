@@ -468,20 +468,6 @@ public:
 };
 
 /**
- * Event class for use when a retention constraint is lifted but no
- * other event has occurred to give an opportunity to free the bundle.
- */
-class BundleNotNeededEvent : public BundleEvent {
-public:
-    BundleNotNeededEvent(Bundle* bundle)
-        : BundleEvent(BUNDLE_NOT_NEEDED),
-          bundleref_(bundle, "BundleNotNeededEvent") {}
-
-    /// The no longer needed bundle
-    BundleRef bundleref_;
-};
-
-/**
  * Event class for bundles that have no more references to them.
  */
 class BundleFreeEvent : public BundleEvent {
@@ -1010,7 +996,17 @@ public:
         daemon_only_ = true;
     }
 
-    BundleDeleteRequest(const BundleRef&       bundle,
+    BundleDeleteRequest(Bundle* bundle,
+                        BundleProtocol::status_report_reason_t reason)
+        : BundleEvent(BUNDLE_DELETE),
+          bundle_(bundle, "BundleDeleteRequest"),
+          reason_(reason)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    BundleDeleteRequest(const BundleRef& bundle,
                         BundleProtocol::status_report_reason_t reason)
         : BundleEvent(BUNDLE_DELETE),
           bundle_(bundle.object(), "BundleDeleteRequest"),

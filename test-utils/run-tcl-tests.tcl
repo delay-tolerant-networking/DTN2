@@ -61,6 +61,7 @@ set tests(basic) {
     "no-duplicate-send.tcl"	""
     "reactive-fragmentation.tcl" ""
     "reroute-from-down-link.tcl" ""
+    "sequence-id.tcl"		""
     "send-one-bundle.tcl"	"-cl tcp"
     "send-one-bundle.tcl"	"-cl tcp -length 0"
     "send-one-bundle.tcl"	"-cl tcp -length 5 -segment_length 1"

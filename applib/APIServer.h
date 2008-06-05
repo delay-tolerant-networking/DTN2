@@ -86,7 +86,7 @@ public:
     virtual ~APIClient();
     virtual void run();
 
-    void close_session();
+    void close_client();
     
 protected:
     int handle_handshake();
@@ -102,16 +102,23 @@ protected:
     int handle_begin_poll();
     int handle_cancel_poll();
     int handle_close();
+    int handle_session_update();
 
-    // wait for a bundle arrival on any bound registration, or for
-    // traffic on the api socket.
+    // block the calling thread, waiting for bundle arrival on a bound
+    // registration, notification that a subscriber has arrived for a
+    // custody session, or for traffic on the api socket.
     //
     // returns the oasys IO error code if there was a timeout or an
     // internal error. returns 0 if there is a bundle waiting or
     // socket data on the channel, and assigns the reg or sock_ready
     // pointers appropriately
-    int wait_for_bundle(const char* operation, dtn_timeval_t timeout,
-                        APIRegistration** reg, bool* sock_ready);
+    int wait_for_notify(const char*       operation,
+                        dtn_timeval_t     timeout,
+                        APIRegistration** recv_ready_reg,
+                        APIRegistration** session_ready_reg,
+                        bool*             sock_ready);
+
+    int handle_unexpected_data(const char* operation);
 
     int send_response(int ret);
 
@@ -121,8 +128,11 @@ protected:
     XDR xdr_encode_;
     XDR xdr_decode_;
     APIRegistrationList* bindings_;
+    APIRegistrationList* sessions_;
     oasys::Notifier notifier_;
     APIServer* parent_;
+    size_t total_sent_;
+    size_t total_rcvd_;
 };
 
 } // namespace dtn

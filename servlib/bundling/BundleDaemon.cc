@@ -42,6 +42,7 @@
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
+#include "session/Session.h"
 #include "storage/BundleStore.h"
 #include "storage/RegistrationStore.h"
 
@@ -382,6 +383,19 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
         return;
     }
 
+    
+    // if this is a session registration and doesn't have either the
+    // SUBSCRIBE or CUSTODY bits (i.e. it's publish-only), don't
+    // deliver the bundle
+    if (registration->session_flags() == Session::PUBLISH)
+    {
+        log_debug("not delivering bundle *%p to registration %d (%s) "
+                  "since it's a publish-only session registration",
+                  bundle, registration->regid(),
+                  registration->endpoint().c_str());
+        return;
+    }
+
     log_debug("delivering bundle *%p to registration %d (%s)",
               bundle, registration->regid(),
               registration->endpoint().c_str());
@@ -515,6 +529,22 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  source_str, bundle, event->prevhop_.c_str(), event->bytes_received_);
     }
     
+    // log the reception in the bundle's forwarding log
+    if (event->source_ == EVENTSRC_PEER)
+    {
+        bundle->fwdlog()->add_entry(event->link_,
+                                    ForwardingInfo::FORWARD_ACTION,
+                                    ForwardingInfo::RECEIVED);
+    }
+    else if (event->source_ == EVENTSRC_APP)
+    {
+        if (event->registration_ != NULL) {
+            bundle->fwdlog()->add_entry(event->registration_,
+                                        ForwardingInfo::FORWARD_ACTION,
+                                        ForwardingInfo::RECEIVED);
+        }
+    }
+
     // log a warning if the bundle doesn't have any expiration time or
     // has a creation time that's in the future. in either case, we
     // proceed as normal
@@ -975,15 +1005,6 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     delete_bundle(bundle, BundleProtocol::REASON_LIFETIME_EXPIRED);
     
     // fall through to notify the routers
-}
-
-//----------------------------------------------------------------------
-void
-BundleDaemon::handle_bundle_not_needed(BundleNotNeededEvent* event)
-{
-    Bundle* bundle = event->bundleref_.object();
-    log_info("BUNDLE_NOT_NEEDED *%p", bundle);
-    try_delete_from_pending(bundle);
 }
 
 //----------------------------------------------------------------------
@@ -1831,7 +1852,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
     while ((ref = event->fragments_.pop_front()) != NULL) {
-        try_delete_from_pending(ref.object());
+        try_to_delete(ref);
     }
 
     // post a new event for the newly reassembled bundle
@@ -1917,7 +1938,7 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
     
     if (release) {
         release_custody(orig_bundle.object());
-        try_delete_from_pending(orig_bundle.object());
+        try_to_delete(orig_bundle);
     }
 }
 
@@ -2050,24 +2071,24 @@ BundleDaemon::handle_status_request(StatusRequest* request)
 void
 BundleDaemon::event_handlers_completed(BundleEvent* event)
 {
+    log_debug("event handlers completed for (%p) %s", event, event->type_str());
+    
     /**
-     * Once bundle transmission or delivery has been processed by the
-     * router, check to see if it's still needed, otherwise we delete
-     * it.
-     * 
-     * XXX/demmer we might want to add reception here too, although
-     * then the router would need to mark the bundles that it still
-     * needs to route.
+     * Once bundle reception, transmission or delivery has been
+     * processed by the router, check to see if it's still needed,
+     * otherwise we delete it.
      */
-    Bundle* bundle = NULL;
-    if (event->type_ == BUNDLE_TRANSMITTED) {
-        bundle = ((BundleTransmittedEvent*)event)->bundleref_.object();
+    BundleRef bundle("BundleDaemon::event_handlers_completed");
+    if (event->type_ == BUNDLE_RECEIVED) {
+        bundle = ((BundleReceivedEvent*)event)->bundleref_;
+    } else if (event->type_ == BUNDLE_TRANSMITTED) {
+        bundle = ((BundleTransmittedEvent*)event)->bundleref_;
     } else if (event->type_ == BUNDLE_DELIVERED) {
-        bundle = ((BundleTransmittedEvent*)event)->bundleref_.object();
+        bundle = ((BundleTransmittedEvent*)event)->bundleref_;
     }
 
     if (bundle != NULL) {
-        try_delete_from_pending(bundle);
+        try_to_delete(bundle);
     }
 
     /**
@@ -2079,7 +2100,7 @@ BundleDaemon::event_handlers_completed(BundleEvent* event)
         size_t num_mappings = bundle->num_mappings();
         if (num_mappings != 0) {
             log_warn("expired bundle *%p still has %zu mappings",
-                     bundle, num_mappings);
+                     bundle.object(), num_mappings);
         }
     }
 }
@@ -2141,9 +2162,9 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 
 //----------------------------------------------------------------------
 bool
-BundleDaemon::delete_from_pending(Bundle* bundle)
+BundleDaemon::delete_from_pending(const BundleRef& bundle)
 {
-    log_debug("removing bundle *%p from pending list", bundle);
+    log_debug("removing bundle *%p from pending list", bundle.object());
 
     // first try to cancel the expiration timer if it's still
     // around
@@ -2153,8 +2174,8 @@ BundleDaemon::delete_from_pending(Bundle* bundle)
         
         bool cancelled = bundle->expiration_timer()->cancel();
         if (!cancelled) {
-           log_crit("unexpected error cancelling expiration timer "
-                     "for bundle *%p", bundle);
+            log_crit("unexpected error cancelling expiration timer "
+                     "for bundle *%p", bundle.object());
         }
         
         bundle->expiration_timer()->bundleref_.release();
@@ -2183,54 +2204,45 @@ BundleDaemon::delete_from_pending(Bundle* bundle)
 
 //----------------------------------------------------------------------
 bool
-BundleDaemon::try_delete_from_pending(Bundle* bundle)
+BundleDaemon::try_to_delete(const BundleRef& bundle)
 {
     /*
-     * Check to see if we should remove the bundle from the pending
-     * list, after which all references to the bundle should be
-     * cleaned up and the bundle will be deleted from the system.
-     *
-     * We do this only if:
-     *
-     * 1) We're configured for early deletion
-     * 2) The bundle isn't queued on any lists other than the pending
-     *    list. This covers the case where we have custody, since the
-     *    bundle will be on the custody_bundles list as well as allowing
-     *    routers to hold onto bundles by just putting them on a list.
-     * 3) The bundle isn't currently in flight, as recorded
-     *    in the forwarding log.
+     * Check to see if we should remove the bundle from the system.
+     * 
+     * If we're not configured for early deletion, this never does
+     * anything. Otherwise it relies on the router saying that the
+     * bundle can be deleted.
      */
 
     log_debug("pending_bundles size %zd", pending_bundles_->size());
     if (! bundle->is_queued_on(pending_bundles_))
     {
         if (bundle->expired()) {
-            log_debug("try_delete_from_pending(*%p): bundle already expired",
-                      bundle);
+            log_debug("try_to_delete(*%p): bundle already expired",
+                      bundle.object());
             return false;
         }
         
-        log_err("try_delete_from_pending(*%p): bundle not in pending list!",
-                bundle);
+        log_err("try_to_delete(*%p): bundle not in pending list!",
+                bundle.object());
         return false;
     }
 
     if (!params_.early_deletion_) {
-        log_debug("try_delete_from_pending(*%p): not deleting because "
+        log_debug("try_to_delete(*%p): not deleting because "
                   "early deletion disabled",
-                  bundle);
+                  bundle.object());
         return false;
     }
 
-    size_t num_mappings = bundle->num_mappings();
-    if (num_mappings != 1) {
-        log_debug("try_delete_from_pending(*%p): not deleting because "
-                  "bundle has %zu list mappings",
-                  bundle, num_mappings);
+    if (! router_->can_delete_bundle(bundle)) {
+        log_debug("try_to_delete(*%p): not deleting because "
+                  "router wants to keep bundle",
+                  bundle.object());
         return false;
     }
     
-    return delete_from_pending(bundle);
+    return delete_bundle(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
 }
 
 //----------------------------------------------------------------------
@@ -2270,7 +2282,7 @@ BundleDaemon::delete_bundle(const BundleRef& bundleref,
     log_debug("pending_bundles size %zd", pending_bundles_->size());
     bool erased = true;
     if (bundle->is_queued_on(pending_bundles_)) {
-        erased = delete_from_pending(bundle);
+        erased = delete_from_pending(bundleref);
     }
 
     if (erased && send_status) {

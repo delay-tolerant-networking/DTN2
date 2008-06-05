@@ -43,7 +43,7 @@ public:
     class LinkParams : public oasys::SerializableObject {
     public:
         LinkParams() :
-            state_(LINK_UP), cost_(0), delay_(0), bw_(0) {}
+            state_(LINK_UP), cost_(0), delay_(0), bw_(0), qcount_(0), qsize_(0) {}
         
         LinkParams(const oasys::Builder&) {}
         virtual ~LinkParams() {}
@@ -93,10 +93,10 @@ public:
 
         virtual void serialize(oasys::SerializeAction* a);
 
-        u_int32_t    seqno_;  ///< Strictly increasing sequence
-                              ///  number for this source
-
-        LinkStateVec links_;  ///< Vector of link states
+        u_int32_t        seqno_; ///< Strictly increasing sequence
+                                 ///  number for this source
+        EndpointIDVector eids_;  ///< Reachable endpoints at the node
+        LinkStateVec     links_; ///< Vector of link states
     };
 
     /**

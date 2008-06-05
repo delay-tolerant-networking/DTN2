@@ -50,7 +50,7 @@ test::script {
     set i 1
     foreach timestamp $timestamps {
         testlog "Checking that bundle $i arrived... "
-        dtn::wait_for_bundle 0 "$source,$timestamp" 5000
+        dtn::wait_for_bundle 0 "$source,$timestamp" 5
         # the Marv Albert of test reports:
         testlog "yes! And it counts!"
         incr i

@@ -66,7 +66,7 @@ test::script {
     
     for {set i 0} {$i < $N} {incr i} {
 	testlog "Waiting for arrival of bundle $i"
-	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp($i)" 10000
+	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp($i)" 10
     }
 
     testlog "Doing sanity check on stats"
@@ -90,8 +90,8 @@ test::script {
     
     for {set i 0} {$i < $N} {incr i} {
 	testlog "Waiting for arrival of bundle $i at each node"
-	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp(1,$i)" 10000
-	dtn::wait_for_bundle 1 "dtn://host-0/test,$timestamp(0,$i)" 10000
+	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp(1,$i)" 10
+	dtn::wait_for_bundle 1 "dtn://host-0/test,$timestamp(0,$i)" 10
     }
     
     testlog "Doing sanity check on stats"
@@ -122,8 +122,8 @@ test::script {
     set timestamp_1 [dtn::tell_dtnd 1 bundle inject dtn://host-1/test dtn://host-0/test "payload" length=[expr 10 * 1024 * 1024] ]
 
     testlog "Waiting for delivery of the bundles"
-    dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp_1" 60000
-    dtn::wait_for_bundle 1 "dtn://host-0/test,$timestamp_0" 60000
+    dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp_1" 60
+    dtn::wait_for_bundle 1 "dtn://host-0/test,$timestamp_0" 60
     testlog "Test success!"
 }
 

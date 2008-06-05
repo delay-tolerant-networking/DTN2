@@ -63,7 +63,7 @@ if {[llength $argv] < 1} {
 fconfigure stdout -buffering none
 
 # default args
-set defaults [list -net localhost]
+set defaults [list -net localhost --gdb-match dtnd*]
 set argv [concat $defaults $argv]
 run::init $argv
 

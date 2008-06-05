@@ -54,6 +54,9 @@ int custody_receipts    = 0;    // request per custodian receipts
 int receive_receipts    = 0;    // request per hop arrival receipt
 int wait_for_report     = 0;    // wait for bundle status reports
 int bundle_count	= -1;	// # bundles to receive (-l option)
+int session_flags       = 0;    // use pub/sub session flags
+char* sequence_id       = 0;    // use the given sequence id
+char* obsoletes_id      = 0;    // use the given obsoletes id
 
 #define DEFAULT_BUNDLE_COUNT	1
 #define FAILURE_SCRIPT ""
@@ -156,6 +159,17 @@ from_bundles()
 
     memset(&reg, 0, sizeof(reg));
     dtn_copy_eid(&reg.endpoint, &local_eid);
+
+    // when using the session flags, the registration expires
+    // immediately, otherwise we give it a default expiration time
+    if (session_flags) {
+        reg.flags = DTN_REG_DROP | DTN_SESSION_SUBSCRIBE;
+        reg.expiration = 0;
+    } else {
+        reg.flags = DTN_REG_DEFER;
+        reg.expiration = REG_EXPIRE;
+    }
+    
     make_registration(&reg);
 
     if (verbose)
@@ -245,6 +259,7 @@ to_bundles()
 
     int bytes, ret;
     dtn_reg_info_t reg_report; /* for reports, if reqd */
+    dtn_reg_info_t reg_session; /* for session reg, if reqd */
 	
     // initialize bundle spec
     memset(&bundle_spec, 0, sizeof(bundle_spec));
@@ -264,10 +279,30 @@ to_bundles()
     }
 
     if (wait_for_report) {
-	// make a registration for incoming reports
-        memset(&reg_report, 0, sizeof(reg_report));
-	dtn_copy_eid(&reg_report.endpoint, &bundle_spec.replyto);
-	make_registration(&reg_report);
+	// if we're given a regid, bind to it, otherwise make a
+	// registration for incoming reports
+        if (regid != DTN_REGID_NONE) {
+            if (dtn_bind(handle, regid) != DTN_SUCCESS) {
+                fprintf(stderr, "%s: error in bind (id=0x%x): %d (%s)\n",
+                        progname, regid, ret, dtn_strerror(dtn_errno(handle)));
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            memset(&reg_report, 0, sizeof(reg_report));
+            dtn_copy_eid(&reg_report.endpoint, &bundle_spec.replyto);
+            reg_report.flags = DTN_REG_DEFER;
+            reg_report.expiration = REG_EXPIRE;
+            make_registration(&reg_report);
+        }
+    }
+
+    if (session_flags) {
+        // make a publisher registration 
+        memset(&reg_session, 0, sizeof(reg_session));
+	dtn_copy_eid(&reg_session.endpoint, &bundle_spec.dest);
+        reg_session.flags = DTN_SESSION_PUBLISH;
+        reg_session.expiration = 0;
+	make_registration(&reg_session);
     }
     
     // set the dtn options
@@ -297,7 +332,16 @@ to_bundles()
         // request receive receipt
         bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
     }
-    
+
+    if (sequence_id) {
+        bundle_spec.sequence_id.data.data_val = sequence_id;
+        bundle_spec.sequence_id.data.data_len = strlen(sequence_id);
+    }
+
+    if (obsoletes_id) {
+        bundle_spec.obsoletes_id.data.data_val = obsoletes_id;
+        bundle_spec.obsoletes_id.data.data_len = strlen(obsoletes_id);
+    }
 
     if ((bytes = fill_payload(&primary_payload)) < 0) {
 	fprintf(stderr, "%s: error reading bundle data\n",
@@ -306,7 +350,7 @@ to_bundles()
     }
 
     memset(&bundle_id, 0, sizeof(bundle_id));
-    if ((ret = dtn_send(handle, &bundle_spec, &primary_payload,
+    if ((ret = dtn_send(handle, regid, &bundle_spec, &primary_payload,
                         &bundle_id)) != 0) {
 	fprintf(stderr, "%s: error sending bundle: %d (%s)\n",
 	    progname, ret, dtn_strerror(dtn_errno(handle)));
@@ -355,8 +399,8 @@ void print_usage()
     fprintf(stderr, "common options:\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h/H help\n");
+    fprintf(stderr, " -i <regid> registration id for listening\n");
     fprintf(stderr, "receive only options (-l option required):\n");
-
     fprintf(stderr, " -l <eid> receive bundles destined for eid (instead of sending)\n");
     fprintf(stderr, " -n <count> exit after count bundles received (-l option required)\n");
     fprintf(stderr, "send only options (-l option prohibited):\n");
@@ -364,13 +408,14 @@ void print_usage()
     fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
     fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
     fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
-    fprintf(stderr, " -i <regid> registration id for reply to\n");
     fprintf(stderr, " -c request custody transfer\n");
     fprintf(stderr, " -C request custody transfer receipts\n");
     fprintf(stderr, " -D request for end-to-end delivery receipt\n");
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
+    fprintf(stderr, " -S <sequence_id> sequence id vector\n");
+    fprintf(stderr, " -O <obsoletes_id> obsoletes id vector\n");
     
     return;
 }
@@ -384,7 +429,7 @@ parse_options(int argc, char**argv)
     progname = argv[0];
 
     while (!done) {
-        c = getopt(argc, argv, "l:vhHr:s:d:e:wDFRcCi:n:");
+        c = getopt(argc, argv, "l:vhHr:s:d:e:wDFRcCi:n:S:O:");
         switch (c) {
 	case 'l':
 	    from_bundles_flag = 1;
@@ -446,6 +491,12 @@ parse_options(int argc, char**argv)
 	    bundle_count = atoi(optarg);
 	    lopts++;
 	    break;
+        case 'S':
+            sequence_id = optarg;
+            break;
+        case 'O':
+            obsoletes_id = optarg;
+            break;
         case -1:
             done = 1;
             break;
@@ -552,36 +603,34 @@ make_registration(dtn_reg_info_t* reginfo)
 {
 	int ret;
 
-        // try to find an existing registration to use
-        ret = dtn_find_registration(handle, &reginfo->endpoint, &regid);
+        // try to find an existing registration to use (unless we're
+        // using session flags, in which case we always create a new
+        // registration)
+        if (session_flags == 0) {
+            ret = dtn_find_registration(handle, &reginfo->endpoint, &regid);
 
-        if (ret == 0) {
-
-            // found the registration, bind it to the handle
-            if (dtn_bind(handle, regid) != DTN_SUCCESS) {
-                fprintf(stderr, "%s: error in bind (id=0x%x): %d (%s)\n",
-                        progname, regid, ret, dtn_strerror(dtn_errno(handle)));
+            if (ret == 0) {
+                
+                // found the registration, bind it to the handle
+                if (dtn_bind(handle, regid) != DTN_SUCCESS) {
+                    fprintf(stderr, "%s: error in bind (id=0x%x): %d (%s)\n",
+                            progname, regid, ret, dtn_strerror(dtn_errno(handle)));
+                    exit(EXIT_FAILURE);
+                }
+                
+                return;
+                
+            } else if (dtn_errno(handle) == DTN_ENOTFOUND) {
+                // fall through
+                
+            } else {
+                fprintf(stderr, "%s: error in dtn_find_registration: %d (%s)\n",
+                        progname, ret, dtn_strerror(dtn_errno(handle)));
                 exit(EXIT_FAILURE);
             }
-
-            return;
-            
-        } else if (dtn_errno(handle) == DTN_ENOTFOUND) {
-            // fall through
-
-        } else {
-            fprintf(stderr, "%s: error in dtn_find_registration: %d (%s)\n",
-                    progname, ret, dtn_strerror(dtn_errno(handle)));
-            exit(EXIT_FAILURE);
         }
 
         // create a new dtn registration to receive bundles
-        reginfo->regid = regid;
-        reginfo->expiration = REG_EXPIRE;
-        reginfo->failure_action = DTN_REG_DEFER;
-	reginfo->script.script_val = FAILURE_SCRIPT;
-	reginfo->script.script_len = strlen(reginfo->script.script_val) + 1;
-
 	if ((ret = dtn_register(handle, reginfo, &regid)) != 0) {
             fprintf(stderr, "%s: error creating registration (id=0x%x): %d (%s)\n",
                     progname, regid, ret, dtn_strerror(dtn_errno(handle)));

@@ -136,7 +136,7 @@ TcaController::dtn_reg(dtn_endpoint_id_t& eid, dtn_reg_id_t& id)
 
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &eid);
-    reginfo.failure_action = DTN_REG_DEFER;
+    reginfo.flags = DTN_REG_DEFER;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.expiration = REG_EXPIRATION_TIME;
     if ((ret = dtn_register(handle_, &reginfo, &id)) != 0) {
@@ -875,9 +875,9 @@ TcaController::send_bundle(const dtn_bundle_spec_t& spec,
     memset(&bundle_id, 0, sizeof(bundle_id));
 
     int r = 0;    
-    if ((r = dtn_send(handle_,
-                    const_cast<dtn_bundle_spec_t*>(&spec),
-                    &send_payload, &bundle_id)) != 0)
+    if ((r = dtn_send(handle_, DTN_REGID_NONE,
+                      const_cast<dtn_bundle_spec_t*>(&spec),
+                      &send_payload, &bundle_id)) != 0)
     {
         fprintf(stderr, "TcaController::send_bundle error %d (%s)\n",
                 r, dtn_strerror(dtn_errno(handle_)));

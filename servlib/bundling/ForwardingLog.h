@@ -58,7 +58,7 @@ public:
      * used when querying or updating the log.
      */
     ForwardingLog(oasys::SpinLock* lock);
-    
+
     /**
      * Get the most recent entry for the given link from the log.
      */
@@ -78,6 +78,11 @@ public:
      * Get the most recent state for the given registration from the log.
      */
     state_t get_latest_entry(const Registration* reg) const;
+    
+    /**
+     * Get the most recent entry for the given state from the log.
+     */
+    bool get_latest_entry(state_t state, ForwardingInfo* info) const;
     
     /**
      * Return the count of matching entries. The states and actions
@@ -100,17 +105,38 @@ public:
     /**
      * Add a new forwarding info entry for the given link.
      */
-    void add_entry(const LinkRef& link,
+    void add_entry(const LinkRef&           link,
                    ForwardingInfo::action_t action,
-                   state_t state,
-                   const CustodyTimerSpec& custody_timer);
+                   state_t                  state,
+                   const CustodyTimerSpec&  custody_timer);
+    
+    /**
+     * Add a new forwarding info entry for the given link using the
+     * default custody timer info. Used for states other than
+     * TRANSMITTED for which the custody timer is irrelevant.
+     */
+    void add_entry(const LinkRef&           link,
+                   ForwardingInfo::action_t action,
+                   state_t                  state);
     
     /**
      * Add a new forwarding info entry for the given registration.
      */
-    void add_entry(const Registration* reg,
+    void add_entry(const Registration*      reg,
                    ForwardingInfo::action_t action,
-                   state_t state);
+                   state_t                  state);
+    
+    /**
+     * Add a new forwarding info entry for the remote EID without a
+     * specific link or registration. (used for session management).
+     *
+     * Also, if the EID is "*:*" and the state is SUPPRESSED, then the
+     * bundle can be prevented from being forwarded to any other
+     * nodes.
+     */
+    void add_entry(const EndpointID&        eid,
+                   ForwardingInfo::action_t action,
+                   state_t                  state);
     
     /**
      * Update the state for the latest forwarding info entry for the
