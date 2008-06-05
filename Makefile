@@ -195,4 +195,5 @@ $(SRCDIR)/configure $(OASYS_ETCDIR)/Rules.make.in:
 	@echo error -- Makefile did not set SRCDIR properly
 	@exit 1
 
+CFGFILES = Rules.make System.make
 GENFILES = doc/manual/man/*.txt
