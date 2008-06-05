@@ -121,8 +121,6 @@ namespace eval dtn {
         
 	lappend exec_env DTNAPI_ADDR $net::listen_addr($id)
 	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
-	lappend exec_env NETAPI_ADDR $net::listen_addr($id)
-	lappend exec_env NETAPI_PORT [dtn::get_port netapid $id]
 
         return $exec_env
     }
@@ -148,35 +146,6 @@ namespace eval dtn {
     proc run_app_and_wait { id app_name {exec_args ""} } {
         set pid [run_app $id $app_name $exec_args]
         run::wait_for_pid_exit $id $pid
-    }
-
-    proc run_netapid { id } {
-	if {$id == "*"} {
-	    set pids ""
-	    foreach id [net::nodelist] {
-		lappend pids [run_netapid $id]
-	    }
-	    return $pids
-	}
-
-        set exec_env [app_env $id]
-	
-	return [run::run $id "netapid" "" \
-		    netapi.conf [conf::get netapid $id] $exec_env]
-    }
-
-    proc run_netapi_shell { id } {
-	if {$id == "*"} {
-	    set pids ""
-	    foreach id [net::nodelist] {
-		lappend pids [run_netapi_shell $id]
-	    }
-	    return $pids
-	}
-
-        set exec_env [app_env $id]
-	
-	return [run::run_xterm $id $exec_env]
     }
 
     proc wait_for_dtnd {id} {
