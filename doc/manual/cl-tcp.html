@@ -67,10 +67,6 @@ or after the <tt>interface add</tt> command.
 <td>Should we send an ACK when we have received the entire bundle?
 
 <tr>
-<td>connect_timeout<td>integer miliseconds<td>10000 (10 seconds)
-<td>Number of milliseconds to wait for a TCP connection to be established.
-
-<tr>
 <td>idle_close_time<td>integer seconds<td>30
 <td>Number of seconds after which to close the connection if no data
 other than keepalives arrives.
@@ -124,9 +120,9 @@ memory, and not on disk. See <a href="configuration.html#param">
 initiator receive bundles. (Not yet implemented.)
 
 <tr>
-<td>rtt_timeout<td>integer miliseconds<td>5000 (5 seconds)
+<td>data_timeout<td>integer miliseconds<td>5000 (5 seconds)
 <td>Number of milliseconds to wait for an expected
-response from the other side. RTT means Round Trip Time.
+response from the other side. 
 
 <tr>
 <td>test_fragment_size<td>integer bytes<td>-1 (disabled)
