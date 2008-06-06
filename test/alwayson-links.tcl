@@ -26,7 +26,7 @@ for {set i 0} {$i < [llength $opt(opts)]} {incr i} {
 	set val [lindex $opt(opts) [incr i]]
 	set cl $val
     } elseif {$var == "fast" || $var == "-fast_retries"} {
-	append link_opts " min_retry_interval=1 max_retry_interval=10 rtt_timeout=1000"
+	append link_opts " min_retry_interval=1 max_retry_interval=10 data_timeout=1000"
     } else {
 	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
