@@ -298,35 +298,43 @@ handle_file_transfer(dtn_bundle_spec_t spec, dtn_bundle_payload_t payload,
     struct stat fileinfo;
     char currentfile[PATH_MAX];
 
-    // Copy the file into place
-    tempdes = open(payload.filename.filename_val, O_RDONLY);
-
-    if ( tempdes < 0 )
-    {
-        fprintf(stderr, "While opening the temporary file for reading '%s': %s\n",
-                payload.filename.filename_val, strerror(errno));
-        exit(1);
-    }
-
     // Create the filename by searching for ### characters in the given
     // filename and replacing that with an incrementing counter.  
     buildfilename(filename, currentfile, counter);
 
-    destdes = creat(currentfile, 0644);
+    // Try to rename the old file to the new name to avoid unnecessary copying
+    if (rename(filename, currentfile) == 0) {
+        // success!
 
-    if ( destdes < 0 )
-    {
-        fprintf(stderr, "While opening output file for writing '%s': %s\n",
-                filename, strerror(errno));
-        exit(1);
+    } else {
+        // Copy the file into place
+        tempdes = open(payload.filename.filename_val, O_RDONLY);
+        
+        if ( tempdes < 0 )
+        {
+            fprintf(stderr, "While opening the temporary file for reading '%s': %s\n",
+                    payload.filename.filename_val, strerror(errno));
+            exit(1);
+        }
+
+        destdes = creat(currentfile, 0644);
+        
+        if ( destdes < 0 )
+        {
+            fprintf(stderr, "While opening output file for writing '%s': %s\n",
+                    filename, strerror(errno));
+            exit(1);
+        }
+
+        // Duplicate the file
+        while ( (bytesread = read(tempdes, block, sizeof(block))) > 0 )
+            write(destdes, block, bytesread);
+
+        close(tempdes);
+        close(destdes);
+        
+        unlink(payload.filename.filename_val);
     }
-
-    // Duplicate the file
-    while ( (bytesread = read(tempdes, block, sizeof(block))) > 0 )
-        write(destdes, block, bytesread);
-
-    // Remove the temp file
-    unlink(payload.filename.filename_val);
 
     if ( stat(currentfile, &fileinfo) == -1 )
     {
