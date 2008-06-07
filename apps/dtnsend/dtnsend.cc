@@ -556,13 +556,30 @@ void print_eid(char *  label, dtn_endpoint_id_t * eid)
     printf("%s [%s]\n", label, eid->uri);
 }
 
-void fill_payload(dtn_bundle_payload_t* payload) {
-
+void fill_payload(dtn_bundle_payload_t* payload)
+{
+    memset(payload, 0, sizeof(*payload));
+    
     if (data_source == date_buf) {
         time_t current = time(NULL);
         strcpy(date_buf, ctime(&current));
     }
 
-    memset(payload, 0, sizeof(*payload));
-    dtn_set_payload(payload, payload_type, data_source, strlen(data_source));
+    // if we're sending multiple copies of the file using hard links,
+    // the daemon will remove the file once we send it, so we need to
+    // make a temp link for the daemon itself to use
+    if (copies != 1 && payload_type == DTN_PAYLOAD_TEMP_FILE) {
+        char tmp[PATH_MAX];
+        snprintf(tmp, PATH_MAX, "%s.tmplink", data_source);
+
+        if (link(data_source, tmp) != 0) {
+            fprintf(stderr, "error creating hard link %s -> %s: %s",
+                    data_source, tmp, strerror(errno));
+            exit(1);
+        }
+        
+        dtn_set_payload(payload, payload_type, tmp, strlen(tmp));
+    } else {
+        dtn_set_payload(payload, payload_type, data_source, strlen(data_source));
+    }
 }
