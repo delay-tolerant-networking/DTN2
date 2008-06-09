@@ -62,6 +62,9 @@ DTNTunnel::DTNTunnel()
       tunnel_spec_(""),
       tunnel_spec_set_(false)
 {
+    // override default logging setting
+    loglevel_ = oasys::LOG_NOTICE;
+    
     memset(&local_eid_, 0, sizeof(local_eid_));
     memset(&dest_eid_,  0, sizeof(dest_eid_));
 }

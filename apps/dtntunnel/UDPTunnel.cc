@@ -59,9 +59,9 @@ UDPTunnel::handle_bundle(dtn::APIBundle* bundle)
         log_err("error sending packet to %s:%d: %s",
                 intoa(hdr.remote_addr_), hdr.remote_port_, strerror(errno));
     } else {
-        log_info("sent %zu byte packet to %s:%d",
-                 bundle->payload_.len() - sizeof(hdr),
-                 intoa(hdr.remote_addr_), hdr.remote_port_);
+        log_debug("sent %zu byte packet to %s:%d",
+                  bundle->payload_.len() - sizeof(hdr),
+                  intoa(hdr.remote_addr_), hdr.remote_port_);
     }
 
     delete bundle;
@@ -107,7 +107,7 @@ UDPTunnel::Listener::run()
             return; // die
         }
         
-        log_info("got %d byte packet", len);
+        log_debug("got %d byte packet", len);
 
         dtn::APIBundle* b = new dtn::APIBundle();
         char* bp = b->payload_.buf(sizeof(hdr) + len);

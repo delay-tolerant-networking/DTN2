@@ -352,16 +352,16 @@ TCPTunnel::Connection::run()
             int err = tunnel->send_bundle(b_xmit, &dest_eid_);
             if (err == DTN_SUCCESS) {
                 total_sent += len;
-                log_info("sent %zu byte payload #%u to dtn (%u total)",
-                         len, send_seqno, total_sent);
+                log_debug("sent %zu byte payload #%u to dtn (%u total)",
+                          len, send_seqno, total_sent);
                 b_xmit = NULL;
                 tbegin.sec_ = 0;
                 tbegin.usec_ = 0;
                 dtn_blocked = false;
                 
             } else if (err == DTN_ENOSPACE) {
-                log_info("no space for %zu byte payload... "
-                         "setting dtn_blocked", len);
+                log_debug("no space for %zu byte payload... "
+                          "setting dtn_blocked", len);
                 dtn_blocked = true;
                 continue;
             } else {
@@ -379,7 +379,7 @@ TCPTunnel::Connection::run()
             // connection
             if (b_recv == NULL)
             {
-                log_info("got signal to abort connection");
+                log_debug("got signal to abort connection");
                 goto done;
             }
 
@@ -409,7 +409,7 @@ TCPTunnel::Connection::run()
                     goto done;
                 }
 
-                log_info("sent %d byte payload to client", len);
+                log_debug("sent %d byte payload to client", len);
             }
             
 
@@ -452,16 +452,16 @@ TCPTunnel::Connection::handle_bundle(dtn::APIBundle* bundle)
     // queue and wait for the one that's missing
     else if (recv_seqno != next_seqno_)
     {
-        log_info("got out of order bundle: expected seqno %d, got %d",
-                 next_seqno_, recv_seqno);
+        log_debug("got out of order bundle: expected seqno %d, got %d",
+                  next_seqno_, recv_seqno);
         
         reorder_table_[recv_seqno] = bundle;
         return;
     }
 
     // deliver the one that just arrived
-    log_info("delivering %zu byte bundle with seqno %d",
-             bundle->payload_.len(), recv_seqno);
+    log_debug("delivering %zu byte bundle with seqno %d",
+              bundle->payload_.len(), recv_seqno);
     queue_.push_back(bundle);
     next_seqno_++;
     
@@ -475,8 +475,8 @@ TCPTunnel::Connection::handle_bundle(dtn::APIBundle* bundle)
         }
 
         bundle = iter->second;
-        log_info("delivering %zu byte bundle with seqno %d (from reorder table)",
-                 bundle->payload_.len(), next_seqno_);
+        log_debug("delivering %zu byte bundle with seqno %d (from reorder table)",
+                  bundle->payload_.len(), next_seqno_);
         
         reorder_table_.erase(iter);
         next_seqno_++;
