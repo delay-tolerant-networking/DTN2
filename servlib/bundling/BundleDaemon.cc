@@ -1852,7 +1852,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
     while ((ref = event->fragments_.pop_front()) != NULL) {
-        try_to_delete(ref);
+        delete_bundle(ref);
     }
 
     // post a new event for the newly reassembled bundle
