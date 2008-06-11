@@ -136,6 +136,11 @@ public:
     void process_for_reassembly(Bundle* fragment);
 
     /**
+     * Delete any fragments that are no longer needed given the incoming (non-fragment) bundle.
+     */
+    void delete_obsoleted_fragments(Bundle* fragment);
+
+    /**
      * Delete reassembly state for a bundle.
      */
     void delete_fragment(Bundle* fragment);

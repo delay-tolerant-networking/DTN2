@@ -462,6 +462,46 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
 
 //----------------------------------------------------------------------
 void
+FragmentManager::delete_obsoleted_fragments(Bundle* bundle)
+{
+    FragmentState* state;
+    FragmentTable::iterator iter;
+    
+    // cons up the key to do the table lookup and look for reassembly state
+    std::string hash_key;
+    get_hash_key(bundle, &hash_key);
+    iter = fragment_table_.find(hash_key);
+
+    log_debug("checking for obsolete fragments id=%u hash=%s...",
+              bundle->bundleid(), hash_key.c_str());
+    
+    if (iter == fragment_table_.end()) {
+        log_debug("no reassembly state for key %s",
+                  hash_key.c_str());
+        return;
+    }
+
+    state = iter->second;
+    log_debug("found reassembly state... deleting %zu fragments",
+              state->num_fragments());
+
+    BundleRef fragment("FragmentManager::delete_obsoleted_fragments");
+    BundleList::iterator i;
+    oasys::ScopeLock l(state->fragment_list().lock(),
+                       "FragmentManager::delete_obsoleted_fragments");
+    while (! state->fragment_list().empty()) {
+        BundleDaemon::post(new BundleDeleteRequest(state->fragment_list().pop_back(),
+                                                   BundleProtocol::REASON_NO_ADDTL_INFO));
+    }
+
+    ASSERT(state->fragment_list().size() == 0); // moved into events
+    l.unlock();
+    fragment_table_.erase(hash_key);
+    delete state;
+}
+
+//----------------------------------------------------------------------
+void
 FragmentManager::delete_fragment(Bundle* fragment)
 {
     FragmentState* state;
