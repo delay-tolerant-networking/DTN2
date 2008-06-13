@@ -27,6 +27,7 @@ proc config {args} {
     set router_type static
     set storage_type berkeleydb
     set null_link true
+    set copy_executables true
     
     set i 0
     while {$i < [llength $args]} {
@@ -44,6 +45,9 @@ proc config {args} {
 	    --no_null_link {
 		set null_link false
 	    }
+            -no_copy_executables {
+                set copy_executables false
+            }
 
 	    default {
 		error "unknown dtn::config argument '$arg'"
@@ -53,7 +57,7 @@ proc config {args} {
 	incr i
     }
     
-    dtn::standard_manifest
+    dtn::standard_manifest $copy_executables
     dtn::config_console
     dtn::config_api_server
     dtn::config_storage $storage_type
@@ -68,13 +72,24 @@ proc config {args} {
 #
 # Standard manifest
 #
-proc standard_manifest {} {
+proc standard_manifest {copy_executables} {
     global opt
-    manifest::file daemon/dtnd dtnd
+    if {$copy_executables} {
+        manifest::file daemon/dtnd dtnd
+    }
     manifest::file [file join $opt(base_test_dir) \
 	    test-utils/dtnd-test-utils.tcl] dtnd-test-utils.tcl
     manifest::dir  bundles
     manifest::dir  db
+}
+
+proc config_app_manifest {copy_executables {apps "dtnsend dtnrecv" } } {
+    global opt
+    if {$copy_executables} {
+        foreach app $apps {
+            manifest::file apps/$app/$app $app
+        }
+    }
 }
 
 #

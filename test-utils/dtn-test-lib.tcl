@@ -32,13 +32,13 @@ proc tell_dtntest {id args} {
 }
 
 namespace eval dtn {
-    proc run_dtnd { id {other_opts "-t"} } {
+    proc run_dtnd { id {exec_file "dtnd"} {other_opts "-t"} } {
 	global opt net::portbase test::testname
 	
 	if {$id == "*"} {
 	    set pids ""
 	    foreach id [net::nodelist] {
-		lappend pids [run_dtnd $id $other_opts]
+		lappend pids [run_dtnd $id $exec_file $other_opts]
 	    }
 	    return $pids
 	}
@@ -47,8 +47,8 @@ namespace eval dtn {
 
 	append exec_opts " $other_opts"
 
-	return [run::run $id "dtnd" $exec_opts $test::testname.conf \
-		    [conf::get dtnd $id] ""]
+	return [run::run $id dtnd $exec_opts $test::testname.conf \
+		    [conf::get dtnd $id] "" $exec_file]
 	
     }
 
@@ -472,6 +472,38 @@ namespace eval dtn {
 	    }
 	    after 500
 	}
+    }
+
+
+    # utility function to wait until no bundles are queued for
+    # transmission or in flight
+    proc wait_for_state_on_all_links {id state {timeout 30}} {
+        do_until "wait_for_state_on_all_links $id $state" $timeout {
+            if {$id == "*"} {
+                set ids [net::nodelist]
+            } else {
+                set ids $id
+            }
+
+            # to make sure that all links meet the criteria, we use
+            # wait_for_link_state so that any error includes the
+            # link that failed to match
+            if [catch {
+                foreach id $ids {
+                    foreach l [tell_dtnd $id link names] {
+                        wait_for_link_state $id $l $state 1
+                    }
+                }
+            } err] {
+                if {[do_timeout_remaining] == 0} {
+                    error $err
+                } else {
+                    continue
+                }
+            }
+            
+            break
+        }
     }
 
     # dtnd "link stats" functions
