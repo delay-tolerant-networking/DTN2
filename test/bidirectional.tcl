@@ -17,9 +17,6 @@
 test::name bidirectional
 net::num_nodes 3
 
-manifest::file apps/dtnsend/dtnsend dtnsend
-manifest::file apps/dtnrecv/dtnrecv dtnrecv
-
 set cl    tcp
 set count 200
 set storage_type filesysdb
@@ -40,6 +37,7 @@ foreach {var val} $opt(opts) {
 dtn::config --no_null_link --storage_type $storage_type
 
 dtn::config_interface $cl
+dtn::config_app_manifest 1
 dtn::config_linear_topology ALWAYSON $cl true
 
 conf::add dtnd * "param set early_deletion false"
@@ -202,7 +200,7 @@ test::script {
 	after $sleep
 
 	testlog " Starting node 1"
-	set pids(1) [dtn::run_dtnd 1 ""]
+	set pids(1) [dtn::run_dtnd 1 dtnd ""]
 	dtn::wait_for_dtnd 1
     }
 

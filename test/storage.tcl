@@ -121,7 +121,7 @@ test::script {
     testlog "restarting dtnd without the tidy option"
     dtn::stop_dtnd 0
     after 2000
-    dtn::run_dtnd 0 {}
+    dtn::run_dtnd 0 dtnd {}
     dtn::wait_for_dtnd 0
 
     testlog "checking the data after reloading the database"
@@ -134,7 +134,7 @@ test::script {
     after 10000
 
     testlog "restarting dtnd"
-    dtn::run_dtnd 0 {}
+    dtn::run_dtnd 0 dtnd {}
     after 2000
     dtn::wait_for_dtnd 0
 
@@ -156,7 +156,7 @@ test::script {
     testlog "restarting again"
     dtn::stop_dtnd 0
     after 5000
-    dtn::run_dtnd 0 {}
+    dtn::run_dtnd 0 dtnd {}
     dtn::wait_for_dtnd 0
 
     testlog "making sure they're all really gone"

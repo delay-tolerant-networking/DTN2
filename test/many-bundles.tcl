@@ -68,7 +68,7 @@ test::script {
     testlog "Restarting dtnd 0"
     dtn::stop_dtnd 0
     after 5000
-    dtn::run_dtnd 0 ""
+    dtn::run_dtnd 0 dtnd ""
 
     testlog "Checking that all bundles were re-read from the database"
     dtn::wait_for_dtnd 0
