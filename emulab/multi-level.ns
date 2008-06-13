@@ -1,0 +1,115 @@
+
+Tierstore config:
+
+
+source tb_compat.tcl
+set ns [new Simulator]
+
+#
+# Parameters
+#
+
+# Fanout of nodes at each level, i.e. for each node at level 1, there
+# are $level2 children, etc. Max fanout at the first two levels is 9
+set level1 2
+set level2 1
+set level3 5
+
+# Bandwidth / delay
+set bandwidth12 128kb
+set delay12     300ms
+
+set bandwidth23 56kb
+set delay23     10ms
+
+# Tracing
+set trace_type header
+
+# Hardware / OS Image
+set image    FC4-TIERSTORE2
+tb-make-soft-vtype root   {pc3000 pc2000 pc850}
+tb-make-soft-vtype level1 {pc3000 pc2000 pc850}
+tb-make-soft-vtype level2 {pc3000 pc2000 pc850}
+tb-make-soft-vtype level3 {pc3000 pc2000 pc850}
+
+#
+# Script
+#
+
+# node 0 is the root
+# nodes 1-9 are at level 1
+# nodes 10-99 are at level 2
+# nodes 100-999 are at level 3
+
+# make nodes
+set node(0) [$ns node]
+for {set i 1} {$i <= $level1} {incr i} {
+    set node($i)    [$ns node]
+
+    for {set j 0} {$j < $level2} {incr j} {
+	set node($i$j) [$ns node]
+
+	for {set k 0} {$k < $level3} {incr k} {
+	    set node($i$j$k) [$ns node]
+	}
+    }
+}
+
+# links from level 0 - 1
+for {set i 1} {$i <= $level1} {incr i} {
+    set links(0-$i) [$ns duplex-link $node(0) $node($i) 100Mb 0ms DropTail]
+    #[[$ns link $node(0) $node(1)] queue] set trace_type $trace_type
+    $links(0-$i) trace $trace_type
+}
+
+# lans from level 1 - 2
+for {set i 1} {$i <= $level1} {incr i} {
+    set nodes [list $node($i)]
+    for {set j 0} {$j < $level2} {incr j} {
+	lappend nodes $node($i$j)
+    }
+
+    set lan($i) [$ns make-lan $nodes 100Mb 0ms]
+    for {set j 0} {$j < $level2} {incr j} {
+	tb-set-node-lan-bandwidth $node($i$j) $lan($i) $bandwidth12
+	tb-set-node-lan-delay     $node($i$j) $lan($i) $delay12
+        #[[$ns lanlink $lan($i) $node($i$j)] queue] set trace_type $trace_type
+        $lan($i) trace $trace_type
+    }
+}
+
+# lans from level 2 - 3
+for {set i 1} {$i <= $level1} {incr i} {
+    for {set j 0} {$j < $level2} {incr j} {
+	set nodes [list $node($i$j)]
+	
+	for {set k 0} {$k < $level3} {incr k} {
+	    lappend nodes $node($i$j$k)
+	}
+	set lan($i$j) [$ns make-lan $nodes 100Mb 0ms]
+	for {set k 0} {$k < $level3} {incr k} {
+	    tb-set-node-lan-bandwidth $node($i$j$k) $lan($i$j) $bandwidth23
+	    tb-set-node-lan-delay     $node($i$j$k) $lan($i$j) $delay23
+	    #[[$ns lanlink $lan($i$j) $node($i$j$k)] queue] set trace_type $trace_type
+            $lan($i$j) trace $trace_type
+        }
+    }
+}
+
+foreach {id n} [array get node] {
+    tb-set-node-os  $n $image
+    if {$id == 0} {
+       tb-set-hardware $n root
+    } elseif {$id < 10} {
+       tb-set-hardware $n level1
+    } elseif {$id < 100} {
+       tb-set-hardware $n level2
+    } else {
+       tb-set-hardware $n level3
+    }
+}
+
+tb-set-sync-server $node(0)
+
+$ns rtproto Static
+$ns run

@@ -1,0 +1,47 @@
+source tb_compat.tcl
+set ns [new Simulator]
+
+#
+# Parameters
+#
+
+# Number of nodes
+set num 5
+
+# Bandwidth / delay
+set bandwidth 128kb
+set delay     0ms
+
+# OS Image
+set image    FC8-DTN
+
+# Hardware
+# tb-make-soft-vtype hw   {pc3000 pc2000 pc850}
+# set hw_type hw
+set hw_type pc3000
+
+# Tracing
+set trace_type header
+
+#
+# Script
+#
+
+# make nodes, set up os and hardware
+for {set i 0} {$i < $num} {incr i} {
+    set node($i) [$ns node]
+    tb-set-node-os  $node($i) $image
+    tb-set-hardware $node($i) $hw_type
+}
+
+# make links
+for {set i 0} {$i < [expr $num - 1]} {incr i} {
+    set j [expr $i + 1]
+    set links($i-$j) [$ns duplex-link $node($i) $node($j) $bandwidth $delay DropTail]
+    $links($i-$j) trace $trace_type
+}
+
+tb-set-sync-server $node(0)
+
+$ns rtproto Static
+$ns run
