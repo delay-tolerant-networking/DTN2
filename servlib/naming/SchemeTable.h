@@ -46,6 +46,11 @@ private:
 
 public:
     /**
+     * Register the given scheme.
+     */
+    bool register_scheme(const std::string& scheme_str, Scheme* scheme);
+    
+    /**
      * Find the appropriate Scheme instance based on the URI
      * scheme of the endpoint id scheme.
      *

@@ -51,6 +51,14 @@ SchemeTable::~SchemeTable()
 }
 
 //----------------------------------------------------------------------
+bool
+SchemeTable::register_scheme(const std::string& scheme_str,
+                             Scheme* scheme)
+{
+    table_[scheme_str] = scheme;
+}
+
+//----------------------------------------------------------------------
 Scheme*
 SchemeTable::lookup(const std::string& scheme_str)
 {
