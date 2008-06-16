@@ -33,6 +33,10 @@ class Session;
  */
 class SessionTable {
 public:
+    typedef std::map<EndpointID, Session*> SessionMap;
+    typedef SessionMap::const_iterator iterator;
+    
+public:
     SessionTable();
     Session* lookup_session(const EndpointID& eid) const;
     void     add_session(Session* s);
@@ -42,8 +46,10 @@ public:
     size_t   size()  const { return table_.size(); }
     void     dump(oasys::StringBuffer* buf) const;
 
+    iterator begin() const { return table_.begin(); }
+    iterator end()   const { return table_.end(); }
+    
 protected:
-    typedef std::map<EndpointID, Session*> SessionMap;
     SessionMap table_;
 };
 
