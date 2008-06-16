@@ -51,12 +51,7 @@ void
 TableBasedRouter::add_route(RouteEntry *entry)
 {
     route_table_->add_entry(entry);
-
-    // clear the reception cache when the routes change since we might
-    // want to send a bundle back where it came from
-    reception_cache_.evict_all();
-    
-    reroute_all_bundles();        
+    handle_changed_routes();
 }
 
 //----------------------------------------------------------------------
@@ -69,8 +64,18 @@ TableBasedRouter::del_route(const EndpointIDPattern& dest)
     // want to send a bundle back where it came from
     reception_cache_.evict_all();
     
-    // XXX/demmer this needs to reroute bundles, cancelling them from
-    // their old route destinations
+    // XXX/demmer this should really call handle_changed_routes...
+}
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::handle_changed_routes()
+{
+    // clear the reception cache when the routes change since we might
+    // want to send a bundle back where it came from
+    reception_cache_.evict_all();
+    reroute_all_bundles();
+    reroute_all_sessions();
 }
 
 //----------------------------------------------------------------------
@@ -1172,21 +1177,23 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
         // already subscribed, then add_subscriber doesn't do
         // anything. XXX/demmer it should reset the stale subscription
         // timer...
-        if (event->source_ == EVENTSRC_PEER &&
-            bundle->prevhop().str() != "" &&
-            bundle->prevhop()       != EndpointID::NULL_EID())
+        if (event->source_ == EVENTSRC_PEER)
         {
-            log_debug("handle_session_bundle: "
-                      "adding downstream subscriber %s (seqid *%p)",
-                      bundle->prevhop().c_str(), &bundle->sequence_id());
-
-            add_subscriber(session, bundle->prevhop(), bundle->sequence_id());
-        }
-        else
-        {
-            // XXX/demmer what to do here??
-            log_err("handle_session_bundle: "
-                    "downstream subscriber with no prevhop!!!!");
+            if (bundle->prevhop().str() != "" &&
+                bundle->prevhop()       != EndpointID::NULL_EID())
+            {
+                log_debug("handle_session_bundle: "
+                          "adding downstream subscriber %s (seqid *%p)",
+                          bundle->prevhop().c_str(), &bundle->sequence_id());
+                
+                add_subscriber(session, bundle->prevhop(), bundle->sequence_id());
+            }
+            else
+            {
+                // XXX/demmer what to do here??
+                log_err("handle_session_bundle: "
+                        "downstream subscriber with no prevhop!!!!");
+            }
         }
         break;
     }
@@ -1201,6 +1208,20 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
 }
 
 //----------------------------------------------------------------------
+void
+TableBasedRouter::reroute_all_sessions()
+{
+    log_debug("reroute_all_bundles... %zu sessions",
+              sessions_.size());
+
+    for (SessionTable::iterator iter = sessions_.begin();
+         iter != sessions_.end(); ++iter)
+    {
+        find_session_upstream(iter->second);
+    }
+}
+
+//----------------------------------------------------------------------
 bool
 TableBasedRouter::find_session_upstream(Session* session)
 {
@@ -1210,11 +1231,17 @@ TableBasedRouter::find_session_upstream(Session* session)
     {
         Registration* reg = *iter;
         if (reg->endpoint().match(session->eid())) {
-            log_debug("find_session_upstream: found custody registration %d",
-                      reg->regid());
-
-            // XXX/demmer fix this cast
-            session->set_upstream(Subscriber(reg));
+            Subscriber new_upstream(reg);
+            if (session->upstream() == new_upstream) {
+                log_debug("find_session_upstream: "
+                          "session %s upstream custody registration %d unchanged",
+                          session->eid().c_str(), reg->regid());
+            } else {
+                log_debug("find_session_upstream: "
+                          "session %s found new custody registration %d",
+                          session->eid().c_str(), reg->regid());
+                session->set_upstream(new_upstream);
+            }
             return true;
         }
     }
@@ -1243,10 +1270,17 @@ TableBasedRouter::find_session_upstream(Session* session)
             continue;
         }
 
-        log_debug("find_session_upstream: session %s upstream %s",
-                  session->eid().c_str(), link->remote_eid().c_str());
-        session->set_upstream(Subscriber(link->remote_eid()));
-        add_subscriber(session, link->remote_eid(), SequenceID());
+        Subscriber new_upstream(link->remote_eid());
+        if (session->upstream() == new_upstream) {
+            log_debug("find_session_upstream: "
+                      "session %s found existing upstream %s",
+                      session->eid().c_str(), link->remote_eid().c_str());
+        } else {
+            log_debug("find_session_upstream: session %s new upstream %s",
+                      session->eid().c_str(), link->remote_eid().c_str());
+            session->set_upstream(Subscriber(link->remote_eid()));
+            add_subscriber(session, link->remote_eid(), SequenceID());
+        }
         return true;
     }
 

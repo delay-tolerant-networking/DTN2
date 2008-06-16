@@ -79,6 +79,8 @@ protected:
     bool subscribe_to_session(int action, Session* session);
     
     bool find_session_upstream(Session* session);
+    void reroute_all_sessions();
+
     bool handle_session_bundle(BundleReceivedEvent* event);
     void add_subscriber(Session*          session,
                         const EndpointID& peer,
@@ -104,6 +106,11 @@ protected:
      * Remove matrhing route entry(s) from the routing table. 
      */
     void del_route(const EndpointIDPattern& id);
+
+    /**
+     * Update forwarding state due to changed routes.
+     */
+    void handle_changed_routes();
 
     /**
      * Try to forward a bundle to a next hop route.

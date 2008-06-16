@@ -581,7 +581,7 @@ DTLSRRouter::recompute_routes()
     }
 
     // go through all bundles and re-route them
-    reroute_all_bundles();
+    handle_changed_routes();
 }
 
 //----------------------------------------------------------------------
