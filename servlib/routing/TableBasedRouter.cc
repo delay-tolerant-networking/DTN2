@@ -26,7 +26,7 @@
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
 #include "contacts/Link.h"
-#include "reg/APIRegistration.h"
+#include "reg/Registration.h"
 #include "session/Session.h"
 
 namespace dtn {
@@ -993,7 +993,7 @@ TableBasedRouter::deferred_list(const LinkRef& link)
 void
 TableBasedRouter::handle_registration_added(RegistrationAddedEvent* event)
 {
-    APIRegistration* reg = dynamic_cast<APIRegistration*>(event->registration_);
+    Registration* reg = event->registration_;
     
     if (reg == NULL || reg->session_flags() == 0) {
         return;
@@ -1134,7 +1134,7 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
                     log_debug("handle_session_bundle: "
                               "forwarding %s bundle to upstream registration",
                               Session::flag_str(bundle->session_flags()));
-                    upstream.reg()->session_notify_list()->push_back(bundle);
+                    upstream.reg()->session_notify(bundle);
                     should_route = false;
                 }
                 else
@@ -1214,7 +1214,7 @@ TableBasedRouter::find_session_upstream(Session* session)
                       reg->regid());
 
             // XXX/demmer fix this cast
-            session->set_upstream(Subscriber((APIRegistration*)reg));
+            session->set_upstream(Subscriber(reg));
             return true;
         }
     }

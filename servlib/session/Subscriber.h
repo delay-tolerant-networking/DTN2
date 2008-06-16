@@ -26,7 +26,7 @@
 
 namespace dtn {
 
-class APIRegistration;
+class Registration;
 
 /**
  * A subscriber for a session is either a local registration or a next
@@ -39,7 +39,7 @@ public:
         : reg_(NULL), nexthop_(EndpointID::NULL_EID()) {}
     
     /// Constructor for a local subscriber
-    Subscriber(APIRegistration* reg)
+    Subscriber(Registration* reg)
         : reg_(reg), nexthop_(EndpointID::NULL_EID()) {}
 
     /// Constructor for a remote subscriber
@@ -58,13 +58,13 @@ public:
     /// @{ Accessors
     bool              is_null()  const;
     bool              is_local() const { return reg_ != NULL; }
-    APIRegistration*  reg()      const { ASSERT(is_local()); return reg_; }
+    Registration*  reg()         const { ASSERT(is_local()); return reg_; }
     const EndpointID& nexthop()  const { ASSERT(!is_local()); return nexthop_; }
     /// @}
 
 protected:
-    APIRegistration* reg_;
-    EndpointID       nexthop_;
+    Registration* reg_;
+    EndpointID    nexthop_;
 };
 
 //----------------------------------------------------------------------

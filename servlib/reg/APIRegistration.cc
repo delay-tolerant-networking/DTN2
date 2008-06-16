@@ -88,7 +88,7 @@ APIRegistration::deliver_bundle(Bundle* bundle)
         BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
         return;
     }
-
+    
     if (!active() && (failure_action_ == EXEC)) {
         // this sure seems like a security hole, but what can you
         // do -- it's in the spec
@@ -112,5 +112,12 @@ APIRegistration::deliver_bundle(Bundle* bundle)
     }
 }
 
+//----------------------------------------------------------------------
+void
+APIRegistration::session_notify(Bundle* bundle)
+{
+    log_debug("session_notify *%p", bundle);
+    session_notify_list_->push_back(bundle);
+}
 
 } // namespace dtn

@@ -52,7 +52,8 @@ public:
     
     /// Virtual from Registration
     void deliver_bundle(Bundle* bundle);
-
+    void session_notify(Bundle* bundle);
+    
     /**
      * Accessor for the queue of bundles for the registration.
      */

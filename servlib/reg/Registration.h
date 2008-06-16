@@ -94,6 +94,14 @@ public:
      */
     virtual void deliver_bundle(Bundle* bundle) = 0;
     
+    /**
+     * Hook for subclasses to handle a new session notification on
+     * this registration. Must be implemented by any custody
+     * registration subclasses since the default implementation just
+     * panics.
+     */
+    virtual void session_notify(Bundle* bundle);
+    
     //@{
     /// Accessors
     const u_int32_t          durable_key()       const { return regid_; }

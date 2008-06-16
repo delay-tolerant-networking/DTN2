@@ -89,6 +89,14 @@ Registration::~Registration()
 
 //----------------------------------------------------------------------
 void
+Registration::session_notify(Bundle* bundle)
+{
+    (void)bundle;
+    PANIC("generic session_notify implementation should never be called");
+}
+
+//----------------------------------------------------------------------
+void
 Registration::force_expire()
 {
     ASSERT(active_);

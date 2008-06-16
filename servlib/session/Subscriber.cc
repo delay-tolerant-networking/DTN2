@@ -19,7 +19,7 @@
 #endif
 
 #include "Subscriber.h"
-#include "reg/APIRegistration.h"
+#include "reg/Registration.h"
 
 namespace dtn {
 
