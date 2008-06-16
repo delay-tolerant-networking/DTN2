@@ -185,6 +185,12 @@ DTLSRRouter::initialize()
     TableBasedRouter::initialize();
     
     const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
+
+    if (local_eid.scheme_str() != "dtn") {
+        log_crit("cannot use DTLSR with a local eid not in the 'dtn' scheme");
+        exit(1);
+    }
+    
     local_node_ = graph_.add_node(local_eid.str(), NodeInfo());
 
     EndpointIDPattern admin_eid = local_eid;
@@ -438,7 +444,7 @@ DTLSRRouter::handle_registration_added(RegistrationAddedEvent* event)
     {
         eid = reg->endpoint().str();
     }
-    else if (reg->session_flags() == Session::CUSTODY)
+    else if (reg->session_flags() & Session::CUSTODY)
     {
         eid = std::string("dtn-session:") + reg->endpoint().str();
     }
@@ -594,6 +600,12 @@ DTLSRRouter::Reg::Reg(DTLSRRouter* router,
 void
 DTLSRRouter::Reg::deliver_bundle(Bundle* bundle)
 {
+    // XXX/demmer yuck
+    if (bundle->source() == BundleDaemon::instance()->local_eid()) {
+        log_info("ignoring bundle sent by self");
+        return;
+    }
+
     u_char type;
     bundle->payload().read_data(0, 1, &type);
 
