@@ -73,7 +73,6 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
     // If we've consumed the length (because the data_offset is
     // non-zero) and the length is zero, then we're done.
     if (block->data_offset() != 0 && block->data_length() == 0) {
-        log_info_p(log, "bundle has zero-length payload block");
         block->set_complete(true);
         return consumed;
     }
