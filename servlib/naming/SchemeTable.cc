@@ -51,7 +51,7 @@ SchemeTable::~SchemeTable()
 }
 
 //----------------------------------------------------------------------
-bool
+void
 SchemeTable::register_scheme(const std::string& scheme_str,
                              Scheme* scheme)
 {

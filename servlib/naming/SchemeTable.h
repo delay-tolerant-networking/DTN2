@@ -48,7 +48,7 @@ public:
     /**
      * Register the given scheme.
      */
-    bool register_scheme(const std::string& scheme_str, Scheme* scheme);
+    void register_scheme(const std::string& scheme_str, Scheme* scheme);
     
     /**
      * Find the appropriate Scheme instance based on the URI
