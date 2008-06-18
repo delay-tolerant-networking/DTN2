@@ -110,7 +110,7 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
     hdr.client_port_ = htons(hdr.client_port_);
     hdr.remote_port_ = htons(hdr.remote_port_);
 
-    Connection* conn;
+    Connection* conn = NULL;
     ConnTable::iterator i;
     ConnKey key(hdr.client_addr_,
                 hdr.client_port_,
@@ -118,29 +118,36 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
                 hdr.remote_port_);
     
     i = connections_.find(key);
-
+    
     if (ntohl(hdr.seqno_) == 0)
     {
         if (i != connections_.end()) {
-            log_warn("got bundle with seqno 0 but connection already exists... "
-                     "closing and restarting");
+            conn = i->second;
             
-            // push a NULL bundle onto the existing connection queue
-            // to signal that it should shut down
-            i->second->queue_.push_back(NULL);
-        }
+            if (conn->next_seqno_ != 0) {
+                log_warn("got bundle with seqno 0 but connection already exists... "
+                         "closing and restarting");
+                
+                // push a NULL bundle onto the existing connection queue
+                // to signal that it should shut down
+                conn->queue_.push_back(NULL);
+                conn = NULL;
+            } 
+        } 
 
-        log_info("new connection %s:%d -> %s:%d",
-                 intoa(hdr.client_addr_),
-                 hdr.client_port_,
-                 intoa(hdr.remote_addr_),
-                 hdr.remote_port_);
+        if (conn == NULL) {
+            log_info("new connection %s:%d -> %s:%d",
+                     intoa(hdr.client_addr_),
+                     hdr.client_port_,
+                     intoa(hdr.remote_addr_),
+                     hdr.remote_port_);
         
-        conn = new Connection(this, &bundle->spec_.source,
-                              hdr.client_addr_, hdr.client_port_,
-                              hdr.remote_addr_, hdr.remote_port_);
-        conn->start();
-        connections_[key] = conn;
+            conn = new Connection(this, &bundle->spec_.source,
+                                  hdr.client_addr_, hdr.client_port_,
+                                  hdr.remote_addr_, hdr.remote_port_);
+            conn->start();
+            connections_[key] = conn;
+        }
     }
     else
     {
