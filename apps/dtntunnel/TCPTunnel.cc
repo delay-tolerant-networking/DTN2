@@ -63,7 +63,7 @@ TCPTunnel::new_connection(Connection* c)
         return;
     }
 
-    connections_.insert(ConnTable::value_type(key, c));
+    connections_[key] = c;
 }
 
 //----------------------------------------------------------------------
@@ -89,7 +89,12 @@ TCPTunnel::kill_connection(Connection* c)
         return;
     }
 
-    connections_.erase(i);
+    // there's a chance that the connection was replaced by a
+    // restarted one, in which case we leave the existing one in the
+    // table and don't want to blow it away
+    if (i->second == c) {
+        connections_.erase(i);
+    }
 }
 
 //----------------------------------------------------------------------
@@ -114,14 +119,17 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
     
     i = connections_.find(key);
 
-    if (i == connections_.end()) {
-        if (hdr.seqno_ != 0) {
-            log_warn("got bundle with seqno %d but no connection, ignoring",
-                     hdr.seqno_);
-            delete bundle;
-            return;
+    if (ntohl(hdr.seqno_) == 0)
+    {
+        if (i != connections_.end()) {
+            log_warn("got bundle with seqno 0 but connection already exists... "
+                     "closing and restarting");
+            
+            // push a NULL bundle onto the existing connection queue
+            // to signal that it should shut down
+            i->second->queue_.push_back(NULL);
         }
-        
+
         log_info("new connection %s:%d -> %s:%d",
                  intoa(hdr.client_addr_),
                  hdr.client_port_,
@@ -132,15 +140,23 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
                               hdr.client_addr_, hdr.client_port_,
                               hdr.remote_addr_, hdr.remote_port_);
         conn->start();
-        connections_.insert(ConnTable::value_type(key, conn));
+        connections_[key] = conn;
+    }
+    else
+    {
+        // seqno != 0
+        if (i == connections_.end()) {
+            log_warn("got bundle with seqno %d but no connection, ignoring",
+                     ntohl(hdr.seqno_));
+            delete bundle;
+            return;
+        }
 
-    } else {
         conn = i->second;
-        ASSERT(conn != NULL);
     }
 
+    ASSERT(conn != NULL);
     conn->handle_bundle(bundle);
-    return;
 }
 
 //----------------------------------------------------------------------
@@ -435,16 +451,15 @@ TCPTunnel::Connection::handle_bundle(dtn::APIBundle* bundle)
     
     u_int32_t recv_seqno = ntohl(hdr->seqno_);
 
-    // if the seqno is in the past, then it's likely the other side
-    // restarted, so we put a null APIBundle pointer onto the queue to
-    // wake up the connection thread and signal it that it's time to
-    // die.
+    // if the seqno is in the past, but isn't 0 to mark that it starts
+    // a new connection (which is handled above), then it's a
+    // duplicate delivery so just ignore it
     if (recv_seqno < next_seqno_)
     {
         log_warn("got seqno %u, but already delivered up to %u: "
-                 "closing connection",
+                 "ignoring bundle",
                  recv_seqno, next_seqno_);
-        queue_.push_back(NULL);
+        delete bundle;
         return;
     }
     
