@@ -166,6 +166,11 @@ protected:
     typedef std::map<ConnKey, Connection*> ConnTable;
     ConnTable connections_;
 
+    /// Table of bundles that arrive out of order before the
+    /// connection is set up
+    typedef std::map<ConnKey, dtn::APIBundleVector*> NoConnBundleTable;
+    NoConnBundleTable no_conn_bundles_;
+
     /// Lock to protect the connections table
     oasys::SpinLock lock_;
 

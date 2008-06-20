@@ -169,9 +169,19 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
 
         } else {
             // seqno != 0
-            log_warn("got bundle with seqno %u but no connection, ignoring",
+            log_warn("got bundle with seqno %u but no connection... "
+                     "postponing delivery",
                      hdr.seqno_);
-            delete bundle;
+
+            dtn::APIBundleVector* vec;
+            NoConnBundleTable::iterator j = no_conn_bundles_.find(key);
+            if (j != no_conn_bundles_.end()) {
+                vec = new dtn::APIBundleVector();
+                no_conn_bundles_[key] = vec;
+            } else {
+                vec = j->second;
+            }
+            vec->push_back(bundle);
             return;
         }
         
@@ -181,6 +191,16 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
 
     ASSERT(conn != NULL);
     conn->handle_bundle(bundle);
+
+    NoConnBundleTable::iterator j = no_conn_bundles_.find(key);
+    if (j != no_conn_bundles_.end()) {
+        dtn::APIBundleVector* vec = j->second;
+        no_conn_bundles_.erase(j);
+        for (dtn::APIBundleVector::iterator k = vec->begin(); k != vec->end(); ++k) {
+            conn->handle_bundle(*k);
+        }
+        delete vec;
+    }
 }
 
 //----------------------------------------------------------------------
