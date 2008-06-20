@@ -17,6 +17,7 @@
 #ifndef _APIBUNDLEQUEUE_H_
 #define _APIBUNDLEQUEUE_H_
 
+#include <vector>
 #include "dtn_types.h"
 #include <oasys/thread/MsgQueue.h>
 #include <oasys/util/ScratchBuffer.h>
@@ -30,6 +31,11 @@ struct APIBundle {
     dtn_bundle_spec_t 			spec_;
     oasys::ScratchBuffer<char*,512>	payload_;
 };
+
+/**
+ * Type definition of a simple vector of APIBundles.
+ */
+typedef std::vector<APIBundle*> APIBundleVector;
 
 /**
  * Type definition of an oasys blocking message queue that stores
