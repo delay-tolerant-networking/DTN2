@@ -76,12 +76,14 @@ protected:
         /// arriving bundle request
         Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
                    in_addr_t client_addr, u_int16_t client_port,
-                   in_addr_t remote_addr, u_int16_t remote_port);
+                   in_addr_t remote_addr, u_int16_t remote_port,
+                   u_int32_t connection_id);
 
         /// Constructor called when a new connection was accepted
         Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid, int fd,
                    in_addr_t client_addr, u_int16_t client_port,
-                   in_addr_t remote_addr, u_int16_t remote_port);
+                   in_addr_t remote_addr, u_int16_t remote_port,
+                   u_int32_t connection_id);
 
         /// Destructor
         ~Connection();
@@ -117,7 +119,11 @@ protected:
         u_int16_t         client_port_;
         in_addr_t         remote_addr_;
         u_int16_t         remote_port_;
+        u_int32_t         connection_id_;
     };
+
+    /// Return the next connection id
+    u_int32_t next_connection_id();
 
     /// Hook called by the listener when a new connection comes in
     void new_connection(Connection* c);
@@ -129,26 +135,31 @@ protected:
     struct ConnKey {
         ConnKey()
             : client_addr_(INADDR_NONE), client_port_(0),
-              remote_addr_(INADDR_NONE), remote_port_(0) {}
+              remote_addr_(INADDR_NONE), remote_port_(0),
+              connection_id_(0) {}
 
         ConnKey(in_addr_t client_addr, u_int16_t client_port,
-                in_addr_t remote_addr, u_int16_t remote_port)
+                in_addr_t remote_addr, u_int16_t remote_port,
+                u_int32_t connection_id)
             : client_addr_(client_addr),
               client_port_(client_port),
               remote_addr_(remote_addr),
-              remote_port_(remote_port) {}
+              remote_port_(remote_port),
+              connection_id_(connection_id) {}
 
         bool operator<(const ConnKey& other) const {
             return ((client_addr_ < other.client_addr_) ||
                     (client_port_ < other.client_port_) ||
                     (remote_addr_ < other.remote_addr_) ||
-                    (remote_port_ < other.remote_port_));
+                    (remote_port_ < other.remote_port_) ||
+                    (connection_id_ < other.connection_id_));
         }
         
         in_addr_t client_addr_;
         u_int16_t client_port_;
         in_addr_t remote_addr_;
         u_int16_t remote_port_;
+        u_int32_t connection_id_;
     };
 
     /// Table of connection classes indexed by the remote address/port
@@ -157,6 +168,9 @@ protected:
 
     /// Lock to protect the connections table
     oasys::SpinLock lock_;
+
+    /// Increasing counter for connection identifiers
+    u_int32_t next_connection_id_;
 };
 
 } // namespace dtntunnel

@@ -27,7 +27,8 @@ namespace dtntunnel {
 
 //----------------------------------------------------------------------
 TCPTunnel::TCPTunnel()
-    : IPTunnel("TCPTunnel", "/dtntunnel/tcp")
+    : IPTunnel("TCPTunnel", "/dtntunnel/tcp"),
+      next_connection_id_(0)
 {
 }
 
@@ -41,6 +42,14 @@ TCPTunnel::add_listener(in_addr_t listen_addr, u_int16_t listen_port,
 }
 
 //----------------------------------------------------------------------
+u_int32_t
+TCPTunnel::next_connection_id()
+{
+    oasys::ScopeLock l(&lock_, "TCPTunnel::next_connection_id");
+    return ++next_connection_id_;
+}
+
+//----------------------------------------------------------------------
 void
 TCPTunnel::new_connection(Connection* c)
 {
@@ -50,20 +59,31 @@ TCPTunnel::new_connection(Connection* c)
     ConnKey key(c->client_addr_,
                 c->client_port_,
                 c->remote_addr_,
-                c->remote_port_);
+                c->remote_port_,
+                c->connection_id_);
     
     i = connections_.find(key);
     
     if (i != connections_.end()) {
-        log_err("got duplicate connection %s:%d -> %s:%d",
+        log_err("got duplicate connection %s:%d -> %s:%d (id %u)",
                 intoa(c->client_addr_),
                 c->client_port_,
                 intoa(c->remote_addr_),
-                c->remote_port_);
+                c->remote_port_,
+                c->connection_id_);
         return;
     }
 
+    log_debug("added new connection to table %s:%d -> %s:%d (id %u)",
+              intoa(key.client_addr_),
+              key.client_port_,
+              intoa(key.remote_addr_),
+              key.remote_port_,
+              key.connection_id_);
+    
     connections_[key] = c;
+
+    ASSERT(connections_.find(key) != connections_.end());
 }
 
 //----------------------------------------------------------------------
@@ -76,16 +96,18 @@ TCPTunnel::kill_connection(Connection* c)
     ConnKey key(c->client_addr_,
                 c->client_port_,
                 c->remote_addr_,
-                c->remote_port_);
+                c->remote_port_,
+                c->connection_id_);
     
     i = connections_.find(key);
 
     if (i == connections_.end()) {
-        log_err("can't find connection to kill %s:%d -> %s:%d",
+        log_err("can't find connection to kill %s:%d -> %s:%d (id %u)",
                 intoa(c->client_addr_),
                 c->client_port_,
                 intoa(c->remote_addr_),
-                c->remote_port_);
+                c->remote_port_,
+                c->connection_id_);
         return;
     }
 
@@ -103,62 +125,57 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
 {
     oasys::ScopeLock l(&lock_, "TCPTunnel::handle_bundle");
 
-    log_debug("handle_bundle got %zu byte bundle", bundle->payload_.len());
-    
     DTNTunnel::BundleHeader hdr;
     memcpy(&hdr, bundle->payload_.buf(), sizeof(hdr));
-    hdr.client_port_ = htons(hdr.client_port_);
-    hdr.remote_port_ = htons(hdr.remote_port_);
+    hdr.connection_id_ = ntohl(hdr.connection_id_);
+    hdr.seqno_ = ntohl(hdr.seqno_);
+    hdr.client_port_ = ntohs(hdr.client_port_);
+    hdr.remote_port_ = ntohs(hdr.remote_port_);
 
+    log_debug("handle_bundle got %zu byte bundle %s:%d -> %s:%d (id %u seqno %u)",
+              bundle->payload_.len(),
+              intoa(hdr.client_addr_),
+              hdr.client_port_,
+              intoa(hdr.remote_addr_),
+              hdr.remote_port_,
+              hdr.connection_id_,
+              hdr.seqno_);
+    
     Connection* conn = NULL;
     ConnTable::iterator i;
     ConnKey key(hdr.client_addr_,
                 hdr.client_port_,
                 hdr.remote_addr_,
-                hdr.remote_port_);
+                hdr.remote_port_,
+                hdr.connection_id_);
     
     i = connections_.find(key);
     
-    if (ntohl(hdr.seqno_) == 0)
-    {
-        if (i != connections_.end()) {
-            conn = i->second;
-            
-            if (conn->next_seqno_ != 0) {
-                log_warn("got bundle with seqno 0 but connection already exists... "
-                         "closing and restarting");
-                
-                // push a NULL bundle onto the existing connection queue
-                // to signal that it should shut down
-                conn->queue_.push_back(NULL);
-                conn = NULL;
-            } 
-        } 
-
-        if (conn == NULL) {
-            log_info("new connection %s:%d -> %s:%d",
+    if (i == connections_.end()) {
+        if (hdr.seqno_ == 0) {
+            log_info("new connection %s:%d -> %s:%d (id %u)",
                      intoa(hdr.client_addr_),
                      hdr.client_port_,
                      intoa(hdr.remote_addr_),
-                     hdr.remote_port_);
-        
+                     hdr.remote_port_,
+                     hdr.connection_id_);
+            
             conn = new Connection(this, &bundle->spec_.source,
                                   hdr.client_addr_, hdr.client_port_,
-                                  hdr.remote_addr_, hdr.remote_port_);
+                                  hdr.remote_addr_, hdr.remote_port_,
+                                  hdr.connection_id_);
             conn->start();
             connections_[key] = conn;
-        }
-    }
-    else
-    {
-        // seqno != 0
-        if (i == connections_.end()) {
-            log_warn("got bundle with seqno %d but no connection, ignoring",
-                     ntohl(hdr.seqno_));
+
+        } else {
+            // seqno != 0
+            log_warn("got bundle with seqno %u but no connection, ignoring",
+                     hdr.seqno_);
             delete bundle;
             return;
         }
-
+        
+    } else {
         conn = i->second;
     }
 
@@ -190,7 +207,8 @@ void
 TCPTunnel::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
 {
     Connection* c = new Connection(tcptun_, DTNTunnel::instance()->dest_eid(),
-                                   fd, addr, port, remote_addr_, remote_port_);
+                                   fd, addr, port, remote_addr_, remote_port_,
+                                   tcptun_->next_connection_id());
     tcptun_->new_connection(c);
     c->start();
 }
@@ -198,7 +216,8 @@ TCPTunnel::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
 //----------------------------------------------------------------------
 TCPTunnel::Connection::Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
                                   in_addr_t client_addr, u_int16_t client_port,
-                                  in_addr_t remote_addr, u_int16_t remote_port)
+                                  in_addr_t remote_addr, u_int16_t remote_port,
+                                  u_int32_t connection_id)
     : Thread("TCPTunnel::Connection", Thread::DELETE_ON_EXIT),
       Logger("TCPTunnel::Connection", "/dtntunnel/tcp/conn"),
       tcptun_(t),
@@ -208,7 +227,8 @@ TCPTunnel::Connection::Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
       client_addr_(client_addr),
       client_port_(client_port),
       remote_addr_(remote_addr),
-      remote_port_(remote_port)
+      remote_port_(remote_port),
+      connection_id_(connection_id)
 {
     dtn_copy_eid(&dest_eid_, dest_eid);
 }
@@ -217,7 +237,8 @@ TCPTunnel::Connection::Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
 TCPTunnel::Connection::Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
                                   int fd,
                                   in_addr_t client_addr, u_int16_t client_port,
-                                  in_addr_t remote_addr, u_int16_t remote_port)
+                                  in_addr_t remote_addr, u_int16_t remote_port,
+                                  u_int32_t connection_id)
     : Thread("TCPTunnel::Connection", Thread::DELETE_ON_EXIT),
       Logger("TCPTunnel::Connection", "/dtntunnel/tcp/conn"),
       tcptun_(t),
@@ -227,7 +248,8 @@ TCPTunnel::Connection::Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
       client_addr_(client_addr),
       client_port_(client_port),
       remote_addr_(remote_addr),
-      remote_port_(remote_port)
+      remote_port_(remote_port),
+      connection_id_(connection_id)
 {
     dtn_copy_eid(&dest_eid_, dest_eid);
 }
@@ -263,12 +285,14 @@ TCPTunnel::Connection::run()
     
     // header for outgoing bundles
     DTNTunnel::BundleHeader hdr;
-    hdr.protocol_    = IPPROTO_TCP;
-    hdr.seqno_       = 0;
-    hdr.client_addr_ = client_addr_;
-    hdr.client_port_ = htons(client_port_);
-    hdr.remote_addr_ = remote_addr_;
-    hdr.remote_port_ = htons(remote_port_);
+    hdr.eof_           = 0;
+    hdr.protocol_      = IPPROTO_TCP;
+    hdr.connection_id_ = htonl(connection_id_);
+    hdr.seqno_         = 0;
+    hdr.client_addr_   = client_addr_;
+    hdr.client_port_   = htons(client_port_);
+    hdr.remote_addr_   = remote_addr_;
+    hdr.remote_port_   = htons(remote_port_);
     
     if (sock_.state() != oasys::IPSocket::ESTABLISHED) {
         int err = sock_.connect(remote_addr_, remote_port_);
@@ -458,9 +482,8 @@ TCPTunnel::Connection::handle_bundle(dtn::APIBundle* bundle)
     
     u_int32_t recv_seqno = ntohl(hdr->seqno_);
 
-    // if the seqno is in the past, but isn't 0 to mark that it starts
-    // a new connection (which is handled above), then it's a
-    // duplicate delivery so just ignore it
+    // if the seqno is in the past, then it's a duplicate delivery so
+    // just ignore it
     if (recv_seqno < next_seqno_)
     {
         log_warn("got seqno %u, but already delivered up to %u: "

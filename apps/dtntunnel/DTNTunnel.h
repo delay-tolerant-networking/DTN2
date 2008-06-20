@@ -57,6 +57,7 @@ public:
         
         BundleHeader(u_int8_t  protocol,
                      u_int8_t  eof,
+                     u_int32_t connection_id,
                      u_int32_t seqno,
                      u_int32_t client_addr,
                      u_int32_t remote_addr,
@@ -64,6 +65,7 @@ public:
                      u_int16_t remote_port)
             : protocol_(protocol),
               eof_(eof),
+              connection_id_(connection_id),
               seqno_(seqno),
               client_addr_(client_addr),
               remote_addr_(remote_addr),
@@ -74,6 +76,7 @@ public:
 
         u_int8_t  protocol_;
         u_int8_t  eof_;
+        u_int32_t connection_id_;
         u_int32_t seqno_;
         u_int32_t client_addr_;
         u_int32_t remote_addr_;

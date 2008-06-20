@@ -408,6 +408,7 @@ DTNTunnel::main(int argc, char* argv[])
             break;
         }
 
+        
         log_info("got %d byte bundle", payload.buf.buf_len);
 
         handle_bundle(&spec, &payload);
