@@ -175,7 +175,7 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
 
             dtn::APIBundleVector* vec;
             NoConnBundleTable::iterator j = no_conn_bundles_.find(key);
-            if (j != no_conn_bundles_.end()) {
+            if (j == no_conn_bundles_.end()) {
                 vec = new dtn::APIBundleVector();
                 no_conn_bundles_[key] = vec;
             } else {
