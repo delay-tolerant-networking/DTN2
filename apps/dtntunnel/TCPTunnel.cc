@@ -184,6 +184,7 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
         dtn::APIBundleVector* vec = j->second;
         no_conn_bundles_.erase(j);
         for (dtn::APIBundleVector::iterator k = vec->begin(); k != vec->end(); ++k) {
+            log_debug("conn *%p handling postponed bundle", conn);
             conn->handle_bundle(*k);
         }
         delete vec;
