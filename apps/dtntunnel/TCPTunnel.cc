@@ -56,7 +56,8 @@ TCPTunnel::new_connection(Connection* c)
     oasys::ScopeLock l(&lock_, "TCPTunnel::new_connection");
     
     ConnTable::iterator i;
-    ConnKey key(c->client_addr_,
+    ConnKey key(c->dest_eid_,
+                c->client_addr_,
                 c->client_port_,
                 c->remote_addr_,
                 c->remote_port_,
@@ -65,21 +66,11 @@ TCPTunnel::new_connection(Connection* c)
     i = connections_.find(key);
     
     if (i != connections_.end()) {
-        log_err("got duplicate connection %s:%d -> %s:%d (id %u)",
-                intoa(c->client_addr_),
-                c->client_port_,
-                intoa(c->remote_addr_),
-                c->remote_port_,
-                c->connection_id_);
+        log_err("got duplicate connection *%p", c);
         return;
     }
 
-    log_debug("added new connection to table %s:%d -> %s:%d (id %u)",
-              intoa(key.client_addr_),
-              key.client_port_,
-              intoa(key.remote_addr_),
-              key.remote_port_,
-              key.connection_id_);
+    log_debug("added new connection to table *%p", c);
     
     connections_[key] = c;
 
@@ -93,7 +84,8 @@ TCPTunnel::kill_connection(Connection* c)
     oasys::ScopeLock l(&lock_, "TCPTunnel::kill_connection");
     
     ConnTable::iterator i;
-    ConnKey key(c->client_addr_,
+    ConnKey key(c->dest_eid_,
+                c->client_addr_,
                 c->client_port_,
                 c->remote_addr_,
                 c->remote_port_,
@@ -102,12 +94,7 @@ TCPTunnel::kill_connection(Connection* c)
     i = connections_.find(key);
 
     if (i == connections_.end()) {
-        log_err("can't find connection to kill %s:%d -> %s:%d (id %u)",
-                intoa(c->client_addr_),
-                c->client_port_,
-                intoa(c->remote_addr_),
-                c->remote_port_,
-                c->connection_id_);
+        log_err("can't find connection *%p in table", c);
         return;
     }
 
@@ -116,7 +103,10 @@ TCPTunnel::kill_connection(Connection* c)
     // table and don't want to blow it away
     if (i->second == c) {
         connections_.erase(i);
+    } else {
+        log_notice("not erasing connection in table since already replaced");
     }
+
 }
 
 //----------------------------------------------------------------------
@@ -132,8 +122,9 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
     hdr.client_port_ = ntohs(hdr.client_port_);
     hdr.remote_port_ = ntohs(hdr.remote_port_);
 
-    log_debug("handle_bundle got %zu byte bundle %s:%d -> %s:%d (id %u seqno %u)",
+    log_debug("handle_bundle got %zu byte bundle from %s for %s:%d -> %s:%d (id %u seqno %u)",
               bundle->payload_.len(),
+              bundle->spec_.source.uri,
               intoa(hdr.client_addr_),
               hdr.client_port_,
               intoa(hdr.remote_addr_),
@@ -143,7 +134,8 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
     
     Connection* conn = NULL;
     ConnTable::iterator i;
-    ConnKey key(hdr.client_addr_,
+    ConnKey key(bundle->spec_.source,
+                hdr.client_addr_,
                 hdr.client_port_,
                 hdr.remote_addr_,
                 hdr.remote_port_,
@@ -153,17 +145,12 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
     
     if (i == connections_.end()) {
         if (hdr.seqno_ == 0) {
-            log_info("new connection %s:%d -> %s:%d (id %u)",
-                     intoa(hdr.client_addr_),
-                     hdr.client_port_,
-                     intoa(hdr.remote_addr_),
-                     hdr.remote_port_,
-                     hdr.connection_id_);
-            
             conn = new Connection(this, &bundle->spec_.source,
                                   hdr.client_addr_, hdr.client_port_,
                                   hdr.remote_addr_, hdr.remote_port_,
                                   hdr.connection_id_);
+
+            log_info("new connection *%p", conn);
             conn->start();
             connections_[key] = conn;
 
@@ -281,6 +268,19 @@ TCPTunnel::Connection::~Connection()
     while(queue_.try_pop(&b)) {
         delete b;
     }
+}
+
+//----------------------------------------------------------------------
+int
+TCPTunnel::Connection::format(char* buf, size_t sz) const
+{
+    return snprintf(buf, sz, "[%s %s:%d -> %s:%d (id %u)]",
+                    dest_eid_.uri,
+                    intoa(client_addr_),
+                    client_port_,
+                    intoa(remote_addr_),
+                    remote_port_,
+                    connection_id_);
 }
 
 //----------------------------------------------------------------------

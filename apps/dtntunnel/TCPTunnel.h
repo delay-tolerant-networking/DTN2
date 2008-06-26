@@ -70,7 +70,10 @@ protected:
     };
 
     /// Helper class to handle an actively proxied connection
-    class Connection : public oasys::Thread, public oasys::Logger {
+    class Connection : public oasys::Formatter,
+                       public oasys::Thread,
+                       public oasys::Logger
+    {
     public:
         /// Constructor called to initiate a connection due to an
         /// arriving bundle request
@@ -87,7 +90,10 @@ protected:
 
         /// Destructor
         ~Connection();
-        
+
+        /// Virtual from Formatter
+        int format(char* buf, size_t sz) const;
+
         /// Handle a newly arriving bundle
         void handle_bundle(dtn::APIBundle* bundle);
         
@@ -134,32 +140,41 @@ protected:
     /// Helper struct used as the index key into the connection table
     struct ConnKey {
         ConnKey()
-            : client_addr_(INADDR_NONE), client_port_(0),
+            : endpoint_id_(""),
+              client_addr_(INADDR_NONE), client_port_(0),
               remote_addr_(INADDR_NONE), remote_port_(0),
               connection_id_(0) {}
 
-        ConnKey(in_addr_t client_addr, u_int16_t client_port,
+        ConnKey(const dtn_endpoint_id_t& eid,
+                in_addr_t client_addr, u_int16_t client_port,
                 in_addr_t remote_addr, u_int16_t remote_port,
                 u_int32_t connection_id)
-            : client_addr_(client_addr),
+            : endpoint_id_(eid.uri),
+              client_addr_(client_addr),
               client_port_(client_port),
               remote_addr_(remote_addr),
               remote_port_(remote_port),
               connection_id_(connection_id) {}
 
-        bool operator<(const ConnKey& other) const {
-            return ((client_addr_ < other.client_addr_) ||
-                    (client_port_ < other.client_port_) ||
-                    (remote_addr_ < other.remote_addr_) ||
-                    (remote_port_ < other.remote_port_) ||
-                    (connection_id_ < other.connection_id_));
+        bool operator<(const ConnKey& other) const
+        {
+            #define COMPARE(_x) if (_x != other._x) return _x < other._x;
+            COMPARE(connection_id_);
+            COMPARE(client_addr_);
+            COMPARE(client_port_);
+            COMPARE(remote_addr_);
+            COMPARE(remote_port_);
+            #undef COMPARE
+
+            return endpoint_id_ < other.endpoint_id_;
         }
-        
-        in_addr_t client_addr_;
-        u_int16_t client_port_;
-        in_addr_t remote_addr_;
-        u_int16_t remote_port_;
-        u_int32_t connection_id_;
+
+        std::string endpoint_id_;
+        in_addr_t   client_addr_;
+        u_int16_t   client_port_;
+        in_addr_t   remote_addr_;
+        u_int16_t   remote_port_;
+        u_int32_t   connection_id_;
     };
 
     /// Table of connection classes indexed by the remote address/port
