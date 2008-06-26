@@ -530,7 +530,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
     
     // log the reception in the bundle's forwarding log
-    if (event->source_ == EVENTSRC_PEER)
+    if (event->source_ == EVENTSRC_PEER && event->link_ != NULL)
     {
         bundle->fwdlog()->add_entry(event->link_,
                                     ForwardingInfo::FORWARD_ACTION,
