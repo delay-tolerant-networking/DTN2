@@ -27,14 +27,25 @@ using namespace oasys;
 DECLARE_TEST(Basic) {
     SequenceID seq;
     seq.add(EndpointID("dtn://a"), 1);
-    seq.add(EndpointID("dtn:none"), 2);
+    seq.add(EndpointID("dtn:none"), "void");
     seq.add(EndpointID("http://www.foo.com"), 10);
     
-    CHECK_EQUALSTR(seq.to_str().c_str(), "<(dtn://a 1) (dtn:none 2) (http://www.foo.com 10)>");
-
     CHECK_EQUAL_U64(seq.get_counter(EndpointID("dtn://a")), 1);
-    CHECK_EQUAL_U64(seq.get_counter(EndpointID("dtn:none")), 2);
+    CHECK_EQUALSTR(seq.get_identifier(EndpointID("dtn://a")), "");
+    CHECK_EQUAL_U64(seq.get_counter(EndpointID("dtn:none")), 0);
+    CHECK_EQUALSTR(seq.get_identifier(EndpointID("dtn:none")), "void");
     CHECK_EQUAL_U64(seq.get_counter(EndpointID("http://www.foo.com")), 10);
+    CHECK_EQUALSTR(seq.get_identifier(EndpointID("http://www.foo.com")), "");
+
+    CHECK_EQUALSTR(seq.to_str().c_str(),
+                   "<(dtn://a 1) (dtn:none void) (http://www.foo.com 10)>");
+
+    SequenceID seq2;
+    CHECK(seq2.parse(seq.to_str()));
+    CHECK_EQUALSTR(seq2.to_str().c_str(),
+                   "<(dtn://a 1) (dtn:none void) (http://www.foo.com 10)>");
+
+    CHECK(seq == seq2);
 
     return UNIT_TEST_PASSED;
 }
@@ -55,11 +66,23 @@ DECLARE_TEST(Parse) {
     CHECK(! seq.parse("<( dtn:none 1)>"));
     CHECK(! seq.parse("<(dtn:none 1 )>"));
     
-    CHECK(seq.parse("<(dtn://foo.com 999) (dtn:none 0) (http://www.google.com 1000)>"));
+    CHECK(seq.parse("<(dtn:none str)>"));
+    CHECK(seq.parse("<(dtn:none 1str)>"));
+    CHECK(seq.parse("<(dtn:none str1)>"));
+    CHECK(seq.parse("<(dtn:none _str-2)>"));
+    CHECK(seq.parse("<       (dtn:none str)>"));
+    CHECK(seq.parse("<(dtn:none        str)>"));
+    CHECK(seq.parse("<(dtn:none str)        >"));
+    CHECK(seq.parse("<(dtn:none str)           (dtn://foo str2)       >"));
+    CHECK(! seq.parse("<( dtn:none str)>"));
+    CHECK(! seq.parse("<(dtn:none str )>"));
+    
+    CHECK(seq.parse("<(dtn://foo.com 999) (dtn:none str2) (http://www.google.com a1000)>"));
     CHECK_EQUAL_U64(seq.get_counter(EndpointID("dtn://foo.com")), 999);
-    CHECK_EQUAL_U64(seq.get_counter(EndpointID("dtn:none")), 0);
-    CHECK_EQUAL_U64(seq.get_counter(EndpointID("http://www.google.com")), 1000);
+    CHECK_EQUALSTR(seq.get_identifier(EndpointID("dtn:none")), "str2");
+    CHECK_EQUALSTR(seq.get_identifier(EndpointID("http://www.google.com")), "a1000");
     CHECK_EQUAL_U64(seq.get_counter(EndpointID("http://www.dtnrg.org")), 0);
+    CHECK_EQUALSTR(seq.get_identifier(EndpointID("http://www.dtnrg.org")), "");
 
     CHECK(! seq.parse(""));    
     CHECK(! seq.parse("<(dtn:none 1 >"));
@@ -68,7 +91,8 @@ DECLARE_TEST(Parse) {
 
     CHECK(! seq.parse("<( 1)>"));
     CHECK(! seq.parse("<(dtn:none )>"));
-    CHECK(! seq.parse("<(dtn:none foo)>"));
+    CHECK(! seq.parse("<(dtn:none foo )>"));
+    CHECK(! seq.parse("<(dtn:none foo )>"));
     CHECK(! seq.parse("<(foo 1)>"));
 
     return UNIT_TEST_PASSED;
@@ -151,6 +175,21 @@ DECLARE_TEST(Compare) {
     CHECK_COMPARE("<(dtn://host-0 0) (dtn://host-1 1)>", NEQ,
                   "<(dtn://host-0 0) (dtn://host-2 1)>");
 
+    CHECK_COMPARE("<(dtn://host-0 foo)>", EQ,
+                  "<(dtn://host-0 foo)>");
+
+    CHECK_COMPARE("<(dtn://host-0 foo)>", NEQ,
+                  "<(dtn://host-0 bar)>");
+
+    CHECK_COMPARE("<(dtn://host-0 foo)>", NEQ,
+                  "<(dtn://host-1 foo)>");
+
+    CHECK_COMPARE("<(dtn://host-0 foo)>", NEQ,
+                  "<(dtn://host-0 1)>");
+
+    CHECK_COMPARE("<(dtn://host-0 1)>", NEQ,
+                  "<(dtn://host-0 foo)>");
+
     return UNIT_TEST_PASSED;
 }
 
@@ -159,6 +198,7 @@ DECLARE_TEST(Compare) {
     CHECK(neg (parse_sequence_id(s1str) op parse_sequence_id(s2str)));
 
 DECLARE_TEST(CompareOperators) {
+    // equal counters
     CHECK_COMPARE_OP(  , "<(dtn://host-0 0)>", ==, "<(dtn://host-0 0)>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 0)>", <,  "<(dtn://host-0 0)>");
     CHECK_COMPARE_OP(  , "<(dtn://host-0 0)>", <=, "<(dtn://host-0 0)>");
@@ -166,6 +206,15 @@ DECLARE_TEST(CompareOperators) {
     CHECK_COMPARE_OP( !, "<(dtn://host-0 0)>", >,  "<(dtn://host-0 0)>");
     CHECK_COMPARE_OP(  , "<(dtn://host-0 0)>", >=, "<(dtn://host-0 0)>");
 
+    // equal identifiers
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 foo)>", ==, "<(dtn://host-0 foo)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <,  "<(dtn://host-0 foo)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 foo)>", <=, "<(dtn://host-0 foo)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", !=, "<(dtn://host-0 foo)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >,  "<(dtn://host-0 foo)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 foo)>", >=, "<(dtn://host-0 foo)>");
+
+    // not equal counters
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", ==, "<(dtn://host-0 2)>");
     CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", <,  "<(dtn://host-0 2)>");
     CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", <=, "<(dtn://host-0 2)>");
@@ -173,6 +222,7 @@ DECLARE_TEST(CompareOperators) {
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", >,  "<(dtn://host-0 2)>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", >=, "<(dtn://host-0 2)>");
 
+    // not equal counters
     CHECK_COMPARE_OP( !, "<(dtn://host-0 2)>", ==, "<(dtn://host-0 1)>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 2)>", <,  "<(dtn://host-0 1)>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 2)>", <=, "<(dtn://host-0 1)>");
@@ -180,6 +230,23 @@ DECLARE_TEST(CompareOperators) {
     CHECK_COMPARE_OP(  , "<(dtn://host-0 2)>", >,  "<(dtn://host-0 1)>");
     CHECK_COMPARE_OP(  , "<(dtn://host-0 2)>", >=, "<(dtn://host-0 1)>");
 
+    // not equal identifiers
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", ==, "<(dtn://host-0 bar)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <,  "<(dtn://host-0 bar)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <=, "<(dtn://host-0 bar)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 foo)>", !=, "<(dtn://host-0 bar)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >,  "<(dtn://host-0 bar)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >=, "<(dtn://host-0 bar)>");
+
+    // mismatched type
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", ==, "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <,  "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <=, "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 foo)>", !=, "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >,  "<(dtn://host-0 0)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >=, "<(dtn://host-0 0)>");
+
+    // mismatched eid
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", ==, "<(dtn://host-1 1)>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", <,  "<(dtn://host-1 1)>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", <=, "<(dtn://host-1 1)>");
@@ -187,12 +254,29 @@ DECLARE_TEST(CompareOperators) {
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", >,  "<(dtn://host-1 1)>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", >=, "<(dtn://host-1 1)>");
 
+    // mismatched eid
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", ==, "<(dtn://host-1 foo)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <,  "<(dtn://host-1 foo)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <=, "<(dtn://host-1 foo)>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 foo)>", !=, "<(dtn://host-1 foo)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >,  "<(dtn://host-1 foo)>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >=, "<(dtn://host-1 foo)>");
+
+    // empty other value
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", ==, "<>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", <,  "<>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", <=, "<>");
     CHECK_COMPARE_OP( !, "<(dtn://host-0 1)>", !=, "<>");
     CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", >,  "<>");
     CHECK_COMPARE_OP(  , "<(dtn://host-0 1)>", >=, "<>");
+
+    // empty other value
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", ==, "<>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <,  "<>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", <=, "<>");
+    CHECK_COMPARE_OP(  , "<(dtn://host-0 foo)>", !=, "<>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >,  "<>");
+    CHECK_COMPARE_OP( !, "<(dtn://host-0 foo)>", >=, "<>");
     return UNIT_TEST_PASSED;
 }
 
@@ -219,7 +303,33 @@ DECLARE_TEST(Update) {
 
     DO(seq.update(parse_sequence_id("<(dtn://host-0 0) (dtn://host-1 0) (dtn://host-2 0)>")));
     CHECK_EQUALSTR(seq.to_str(), "<(dtn://host-0 2) (dtn://host-1 2) (dtn://host-2 0)>");
+
+    SequenceID seq2;
+
+    DO(seq2.update(parse_sequence_id("<>")));
+    CHECK_EQUALSTR(seq2.to_str(), "<>");
     
+    DO(seq2.update(parse_sequence_id("<(dtn://host-0 foo)>")));
+    CHECK_EQUALSTR(seq2.to_str(), "<(dtn://host-0 foo)>");
+    
+    DO(seq2.update(parse_sequence_id("<(dtn://host-1 foo)>")));
+    CHECK_EQUALSTR(seq2.to_str(), "<(dtn://host-0 foo) (dtn://host-1 foo)>");
+    
+    DO(seq2.update(parse_sequence_id("<(dtn://host-0 bar) (dtn://host-1 bar)>")));
+    CHECK_EQUALSTR(seq2.to_str(), "<(dtn://host-0 bar) (dtn://host-1 bar)>");
+    
+    DO(seq2.update(parse_sequence_id("<(dtn://host-0 foo) (dtn://host-1 foo)>")));
+    CHECK_EQUALSTR(seq2.to_str(), "<(dtn://host-0 foo) (dtn://host-1 foo)>");
+    
+    DO(seq2.update(parse_sequence_id("<(dtn://host-0 bar) (dtn://host-1 bar)>")));
+    CHECK_EQUALSTR(seq2.to_str(), "<(dtn://host-0 bar) (dtn://host-1 bar)>");
+
+    DO(seq2.update(parse_sequence_id("<(dtn://host-0 foo) (dtn://host-1 bar) (dtn://host-2 10)>")));
+    CHECK_EQUALSTR(seq2.to_str(), "<(dtn://host-0 foo) (dtn://host-1 bar) (dtn://host-2 10)>");
+
+    DO(seq2.update(parse_sequence_id("<(dtn://host-0 foo) (dtn://host-1 bar) (dtn://host-2 0)>")));
+    CHECK_EQUALSTR(seq2.to_str(), "<(dtn://host-0 foo) (dtn://host-1 bar) (dtn://host-2 10)>");
+
     return UNIT_TEST_PASSED;
 }
 

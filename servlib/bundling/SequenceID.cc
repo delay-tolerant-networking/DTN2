@@ -51,17 +51,39 @@ SequenceID::add(const EndpointID& eid, u_int64_t counter)
     vector_.push_back(Entry(eid, counter));
 }
 
+//----------------------------------------------------------------------
+void
+SequenceID::add(const EndpointID& eid, const std::string& identifier)
+{
+    vector_.push_back(Entry(eid, identifier));
+}
+
+//----------------------------------------------------------------------
+const SequenceID::Entry&
+SequenceID::get_entry(const EndpointID& eid) const
+{
+    for (const_iterator i = begin(); i != end(); ++i) {
+        if (i->eid_ == eid) {
+            return *i;
+        }
+    }
+
+    static Entry null_entry;
+    return null_entry;
+}
+
 //----------------------------------------------------------------------------
 u_int64_t
 SequenceID::get_counter(const EndpointID& eid) const
 {
-    for (const_iterator i = begin(); i != end(); ++i) {
-        if (i->eid_ == eid) {
-            return i->counter_;
-        }
-    }
-    
-    return 0;
+    return get_entry(eid).counter_;
+}
+
+//----------------------------------------------------------------------------
+std::string
+SequenceID::get_identifier(const EndpointID& eid) const
+{
+    return get_entry(eid).identifier_;
 }
 
 //----------------------------------------------------------------------------
@@ -73,10 +95,19 @@ SequenceID::format(char* buf, size_t sz) const
     sa.append('<');
     for (const_iterator i = begin(); i != end(); ++i)
     {
-	sa.appendf("%s(%s %llu)", 
-                   (i == begin()) ? "" : " ",
-                   i->eid_.c_str(), 
-                   U64FMT(i->counter_));
+        if (i->type_ == COUNTER) {
+            sa.appendf("%s(%s %llu)", 
+                       (i == begin()) ? "" : " ",
+                       i->eid_.c_str(), 
+                       U64FMT(i->counter_));
+        } else if (i->type_ == IDENTIFIER) {
+            sa.appendf("%s(%s %s)", 
+                       (i == begin()) ? "" : " ",
+                       i->eid_.c_str(), 
+                       i->identifier_.c_str());
+        } else {
+            NOTREACHED;
+        }
     }
     sa.append('>');
     
@@ -129,15 +160,35 @@ SequenceID::parse(const std::string& str)
             }
 
             EAT_WS();
-            
-            u_int64_t counter = strtoull(&sr[idx], &end, 10);
-            
-            if (*end != ')' || end == &sr[idx]) {
-                goto bad;
-            }
 
-            vector_.push_back(Entry(eid, counter));
-            idx += end - &sr[idx];
+            bool isnum = true;
+            size_t idx2 = idx;
+            do {
+                // this check should handle the case of having no
+                // value part in the entry as well as bogus characters
+                if (! (isalnum(sr[idx2]) ||
+                       sr[idx2] == '_' ||
+                       sr[idx2] == '-' ) )
+                {
+                    goto bad;
+                }
+                
+                isnum = isnum && isdigit(sr[idx2]);
+                ++idx2;
+                
+            } while (sr[idx2] != ')' && sr[idx2] != '\0');
+            
+            if (isnum) {
+                u_int64_t counter = strtoull(&sr[idx], &end, 10);
+                ASSERT(end == &sr[idx2]);
+                vector_.push_back(Entry(eid, counter));
+
+            } else {
+                std::string identifier(&sr[idx], idx2-idx);
+                vector_.push_back(Entry(eid, identifier));
+            }
+            
+            idx = idx2;
             MATCH_CHAR(')');
             EAT_WS();
         }
@@ -154,7 +205,7 @@ SequenceID::parse(const std::string& str)
         // drop through to bad below
     }
 
-  bad:
+bad:
     vector_.swap(old_vec);
     return false;
     
@@ -223,11 +274,13 @@ SequenceID::compare_one_way(const SequenceID& lv,
 
     for (const_iterator i = lv.begin(); i != lv.end(); ++i)
     {
-        u_int64_t left  = lv.get_counter(i->eid_);
-        u_int64_t right = rv.get_counter(i->eid_);
+        const Entry& left  = lv.get_entry(i->eid_);
+        const Entry& right = rv.get_entry(i->eid_);
 
-        cur_state = next_state(cur_state, compare_counters(left, right));
+        cur_state = next_state(cur_state, compare_entries(left, right));
 
+        // once we get into NEQ state we can't ever get out so short
+        // circuit the remainder of the comparisons
         if (cur_state == NEQ)
         {
             return NEQ;
@@ -241,17 +294,51 @@ SequenceID::compare_one_way(const SequenceID& lv,
 
 //----------------------------------------------------------------------------
 SequenceID::comp_t
-SequenceID::compare_counters(u_int64_t left, u_int64_t right)
+SequenceID::compare_entries(const Entry& left, const Entry& right)
 {
-    if (left == right)
-	return EQ;
-
-    if (left < right)
+    if (left.type_ == COUNTER || left.type_ == EMPTY)
     {
-        return LT;
+        // if right is an identifier and the left is either a counter
+        // or empty, they can't be equal
+        if (right.type_ == IDENTIFIER)
+        {
+            return NEQ;
+        }
+
+        if (left.counter_ == right.counter_)
+        {
+            return EQ;
+        }
+        else if (left.counter_ < right.counter_)
+        {
+            return LT;
+        }
+        else
+        {
+            return GT;
+        }
+    }
+    else if (left.type_ == IDENTIFIER)
+    {
+        // in the case of identifiers, the lack of a column entry is
+        // not the same thing as an existing column with a value of
+        // "", so if the right's type is counter OR empty, return NEQ
+        if (right.type_ != IDENTIFIER)
+        {
+            return NEQ;
+        }
+        
+        if (left.identifier_ != right.identifier_)
+        {
+            return NEQ;
+        }
+        else
+        {
+            return EQ;
+        }
     }
 
-    return GT;
+    NOTREACHED;
 }
 
 //----------------------------------------------------------------------
@@ -278,11 +365,34 @@ SequenceID::update(const SequenceID& other)
 
         if (my_entry == end())
         {
-            add(other_entry->eid_, other_entry->counter_);
+            if (other_entry->type_ == COUNTER) {
+                add(other_entry->eid_, other_entry->counter_);
+
+            } else if (other_entry->type_ == IDENTIFIER) {
+                add(other_entry->eid_, other_entry->identifier_);
+
+            } else {
+                NOTREACHED;
+            }
+            
+            continue;
         }
-        else if (other_entry->counter_ > my_entry->counter_)
+
+        if (other_entry->type_ != my_entry->type_) {
+            PANIC("can't update with mismatched types");
+        }
+
+        if (other_entry->type_ == COUNTER &&
+            other_entry->counter_ > my_entry->counter_)
         {
             my_entry->counter_ = other_entry->counter_;
+        }
+
+        if (other_entry->type_ == IDENTIFIER &&
+            other_entry->identifier_ != my_entry->identifier_) 
+        {
+            // always replace
+            my_entry->identifier_ = other_entry->identifier_;
         }
     }
 }
