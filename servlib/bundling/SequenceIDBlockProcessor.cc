@@ -73,13 +73,23 @@ SequenceIDBlockProcessor::generate(const Bundle*  bundle,
 
     size_t length = 0;
 
-    // add all eids into the reference vector and add up the sdnv
-    // lengths for the counters
+    // add all eids into the reference vector and add up the lengths
+    // for the counters / identifiers
     SequenceID::const_iterator iter;
     for (iter = sequence_id.begin(); iter != sequence_id.end(); ++iter)
     {
         block->add_eid(iter->eid_);
-        length += SDNV::encoding_len(iter->counter_);
+
+        length += 1; // type bit
+        
+        if (iter->type_ == SequenceID::COUNTER) {
+            length += SDNV::encoding_len(iter->counter_);
+        } else if (iter->type_ == SequenceID::IDENTIFIER) {
+            length += SDNV::encoding_len(iter->identifier_.length());
+            length += iter->identifier_.length();
+        } else {
+            NOTREACHED; // bogus type
+        }
     }
     
     generate_preamble(xmit_blocks, 
@@ -96,12 +106,30 @@ SequenceIDBlockProcessor::generate(const Bundle*  bundle,
     u_int8_t* bp = contents->buf() + block->data_offset();
     for (iter = sequence_id.begin(); iter != sequence_id.end(); ++iter)
     {
-        block->add_eid(iter->eid_);
-        int sdnv_len = SDNV::encode(iter->counter_, bp, length);
-        ASSERT(sdnv_len > 0);
+        // add the type value by just taking the enum value from the entry
+        *bp++ = static_cast<u_int8_t>(iter->type_);
+        length--;
+        
+        if (iter->type_ == SequenceID::COUNTER)
+        {
+            int len = SDNV::encode(iter->counter_, bp, length);
+            ASSERT(len > 0);
+            bp     += len;
+            length -= len;
+        }
+        else
+        {
+            size_t id_len = iter->identifier_.length();
+            int sdnv_len = SDNV::encode(id_len, bp, length);
+            ASSERT(sdnv_len > 0);
+            bp     += sdnv_len;
+            length -= sdnv_len;
 
-        bp     += sdnv_len;
-        length -= sdnv_len;
+            ASSERT(length >= id_len);
+            memcpy(bp, iter->identifier_.data(), id_len);
+            bp     += id_len;
+            length -= id_len;
+        }
     }
 
     ASSERT(length == 0);
@@ -142,22 +170,61 @@ SequenceIDBlockProcessor::consume(Bundle* bundle, BlockInfo* block,
 
     for (size_t i = 0; i < count; ++i)
     {
-        u_int64_t counter;
-        int sdnv_len = SDNV::decode(bp, length, &counter);
-        if (sdnv_len == -1) {
-            return -1; // protocol error;
-        }
+        u_int8_t type = *bp++;
+        length--;
 
-        bp     += sdnv_len;
-        length -= sdnv_len;
+        if (type == SequenceID::COUNTER)
+        {
+            u_int64_t counter;
+            int sdnv_len = SDNV::decode(bp, length, &counter);
+            if (sdnv_len == -1) {
+                return -1; // protocol error;
+            }
 
-        log_debug_p("/dtn/bundle/protocol",
-                    "parsed %s id entry %s %llu",
-                    (block_type() == BundleProtocol::SEQUENCE_ID_BLOCK) ?
-                    "sequence" : "obsoletes",
-                    block->eid_list()[i].c_str(), U64FMT(counter));
+            bp     += sdnv_len;
+            length -= sdnv_len;
+
+            log_debug_p("/dtn/bundle/protocol",
+                        "parsed %s id entry %s %llu",
+                        (block_type() == BundleProtocol::SEQUENCE_ID_BLOCK) ?
+                        "sequence" : "obsoletes",
+                        block->eid_list()[i].c_str(), U64FMT(counter));
             
-        mutable_sequence_id->add(block->eid_list()[i], counter);
+            mutable_sequence_id->add(block->eid_list()[i], counter);
+        }
+        else if (type == SequenceID::IDENTIFIER)
+        {
+            u_int64_t id_len;
+            int sdnv_len = SDNV::decode(bp, length, &id_len);
+            if (sdnv_len == -1) {
+                return -1; // protocol error;
+            }
+
+            bp     += sdnv_len;
+            length -= sdnv_len;
+
+            std::string id_str(reinterpret_cast<const char*>(bp),
+                               static_cast<size_t>(id_len));
+
+            log_debug_p("/dtn/bundle/protocol",
+                        "parsed %s id entry %s %s",
+                        (block_type() == BundleProtocol::SEQUENCE_ID_BLOCK) ?
+                        "sequence" : "obsoletes",
+                        block->eid_list()[i].c_str(), id_str.c_str());
+            
+            mutable_sequence_id->add(block->eid_list()[i], id_str);
+
+            bp     += id_len;
+            length -= id_len;
+        }
+        else
+        {
+            log_warn_p("/dtn/bundle/protocol",
+                       "invalid type code %u for %s block entry", type, 
+                       (block_type() == BundleProtocol::SEQUENCE_ID_BLOCK) ?
+                       "sequence" : "obsoletes");
+            return -1;
+        }
     }
     
     return cc;
