@@ -18,21 +18,20 @@
 #  include <dtn-config.h>
 #endif
 
-#include "ReceptionCache.h"
+#include "BundleInfoCache.h"
 
 namespace dtn {
 
 //----------------------------------------------------------------------
-ReceptionCache::ReceptionCache(size_t capacity)
-    : cache_("/dtn/route/reception_cache",
-             CacheCapacityHelper(capacity),
+BundleInfoCache::BundleInfoCache(const std::string& logpath, size_t capacity)
+    : cache_(logpath, CacheCapacityHelper(capacity),
              false /* no reorder on get() */ )
 {
 }
 
 //----------------------------------------------------------------------
 bool
-ReceptionCache::add_entry(const Bundle* bundle, const EndpointID& prevhop)
+BundleInfoCache::add_entry(const Bundle* bundle, const EndpointID& prevhop)
 {
     GbofId id(bundle->source(),
               bundle->creation_ts(),
@@ -52,7 +51,7 @@ ReceptionCache::add_entry(const Bundle* bundle, const EndpointID& prevhop)
 
 //----------------------------------------------------------------------
 bool
-ReceptionCache::lookup(const Bundle* bundle, EndpointID* prevhop)
+BundleInfoCache::lookup(const Bundle* bundle, EndpointID* prevhop)
 {
     GbofId id(bundle->source(),
               bundle->creation_ts(),
@@ -65,7 +64,7 @@ ReceptionCache::lookup(const Bundle* bundle, EndpointID* prevhop)
 
 //----------------------------------------------------------------------
 void
-ReceptionCache::evict_all()
+BundleInfoCache::evict_all()
 {
     cache_.evict_all();
 }

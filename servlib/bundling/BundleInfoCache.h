@@ -14,32 +14,33 @@
  *    limitations under the License.
  */
 
-#ifndef _RECEPTIONCACHE_H_
-#define _RECEPTIONCACHE_H_
+#ifndef _BUNDLEINFOCACHE_H_
+#define _BUNDLEINFOCACHE_H_
 
 #include <oasys/debug/Logger.h>
 #include <oasys/util/Cache.h>
 #include <oasys/util/CacheCapacityHelper.h>
-#include "bundling/Bundle.h"
-#include "bundling/GbofId.h"
+#include "Bundle.h"
+#include "GbofId.h"
 
 namespace dtn {
 
 /**
- * Utility class for routers to use to maintain a cache of recently
- * received bundles, indexed by GbofId. Useful for routers to detect
- * reception receptions.
+ * Utility class for maintain a cache of recently received bundles,
+ * indexed by GbofId. Used for routers to detect redundant BundleInfos
+ * and to avoid duplicate deliveries to registrations.
  */
-class ReceptionCache {
+class BundleInfoCache {
 public:
     /**
-     * Constructor that takes the number of entries to maintain.
+     * Constructor that takes the logpath and the number of entries to
+     * maintain in the cache.
      */
-    ReceptionCache(size_t capacity);
+    BundleInfoCache(const std::string& logpath, size_t capacity);
     
     /**
      * Try to add the bundle to the cache. If it already exists in the
-     * cache, adding it agail fails, and the method returns false.
+     * cache, adding it again fails, and the method returns false.
      */
     bool add_entry(const Bundle* bundle, const EndpointID& prevhop);
 
@@ -63,4 +64,4 @@ protected:
 } // namespace dtn
 
 
-#endif /* _RECEPTIONCACHE_H_ */
+#endif /* _BUNDLEINFOCACHE_H_ */

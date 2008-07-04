@@ -35,7 +35,8 @@ namespace dtn {
 TableBasedRouter::TableBasedRouter(const char* classname,
                                    const std::string& name)
     : BundleRouter(classname, name),
-      reception_cache_(1024) // XXX/demmer configurable??
+      reception_cache_(std::string(logpath()) + "/reception_cache",
+                       1024) // XXX/demmer configurable??
 {
     route_table_ = new RouteTable(name);
 }
