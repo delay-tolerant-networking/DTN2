@@ -57,7 +57,8 @@ Registration::Registration(u_int32_t regid,
       expiration_(expiration),
       expiration_timer_(NULL),
       active_(false),
-      expired_(false)
+      expired_(false),
+      delivery_cache_(std::string(logpath()) + "/delivery_cache", 1024)
 {
     struct timeval now;
     ::gettimeofday(&now, 0);
@@ -77,7 +78,8 @@ Registration::Registration(const oasys::Builder&)
       creation_time_(0),
       expiration_timer_(NULL),
       active_(false),
-      expired_(false)
+      expired_(false),
+      delivery_cache_(std::string(logpath()) + "/delivery_cache", 1024)
 {
 }
 
@@ -85,6 +87,20 @@ Registration::Registration(const oasys::Builder&)
 Registration::~Registration()
 {
     cleanup_expiration_timer();
+}
+
+//----------------------------------------------------------------------
+bool
+Registration::deliver_if_not_duplicate(Bundle* bundle)
+{
+    if (! delivery_cache_.add_entry(bundle, EndpointID::NULL_EID())) {
+        log_debug("suppressing duplicate delivery of bundle *%p", bundle);
+        return false;
+    }
+    
+    log_debug("delivering bundle *%p", bundle);
+    deliver_bundle(bundle);
+    return true;
 }
 
 //----------------------------------------------------------------------

@@ -24,6 +24,7 @@
 #include <oasys/serialize/Serialize.h>
 #include <oasys/thread/Timer.h>
 
+#include "../bundling/BundleInfoCache.h"
 #include "../naming/EndpointID.h"
 
 namespace dtn {
@@ -93,6 +94,11 @@ public:
      * Abstract hook for subclasses to deliver a bundle to this registration.
      */
     virtual void deliver_bundle(Bundle* bundle) = 0;
+    
+    /**
+     * Deliver the bundle if it isn't a duplicate.
+     */
+    bool deliver_if_not_duplicate(Bundle* bundle);
     
     /**
      * Hook for subclasses to handle a new session notification on
@@ -166,7 +172,8 @@ protected:
     ExpirationTimer* expiration_timer_;
     bool active_;    
     bool bound_;    
-    bool expired_;    
+    bool expired_;
+    BundleInfoCache delivery_cache_;
 };
 
 /**

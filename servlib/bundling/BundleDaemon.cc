@@ -400,12 +400,19 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
               bundle, registration->regid(),
               registration->endpoint().c_str());
 
-    // XXX/demmer should this be COPY_ACTION instead?
-    bundle->fwdlog()->add_entry(registration,
-                                ForwardingInfo::FORWARD_ACTION,
-                                ForwardingInfo::DELIVERED);
-                                
-    registration->deliver_bundle(bundle);
+    if (registration->deliver_if_not_duplicate(bundle)) {
+        // XXX/demmer this action could be taken from a registration
+        // flag, i.e. does it want to take a copy or the actual
+        // delivery of the bundle
+        bundle->fwdlog()->add_entry(registration,
+                                    ForwardingInfo::FORWARD_ACTION,
+                                    ForwardingInfo::DELIVERED);
+    } else {
+        log_notice("suppressing duplicate delivery of bundle *%p "
+                   "to registration %d (%s)",
+                   bundle, registration->regid(),
+                   registration->endpoint().c_str());
+    }
 }
 
 //----------------------------------------------------------------------
