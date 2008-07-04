@@ -30,6 +30,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
 	bundling/BundleEventHandler.cc		\
+	bundling/BundleInfoCache.cc		\
 	bundling/BundleList.cc			\
 	bundling/BundleMappings.cc		\
 	bundling/BundlePayload.cc		\
@@ -170,7 +171,6 @@ ROUTING_SRCS :=					\
 	routing/ProphetNode.cc			\
 	routing/ProphetNodeList.cc		\
 	routing/ProphetRouter.cc		\
-	routing/ReceptionCache.cc		\
 	routing/RouteEntry.cc			\
 	routing/RouteTable.cc			\
 	routing/RouterInfo.cc			\
