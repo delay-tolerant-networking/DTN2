@@ -56,6 +56,7 @@ BundleCommand::BundleCommand()
     add_to_help("dump_ascii <id>", "dump the bundle in ascii");
     add_to_help("expire <id>", "force a specific bundle to expire");
     add_to_help("cancel <id> <link>", "cancel a bundle being sent on a link");
+    add_to_help("clear_fwdlog <id>", "clear the forwarding log for a bundle");
     add_to_help("daemon_idle_shutdown <secs>",
                 "shut down the bundle daemon after an idle period");
 }
@@ -395,6 +396,28 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
                 new BundleCancelRequest(br, name));
         
         return TCL_OK;
+
+    } else if (!strcmp(cmd, "clear_fwdlog")) {
+        // bundle clear_fwdlog <id>
+        if (objc != 3) {
+            wrong_num_args(objc, objv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        int bundleid;
+        if (Tcl_GetIntFromObj(interp, objv[2], &bundleid) != TCL_OK) {
+            resultf("invalid bundle id %s",
+                    Tcl_GetStringFromObj(objv[2], 0));
+            return TCL_ERROR;
+        }
+
+        BundleRef br 
+            = BundleDaemon::instance()->pending_bundles()->find(bundleid);
+
+        br->fwdlog()->clear();
+        
+        return TCL_OK;
+
     } else if (!strcmp(cmd, "daemon_idle_shutdown")) {
         oasys::StringBuffer buf("Bundle Daemon Statistics: ");
         

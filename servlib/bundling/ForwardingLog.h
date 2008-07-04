@@ -157,6 +157,11 @@ public:
     void dump(oasys::StringBuffer* buf) const;
 
     /**
+     * Clear the log (used for testing).
+     */
+    void clear();
+
+    /**
      * Typedef for the log itself.
      */
     typedef std::vector<ForwardingInfo> Log;

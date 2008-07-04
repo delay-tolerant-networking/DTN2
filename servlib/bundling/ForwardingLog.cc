@@ -292,4 +292,12 @@ ForwardingLog::update_all(state_t old_state, state_t new_state)
     }
 }
 
+//----------------------------------------------------------------------
+void
+ForwardingLog::clear()
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::clear");
+    log_.clear();
+}
+
 } // namespace dtn
