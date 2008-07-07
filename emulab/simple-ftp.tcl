@@ -63,7 +63,7 @@ proc start_file {} {
             set sock [socket $host $port]
         } err] } {
 	    puts "[clock seconds]: failed to connect... will try again after $delay ms"
-	    after 1000 start_file
+	    after $delay start_file
             return
 	}
         
@@ -88,7 +88,7 @@ proc start_file {} {
 }
 
 proc send_data {} {
-    global sock fd blocksz sent
+    global sock fd blocksz sent delay
 
     set data [read $fd $blocksz]
 
@@ -102,7 +102,7 @@ proc send_data {} {
         close $fd
         fileevent $sock writable ""
         incr sent
-        start_file
+        after $delay start_file
         return
     }
     
@@ -176,7 +176,7 @@ proc cleanup_sock {sock} {
 }
 
 proc close_and_restart {} {
-    global sock sent acked no_data_timer
+    global sock sent acked no_data_timer delay
 
     if [info exists sock] {
         cleanup_sock $sock
@@ -193,7 +193,7 @@ proc close_and_restart {} {
         unset no_data_timer
     }
 
-    start_file
+    after $delay start_file
 }
 
 proc start_server {} {
