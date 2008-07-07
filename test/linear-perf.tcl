@@ -26,7 +26,7 @@ set check_large_timeout 0
 # number of nodes
 net::default_num_nodes 5
 
-# mode: [dtn | ftp | dtntunnel | mail]
+# mode: [dtn | ftp | dtntunnel | mail | theory]
 set testopt(mode)      ""
 
 # hop mode [hop | e2e]
@@ -42,7 +42,7 @@ set testopt(emulab_test)   ""
 set testopt(conn)     conn
 
 # DTN link options:
-set testopt(link_opts) "min_retry_interval=1 max_retry_interval=1 data_timeout=30000"
+set testopt(link_opts) "min_retry_interval=1 max_retry_interval=1 data_timeout=30000 potential_downtime=99999999"
 #set testopt(link_opts) "min_retry_interval=1 max_retry_interval=1 data_timeout=5000 reactive_frag_enabled=0"
 
 set testopt(frag) true
@@ -60,7 +60,7 @@ set testopt(sleep) 0
 set testopt(db_type) filesysdb
 
 # Max test length
-set testopt(test_max) 30
+set testopt(test_max) 35
 
 run::parse_test_opts
 
@@ -70,7 +70,7 @@ foreach k [lsort [array names testopt]] {
 }
 
 switch -- $testopt(mode) {
-    dtn - ftp - dtntunnel - mail - clear {}
+    dtn - ftp - dtntunnel - mail - clear - theory {}
     ""      {error "must specify mode"}
     default {error "unknown mode '$testopt(mode)'"}
 }
@@ -102,7 +102,7 @@ if {$testopt(emulab_test) != ""} {
     set pproxy_exe    /proj/DTN/$user/PacketProxy/src/pproxy
     set copy_exe      0
     
-    dtn::config  -no_copy_executables -storage_type $testopt(db_type)
+    set dtn_config_opts "-no_copy_executables -storage_type $testopt(db_type)"
     
 } else {
     set dtnd_exe      "dtnd"
@@ -114,7 +114,7 @@ if {$testopt(emulab_test) != ""} {
     manifest::file ../oasys/tools/randfile randfile
     set copy_exe      1
 
-    dtn::config
+    set dtn_config_opts "-storage_type $testopt(db_type)"
 }
 
 if {$testopt(mode) == "ftp" || $testopt(mode) == "dtntunnel"} {
@@ -128,17 +128,54 @@ if {$testopt(mode) == "mail"} {
 set N [net::num_nodes]
 set last [expr $N - 1]
 
+proc emulab_get_stats {what} {
+    global emulab_test
+    set output [run::run_cmd users.emulab.net /usr/testbed/bin/portstats dtn $emulab_test]
+
+    set L [split $output "\n"]
+
+    for {set i 3} {$i < [llength $L]} {incr i} {
+        set line [lindex $L $i]
+        
+        foreach {link in_bytes in_unicast_pkts in_other_pkts out_bytes out_unicast_pkts out_other_pkts} $line {}
+
+        global emulab_links emulab_stats_in emulab_stats_out
+        set emulab_links($link) 1
+        set emulab_stats_in($what,$link)  $in_bytes
+        set emulab_stats_out($what,$link) $out_bytes
+    }
+}
+
+proc emulab_stat_diff {start end} {
+    global emulab_links emulab_stats_in emulab_stats_out
+
+    foreach link [lsort [array names emulab_links]] {
+        set in_a $emulab_stats_in($start,$link)
+        set in_b $emulab_stats_in($end,$link)
+        set out_a $emulab_stats_out($start,$link)
+        set out_b $emulab_stats_out($end,$link)
+        puts "$link:\tin [expr $in_b - $in_a]\tout [expr $out_b - $out_a]"
+    }
+}
+
 #
 # DTN configuration
 #
-dtn::config_app_manifest $copy_exe {dtnsend dtnrecv dtntunnel}
-dtn::config_interface $testopt(cl)
+if {$testopt(mode) == "dtn" || $testopt(mode) == "dtntunnel"} {
+    eval dtn::config $dtn_config_opts
+    dtn::config_app_manifest $copy_exe {dtnsend dtnrecv dtntunnel}
+    dtn::config_interface $testopt(cl)
 
-if {$testopt(hop_mode) == "hop"} {
-    dtn::config_linear_topology ALWAYSON $testopt(cl) true $testopt(link_opts)
-} else {
-    dtn::config_topology_common true
-    dtn::config_link 0 $last ALWAYSON $testopt(cl) $testopt(link_opts)
+    if {$testopt(hop_mode) == "hop"} {
+        dtn::config_linear_topology ALWAYSON $testopt(cl) true $testopt(link_opts)
+    } else {
+        dtn::config_topology_common true
+        dtn::config_link 0 $last ALWAYSON $testopt(cl) $testopt(link_opts)
+    }
+}
+
+if {$testopt(mode) == "theory"} {
+    set opt(dry_run) 1
 }
 
 test::script {
@@ -147,10 +184,16 @@ test::script {
     }
     
     testlog "Running ping test..."
+    set output ""
     catch {
         set output [run::run_cmd $net::host(0) ping -c 4 $net::internal_host($last)]
     }
     puts $output
+
+    if {$testopt(emulab_test) != ""} {
+        testlog "Getting initial packet counts"
+        emulab_get_stats start
+    }
 
     testlog "Generating $testopt(size) byte test file"
     set srcdir [dist::get_rundir $net::host(0) 0]
@@ -193,7 +236,7 @@ test::script {
         testlog "Running packet proxies"
         foreach id [net::nodelist] {
             if {$id == 0 || $id == $last} { continue }
-            set proxypid_$id [dtn::run_app $id pproxy "-d node-[expr $id + 1] -p 17600 -l 17600" $pproxy_exe]
+            set proxypid_$id [dtn::run_app $id pproxy "-d node-[expr $id + 1] -p 17600 -l 17600 -v 2" $pproxy_exe]
         }
     }
     
@@ -255,13 +298,44 @@ test::script {
         
         if {$testopt(conn) == "shift"} {
             for {set id 1} {$id < $N} {incr id} {
-                iptables::add_port $id $port fixed [list 60 60 [expr $id * 15]]
+                iptables::add_port $id $port fixed [list 60 60 [expr 60 - ($id * 15)]]
             }
+        }
+
+        if {$testopt(conn) == "shift4"} {
+            for {set id 1} {$id < [expr $N - 1]} {incr id} {
+                iptables::add_port $id $port fixed [list 240 240 [expr 240 - $id * 60]]
+            }
+            iptables::add_port [expr $N - 1] $port fixed [list 240 240 0]
         }
 
         if {$testopt(conn) == "offset"} {
             for {set id 1} {$id < $N} {incr id} {
                 iptables::add_port $id $port fixed [list 60 60 [expr ($id % 2) * 60]]
+            }
+        }
+
+        if {$testopt(conn) == "all2"} {
+            for {set id 1} {$id < $N} {incr id} {
+                iptables::add_port $id $port fixed [list 60 180 0]
+            }
+        }
+       
+        if {$testopt(conn) == "offset2"} {
+            for {set id 1} {$id < $N} {incr id} {
+                iptables::add_port $id $port fixed [list 60 180 [expr (($id + 1) % 2) * 120]]
+            }
+        }
+
+        if {$testopt(conn) == "sequential"} {
+            for {set id 1} {$id < $N} {incr id} {
+                iptables::add_port $id $port fixed [list 60 180 [expr ($id-1) * 60]]
+            }
+        }
+
+        if {$testopt(conn) == "shift10"} {
+            for {set id 1} {$id < $N} {incr id} {
+                iptables::add_port $id $port fixed [list 60 180 [expr ($id-1) * 10]]
             }
         }
 
@@ -315,9 +389,9 @@ test::script {
             
         } else {
             # ftp mode
-            set timeout 10000
-            if {$testopt(size) >= 512000} {
-                puts "XXX Overriding timeout for big files XXX"
+            set timeout 30000
+            if {$testopt(conn) == "conn"} {
+                puts "XXX Overriding timeout for connected mode"
                 set timeout 0
             }
             
@@ -409,7 +483,12 @@ test::script {
 }
 
 test::exit_script {
-
+    if {$testopt(emulab_test) != ""} {
+        testlog "Getting final packet counts:"
+        emulab_get_stats end
+        emulab_stat_diff start end
+    }
+    
     if {$testopt(mode) == "ftp" || $testopt(mode) == "dtntunnel"} {
         testlog "Stopping ftp server"
         run::kill_pid $last $ftp_server_pid TERM
