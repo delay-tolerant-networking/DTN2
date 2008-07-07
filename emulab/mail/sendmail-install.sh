@@ -40,6 +40,7 @@ ssh $node sudo cp /tmp/sendmail.cf /etc/mail/sendmail.cf
 
 ssh $node sudo find /var/spool/mqueue/ -type f -delete   
 ssh $node sudo find /var/spool/clientmqueue/ -type f -delete   
+ssh $node rm -f /var/log/maillog
 
 ssh $node sudo rm -rf /var/run/sendmail_host_status
 ssh $node sudo mkdir /var/run/sendmail_host_status
