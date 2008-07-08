@@ -1317,8 +1317,8 @@ Optional Packages:
   --with-cxx=CXX          name (or path) of the C++ compiler to use
   --with-extra-cflags=?   additional options to pass to the compiler
   --with-extra-ldflags=?  additional options to pass to the linker
-  --with-oasys=DIR        location of an oasys installation (default ../oasys
-                          or /usr)
+  --with-oasys=DIR        location of an oasys installation (default
+                          $ac_oasysdir_ver ../oasys or /usr)
   --with-bonjour          compile in bonjour support (default try)
   --with-bsp              enable Bundle Security Protocol support
                           (EXPERIMENTAL)
@@ -3942,6 +3942,7 @@ fi
 
     ac_oasysver_major=1
     ac_oasysver_minor=3
+    ac_oasysdir_ver="../oasys-$ac_oasysver_major.$ac_oasysver_minor"
     ac_oasysdir=
 
 
@@ -3955,7 +3956,9 @@ fi
 echo $ECHO_N "checking for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)... $ECHO_C" >&6; }
 
     if test "$ac_oasysdir" = "" ; then
-       if test -d ../oasys ; then
+       if test -d $ac_oasysdir_ver ; then
+          ac_oasysdir=$ac_oasysdir_ver
+       elif test -d ../oasys ; then
           ac_oasysdir=../oasys
        else
           ac_oasysdir=/usr
