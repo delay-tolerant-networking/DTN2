@@ -464,7 +464,7 @@ dnl
 dnl Main macro for finding a usable db installation 
 dnl
 AC_DEFUN(AC_CONFIG_DB, [
-    ac_dbvers='4.5 4.4 4.3 4.2 4.1'
+    ac_dbvers='4.6 4.5 4.4 4.3 4.2 4.1'
     ac_dbdir='yes'
 
     AC_ARG_WITH(db,
@@ -1742,17 +1742,20 @@ AC_DEFUN(AC_OASYS_CONFIG, [
 
     ac_oasysver_major=$1
     ac_oasysver_minor=$2
+    ac_oasysdir_ver="../oasys-$ac_oasysver_major.$ac_oasysver_minor"
     ac_oasysdir=
 
     AC_ARG_WITH(oasys,
         AC_HELP_STRING([--with-oasys=DIR],
-    		   [location of an oasys installation (default ../oasys or /usr)]),
+    		   [location of an oasys installation (default $ac_oasysdir_ver ../oasys or /usr)]),
         ac_oasysdir=$withval) 
 
     AC_MSG_CHECKING([for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)])
 
     if test "$ac_oasysdir" = "" ; then
-       if test -d ../oasys ; then
+       if test -d $ac_oasysdir_ver ; then
+          ac_oasysdir=$ac_oasysdir_ver
+       elif test -d ../oasys ; then
           ac_oasysdir=../oasys
        else
           ac_oasysdir=/usr
