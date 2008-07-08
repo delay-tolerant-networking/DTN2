@@ -1,37 +1,52 @@
 Release Notes for DTN2
 ----------------------
 
-
-2.5.1 (March 2008)
+2.6.0 (March 2008)
 ------------------
 
 - Updated the source control system to mercurial, splitting the oasys
   library into a fully separate package and changing the configuration,
   build, and packaging accordingly.
 
-- Restructuring of the core forwarding path and the router <->
-  convergence layer interface, getting rid of the BUSY state
-  management and (hopefully) improving stability and scalability.
+- Added a session layer with a publish / subscribe based interface and
+  multicast capabilities as well as the ability to order bundles by
+  sequence identifier and express that prior transmissions should be
+  proactively deleted in-network.
 
-- Internal changes to the Bundle class that make all member variables
+- Updated DTLSR to support the session layer and route advertisements
+  as well as miscellaneous other bug fixes.
+
+- Restructured the core forwarding path and the router <-> convergence
+  layer interface, getting rid of the BUSY state management and
+  (hopefully) improving stability and scalability.
+
+- Changed the contract between the core forwarding logic and the
+  router implementation to give the router better control over when
+  bundles are deleted from the system.
+
+- Changed the Bundle class internals to make all member variables
   private, adding accessor functions for manipulation and state
-  retrieval.
+  retrieval and improve efficiency in internal storage.
 
-- Add additional API function access through the SWIG interface and
-  parse status reports that are returned to the app.
+- Added additional API function accesses through the SWIG interface and
+  parse status reports that are returned to the app. Also removed the
+  limitation on the size of bundles that can be returned in memory.
 
-- Add a fix so that bundles aren't delivered twice to the same
-  registration.
+- Added a fix so that bundles aren't delivered twice to the same
+  registration and changes to the core forwarding path to support
+  modified topologies.
 
-- Incorporate patches from BBN to fix bugs during shutdown, more
+- Incorporated patches from BBN to fix bugs during shutdown, more
   efficient comparisons, memory leak and dangling pointer fixes, and
-  modified handling of duplicate bundles,
+  modified handling of duplicate bundles.
 
-- Incorporate various updates to the prophet implementation from Jeff
+- Fixed a bunch of bugs in the dtntunnel application.
+
+- Incorporated various updates to the prophet implementation from Jeff
   Wilson.
 
-- Minor updates to work with Mac OS X 10.5 (Leopard).
-
+- Various other minor updates and bugfixes including Mac OS X 10.5
+  (Leopard) compatibility.
 
 
 2.5.0 (October 2007)
