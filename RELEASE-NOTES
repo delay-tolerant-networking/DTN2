@@ -1,8 +1,8 @@
 Release Notes for DTN2
 ----------------------
 
-2.6.0 (March 2008)
-------------------
+2.6.0 (July 2008)
+-----------------
 
 - Updated the source control system to mercurial, splitting the oasys
   library into a fully separate package and changing the configuration,
