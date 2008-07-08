@@ -1318,7 +1318,7 @@ Optional Packages:
   --with-extra-cflags=?   additional options to pass to the compiler
   --with-extra-ldflags=?  additional options to pass to the linker
   --with-oasys=DIR        location of an oasys installation (default
-                          $ac_oasysdir_ver ../oasys or /usr)
+                          ../oasys-<major>.<minor>.* or ../oasys or /usr)
   --with-bonjour          compile in bonjour support (default try)
   --with-bsp              enable Bundle Security Protocol support
                           (EXPERIMENTAL)
@@ -3942,7 +3942,7 @@ fi
 
     ac_oasysver_major=1
     ac_oasysver_minor=3
-    ac_oasysdir_ver="../oasys-$ac_oasysver_major.$ac_oasysver_minor"
+    ac_oasysdir_ver_base="oasys-$ac_oasysver_major.$ac_oasysver_minor"
     ac_oasysdir=
 
 
@@ -3955,8 +3955,9 @@ fi
     { echo "$as_me:$LINENO: checking for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)" >&5
 echo $ECHO_N "checking for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)... $ECHO_C" >&6; }
 
+    ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
     if test "$ac_oasysdir" = "" ; then
-       if test -d $ac_oasysdir_ver ; then
+       if test -d "$ac_oasysdir_ver" ; then
           ac_oasysdir=$ac_oasysdir_ver
        elif test -d ../oasys ; then
           ac_oasysdir=../oasys

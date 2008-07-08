@@ -1742,18 +1742,19 @@ AC_DEFUN(AC_OASYS_CONFIG, [
 
     ac_oasysver_major=$1
     ac_oasysver_minor=$2
-    ac_oasysdir_ver="../oasys-$ac_oasysver_major.$ac_oasysver_minor"
+    ac_oasysdir_ver_base="oasys-$ac_oasysver_major.$ac_oasysver_minor"
     ac_oasysdir=
 
     AC_ARG_WITH(oasys,
         AC_HELP_STRING([--with-oasys=DIR],
-    		   [location of an oasys installation (default $ac_oasysdir_ver ../oasys or /usr)]),
-        ac_oasysdir=$withval) 
+    		   [location of an oasys installation (default ../oasys-<major>.<minor>.* or ../oasys or /usr)]),
+        ac_oasysdir=$withval)
 
     AC_MSG_CHECKING([for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)])
 
+    ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
     if test "$ac_oasysdir" = "" ; then
-       if test -d $ac_oasysdir_ver ; then
+       if test -d "$ac_oasysdir_ver" ; then
           ac_oasysdir=$ac_oasysdir_ver
        elif test -d ../oasys ; then
           ac_oasysdir=../oasys
