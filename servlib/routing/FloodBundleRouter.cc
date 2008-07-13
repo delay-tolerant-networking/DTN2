@@ -83,13 +83,18 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
 }
 
 //----------------------------------------------------------------------
-void
-FloodBundleRouter::handle_bundle_expired(BundleExpiredEvent* event)
+bool
+FloodBundleRouter::can_delete_bundle(const BundleRef& bundle)
 {
-    TableBasedRouter::handle_bundle_expired(event);
-    
-    Bundle* bundle = event->bundleref_.object();
-    log_debug("bundle_expired *%p", bundle);
+    (void)bundle;
+    return false;
+}
+
+//----------------------------------------------------------------------
+void
+FloodBundleRouter::delete_bundle(const BundleRef& bundle)
+{
+    log_debug("bundle_expired *%p", bundle.object());
     all_bundles_.erase(bundle);
 }
 
