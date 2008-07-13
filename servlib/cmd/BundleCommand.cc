@@ -273,19 +273,21 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         Bundle* b;
         BundleList::iterator iter;
         oasys::StringBuffer buf;
-        BundleList* pending =
-            BundleDaemon::instance()->pending_bundles();
+        BundleList* pending = BundleDaemon::instance()->pending_bundles();
+        BundleList* all_bundles = BundleDaemon::instance()->all_bundles();
         
-        oasys::ScopeLock l(pending->lock(), "BundleCommand::exec");
-        buf.appendf("Currently Pending Bundles (%zu): \n", pending->size());
+        oasys::ScopeLock l(all_bundles->lock(), "BundleCommand::exec");
+        buf.appendf("All Bundles (%zu): \n", all_bundles->size());
     
-        for (iter = pending->begin(); iter != pending->end(); ++iter) {
+        for (iter = all_bundles->begin(); iter != all_bundles->end(); ++iter) {
             b = *iter;
-            buf.appendf("\t%-3d: %s -> %s length %zu\n",
+            buf.appendf("\t%-3d: %s -> %s length %zu%s\n",
                         b->bundleid(),
                         b->source().c_str(),
                         b->dest().c_str(),
-                        b->payload().length());
+                        b->payload().length(),
+                        pending->contains(b) ? "" : " (NOT PENDING)"
+                );
         }
         
         set_result(buf.c_str());
@@ -294,12 +296,11 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
     } else if (!strcmp(cmd, "ids")) {
         BundleList::iterator iter;
-        BundleList* pending =
-            BundleDaemon::instance()->pending_bundles();
+        BundleList* all_bundles = BundleDaemon::instance()->all_bundles();
         
-        oasys::ScopeLock l(pending->lock(), "BundleCommand::exec");
+        oasys::ScopeLock l(all_bundles->lock(), "BundleCommand::exec");
     
-        for (iter = pending->begin(); iter != pending->end(); ++iter) {
+        for (iter = all_bundles->begin(); iter != all_bundles->end(); ++iter) {
             append_resultf("%d ", (*iter)->bundleid());
         }
         
@@ -324,10 +325,9 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        BundleList* pending =
-            BundleDaemon::instance()->pending_bundles();
+        BundleList* all_bundles = BundleDaemon::instance()->all_bundles();
         
-        BundleRef bundle = pending->find(bundleid);
+        BundleRef bundle = all_bundles->find(bundleid);
 
         if (bundle == NULL) {
             resultf("no bundle with id %d", bundleid);
@@ -389,11 +389,16 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         const char* name = Tcl_GetStringFromObj(objv[3], 0);
 
-        BundleRef br 
+        BundleRef bundle
             = BundleDaemon::instance()->pending_bundles()->find(bundleid);
 
+        if (bundle == NULL) {
+            resultf("no pending bundle with id %d", bundleid);
+            return TCL_ERROR;
+        }
+
         BundleDaemon::instance()->post_at_head(
-                new BundleCancelRequest(br, name));
+                new BundleCancelRequest(bundle, name));
         
         return TCL_OK;
 
@@ -411,10 +416,15 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        BundleRef br 
+        BundleRef bundle
             = BundleDaemon::instance()->pending_bundles()->find(bundleid);
 
-        br->fwdlog()->clear();
+        if (bundle == NULL) {
+            resultf("no pending bundle with id %d", bundleid);
+            return TCL_ERROR;
+        }
+
+        bundle->fwdlog()->clear();
         
         return TCL_OK;
 

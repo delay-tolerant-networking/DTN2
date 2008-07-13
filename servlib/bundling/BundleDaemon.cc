@@ -83,6 +83,7 @@ BundleDaemon::BundleDaemon()
     
     memset(&stats_, 0, sizeof(stats_));
 
+    all_bundles_     = new BundleList("all_bundles");
     pending_bundles_ = new BundleList("pending_bundles");
     custody_bundles_ = new BundleList("custody_bundles");
 
@@ -2376,7 +2377,9 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 {
     Bundle* bundle = event->bundle_;
     event->bundle_ = NULL;
-    ASSERT(bundle->refcount() == 0);
+    ASSERT(bundle->refcount() == 1);
+    ASSERT(all_bundles_->contains(bundle));
+    all_bundles_->erase(bundle);
     
     bundle->lock()->lock("BundleDaemon::handle_bundle_free");
 
@@ -2385,6 +2388,7 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
         actions_->store_del(bundle);
     }
     log_debug("deleting freed bundle");
+
     delete bundle;
 }
 
