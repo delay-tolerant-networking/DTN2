@@ -17,6 +17,8 @@
 #  include <dtn-config.h>
 #endif
 
+#include <typeinfo>
+
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <oasys/io/NetUtils.h>
