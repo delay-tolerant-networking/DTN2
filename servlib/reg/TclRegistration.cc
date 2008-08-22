@@ -18,6 +18,7 @@
 #  include <dtn-config.h>
 #endif
 
+#include <climits>
 #include <oasys/serialize/TclListSerialize.h>
 #include <oasys/util/ScratchBuffer.h>
 

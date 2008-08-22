@@ -18,6 +18,7 @@
 #  include <dtn-config.h>
 #endif
 
+#include <climits>
 #include "InterfaceCommand.h"
 #include "contacts/InterfaceTable.h"
 #include "conv_layers/ConvergenceLayer.h"

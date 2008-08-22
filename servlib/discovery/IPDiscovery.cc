@@ -18,6 +18,7 @@
 #  include <dtn-config.h>
 #endif
 
+#include <climits>
 #include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
 #include "bundling/BundleDaemon.h"

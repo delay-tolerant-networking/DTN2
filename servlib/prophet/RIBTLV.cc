@@ -14,6 +14,7 @@
  *    limitations under the License.
  */
 
+#include <cstring> // for memset
 #include <arpa/inet.h> // for hton[ls] and ntoh[ls]
 #include "Util.h"
 #include "RIBTLV.h"

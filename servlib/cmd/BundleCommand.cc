@@ -18,6 +18,7 @@
 #  include <dtn-config.h>
 #endif
 
+#include <climits>
 #include <oasys/util/HexDumpBuffer.h>
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/OptParser.h>
