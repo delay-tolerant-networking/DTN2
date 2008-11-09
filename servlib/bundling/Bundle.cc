@@ -299,6 +299,16 @@ Bundle::add_ref(const char* what1, const char* what2)
                 "bundle id %d (%p): refcount %d -> %d (%zu mappings) add %s %s",
                 bundleid_, this, refcount_ - 1, refcount_,
                 mappings_.size(), what1, what2);
+
+    // if this is the first time we're adding a reference, then put it
+    // on the all_bundles, which itself adds another reference to it.
+    // note that we need to be careful to drop the scope lock before
+    // calling push_back.
+    if (ret == 1) {
+        l.unlock(); // release scope lock
+        BundleDaemon::instance()->all_bundles()->push_back(this);
+    }
+    
     return ret;
 }
 
@@ -311,26 +321,40 @@ Bundle::del_ref(const char* what1, const char* what2)
     
     oasys::ScopeLock l(&lock_, "Bundle::del_ref");
 
-    ASSERTF(freed_ == false, "Bundle::del_ref on bundle %d (%p)"
-            "called when bundle is already being freed!", bundleid_, this);
-    
     int ret = --refcount_;
     log_debug_p("/dtn/bundle/refs",
                 "bundle id %d (%p): refcount %d -> %d (%zu mappings) del %s %s",
                 bundleid_, this, refcount_ + 1, refcount_,
                 mappings_.size(), what1, what2);
     
-    if (refcount_ != 0) {
-        return ret;
-    }
-
-    freed_ = true;
+    if (refcount_ > 1) {
+        ASSERTF(freed_ == false,  "Bundle::del_ref on bundle %d (%p)"
+                "called when bundle is freed but has %d references",
+                bundleid_, this, refcount_);
     
-    log_debug_p("/dtn/bundle",
-                "bundle id %d (%p): no more references, posting free event",
-                bundleid_, this);
+        return ret;
 
-    BundleDaemon::instance()->post(new BundleFreeEvent(this));
+    } else if (refcount_ == 1) {
+        ASSERTF(freed_ == false,  "Bundle::del_ref on bundle %d (%p)"
+                "called when bundle is freed but has %d references",
+                bundleid_, this, refcount_);
+        
+        freed_ = true;
+        
+        log_debug_p("/dtn/bundle",
+                    "bundle id %d (%p): one reference remaining, posting free event",
+                    bundleid_, this);
+        
+        BundleDaemon::instance()->post(new BundleFreeEvent(this));
+
+    } else if (refcount_ == 0) {
+        log_debug_p("/dtn/bundle",
+                    "bundle id %d (%p): last reference removed",
+                    bundleid_, this);
+        ASSERTF(freed_ == true,
+                "Bundle %d (%p) refcount is zero but bundle wasn't properly freed",
+                bundleid_, this);
+   }
     
     return 0;
 }

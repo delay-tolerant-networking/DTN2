@@ -50,25 +50,12 @@ public:
      * Initializer.
      */
     void initialize();
-    
-    /**
-     * Event handler for new bundle arrivals.
-     *
-     * Queue the bundle on the pending delivery list, and then
-     * searches through the route table to find any matching next
-     * contacts, filling in the action list with forwarding decisions.
-     */
+
+    /// @{ Event handlers / router callbacks
     void handle_bundle_received(BundleReceivedEvent* event);
-    
-    /**
-     * When a link is created, add a new route for it.
-     */
     void handle_link_created(LinkCreatedEvent* event);
-    
-    /**
-     * Default event handler when bundles expire
-     */
-    void handle_bundle_expired(BundleExpiredEvent* event);
+    bool can_delete_bundle(const BundleRef& bundle);
+    void delete_bundle(const BundleRef& bundle);
     
 protected:
     /// To ensure bundles aren't deleted by the system just after they

@@ -156,6 +156,11 @@ public:
     const RegistrationTable* reg_table() { return reg_table_; }
 
     /**
+     * Accessor for the all bundles list.
+     */
+    BundleList* all_bundles() { return all_bundles_; }
+    
+    /**
      * Accessor for the pending bundles list.
      */
     BundleList* pending_bundles() { return pending_bundles_; }
@@ -471,7 +476,10 @@ protected:
     /// The table of active registrations
     RegistrationTable* reg_table_;
 
-    /// The list of all bundles still pending delivery
+    /// The list of all bundles in the system
+    BundleList* all_bundles_;
+
+    /// The list of all bundles that are still being processed
     BundleList* pending_bundles_;
 
     /// The list of all bundles that we have custody of

@@ -20,6 +20,7 @@
 
 #ifdef OASYS_BLUETOOTH_ENABLED
 
+#include <climits>
 #include <oasys/util/Random.h>
 #include <oasys/bluez/Bluetooth.h>
 #include <oasys/bluez/BluetoothSDP.h>

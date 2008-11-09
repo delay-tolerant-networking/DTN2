@@ -18,6 +18,8 @@
 #define _PROPHET_ACK_H_
 
 #include <string>
+#include <oasys/oasys-config.h>
+#include <oasys/compat/inttypes.h>
 
 namespace prophet
 {

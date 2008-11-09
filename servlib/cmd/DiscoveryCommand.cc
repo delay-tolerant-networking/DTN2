@@ -18,6 +18,7 @@
 #  include <dtn-config.h>
 #endif
 
+#include <climits>
 #include "DiscoveryCommand.h"
 #include "discovery/Discovery.h"
 #include "discovery/DiscoveryTable.h"
