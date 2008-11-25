@@ -95,7 +95,7 @@ public:
 
 protected:
     Announce(const char* logpath = "/dtn/discovery/announce")
-        : oasys::Logger("Announce",logpath),
+        : oasys::Logger("Announce", "%s", logpath),
           cl_(NULL), interval_(0)
     {
         ::gettimeofday(&data_sent_,0);

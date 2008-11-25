@@ -126,7 +126,7 @@ dtn_endpoint_id_t * parse_eid(dtn_handle_t handle,
                               dtn_endpoint_id_t * eid,
                               char * str);
 void print_usage();
-void print_eid(char * label, dtn_endpoint_id_t * eid);
+void print_eid(const char * label, dtn_endpoint_id_t * eid);
 void fill_payload(dtn_bundle_payload_t* payload);
 
 int
@@ -551,7 +551,7 @@ dtn_endpoint_id_t * parse_eid(dtn_handle_t handle,
     }
 }
 
-void print_eid(char *  label, dtn_endpoint_id_t * eid)
+void print_eid(const char *  label, dtn_endpoint_id_t * eid)
 {
     printf("%s [%s]\n", label, eid->uri);
 }

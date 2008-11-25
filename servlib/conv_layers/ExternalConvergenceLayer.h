@@ -24,7 +24,22 @@
 
 #include <string>
 #include <list>
+
+/* Note that these classes are now deprecated, we'll need to rewrite */
+/* the code at some point to use the new standard classes. In the */
+/*  meantime, quiet the warnings. */
+/* undefine __DEPRECATED and remember it was set*/
+#ifdef __DEPRECATED
+# define __DEPRECATED_save
+# undef __DEPRECATED
+#endif
+
 #include <ext/hash_map>
+
+/* re-define __DEPRECATED if it was set */
+#ifdef __DEPRECATED_save
+# define __DEPRECATED
+#endif
 
 #include <oasys/thread/Thread.h>
 #include <oasys/thread/Mutex.h>
@@ -36,10 +51,14 @@
 #include "bundling/BundleEvent.h"
 #include "contacts/NamedAttribute.h"
 
-class dtn::clmessage::bundle_attributes;
-class dtn::clmessage::link_config_parameters;
-
 namespace dtn {
+
+// g++ 4.3.x needs this unrolled, can't use a forward decl of the form
+//   class dtn::clmessage::bundle_attributes;
+namespace clmessage {
+    class bundle_attributes;
+    class link_config_parameters;
+};
 
 using __gnu_cxx::hash_multimap;
 using __gnu_cxx::hash;

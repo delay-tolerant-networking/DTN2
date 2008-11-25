@@ -142,7 +142,7 @@ bool
 ContactManager::has_link(const char* name)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::has_link");
-    ASSERT(link != NULL);
+    ASSERT(name != NULL);
     
     LinkSet::iterator iter;
     for (iter = links_->begin(); iter != links_->end(); ++iter) {

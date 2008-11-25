@@ -234,7 +234,7 @@ Decider::decider(FwdStrategy::fwd_strategy_t fs,
     Decider* d = NULL;
 
     // weed out the oddball
-    if (nexthop == NULL || nexthop->nexthop() == "") return NULL;
+    if (nexthop == NULL || nexthop->nexthop()[0] == '\0') return NULL;
     if (local_nodes == NULL) return NULL;
     if (remote_nodes == NULL) return NULL;
 

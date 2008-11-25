@@ -43,7 +43,7 @@ protected:
      */
     BundleEventHandler(const char* classname,
                        const char* logpath)
-        : oasys::Logger(classname, logpath) {}
+        : oasys::Logger(classname, "%s", logpath) {}
     
     /**
      * Destructor -- Needs to be defined virtual to be sure that

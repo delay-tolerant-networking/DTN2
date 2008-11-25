@@ -35,7 +35,7 @@ CLConnection::CLConnection(const char*       classname,
                            LinkParams*       params,
                            bool              active_connector)
     : Thread(classname),
-      Logger(classname, logpath),
+      Logger(classname, "%s", logpath),
       contact_(classname),
       contact_up_(false),
       cmdqueue_lock_(),

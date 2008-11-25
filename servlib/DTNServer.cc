@@ -70,7 +70,7 @@ namespace dtn {
 
 DTNServer::DTNServer(const char* logpath,
                      DTNStorageConfig* storage_config)
-    : Logger("DTNServer", logpath),
+    : Logger("DTNServer", "%s", logpath),
       init_(false),
       in_shutdown_(0),
       storage_config_(storage_config),

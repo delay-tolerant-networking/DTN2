@@ -55,7 +55,7 @@
     send(message);
 
 #define CATCH(exception) \
-    catch (exception &e) { log_warn(e.what()); }
+    catch (exception &e) { log_warn("%s", e.what()); }
 
 namespace dtn {
 

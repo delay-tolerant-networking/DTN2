@@ -535,7 +535,7 @@ Encounter::handle_hello_tlv(BaseTLV* tlv)
             {
                 hello_rate_ = 0;
                 UPDATE_PEER_VERIFIER(tlv_->sender_instance());
-                if (ok = SEND_ACK(tid_))
+                if ((ok = SEND_ACK(tid_)) != 0)
                 {
                     SET_STATE(ESTAB);
                     estab_ = true;
@@ -554,7 +554,7 @@ Encounter::handle_hello_tlv(BaseTLV* tlv)
             {
                 hello_rate_ = 0;
                 UPDATE_PEER_VERIFIER(tlv_->sender_instance());
-                if (ok = SEND_ACK(tid_))
+                if ((ok = SEND_ACK(tid_)) != 0)
                 {
                     SET_STATE(ESTAB);
                     estab_ = true;

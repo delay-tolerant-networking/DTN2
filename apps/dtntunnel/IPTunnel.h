@@ -31,7 +31,7 @@ class IPTunnel : public oasys::Logger {
 public:
     /// Constructor
     IPTunnel(const char* classname, const char* logpath)
-        : Logger(classname, logpath) {}
+        : Logger(classname, "%s", logpath) {}
     
     /// Destructor
     virtual ~IPTunnel() {}

@@ -155,10 +155,10 @@ public:
     virtual void serialize(oasys::SerializeAction *a);
 
     /// @{ Accessors
-    const state_t  state()  const { return static_cast<state_t>(state_); }
-    const action_t action() const { return static_cast<action_t>(action_); }
+    state_t                 state()        const { return static_cast<state_t>(state_); }
+    action_t                action()       const { return static_cast<action_t>(action_); }
     const std::string&      link_name()    const { return link_name_; }
-    const u_int32_t         regid()        const { return regid_; }
+    u_int32_t               regid()        const { return regid_; }
     const EndpointID&       remote_eid()   const { return remote_eid_; }
     const oasys::Time&      timestamp()    const { return timestamp_; }
     const CustodyTimerSpec& custody_spec() const { return custody_spec_; }

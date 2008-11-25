@@ -1357,7 +1357,8 @@ APIClient::handle_recv()
         }
         
     } else if (location == DTN_PAYLOAD_FILE) {
-        char *tdir, templ[64];
+        const char *tdir;
+        char templ[64];
         
         tdir = getenv("TMP");
         if (tdir == NULL) {
