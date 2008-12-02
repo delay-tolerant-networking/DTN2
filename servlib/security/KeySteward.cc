@@ -35,6 +35,7 @@
 
 #ifdef BSP_ENABLED
 
+#include <limits.h>
 #include "Ciphersuite.h"
 #include "bundling/Bundle.h"
 #include "contacts/Link.h"
