@@ -26,6 +26,7 @@
 #include "SerialConvergenceLayer.h"
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
+#include "NORMConvergenceLayer.h"
 
 #include "bundling/BundleDaemon.h"
 
@@ -59,6 +60,9 @@ ConvergenceLayer::init_clayers()
 #endif
 #ifdef OASYS_BLUETOOTH_ENABLED
     add_clayer(new BluetoothConvergenceLayer());
+#endif
+#ifdef NORM_ENABLED
+    add_clayer(new NORMConvergenceLayer());
 #endif
     // XXX/demmer fixme
     // add_clayer("file", new FileConvergenceLayer());

@@ -51,6 +51,9 @@
 /* directory for config files (default /etc) */
 #undef INSTALL_SYSCONFDIR
 
+/* whether norm support is enabled */
+#undef NORM_ENABLED
+
 /* whether bonjour support is enabled */
 #undef OASYS_BONJOUR_ENABLED
 

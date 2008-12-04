@@ -82,6 +82,10 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/StreamConvergenceLayer.cc   \
 	conv_layers/TCPConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
+	conv_layers/NORMConvergenceLayer.cc	\
+	conv_layers/NORMReceiver.cc		\
+	conv_layers/NORMSender.cc		\
+	conv_layers/NORMSessionManager.cc	\
 	conv_layers/ExternalConvergenceLayer.cc	\
 	conv_layers/ECLModule.cc \
 	conv_layers/CLEventHandler.cc \

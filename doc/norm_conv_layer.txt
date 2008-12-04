@@ -1,0 +1,187 @@
+
+NACK-Oriented Reliable Multicast (NORM) Convergence Layer
+---------------------------------------------------------
+
+**This code is experimental and is under active development.
+
+Please direct general questions and comments to the DTN Interest list
+http://mailman.dtnrg.org/mailman/listinfo/dtn-interest/
+
+
+Requirements
+------------
+
+NORM libraries from the Naval Research Lab
+
+   - Download norm-nightlybuild.tgz from
+     http://downloads.pf.itd.nrl.navy.mil/norm/
+     (tested with version 1.4b4)
+
+   - Download protolib-nightlybuild.tgz from
+     http://downloads.pf.itd.nrl.navy.mil/protolib/
+
+   - Unpack the norm code.  cd into the norm top-level directory
+     and unpack the protolib code there.
+
+   - Apply the norm-1.4b4-dtn.patch file available in the
+     DTN2/doc directory.  (There's a feature request pending with
+     NRL that will eliminate this step in the future.)
+
+     patch -p1 < "patch file location"
+
+   - For linux, cd into the unix directory and type
+     make -f Makefile.linux
+     make -f Makefile.linux libnorm.a
+
+   - Copy libnorm.a and ../protolib/unix/libProtokit.a to
+     /usr/lib or /usr/local/lib
+ 
+   - Copy ../common/normApi.h to /usr/include or /usr/local/include
+
+Installation
+------------
+
+Configure DTN2 using '--with-norm' and (re)compile.
+
+Add NORM links to dtn.conf, for example:
+   link add norm_link remote_host:4557 ALWAYSON norm
+
+Additional link parameters are documented below.
+
+
+Link Parameters
+---------------
+
+**default settings in < >
+
+send_mode=<best_effort>
+
+    NORM links support best_effort and reliable mode. best_effort
+    mode does not use watermarks and therefore does not guarantee bundle
+    deliveries. Reliable mode uses the NORM watermarking mechanism.
+
+rate=<64000>
+
+    Rate of NORM link in bits per second (bps). If congestion control is
+    enabled (see cc) this is the maximum achievable rate.
+
+object_size=<0>
+
+    Partition large DTN bundles into multiple NORM data objects for
+    transmission. With the default of zero bytes, no object partitioning
+    is performed. Setting object size to a relatively small value, e.g.
+    50000 bytes, may be useful in some contention based networks (see
+    tx_spacer). This feature is similar in concept to proactive bundle
+    fragmentation or "bundle MTU" (neither yet implemented in DTN2).
+    (see tx_spacer)
+
+tx_spacer=<0>
+
+    When combined with object_size, tx_spacer may be used to add a
+    constant pause time (ms) between successive NORM data object
+    transmissions. On contention based networks, this pause time may
+    give other nodes a chance to transmit.
+
+keepalive_interval=<5000>
+
+    For DTN opportunistic links, keepalive_interval is the number of
+    miliseconds between successive keepalive packets. Opportunistic
+    links are made unavailable when three remote keepalive packets are
+    missed. In addition, reliable mode links send watermarks at
+    keepalive intervals.
+
+multicast_interface
+
+    The host interface to use when joining multicast groups.
+
+local_addr
+
+    Local NORM link IP address.
+
+remote_addr
+
+    Remote NORM link IP address (not used -- normally aquired from the
+    "link add" directive)
+
+remote_port=<4557>
+
+    Remote NORM link port. (not used -- normally acquired from the "link
+    add" directive)
+
+cc=<false>
+
+    Whether NORM congestion control is enabled.
+
+ecn=<false>
+
+    Whether NORM explicit congestion notification support is enabled.
+
+segment_size=<1400>
+
+    MTU (bytes) of NORM data segments.
+
+fec_buf_size=<1048576>
+
+    The number of bytes allocated for sender calculated FEC segments and
+    repair state.
+
+block_size=<64>
+
+    The number of source symbol segments per coding block for the
+    systematic Reed-Solomon FEC code used in the NRL NORM implementation.
+
+num_parity=<16>
+
+    The maximum number of parity blocks the sender is willing to
+    calculate per coding block.
+
+auto_parity=<0>
+
+    The number of "auto-parity" messages sent at the end of each coding
+    block.
+
+backoff_factor=<0.0>
+
+    Used to scale various timeouts during the NACK repair process. The
+    default value of 0.0 is tuned for DTN point-to-point links. In
+    point-to-multipoint configurations, the backoff_factor may need to
+    be adjusted upward to prevent sender implosion when losses occur.
+
+group_size=<1000>
+
+    Group size is advertised to the receiver group where it is used in
+    calculating backoff timers. Due to encoding techniques in the NORM
+    header, 1000 receivers is the smallest value allowed by the NORM
+    protocol.
+
+tx_cache_size_max=<20971520>
+
+    Size of the NORM object cache (in bytes) per link.
+
+tx_cache_count_min=<8>
+
+    At at minimum, this many objects are allowed to be enqueued in the
+    NORM engine regardless of the object sizes. After the
+    tx_cache_count_min value is surpassed, cache size contraints are in
+    effect (see tx_cache_size_max).
+
+tx_cache_count_max<1024>
+
+    The maximum number of objects that may be enqueued for transmission
+    with the NORM engine assuming the total size is less that
+    tx_cache_size_max.
+
+rx_buf_size=<300000>
+
+    Size of the receive buffer (bytes) for each NORM session.
+
+robust_factor
+
+    The number of flush messages sent at the end of each transmission.
+    Flush messages are used to prompt receivers to request repairs when
+    needed. For reliable links, robust_factor defaults to 1. Best effort
+    links default to a robust factor of 20.
+
+tos
+
+    6-bit DSCP marking for all bundles on a specific link
