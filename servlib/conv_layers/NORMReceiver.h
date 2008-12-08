@@ -75,7 +75,6 @@ public:
 protected:
     friend class ReceiveOnly;
     friend class ReceiveWatermark;
-    friend class BundleReassemblyBuf;
     friend class NORMSessionManager;
     friend class NORMConvergenceLayer;
 
@@ -178,6 +177,10 @@ public:
     virtual void run(NORMReceiver *r);
 
 protected:
+    static void process_data(NORMReceiver *r, u_char *bundle_buf, size_t len) {
+        r->process_data(bundle_buf, len);
+    }
+
     friend class BundleReassemblyBuf;
 
     class BundleReassemblyBuf : public oasys::Logger {

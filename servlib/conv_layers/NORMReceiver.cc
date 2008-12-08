@@ -266,7 +266,7 @@ ReceiveWatermark::run(NORMReceiver *receiver)
                 case NORM_ACK_SUCCESS: {
                     log_debug("NormGetAckingStatus watermark positive ack received.");
                     send_strategy_->set_watermark_result(NORM_ACK_SUCCESS);
-                    log_debug("WATERMARK_COMPLETED: tx_cache size = %i", send_strategy_->size());
+                    log_debug("WATERMARK_COMPLETED: tx_cache size = %Zu", send_strategy_->size());
                     break;
                 }
                 default:
@@ -338,7 +338,7 @@ ReceiveWatermark::run(NORMReceiver *receiver)
             }
 
             char cmd[keepalive_len];
-            if (NormNodeGetCommand(event.sender, cmd, &keepalive_len)) {
+            if (NormNodeGetCommand(event.sender, cmd, (unsigned int *) &keepalive_len)) {
                 if (strncmp(cmd, KEEPALIVE_STR, keepalive_len) != 0) {
                     log_debug("received unknown norm command!");
                 }
@@ -540,10 +540,10 @@ ReceiveWatermark::BundleReassemblyBuf::check_completes(bool link_up)
             if (j == end) {
                 // all bundle chunks received
                 (*i).complete_ = true;
-                receiver_->process_data((*i).bundle_, (*i).length_);
+                ReceiveWatermark::process_data(receiver_, (*i).bundle_, (*i).length_);
             } else if ((! link_up) && rcvd_len > 0) {
                 // the contact is down so process a partial fragment
-                receiver_->process_data((*i).bundle_, rcvd_len);
+                ReceiveWatermark::process_data(receiver_, (*i).bundle_, rcvd_len);
             }
         }
     }
