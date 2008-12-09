@@ -84,7 +84,7 @@ tx_spacer=<0>
 
 keepalive_intvl=<5000>
 
-    For DTN opportunistic links, keepalive_interval is the number of
+    For DTN opportunistic links, keepalive_intvl is the number of
     miliseconds between successive keepalive packets. Opportunistic
     links are made unavailable when three remote keepalive packets are
     missed. In addition, reliable mode links send watermarks at
