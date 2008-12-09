@@ -82,7 +82,7 @@ tx_spacer=<0>
     transmissions. On contention based networks, this pause time may
     give other nodes a chance to transmit.
 
-keepalive_interval=<5000>
+keepalive_intvl=<5000>
 
     For DTN opportunistic links, keepalive_interval is the number of
     miliseconds between successive keepalive packets. Opportunistic
