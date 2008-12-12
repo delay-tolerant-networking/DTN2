@@ -313,7 +313,7 @@ NORMSender::handle_bundle_queued()
         ASSERT(blocks != NULL);
 
         size_t total_len = BundleProtocol::total_length(blocks);
-        ASSERT(total_len <= 2^32);
+        ASSERT(total_len <= pow(2, 32));
 
         //link->del_from_queue(bref, total_len);
         //link->add_to_inflight(bref, total_len);
@@ -766,25 +766,9 @@ SendReliable::bundles_transmitted(NormAckingStatus status)
 void
 SendReliable::handle_cancel_bundle(const LinkRef &link, Bundle *bundle)
 {
-    oasys::ScopeLock l(lock(), "SendReliable::handle_cancel_bundle");
-
-    iterator i = this->begin();
-    iterator end = this->end();
-    for (; i != end; ++i) {
-        if ((*i)->bundle_->bundleid() == bundle->bundleid()) {
-
-            // cancel all the bundle chunks
-            NORMBundle::iterator j = (*i)->begin();
-            NORMBundle::iterator end = (*i)->end();
-            for (; j != end; ++j) {
-                NormObjectCancel(*j);
-            }
-
-            erase(i);
-            BundleDaemon::post(new BundleSendCancelledEvent(bundle, link));
-            break;
-        }
-    }
+    (void) link;
+    log_debug("bundle %d already in flight, can't cancel",
+              bundle->bundleid());
 }
 
 //----------------------------------------------------------------------

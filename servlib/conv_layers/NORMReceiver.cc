@@ -266,7 +266,7 @@ ReceiveWatermark::run(NORMReceiver *receiver)
                 case NORM_ACK_SUCCESS: {
                     log_debug("NormGetAckingStatus watermark positive ack received.");
                     send_strategy_->set_watermark_result(NORM_ACK_SUCCESS);
-                    log_debug("WATERMARK_COMPLETED: tx_cache size = %Zu", send_strategy_->size());
+                    log_debug("WATERMARK_COMPLETED: tx_cache size = %zu", send_strategy_->size());
                     break;
                 }
                 default:
