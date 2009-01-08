@@ -48,7 +48,6 @@
 
 namespace dtn {
 
-const char *NORMParameters::NORMCL_DEFAULT_MADDR = "239.255.0.1";
 NORMParameters NORMConvergenceLayer::defaults_;
 
 //----------------------------------------------------------------------
@@ -80,40 +79,11 @@ NORMParameters::parse_link_params(NORMParameters *params,
     argc -= res;
     *invalidp = 0;
 
-    // next, see if a send mode was requested
-    // we need to pick up the rate, if specified since
-    // it's used in calculating inter-chunk-pause
-    oasys::EnumOpt::Case send_mode_opts[] = {
-        {"receive_only",            NORMParameters::RECEIVE_ONLY},
-        {"best_effort",             NORMParameters::BEST_EFFORT},
-        {"reliable",                NORMParameters::RELIABLE},
-        {0, 0}
-    };
-    int mode = params->norm_send_mode_;
-    p.addopt(new oasys::EnumOpt("send_mode", send_mode_opts, &mode));
-    p.addopt(new oasys::DoubleOpt("rate", &params->rate_));
-    p.addopt(new oasys::UIntOpt("object_size",&params->object_size_));
-    p.addopt(new oasys::UIntOpt("tx_spacer",&params->tx_spacer_));
-
-    res = p.parse_and_shift(argc, argv, invalidp);
-
-    switch (mode) {
-        case NORMParameters::BEST_EFFORT:
-            params->mode_best_effort();
-            break;
-        case NORMParameters::RELIABLE:
-            params->mode_reliable();
-            break;
-        default: break;
-    }
-
-    argc -= res;
-    *invalidp = 0;
-
     // now check for all other settings/overrides
-    p.addopt(new oasys::UIntOpt("keepalive_intvl", &params->keepalive_intvl_));
     p.addopt(new oasys::StringOpt("multicast_interface", &params->multicast_interface_));
-    p.addopt(new oasys::InAddrOpt("local_addr", &params->local_addr_));
+    p.addopt(new oasys::InAddrOpt("nodeid", &params->nodeid_));
+    p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
+    p.addopt(new oasys::InAddrOpt("group_addr", &params->group_addr_));
     p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
     p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
     p.addopt(new oasys::BoolOpt("cc", &params->cc_));
@@ -130,12 +100,22 @@ NORMParameters::parse_link_params(NORMParameters *params,
     p.addopt(new oasys::UIntOpt("tx_cache_count_min", &params->tx_cache_count_min_));
     p.addopt(new oasys::UIntOpt("tx_cache_count_max", &params->tx_cache_count_max_));
     p.addopt(new oasys::UIntOpt("rx_buf_size",&params->rx_buf_size_));
-    p.addopt(new oasys::UIntOpt("robust_factor",&params->robust_factor_));
+    p.addopt(new oasys::UIntOpt("tx_robust_factor",&params->tx_robust_factor_));
+    p.addopt(new oasys::UIntOpt("rx_robust_factor",&params->rx_robust_factor_));
+    p.addopt(new oasys::UIntOpt("keepalive_intvl", &params->keepalive_intvl_));
     p.addopt(new oasys::UInt8Opt("tos", &params->tos_));
+    p.addopt(new oasys::BoolOpt("ack", &params->ack_));
+    p.addopt(new oasys::StringOpt("acking_list", &params->acking_list_));
+    p.addopt(new oasys::BoolOpt("silent", &params->silent_));
+    p.addopt(new oasys::DoubleOpt("rate", &params->rate_));
+    p.addopt(new oasys::UIntOpt("object_size",&params->object_size_));
+    p.addopt(new oasys::UIntOpt("tx_spacer",&params->tx_spacer_));
 
     // parse options
     if (! p.parse(argc, argv, invalidp))
         return false;
+
+    params->pause_time();
 
     return true;
 };
@@ -143,20 +123,24 @@ NORMParameters::parse_link_params(NORMParameters *params,
 //----------------------------------------------------------------------
 NORMParameters::NORMParameters()
     : multicast_interface_(),
-      local_addr_(INADDR_ANY),
-      remote_addr_(INADDR_NONE),
+      nodeid_(INADDR_ANY),
+      local_port_(NORMCL_DEFAULT_MPORT),
+      group_addr_(INADDR_ANY),
+      remote_addr_(INADDR_ANY),
       remote_port_(NORMCL_DEFAULT_PORT),
-      cc_(false), ecn_(false), rate_(64000), segment_size_(1400),
+      cc_(false), ecn_(false), segment_size_(1400),
       fec_buf_size_(1024*1024), block_size_(64),
       num_parity_(16), auto_parity_(0),
       backoff_factor_(0.0),
       group_size_(1000), tx_cache_size_max_(20971520),
       tx_cache_count_min_(8), tx_cache_count_max_(1024),
-      rx_buf_size_(300000), robust_factor_(20),
-      keepalive_intvl_(5000), object_size_(0),
-      inter_object_pause_(0), tx_spacer_(0),
-      tos_(0),
-      norm_send_mode_(BEST_EFFORT),
+      rx_buf_size_(300000), tx_robust_factor_(20),
+      rx_robust_factor_(20), keepalive_intvl_(5000),
+      tos_(0), ack_(false), acking_list_(),
+      silent_(false), rate_(64000), object_size_(0),
+      tx_spacer_(0), inter_object_pause_(0),
+      multicast_dest_(false),
+      norm_session_mode_(NEGATIVE_ACKING),
       norm_session_(NORM_SESSION_INVALID),
       norm_sender_(0), norm_receiver_(0)
 {
@@ -166,10 +150,12 @@ NORMParameters::NORMParameters()
 NORMParameters::NORMParameters(const NORMParameters &params)
     : CLInfo(),
       multicast_interface_(params.multicast_interface_),
-      local_addr_(params.local_addr_),
+      nodeid_(params.nodeid_),
+      local_port_(params.local_port_),
+      group_addr_(params.group_addr_),
       remote_addr_(params.remote_addr_),
       remote_port_(params.remote_port_),
-      cc_(params.cc_), ecn_(params.ecn_), rate_(params.rate_),
+      cc_(params.cc_), ecn_(params.ecn_),
       segment_size_(params.segment_size_),
       fec_buf_size_(params.fec_buf_size_),
       block_size_(params.block_size_),
@@ -181,13 +167,19 @@ NORMParameters::NORMParameters(const NORMParameters &params)
       tx_cache_count_min_(params.tx_cache_count_min_),
       tx_cache_count_max_(params.tx_cache_count_max_),
       rx_buf_size_(params.rx_buf_size_),
-      robust_factor_(params.robust_factor_),
+      tx_robust_factor_(params.tx_robust_factor_),
+      rx_robust_factor_(params.rx_robust_factor_),
       keepalive_intvl_(params.keepalive_intvl_),
-      object_size_(params.object_size_),
-      inter_object_pause_(params.inter_object_pause_),
-      tx_spacer_(params.tx_spacer_),
       tos_(params.tos_),
-      norm_send_mode_(params.norm_send_mode_),
+      ack_(params.ack_),
+      acking_list_(params.acking_list_),
+      silent_(params.silent_),
+      rate_(params.rate_),
+      object_size_(params.object_size_),
+      tx_spacer_(params.tx_spacer_),
+      inter_object_pause_(params.inter_object_pause_),
+      multicast_dest_(params.multicast_dest_),
+      norm_session_mode_(params.norm_session_mode_),
       norm_session_(NORM_SESSION_INVALID),
       norm_sender_(0), norm_receiver_(0)
 {
@@ -197,7 +189,9 @@ NORMParameters::NORMParameters(const NORMParameters &params)
 void
 NORMParameters::serialize(oasys::SerializeAction *a)
 {
-    a->process("local_addr", oasys::InAddrPtr(&local_addr_));
+    a->process("nodeid", oasys::InAddrPtr(&nodeid_));
+    a->process("local_port", &local_port_);
+    a->process("group_addr", oasys::InAddrPtr(&group_addr_));
     a->process("remote_addr", oasys::InAddrPtr(&remote_addr_));
     a->process("remote_port", &remote_port_);
     a->process("cc", &cc_);
@@ -214,12 +208,14 @@ NORMParameters::serialize(oasys::SerializeAction *a)
     a->process("tx_cache_count_min", &tx_cache_count_min_);
     a->process("tx_cache_count_max", &tx_cache_count_max_);
     a->process("rx_buf_size", &rx_buf_size_);
-    a->process("robust_factor", &robust_factor_);
+    a->process("tx_robust_factor", &tx_robust_factor_);
+    a->process("rx_robust_factor", &rx_robust_factor_);
     a->process("keepalive_intvl", &keepalive_intvl_);
     a->process("object_size", &object_size_);
     a->process("inter_object_pause", &inter_object_pause_);
     a->process("tx_spacer", &tx_spacer_);
     a->process("tos", &tos_);
+    a->process("ack", &ack_);
 }
 
 //----------------------------------------------------------------------
@@ -232,7 +228,6 @@ NORMParameters::eplrs4hop()
     object_size_ = 7200; // one second to transmit
     rx_buf_size_ = 64000;
     tx_spacer_ = 200;
-    mode_reliable();
 }
 
 //----------------------------------------------------------------------
@@ -245,26 +240,15 @@ NORMParameters::eplrs1hop()
     object_size_ = 28800; // one second to transmit
     rx_buf_size_ = 256000;
     tx_spacer_ = 200;
-    mode_reliable();
 }
 
 //----------------------------------------------------------------------
 void
-NORMParameters::mode_best_effort()
+NORMParameters::pause_time()
 {
-    norm_send_mode_ = BEST_EFFORT;
-}
-
-//----------------------------------------------------------------------
-void
-NORMParameters::mode_reliable()
-{
-    norm_send_mode_ = RELIABLE; 
-    robust_factor_ = 1;
-
-    // no way/reason to calculate inter_object_pause unless an
-    // object_size has been specified
-    if (object_size_ > 0) {
+    // the only way we'll calculate is if cc is disabled
+    // and an object_size has been specified
+    if ((! cc_) && (object_size_ > 0)) {
         u_int32_t frag_size_bps = object_size_ * 8;
         inter_object_pause_ =
             (u_int32_t)(((double)frag_size_bps / rate_) * 1000) +
@@ -305,8 +289,7 @@ NORMConvergenceLayer::interface_up(Interface* iface, int argc, const char* argv[
 {
     log_debug("adding interface %s", iface->name().c_str());
 
-    // Create a new parameters structure, parse the options, and store
-    // them in the link's cl info slot
+    // Create a new parameters interface structure
     const char* invalid;
     NORMParameters *interface_params = new NORMParameters(defaults_);
     if (! NORMParameters::parse_link_params(interface_params, argc, argv, &invalid)) {
@@ -315,32 +298,36 @@ NORMConvergenceLayer::interface_up(Interface* iface, int argc, const char* argv[
         return false;
     }
 
-    interface_params->set_send_mode(NORMParameters::RECEIVE_ONLY);
-    
+    if (! interface_params->group_addr()) {
+        delete interface_params;
+        log_err("error parsing interface options: group_addr required");
+        return false;
+    }
+
+    interface_params->set_session_mode(NORMParameters::RECEIVE_ONLY);
+
+    // check for a multicast group to join,
+    if (multicast_addr(interface_params->group_addr())) {
+        log_info("interface %s joining multicast group %s",
+                 iface->name().c_str(), intoa(interface_params->group_addr()));
+        interface_params->set_multicast_dest(true);
+    } else {
+        delete interface_params;
+        log_err("error parsing interface options: group_addr is not a multicast address");
+        return false;
+    }
+
     // start *the* norm engine instance
     NORMSessionManager::instance()->init();
 
-    if (! multicast_addr(interface_params->local_addr())) {
-        log_info("interface %s listening on default norm multicast address %s",
-                 iface->name().c_str(), NORMParameters::NORMCL_DEFAULT_MADDR);
-        struct in_addr addr;
-        inet_aton(NORMParameters::NORMCL_DEFAULT_MADDR, &addr);
-        interface_params->set_local_addr(addr.s_addr);
-    }
-
-    struct in_addr la;
-    la.s_addr = interface_params->local_addr();
-    NormSessionHandle interface_session =
-        NormCreateSession(NORMSessionManager::instance()->norm_instance(),
-                          inet_ntoa(la),
-                          NORMParameters::NORMCL_DEFAULT_MPORT,
-                          NORM_NODE_ANY);
+    NormSessionHandle interface_session;
+    create_session(&interface_session, interface_params->nodeid(),
+                   interface_params->group_addr(),
+                   interface_params->local_port());
 
     interface_params->set_norm_session(interface_session);
 
-    // allow multiple norm sessions on the same receive port
-    NormSetRxPortReuse(interface_session, true);
-
+    // set the multicast interface for the join
     if (interface_params->multicast_interface().empty()) {
         log_info("no network interface specified for %s, using default",
                  iface->name().c_str());
@@ -390,17 +377,22 @@ NORMConvergenceLayer::interface_down(Interface* iface)
 
 //----------------------------------------------------------------------
 void
-NORMConvergenceLayer::dump_interface(Interface* iface,
-                                     oasys::StringBuffer* buf)
+NORMConvergenceLayer::dump_interface(Interface *iface,
+                                     oasys::StringBuffer *buf)
 {
     NORMReceiver* receiver = dynamic_cast<NORMReceiver*>(iface->cl_info());
     ASSERT(receiver);
 
-    struct in_addr addr;
-    addr.s_addr = receiver->link_params()->local_addr();
-    buf->appendf("\tlocal_addr: %s local_port: %hu\n",
-                 inet_ntoa(addr),
-                 NORMParameters::NORMCL_DEFAULT_MPORT);
+    buf->appendf("\tnodeid: %s local_port: %hu",
+                 intoa(receiver->link_params()->nodeid()),
+                 receiver->link_params()->local_port());
+
+    if (receiver->link_params()->multicast_dest()) {
+        buf->appendf(" group_addr: %s\n",
+                 intoa(receiver->link_params()->group_addr()));
+    } else {
+        buf->appendf("\n");
+    }
 }
 
 //----------------------------------------------------------------------
@@ -433,7 +425,7 @@ NORMConvergenceLayer::init_link(const LinkRef& link,
     // start *the* norm engine instance (noop if already started)
     NORMSessionManager::instance()->init();
 
-    if (params->norm_send_mode() != NORMParameters::BEST_EFFORT) {
+    if (params->norm_session_mode() != NORMParameters::POSITIVE_ACKING) {
         link->set_reliable(true);
     }
 
@@ -474,8 +466,8 @@ NORMConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
         return ;
     }
 
-    buf->appendf("local_addr: %s\n",
-                 intoa(params->local_addr()));
+    buf->appendf("group_addr: %s\n",
+                 intoa(params->group_addr()));
     buf->appendf("remote_addr: %s:%d\n",
                  intoa(params->remote_addr()), params->remote_port());
     buf->appendf("congestion control: %s\n",
@@ -494,17 +486,18 @@ NORMConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
                  params->tx_cache_count_min());
     buf->appendf("transmit cache count max: %u\n",
                  params->tx_cache_count_max());
-    buf->appendf("robust factor: %u\n", params->robust_factor());
+    buf->appendf("tx robust factor: %u\n", params->tx_robust_factor());
+    buf->appendf("rx robust factor: %u\n", params->rx_robust_factor());
     buf->appendf("keepalive interval (ms): %u\n", params->keepalive_intvl());
     buf->appendf("session type: %s\n",
-        NORMParameters::send_mode_to_str(params->norm_send_mode()));
+        NORMParameters::session_mode_to_str(params->norm_session_mode()));
     if (params->tos() == 0) {
         buf->appendf("tos: 0\n");
     } else {
         buf->appendf("tos: %c\n", params->tos());
     }
 
-    if (params->norm_send_mode() == NORMParameters::RELIABLE) {
+    if (params->norm_session_mode() != NORMParameters::RECEIVE_ONLY) {
         buf->appendf("norm object size: %u\n", params->object_size());
         buf->appendf("inter object pause (ms): %u\n", params->inter_object_pause());
     }
@@ -581,9 +574,13 @@ NORMConvergenceLayer::open_contact(const ContactRef& contact)
     params->set_remote_addr(addr);
     params->set_remote_port(port);
 
+    if (multicast_addr(addr)) {
+        params->set_multicast_dest(true);
+    }
+
     // create a new norm session
     NormSessionHandle session;
-    if (! create_session(&session, params->local_addr(), addr, port)) {
+    if (! create_session(&session, params->nodeid(), addr, port)) {
         log_err("failed to create NORM session");
         open_contact_abort(link);
         return false;
@@ -594,9 +591,8 @@ NORMConvergenceLayer::open_contact(const ContactRef& contact)
 
     params->set_norm_session(session);
 
-    if (multicast_addr(addr)) {
-        // if this link's destination is multicast, set the tx interface
-        // and force NORMSender to mode best_effort
+    if (params->multicast_dest()) {
+        // set the multicast interface for the join
         if (params->multicast_interface().empty()) {
             log_warn("no transmit network interface specified for link %s, using default",
                      link->name());
@@ -605,16 +601,22 @@ NORMConvergenceLayer::open_contact(const ContactRef& contact)
                                       params->multicast_interface_c_str());
         }
 
-        if (params->norm_send_mode() != NORMParameters::BEST_EFFORT) {
-            log_warn("link %s with multicast destination, forcing to send_mode=best_effort",
-                     link->name());
-            params->set_send_mode(NORMParameters::BEST_EFFORT); 
+        params->set_backoff_factor(4.0); // per RFC for multicast nack
+
+        if (! params->acking_list().empty()) {
+            params->set_session_mode(NORMParameters::POSITIVE_ACKING);
         }
+
     } else {
-        // for unicast links, no backoff factor
-        // and smallest group size possible
+        // for unicast links, no backoff factor,
+        // smallest group size possible, and watermarking
         params->set_backoff_factor(0.0);
         params->set_group_size(10);
+
+        if (params->ack()) {
+            params->set_acking_list(intoa(addr));
+            params->set_session_mode(NORMParameters::POSITIVE_ACKING);
+        }
     }
 
     // create and initialize new receiver and sender instances
@@ -622,16 +624,26 @@ NORMConvergenceLayer::open_contact(const ContactRef& contact)
     NORMSender *sender = 0;
 
     // this is where various NORMSender and NORMReceiver combinations
-    // are constructed according to the send_mode
-    switch(params->norm_send_mode()) {
-        case NORMParameters::RELIABLE: {
+    // are paired according to the send_mode
+    switch(params->norm_session_mode()) {
+        case NORMParameters::POSITIVE_ACKING: {
             SendReliable *reliable_strategy = new SendReliable();
             sender = new NORMSender(params, contact, reliable_strategy);
+
+            // if we're here, there's an acking list
+            SendReliable *reliable_sender = dynamic_cast<SendReliable*>(sender->strategy());
+            ASSERT(reliable_sender);
+            reliable_sender->push_acking_nodes(sender);
+
+            if (! params->multicast_dest()) {
+                NormSetDefaultUnicastNack(session, true);
+            }
+
             receiver = new NORMReceiver(params, link,
                                         new ReceiveWatermark(reliable_strategy));
             break;
         }
-        case NORMParameters::BEST_EFFORT:
+        case NORMParameters::NEGATIVE_ACKING:
         default: {
             SendBestEffort *best_effort_strategy = new SendBestEffort();
             sender = new NORMSender(params, contact, best_effort_strategy);
@@ -756,20 +768,13 @@ NORMConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
 
 //----------------------------------------------------------------------
 bool
-NORMConvergenceLayer::create_session(NormSessionHandle *session, in_addr_t local_addr,
+NORMConvergenceLayer::create_session(NormSessionHandle *session, NormNodeId nodeid,
                                      in_addr_t addr, u_int16_t port)
 {
-    struct in_addr ra;
-    ra.s_addr = addr;
-
     // create a new Norm session
-    if (local_addr == INADDR_ANY || local_addr == INADDR_NONE) {
-        *session = NormCreateSession(NORMSessionManager::instance()->norm_instance(),
-                                     inet_ntoa(ra), port, NORM_NODE_ANY);
-    } else {
-        *session = NormCreateSession(NORMSessionManager::instance()->norm_instance(),
-                                     inet_ntoa(ra), port, ntohl(local_addr));
-    }
+    *session = NormCreateSession(NORMSessionManager::instance()->norm_instance(),
+                                 intoa(addr), port,
+                                 nodeid ? ntohl(nodeid) : NORM_NODE_ANY);
 
     if (*session == NORM_SESSION_INVALID) {
         return false;

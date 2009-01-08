@@ -131,10 +131,10 @@ NORMSessionManager::register_receiver(const NORMReceiver *receiver)
     log_debug("new receiver: session: %p eventq: %p",
               session, receiver->eventq_);
 
-    // set tos bits
-    if (params->tos() > 0) {
-        NormSetTOS(session, params->tos());
-    }
+    // configure the receiver
+    NormSetTOS(session, params->tos());
+    NormSetDefaultRxRobustFactor(session, params->rx_robust_factor());
+    NormSetSilentReceiver(session, params->silent());
 
     // push the new norm receiver onto the list
     receivers_.push_back(NORMNode(session, receiver->eventq_));

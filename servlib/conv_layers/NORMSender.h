@@ -60,7 +60,7 @@ public:
     NORMSender *norm_sender();
     NORMReceiver *norm_receiver();
     const ContactRef &contact() {return contact_;}
-    const SendStrategy *strategy() {return strategy_;}
+    SendStrategy *strategy() {return strategy_;}
     bool contact_up() {return contact_up_;}
     bool closing_session() {return closing_session_;}
     const oasys::Time &bundle_sent_time() {return bundle_sent_;}
@@ -196,15 +196,8 @@ protected:
      */
     void set_bundle_sent_time();
 
-    ///@{Norm API wrappers
     void apply_cc();
-    void apply_ecn();
-    void apply_group_size();
-    void apply_backoff_factor();
-    void apply_transmit_cache_bounds();
-    void apply_auto_parity();
     void apply_tos();
-    ///@}
 
     NORMParameters *link_params_;///< pointer to link parameters
     ContactRef contact_;         ///< the contact we're representing
@@ -277,10 +270,8 @@ public:
 };
 
 /**
- * Send with watermarks 'inline'.  Bundles are broken into
- * chunks and reassembled on the receiver side.  Once
- * complete bundles are positively acknowledged by the remote
- * side, they are discarded from the NORM TX queue.
+ * Send with watermarks 'inline'.  Bundles may be broken into
+ * chunks and reassembled on the receiver side.
  */
 class SendReliable : public SendStrategy
 {
@@ -424,6 +415,11 @@ public:
      * Do additional work at NORMSender keepalive timeout intervals.
      */
     virtual void timeout_bottom_half(NORMSender *sender);
+
+    /**
+     * positive ack support
+     */
+    void push_acking_nodes(NORMSender *sender);
 
     ///@{ Mutating Accessors
     int8_t &num_tx_pending()                        {return num_tx_pending_;}

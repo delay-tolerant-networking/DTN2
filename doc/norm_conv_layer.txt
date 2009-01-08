@@ -2,10 +2,10 @@
 NACK-Oriented Reliable Multicast (NORM) Convergence Layer
 ---------------------------------------------------------
 
-**This code is experimental and is under active development.
+**This code is experimental and under active development.
 
-Please direct general questions and comments to the DTN Interest list
-http://mailman.dtnrg.org/mailman/listinfo/dtn-interest/
+Please direct general questions and comments to the DTN Users list
+http://mailman.dtnrg.org/mailman/listinfo/dtn-users/
 
 
 Requirements
@@ -48,22 +48,151 @@ Add NORM links to dtn.conf, for example:
 
 Additional link parameters are documented below.
 
+Common Configurations
+---------------------
+
+Here are some basic examples to get you started.  The full list of link
+parameters are summarized in the next section.
+
+Assume DTN nodes A, B, and C can communicate over an IP network.
+
+EID           IPv4 Address
+dtn://node_a  10.1.101.1
+dtn://node_b  10.1.102.1
+dtn://node_c  10.1.103.1
+dtn://node_d  10.1.104.1
+
+Point-to-point link A <-> B
+
+Below are the "link add" directives for an always-on unicast link between
+nodes A and B.  Congestion control is enabled (cc) with a maximum tx rate
+of 230Kbps.  "ack" places the remote node in the acking_list; positive
+acknowledgment is expected after zero of more nack-based repair cycles.
+"ack" may reduce the number of flush messages.
+
+Node A configuration
+    link add link_to_b 10.1.102.1:4557 ALWAYSON norm remote_eid=dtn://node_b cc ack rate=230000
+Node B configuration
+    link add link_to_a 10.1.101.1:4557 ALWAYSON norm remote_eid=dtn://node_a cc ack rate=230000
+
+One-to-many multicast A -> B,C,D
+
+For a one-to-many multicast link, use "link add" on the node sourcing data and
+use "interface add" on the sink nodes.  The Node A "acking_list" requests postive
+acknowledgments from Nodes B and C (after zero or more nack-based repair
+cycles).  Delivery to Node D may not succeeed because it's not in the acking_list.
+"nodeid" might be needed for senders and/or receivers when nodes are multi-homed.
+
+Node A configuration
+    link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group \
+    cc rate=230000 acking_list=10.1.102.1,10.1.103.1
+Node B configuration
+    interface add norm0 norm multicast_interface=eth0 group_addr=239.255.0.1 nodeid=10.1.102.1
+Node C configuration
+    interface add norm0 norm multicast_interface=eth0 group_addr=239.255.0.1 nodeid=10.1.103.1
+Node D configuration
+    interface add norm0 norm multicast_interface=eth0 group_addr=239.255.0.1 nodeid=10.1.104.1
+
+Many-to-many
+
+For a many-to-many multicast link, use "link add" on all the nodes sourcing data.
+Below, all nodes can send to and receive from the multicast group.  Note the
+acking_list is adjusted accordingly in each directive.
+
+Node A configuration
+    link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group \
+    cc rate=230000 acking_list=10.1.102.1,10.1.103.1,10.1.104.1
+Node B configuration
+    link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group \
+    cc rate=230000 acking_list=10.1.101.1,10.1.103.1,10.1.104.1
+Node C configuration
+    link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group \
+    cc rate=230000 acking_list=10.1.101.1,10.1.102.1,10.1.104.1
+Node D configuration
+    link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group \
+    cc rate=230000 acking_list=10.1.101.1,10.1.102.1,10.1.103.1
 
 Link Parameters
 ---------------
 
 **default settings in < >
 
-send_mode=<best_effort>
+cc=<false>
 
-    NORM links support best_effort and reliable mode. best_effort
-    mode does not use watermarks and therefore does not guarantee bundle
-    deliveries. Reliable mode uses the NORM watermarking mechanism.
+    Whether NORM congestion control is enabled.
 
 rate=<64000>
 
     Rate of NORM link in bits per second (bps). If congestion control is
     enabled (see cc) this is the maximum achievable rate.
+
+nodeid=<hostname IPv4 address>
+    Uniquely identify this node on the NORM link with an IPv4 address.
+    (Normally only needed for multi-homed nodes).
+
+segment_size=<1400>
+
+    Maximum payload size of NORM sender messages in bytes (not incl.
+    NORM message header fields).
+
+local_port=<4558>
+
+    (NORM interfaces only)
+    Local UDP port to listen on for incoming multicast traffic.
+
+remote_addr
+
+    Remote NORM link IP address (not used -- normally acquired from the
+    "link add" directive)
+
+remote_port=<4557>
+
+    Remote NORM link port. (not used -- normally acquired from the "link
+    add" directive)
+
+multicast_interface
+
+    The host interface to use when working with multicast groups.
+
+group_addr
+
+    (NORM interfaces only)
+    Multicast IPv4 address to join.  For multicast links, the group address
+    is acquired from the "link add" directive.
+
+tx_robust_factor=<20>
+
+    The number of flush messages sent at the end of each transmission.
+    Flush messages are used to prompt receivers to request needed repairs.
+    With "acking_list" or "ack", periodic flush messages cease once positive
+    ack(s) are received.
+
+rx_robust_factor=<20>
+
+    The number of times a receiver will nack for repairs before giving up.
+
+tos=<0>
+
+    DSCP marking (0-64) for all bundles on a specific link
+
+acking_list
+
+    (multicast links)
+    A comma separated list of IPv4 addresses (NORM node ids) that must
+    positively ack sender-initiated flush messages (once any nack-based
+    repair process has completed).
+
+ack
+    A shorthand way of requesting positive acks from the remote end of unicast
+    links.
+
+silent=<false>
+    "silent" receivers do not originate any NORM traffic and must rely on
+    proactive FEC for repairs.
+
+ecn=<false>
+
+    Whether NORM explicit congestion notification support is enabled.
 
 object_size=<0>
 
@@ -90,36 +219,6 @@ keepalive_intvl=<5000>
     missed. In addition, reliable mode links send watermarks at
     keepalive intervals.
 
-multicast_interface
-
-    The host interface to use when joining multicast groups.
-
-local_addr
-
-    Local NORM link IP address.
-
-remote_addr
-
-    Remote NORM link IP address (not used -- normally aquired from the
-    "link add" directive)
-
-remote_port=<4557>
-
-    Remote NORM link port. (not used -- normally acquired from the "link
-    add" directive)
-
-cc=<false>
-
-    Whether NORM congestion control is enabled.
-
-ecn=<false>
-
-    Whether NORM explicit congestion notification support is enabled.
-
-segment_size=<1400>
-
-    MTU (bytes) of NORM data segments.
-
 fec_buf_size=<1048576>
 
     The number of bytes allocated for sender calculated FEC segments and
@@ -140,12 +239,9 @@ auto_parity=<0>
     The number of "auto-parity" messages sent at the end of each coding
     block.
 
-backoff_factor=<0.0>
+backoff_factor=<0.0 for unicast; 4.0 for multicast links>
 
-    Used to scale various timeouts during the NACK repair process. The
-    default value of 0.0 is tuned for DTN point-to-point links. In
-    point-to-multipoint configurations, the backoff_factor may need to
-    be adjusted upward to prevent sender implosion when losses occur.
+    Used to scale various timeouts during the NACK repair process.
 
 group_size=<1000>
 
@@ -173,15 +269,4 @@ tx_cache_count_max<1024>
 
 rx_buf_size=<300000>
 
-    Size of the receive buffer (bytes) for each NORM session.
-
-robust_factor
-
-    The number of flush messages sent at the end of each transmission.
-    Flush messages are used to prompt receivers to request repairs when
-    needed. For reliable links, robust_factor defaults to 1. Best effort
-    links default to a robust factor of 20.
-
-tos
-
-    6-bit DSCP marking for all bundles on a specific link
+    Size of the receive buffer (bytes) for each NORM link.

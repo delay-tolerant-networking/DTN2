@@ -41,7 +41,6 @@ NORMReceiver::NORMReceiver(NORMParameters *params, const LinkRef &link,
       link_params_(params),
       strategy_(strategy),
       remote_eid_(link->remote_eid()),
-      remote_norm_handle_(NORM_NODE_INVALID),
       timer_(0)
 {
     ASSERT(strategy_);
@@ -55,8 +54,7 @@ NORMReceiver::NORMReceiver(NORMParameters *params, ReceiveLoop *strategy)
       Logger("NORMReceiver", "/dtn/cl/norm/receiver/"),
       link_params_(params),
       strategy_(strategy),
-      remote_eid_(),
-      remote_norm_handle_(NORM_NODE_INVALID)
+      remote_eid_()
 {
     ASSERT(strategy_);
     eventq_ = new oasys::MsgQueue<NormEvent>(logpath(), &lock_, false);
@@ -68,6 +66,7 @@ NORMReceiver::~NORMReceiver() {
         timer_->cancel();
     delete strategy_;
     delete eventq_;
+    delete link_params_;
 }
 
 //----------------------------------------------------------------------
@@ -239,8 +238,7 @@ ReceiveWatermark::run(NORMReceiver *receiver)
         }
 
         case NORM_GRTT_UPDATED: {
-            if (link_open_ &&
-                (event.sender == receiver->remote_norm_handle_)) {
+            if (link_open_ && (event.sender != NORM_NODE_INVALID)) {
                 receiver->inactivity_timer_reschedule();
             }
             break;
@@ -248,29 +246,11 @@ ReceiveWatermark::run(NORMReceiver *receiver)
 
         case NORM_TX_WATERMARK_COMPLETED: {
             ASSERT(receiver->norm_sender());
-            NormAckingStatus status =
-                NormGetAckingStatus(receiver->norm_session(),
-                                    NormNodeGetId(receiver->remote_norm_handle_));
+            NormAckingStatus status = NormGetAckingStatus(receiver->norm_session());
+            send_strategy_->set_watermark_result(status);
 
-            switch(status)
-            {
-                case NORM_ACK_INVALID:
-                    send_strategy_->set_watermark_result(NORM_ACK_INVALID);
-                    break;
-                case NORM_ACK_FAILURE:
-                    send_strategy_->set_watermark_result(NORM_ACK_FAILURE);
-                    break;
-                case NORM_ACK_PENDING:
-                    send_strategy_->set_watermark_result(NORM_ACK_PENDING);
-                    break;
-                case NORM_ACK_SUCCESS: {
-                    log_debug("NormGetAckingStatus watermark positive ack received.");
-                    send_strategy_->set_watermark_result(NORM_ACK_SUCCESS);
-                    log_debug("WATERMARK_COMPLETED: tx_cache size = %zu", send_strategy_->size());
-                    break;
-                }
-                default:
-                    break;
+            if (status == NORM_ACK_SUCCESS) {
+                log_debug("WATERMARK_COMPLETED: tx_cache size = %zu", send_strategy_->size());
             }
 
             send_strategy_->watermark_complete_notifier()->notify();
@@ -291,7 +271,6 @@ ReceiveWatermark::run(NORMReceiver *receiver)
                     break;
                 }
             }
-
             break;
         }
 
@@ -301,19 +280,6 @@ ReceiveWatermark::run(NORMReceiver *receiver)
             log_info("new NORM remote sender %lu on link %s", 
                       (unsigned long)NormNodeGetId(event.sender),
                       contact->link()->name());
-
-            // we only have one remote sender
-            if (receiver->remote_norm_handle_ != NORM_NODE_INVALID) {
-                 NormRemoveAckingNode(event.session,
-                                      NormNodeGetId(receiver->remote_norm_handle_));
-            }
-
-            receiver->remote_norm_handle_ = event.sender;
-
-            NormNodeSetUnicastNack(receiver->remote_norm_handle_, true);
-            NormAddAckingNode(event.session,
-                              NormNodeGetId(receiver->remote_norm_handle_));
-
             break;
         }
 
@@ -323,10 +289,7 @@ ReceiveWatermark::run(NORMReceiver *receiver)
                      (unsigned long)NormNodeGetId(event.sender),
                      contact->link()->name());
 
-            NormRemoveAckingNode(event.session,
-                                  NormNodeGetId(receiver->remote_norm_handle_));
-
-            receiver->remote_norm_handle_ = NORM_NODE_INVALID;
+            NormRemoveAckingNode(event.session, NormNodeGetId(event.sender));
             break;
         }
 

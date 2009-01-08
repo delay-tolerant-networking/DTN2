@@ -125,7 +125,6 @@ protected:
     NORMParameters *link_params_;       ///< pointer to link parameters
     ReceiveLoop *strategy_;             ///< run loop version
     EndpointID remote_eid_;
-    NormNodeHandle remote_norm_handle_; ///< remote NORM node
     InactivityTimer *timer_;            ///< inactivity timer
     mutable oasys::SpinLock lock_;      ///< Lock to protect internal data structures.
     event_queue_t *eventq_;             ///< Message queue for NORM protocol events

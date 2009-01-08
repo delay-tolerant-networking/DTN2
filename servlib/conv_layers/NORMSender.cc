@@ -27,6 +27,8 @@
 
 #include <normApi.h>
 #include <oasys/util/Random.h>
+#include <oasys/util/StringUtils.h>
+#include <oasys/io/NetUtils.h>
 #include "bundling/BundleDaemon.h"
 #include "NORMConvergenceLayer.h"
 #include "NORMSessionManager.h"
@@ -68,12 +70,16 @@ NORMSender::init()
 {
     log_debug("initializing sender");
 
+    // configure the sender
+    NormSetTxRobustFactor(norm_session(), link_params_->tx_robust_factor());
     apply_cc();
-    apply_ecn();
-    apply_group_size();
-    apply_backoff_factor();
-    apply_transmit_cache_bounds();
-    apply_auto_parity();
+    NormSetGroupSize(norm_session(), link_params_->group_size());
+    NormSetBackoffFactor(norm_session(), link_params_->backoff_factor());
+    NormSetTransmitCacheBounds(norm_session(),
+                               link_params_->tx_cache_size_max(),
+                               link_params_->tx_cache_count_min(),
+                               link_params_->tx_cache_count_max());
+    NormSetAutoParity(norm_session(), link_params_->auto_parity());
     apply_tos();
 
     // begin participating as a Norm sender
@@ -163,57 +169,10 @@ NORMSender::apply_cc()
 {
     if (link_params_->cc()) {
         NormSetCongestionControl(norm_session(), true);
-        if (link_params_->rate() > 0) {
-            NormSetTransmitRateBounds(norm_session(), -1.0, link_params_->rate());
-        }
+        NormSetTransmitRateBounds(norm_session(), -1.0, link_params_->rate());
     } else {
-        if (link_params_->rate() > 0) {
-            NormSetTransmitRate(norm_session(), link_params_->rate());
-        }
+        NormSetTransmitRate(norm_session(), link_params_->rate());
     }
-}
-
-//----------------------------------------------------------------------
-void
-NORMSender::apply_ecn()
-{
-    if (link_params_->ecn()) {
-        NormSetEcnSupport(norm_session(), true, true);
-    } else {
-        NormSetEcnSupport(norm_session(), false, false);
-    }
-}
-
-//----------------------------------------------------------------------
-void
-NORMSender::apply_group_size()
-{
-    NormSetGroupSize(norm_session(), link_params_->group_size());
-}
-
-//----------------------------------------------------------------------
-void
-NORMSender::apply_backoff_factor()
-{
-    NormSetBackoffFactor(norm_session(), link_params_->backoff_factor());
-}
-
-//----------------------------------------------------------------------
-void
-NORMSender::apply_transmit_cache_bounds()
-{
-    NormSetTransmitCacheBounds(norm_session(),
-                               link_params_->tx_cache_size_max(),
-                               link_params_->tx_cache_count_min(),
-                               link_params_->tx_cache_count_max());
-}
-
-//----------------------------------------------------------------------
-void
-NORMSender::apply_auto_parity()
-{
-    if (link_params_->auto_parity() > 0)
-        NormSetAutoParity(norm_session(), link_params_->auto_parity());
 }
 
 //----------------------------------------------------------------------
@@ -224,12 +183,13 @@ NORMSender::apply_tos()
     u_int8_t tos = link_params_->tos() << 2;
 
     if (link_params_->ecn()) {
+        NormSetEcnSupport(norm_session(),
+                          link_params_->ecn(),
+                          link_params_->ecn());
         tos = tos | ecn_capable;
     }
 
-    if (tos > 0) {
-        NormSetTOS(norm_session(), tos);
-    }
+    NormSetTOS(norm_session(), tos);
 }
 
 //----------------------------------------------------------------------
@@ -731,14 +691,9 @@ SendReliable::bundles_transmitted(NormAckingStatus status)
             (watermark_object_->sent_ &&
             (*(watermark_object_->watermark_) != watermark_object_->handle_list_.back())))) {
 
-            // cancel bundle chunks up to and incl the watermark
-            j = begin;
+            // erase bundle chunks up to and incl the watermark
             NORMBundle::iterator watermark_copy = watermark_object_->watermark_;
             ++watermark_copy;
-            for (; j != watermark_copy; ++j) {
-                NormObjectCancel(*j);
-            }
-
             watermark_object_->handle_list_.erase(begin, watermark_copy); 
             break;
         }
@@ -749,12 +704,6 @@ SendReliable::bundles_transmitted(NormAckingStatus status)
         BundleDaemon::post(
             new BundleTransmittedEvent((*i)->bundle_.object(), contact,
                                        link, total_len, total_len));
-
-        // cancel all the bundle chunks
-        j = begin;
-        for (; j != end; ++j) {
-            NormObjectCancel(*j);
-        }
 
         ++i;
     }
@@ -843,9 +792,6 @@ SendReliable::handle_close_contact(NORMSender *sender, const LinkRef &link)
         delete bundle_tx_;
         bundle_tx_ = 0;
     }
-
-    // dial the robust factor back to zero
-    NormSetTxRobustFactor(sender->norm_session(), 0);
 }
 
 //----------------------------------------------------------------------
@@ -862,14 +808,14 @@ SendReliable::handle_watermark(NORMSender *sender)
                               "resetting watermark for object handle: %p",
                               *(watermark_object_->watermark_));
                     NormSetWatermark(sender->norm_session(),
-                                     *(watermark_object_->watermark_));
+                                     *(watermark_object_->watermark_),
+                                     true);
                     return;
                     break;
                 case NORM_ACK_SUCCESS:
                     log_debug("watermark success");
                     bundles_transmitted(watermark_result_);
                     watermark_object_ = 0;
-                    NormSetTxRobustFactor(sender->norm_session(), 0);
                     break;
                 case NORM_ACK_INVALID:
                 default:
@@ -893,11 +839,11 @@ SendReliable::handle_watermark(NORMSender *sender)
         watermark_object_candidate_ = 0;
         watermark_pending_ = true;
 
-        NormSetTxRobustFactor(sender->norm_session(),
-                              sender->link_params()->robust_factor());
         log_debug("setting watermark for object handle: %p",
                   *(watermark_object_->watermark_));
-        NormSetWatermark(sender->norm_session(), *(watermark_object_->watermark_));
+        NormSetWatermark(sender->norm_session(),
+                         *(watermark_object_->watermark_),
+                         true);
 
         watermark_request_ = false;
     }
@@ -912,6 +858,29 @@ SendReliable::timeout_bottom_half(NORMSender *sender)
         watermark_request_ = true;
         sender->commandq_->push_back(
             NORMSender::CLMsg(NORMSender::CLMSG_WATERMARK)); 
+    }
+}
+
+//----------------------------------------------------------------------
+void
+SendReliable::push_acking_nodes(NORMSender *sender)
+{
+    typedef std::vector<std::string> node_id_vector_t;
+    node_id_vector_t node_id_vector;
+
+    oasys::tokenize(sender->link_params()->acking_list(), ",", &node_id_vector);
+
+    node_id_vector_t::iterator i = node_id_vector.begin();
+    node_id_vector_t::iterator end = node_id_vector.end();
+    for (; i != end; ++i) {
+        in_addr_t addr = INADDR_NONE;
+        if (oasys::gethostbyname((*i).c_str(), &addr) != 0) {
+            log_warn("can't lookup hostname '%s'", (*i).c_str());
+            continue;
+        }
+        if (! NormAddAckingNode(sender->norm_session(), htonl((NormNodeId)addr))) {
+            log_err("failed to add acking node %s!", (*i).c_str());
+        }
     }
 }
 

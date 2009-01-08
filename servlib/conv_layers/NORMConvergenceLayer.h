@@ -56,28 +56,22 @@ public:
     } norm_link_t;
 
     /**
-     * Type to capture various sender-side behaviors.
+     * Type to capture various norm session behaviors.
      */
     typedef enum {
         RECEIVE_ONLY,
-        BEST_EFFORT,
-        RELIABLE,
-    } send_mode_t;
+        NEGATIVE_ACKING,
+        POSITIVE_ACKING,
+    } session_mode_t;
 
-    static const char *send_mode_to_str(send_mode_t type) {
+    static const char *session_mode_to_str(session_mode_t type) {
         switch(type) {
-            case BEST_EFFORT:           return "best effort";
-            case RELIABLE:              return "reliable";
+            case RECEIVE_ONLY:          return "receive only";
+            case NEGATIVE_ACKING:       return "negative acking";
+            case POSITIVE_ACKING:       return "positive acking";
             default:                    return "unknown";
         }
     }
-
-    /**
-     * Default multicast address used by the norm cl
-     * for its listening interface.
-     * (subject to change)
-     **/
-    static const char *NORMCL_DEFAULT_MADDR;
 
     /**
      * Default port used by the norm cl for multicast.
@@ -121,18 +115,26 @@ public:
     ///@{Setters
     void set_norm_session(NormSessionHandle norm_session)
         {norm_session_ = norm_session;}
-    void set_send_mode(send_mode_t mode)
-        {norm_send_mode_ = mode;}
-    void set_local_addr(in_addr_t addr)
-        {local_addr_ = addr;}
+    void set_session_mode(session_mode_t mode)
+        {norm_session_mode_ = mode;}
+    void set_nodeid(in_addr_t addr)
+        {nodeid_ = addr;}
+    void set_local_port(u_int16_t port)
+        {local_port_ = port;}
+    void set_group_addr(in_addr_t addr)
+        {group_addr_ = addr;}
     void set_remote_addr(in_addr_t addr)
         {remote_addr_ = addr;}
     void set_remote_port(u_int16_t port)
         {remote_port_ = port;}
+    void set_multicast_dest(bool mdest)
+        {multicast_dest_ = mdest;}
     void set_backoff_factor(double factor)
         {backoff_factor_ = factor;}
     void set_group_size(u_int32_t size)
         {group_size_ = size;}
+    void set_acking_list(const char *addr_list)
+        {acking_list_.assign(addr_list);}
     void set_norm_sender(NORMSender *sender)
         {norm_sender_ = sender;}
     void set_norm_receiver(NORMReceiver *receiver)
@@ -142,9 +144,12 @@ public:
     ///@{Accessors
     const std::string &multicast_interface()    {return multicast_interface_;}
     const char *multicast_interface_c_str()     {return multicast_interface_.c_str();}
-    in_addr_t local_addr()           {return local_addr_;}
+    in_addr_t nodeid()               {return nodeid_;}
+    u_int16_t local_port()           {return local_port_;}
+    in_addr_t group_addr()           {return group_addr_;}
     in_addr_t remote_addr()          {return remote_addr_;}
     u_int16_t remote_port()          {return remote_port_;}
+    bool multicast_dest()            {return multicast_dest_;}
     bool cc()                        {return cc_;}
     bool ecn()                       {return ecn_;}
     double rate()                    {return rate_;}
@@ -159,13 +164,17 @@ public:
     u_int32_t tx_cache_count_min()   {return tx_cache_count_min_;}
     u_int32_t tx_cache_count_max()   {return tx_cache_count_max_;}
     u_int32_t rx_buf_size()          {return rx_buf_size_;}
-    u_int32_t robust_factor()        {return robust_factor_;}
+    u_int32_t tx_robust_factor()     {return tx_robust_factor_;}
+    u_int32_t rx_robust_factor()     {return rx_robust_factor_;}
     u_int32_t keepalive_intvl()      {return keepalive_intvl_;}
     u_int32_t object_size()          {return object_size_;}
     u_int32_t inter_object_pause()   {return inter_object_pause_;}
     u_int8_t tos()                   {return tos_;}
+    bool ack()                       {return ack_;}
+    const std::string &acking_list() {return acking_list_;}
+    bool silent()                    {return silent_;}
 
-    send_mode_t         norm_send_mode()    {return norm_send_mode_;}
+    session_mode_t      norm_session_mode() {return norm_session_mode_;}
     NormSessionHandle   norm_session()      {return norm_session_;}
     NORMSender          *norm_sender()      {return norm_sender_;}
     NORMReceiver        *norm_receiver()    {return norm_receiver_;}
@@ -177,17 +186,18 @@ protected:
     void eplrs4hop();
     void eplrs1hop();
 
-    // helper functions for named sender modes
-    void mode_best_effort();
-    void mode_reliable();
+    // calculate inter-object pause
+    void pause_time();
 
+    // misc. parameters
     std::string multicast_interface_;   ///< bind multicast addr to this interface
-    in_addr_t local_addr_;              ///< Local address
-    in_addr_t remote_addr_;             ///< Remote address
-    u_int16_t remote_port_;             ///< Remote port
+    in_addr_t nodeid_;                  ///< unique norm node id for this session
+    u_int16_t local_port_;              ///< Local session port (norm interfaces)
+    in_addr_t group_addr_;              ///< Group address (norm interfaces)
+    in_addr_t remote_addr_;             ///< Remote session address
+    u_int16_t remote_port_;             ///< Remote session port
     bool cc_;                           ///< Whether congestion control is enabled
     bool ecn_;                          ///< Whether explicit congestion notification is enabled
-    double rate_;                       ///< Transmit rate (in bps)
     u_int16_t segment_size_;            ///< max payload size (bytes) of NORM sender messages
     u_int64_t fec_buf_size_;            ///< max memory space (bytes) for precalculated FEC segments
     u_char block_size_;                 ///< source symbol segments per FEC coding block
@@ -199,40 +209,28 @@ protected:
     u_int32_t tx_cache_count_min_;      ///< min # of objects allowed (not limited by tx_cache_size_max)
     u_int32_t tx_cache_count_max_;      ///< max # of objects allowed in tx queue
     u_int32_t rx_buf_size_;             ///< size of object receive buffer
-    u_int32_t robust_factor_;           ///< number of flush messages sent at end-of-tx
+    u_int32_t tx_robust_factor_;        ///< number of flush messages sent at end of tx
+    u_int32_t rx_robust_factor_;        ///< number of receiver persistent repair requests before giving up
     u_int32_t keepalive_intvl_;         ///< millisecs between keepalive messages
-    u_int32_t object_size_;             ///< norm object size for bundles
-    u_int32_t inter_object_pause_;      ///< milisecs to wait between chunk transmissions
-    u_int32_t tx_spacer_;               ///< constant milisecs added into calc of inter_object_pause_
     u_int8_t tos_;                      ///< diffserv codepoint for the link
+    bool ack_;                          ///< whether to collect postive acks on unicast links
+    std::string acking_list_;           ///< comma separated list of hostnames
+    bool silent_;                       ///< silent receiver operation
+    double rate_;                       ///< Transmit rate (in bps)
+    u_int32_t object_size_;             ///< norm object size for bundles
+    u_int32_t tx_spacer_;               ///< constant milisecs added into calc of inter_object_pause_
 
-    send_mode_t    norm_send_mode_;     ///< NORMSender behavior
-    NormSessionHandle norm_session_;    ///< norm session
-    NORMSender     *norm_sender_;       ///< NORMSender instance
-    NORMReceiver   *norm_receiver_;     ///< NORMReceiver instance
+    u_int32_t inter_object_pause_;          ///< milisecs to wait between chunk transmissions
+    bool multicast_dest_;                   ///< whether the remote address is multicast
+    session_mode_t    norm_session_mode_;   ///< norm session behavior
+    NormSessionHandle norm_session_;        ///< norm session
+    NORMSender     *norm_sender_;           ///< NORMSender instance
+    NORMReceiver   *norm_receiver_;         ///< NORMReceiver instance
 };
 
 /**
- * A Nack-Oriented Reliable Multicast (NORM)
- * convergence layer.  Two 'send_modes' are
- * currently supported: best_effort and reliable.
- *
- * Best-effort norm links use only flush messages
- * to draw repair requests.  No attempt it made
- * to identify receiver(s) or even notice when they
- * disappear.  Best-effort links are appropriate
- * for multicast destinations that are one DTN-hop away
- * or in situations where the sender is providing a
- * streaming service or other service where some
- * level of bundle loss is acceptable.
- *
- * Reliable norm links are typcially unicast links
- * that employ the watermarking mechanism to
- * prompt positive acknowledgements from receivers.
- * BUNDLE_TRANSMITTED events are only posted for bundles
- * that were covered by a successful watermark.  Reliable
- * norm links break large bundles into chunks which
- * are reassembled at the other end of the link.
+ * A Nack-Oriented Reliable Multicast (NORM) convergence layer.
+ * (see doc/norm_conv_layer.txt)
  *
  * Norm sessions persist across link down/up events in order
  * to take full advantage of the built-up tx cache used to
@@ -343,7 +341,7 @@ protected:
     /**
      * Wrapper around Norm API create session call.
      */
-    bool create_session(NormSessionHandle *handle, in_addr_t local_addr,
+    bool create_session(NormSessionHandle *handle, NormNodeId nodeid,
                         in_addr_t addr, u_int16_t port);
 
     bool multicast_addr(in_addr_t addr);
