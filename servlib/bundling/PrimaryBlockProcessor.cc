@@ -389,25 +389,6 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
     PBP_READ_SDNV(&primary.lifetime);
     PBP_READ_SDNV(&primary.dictionary_length);
     
-    // Make sure that the creation timestamp parts and the lifetime fit into
-    // a 32 bit integer.
-    if (primary.creation_time > 0xffffffff) {
-        log_err_p(log, "creation timestamp time is too large: %llu",
-                  U64FMT(primary.creation_time));
-        return -1;
-    }
-
-    if (primary.creation_sequence > 0xffffffff) {
-        log_err_p(log, "creation timestamp sequence is too large: %llu",
-                  U64FMT(primary.creation_sequence));
-        return -1;
-    }
-    
-    if (primary.lifetime > 0xffffffff) {
-        log_err_p(log, "lifetime is too large: %llu", U64FMT(primary.lifetime));
-        return -1;
-    }
-    
     bundle->set_creation_ts(BundleTimestamp(primary.creation_time,
                                             primary.creation_sequence));
     bundle->set_expiration(primary.lifetime);

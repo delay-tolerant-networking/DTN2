@@ -85,8 +85,8 @@ typedef u_int dtn_timeval_t;
 #define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
 
 struct dtn_timestamp_t {
-	u_int secs;
-	u_int seqno;
+	u_quad_t secs;
+	u_quad_t seqno;
 };
 typedef struct dtn_timestamp_t dtn_timestamp_t;
 

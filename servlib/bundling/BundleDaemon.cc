@@ -566,7 +566,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         (bundle->creation_ts().seconds_ - now > 30000))
     {
         log_warn("bundle id %d arrived with creation time in the future "
-                 "(%u > %u)",
+                 "(%llu > %u)",
                  bundle->bundleid(), bundle->creation_ts().seconds_, now);
     }
 
@@ -660,7 +660,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      */
     Bundle* duplicate = find_duplicate(bundle);
     if (duplicate != NULL) {
-        log_notice("got duplicate bundle: %s -> %s creation %u.%u",
+        log_notice("got duplicate bundle: %s -> %s creation %llu.%llu",
                    bundle->source().c_str(),
                    bundle->dest().c_str(),
                    bundle->creation_ts().seconds_,
@@ -1908,7 +1908,7 @@ BundleDaemon::handle_route_report(RouteReportEvent*)
 void
 BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
 {
-    log_info("CUSTODY_SIGNAL: %s %u.%u %s (%s)",
+    log_info("CUSTODY_SIGNAL: %s %llu.%llu %s (%s)",
              event->data_.orig_source_eid_.c_str(),
              event->data_.orig_creation_tv_.seconds_,
              event->data_.orig_creation_tv_.seqno_,
@@ -1929,7 +1929,7 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
         custody_bundles_->find(gbof_id);
     
     if (orig_bundle == NULL) {
-        log_warn("received custody signal for bundle %s %u.%u "
+        log_warn("received custody signal for bundle %s %llu.%llu "
                  "but don't have custody",
                  event->data_.orig_source_eid_.c_str(),
                  event->data_.orig_creation_tv_.seconds_,
@@ -1943,7 +1943,7 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
     if ((event->data_.succeeded_ == false) &&
         (event->data_.reason_ == BundleProtocol::CUSTODY_REDUNDANT_RECEPTION))
     {
-        log_notice("releasing custody for bundle %s %u.%u "
+        log_notice("releasing custody for bundle %s %llu.%llu "
                    "due to redundant reception",
                    event->data_.orig_source_eid_.c_str(),
                    event->data_.orig_creation_tv_.seconds_,
@@ -2160,10 +2160,10 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     } else {
         log_warn_p("/dtn/bundle/expiration",
                    "scheduling IMMEDIATE expiration for bundle id %d: "
-                   "[expiration %u, creation time %u.%u, offset %u, now %u.%u]",
+                   "[expiration %llu, creation time %llu.%llu, offset %u, now %u.%u]",
                    bundle->bundleid(), bundle->expiration(),
-                   (u_int)bundle->creation_ts().seconds_,
-                   (u_int)bundle->creation_ts().seqno_,
+                   bundle->creation_ts().seconds_,
+                   bundle->creation_ts().seqno_,
                    BundleTimestamp::TIMEVAL_CONVERSION,
                    (u_int)now.tv_sec, (u_int)now.tv_usec);
         expiration_time = now;

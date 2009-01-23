@@ -630,15 +630,15 @@ bail:
 //----------------------------------------------------------------------
 bool
 DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
-                                Bundle* bundle, u_int32_t seqno)
+                                Bundle* bundle, u_int64_t seqno)
 {
     bool found_stale_lsa = false;
     if (seqno <= node->info().last_lsa_seqno_ &&
         bundle->creation_ts().seconds_ < node->info().last_lsa_creation_ts_)
     {
         log_info("update_current_lsa: "
-                 "ignoring stale LSA (seqno %u <= last %u, "
-                 "creation_ts %u <= last %u)",
+                 "ignoring stale LSA (seqno %llu <= last %llu, "
+                 "creation_ts %llu <= last %llu)",
                  seqno, node->info().last_lsa_seqno_,
                  bundle->creation_ts().seconds_,
                  node->info().last_lsa_creation_ts_);
@@ -653,8 +653,8 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
     else
     {
         log_info("update_current_lsa: "
-                 "got new LSA (seqno %u > last %u || "
-                 "creation_ts %u > last %u)",
+                 "got new LSA (seqno %llu > last %llu || "
+                 "creation_ts %llu > last %llu)",
                  seqno, node->info().last_lsa_seqno_,
                  bundle->creation_ts().seconds_,
                  node->info().last_lsa_creation_ts_);
@@ -700,11 +700,11 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
     if (node->info().last_lsa_seqno_ == 0) {
         ASSERT(!found_stale_lsa);
         log_info("update_current_lsa: "
-                 "first LSA from %s (seqno %u)",
+                 "first LSA from %s (seqno %llu)",
                  node->id().c_str(), seqno);
     } else {
         log_info("update_current_lsa: "
-                 "replaced %s LSA from %s (seqno %u) with latest (%u)",
+                 "replaced %s LSA from %s (seqno %llu) with latest (%llu)",
                  found_stale_lsa ? "stale" : "expired",
                  node->id().c_str(), node->info().last_lsa_seqno_, seqno);
     }
@@ -943,10 +943,10 @@ DTLSRRouter::send_lsa()
     Bundle* bundle = new TempBundle();
 
     if (config()->area_ != "") {
-        snprintf(tmp, sizeof(tmp), "dtn://*/%s?area=%s;lsa_seqno=%u",
+        snprintf(tmp, sizeof(tmp), "dtn://*/%s?area=%s;lsa_seqno=%llu",
                  announce_tag_, config()->area_.c_str(), lsa.seqno_);
     } else {
-        snprintf(tmp, sizeof(tmp), "dtn://*/%s?lsa_seqno=%u",
+        snprintf(tmp, sizeof(tmp), "dtn://*/%s?lsa_seqno=%llu",
                  announce_tag_, lsa.seqno_);
     }
     bundle->mutable_dest()->assign(tmp);

@@ -33,6 +33,7 @@ SINGLE_SOURCE_APPS := 			\
 	dtnperf/dtnperf-client		\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\
+	dtnsink/dtnsink			\
 	num2sdnv/num2sdnv		\
 
 OTHER_APPS :=				\
@@ -41,6 +42,7 @@ OTHER_APPS :=				\
 	dtntunnel/dtntunnel		\
 	tca_admin/tca_admin		\
 	dtnsend/dtnsend			\
+	dtnsource/dtnsource		\
 	num2sdnv/sdnv2num		\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
@@ -90,6 +92,12 @@ dtntest/dtntest: dtntest/dtntest.o  $(DTN_LIBS_STATIC)
 # Rules for dtnsend
 #
 dtnsend/dtnsend: dtnsend/dtnsend.o  $(DTN_LIBS_STATIC)
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(DTN_LIBS++)
+
+#
+# Rules for dtnsource
+#
+dtnsource/dtnsource: dtnsource/dtnsource.o  $(DTN_LIBS_STATIC)
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(DTN_LIBS++)
 
 #

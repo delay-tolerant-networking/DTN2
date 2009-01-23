@@ -496,7 +496,7 @@ public:
             return TCL_ERROR;
         }
 
-        resultf("%s,%u.%u",
+        resultf("%s,%llu.%llu",
                 id.source.uri, id.creation_ts.secs, id.creation_ts.seqno);
         return TCL_OK;
     }
@@ -695,7 +695,7 @@ public:
         APPEND_STRING_VAL("replyto", spec.replyto.uri, -1);
 
         char tmp[256];
-        snprintf(tmp, 256, "%u.%u", spec.creation_ts.secs, spec.creation_ts.seqno);
+        snprintf(tmp, 256, "%llu.%llu", spec.creation_ts.secs, spec.creation_ts.seqno);
         
         APPEND_STRING_VAL("creation_ts", tmp, -1);
 

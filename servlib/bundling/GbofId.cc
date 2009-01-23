@@ -33,12 +33,12 @@ InlineFormatter<dtn::GbofId>
 ::format(const dtn::GbofId& id)
 {
     if (! id.is_fragment_) {
-        buf_.appendf("<%s, %u.%u>",
+        buf_.appendf("<%s, %llu.%llu>",
                      id.source_.c_str(),
                      id.creation_ts_.seconds_,
                      id.creation_ts_.seqno_);
     } else {
-        buf_.appendf("<%s, %u.%u, FRAG len %u offset %u>",
+        buf_.appendf("<%s, %llu.%llu, FRAG len %u offset %u>",
                      id.source_.c_str(),
                      id.creation_ts_.seconds_,
                      id.creation_ts_.seqno_,

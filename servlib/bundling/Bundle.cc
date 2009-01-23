@@ -157,9 +157,9 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("     delivery_rcpt: %s\n", bool_to_str(delivery_rcpt_));
     buf->appendf("     deletion_rcpt: %s\n", bool_to_str(deletion_rcpt_));
     buf->appendf("    app_acked_rcpt: %s\n", bool_to_str(app_acked_rcpt_));
-    buf->appendf("       creation_ts: %u.%u\n",
+    buf->appendf("       creation_ts: %llu.%llu\n",
                  creation_ts_.seconds_, creation_ts_.seqno_);
-    buf->appendf("        expiration: %d\n", expiration_);
+    buf->appendf("        expiration: %llu\n", expiration_);
     buf->appendf("       is_fragment: %s\n", bool_to_str(is_fragment_));
     buf->appendf("          is_admin: %s\n", bool_to_str(is_admin_));
     buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));

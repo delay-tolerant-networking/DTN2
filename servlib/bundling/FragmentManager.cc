@@ -230,7 +230,7 @@ void
 FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
 {
     char buf[128];
-    snprintf(buf, 128, "%u.%u",
+    snprintf(buf, 128, "%llu.%llu",
              bundle->creation_ts().seconds_,
              bundle->creation_ts().seqno_);
     

@@ -79,8 +79,8 @@ typedef u_int dtn_timeval_t;
  * A dtn timestamp contains seconds and a sequence number.
  */
 struct dtn_timestamp_t {
-    u_int secs;
-    u_int seqno;
+    unsigned hyper secs;
+    unsigned hyper seqno;
 };
 
 %

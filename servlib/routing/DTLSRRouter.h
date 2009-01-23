@@ -79,10 +79,10 @@ protected:
               last_lsa_creation_ts_(0),
               last_eida_seqno_(0) {}
         
-        u_int32_t last_lsa_seqno_;
-        u_int32_t last_lsa_creation_ts_;
+        u_int64_t last_lsa_seqno_;
+        u_int64_t last_lsa_creation_ts_;
         
-        u_int32_t last_eida_seqno_;
+        u_int64_t last_eida_seqno_;
 
         // XXX/demmer put list of alternate endpoints for destination here
     };
@@ -141,7 +141,7 @@ protected:
                              RoutingGraph::Edge* e,
                              const LinkRef& link);
     bool update_current_lsa(RoutingGraph::Node* node,
-                            Bundle* bundle, u_int32_t seqno);
+                            Bundle* bundle, u_int64_t seqno);
     void schedule_lsa();
     void send_lsa();
     void handle_lsa(Bundle* bundle, LSA* lsa);

@@ -247,7 +247,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         // return the creation timestamp (can use with source EID to
         // create a globally unique bundle identifier
-        resultf("%u.%u", b->creation_ts().seconds_, b->creation_ts().seqno_);
+        resultf("%llu.%llu", b->creation_ts().seconds_, b->creation_ts().seqno_);
         return TCL_OK;
         
     } else if (!strcmp(cmd, "stats")) {

@@ -218,7 +218,7 @@ public:
     bool              delivery_rcpt()     const { return delivery_rcpt_; }
     bool              deletion_rcpt()     const { return deletion_rcpt_; }
     bool              app_acked_rcpt()    const { return app_acked_rcpt_; }
-    u_int32_t         expiration()        const { return expiration_; }
+    u_int64_t         expiration()        const { return expiration_; }
     u_int32_t         frag_offset()       const { return frag_offset_; }
     u_int32_t         orig_length()       const { return orig_length_; }
     bool              in_datastore()      const { return in_datastore_; }
@@ -256,7 +256,7 @@ public:
     void set_delivery_rcpt(bool t)     { delivery_rcpt_ = t; }
     void set_deletion_rcpt(bool t)     { deletion_rcpt_ = t; }
     void set_app_acked_rcpt(bool t)    { app_acked_rcpt_ = t; }
-    void set_expiration(u_int32_t e)   { expiration_ = e; }
+    void set_expiration(u_int64_t e)   { expiration_ = e; }
     void set_frag_offset(u_int32_t o)  { frag_offset_ = o; }
     void set_orig_length(u_int32_t l)  { orig_length_ = l; }
     void set_in_datastore(bool t)      { in_datastore_ = t; }
@@ -308,7 +308,7 @@ private:
     bool deletion_rcpt_;	///< Bundle deletion reporting
     bool app_acked_rcpt_;	///< Acknowlege by application reporting
     BundleTimestamp creation_ts_; ///< Creation timestamp
-    u_int32_t expiration_;	///< Bundle expiration time
+    u_int64_t expiration_;	///< Bundle expiration time
     u_int32_t frag_offset_;	///< Offset of fragment in original bundle
     u_int32_t orig_length_;	///< Length of original bundle
     SequenceID sequence_id_;	///< Sequence id vector

@@ -93,7 +93,7 @@ public:
 
         virtual void serialize(oasys::SerializeAction* a);
 
-        u_int32_t        seqno_; ///< Strictly increasing sequence
+        u_int64_t        seqno_; ///< Strictly increasing sequence
                                  ///  number for this source
         LinkStateVec     links_; ///< Vector of link states
     };

@@ -28,8 +28,8 @@ namespace dtn {
  * seconds since Jan 1, 2000 (not 1970) so we use a different type.
  */
 struct BundleTimestamp {
-    u_int32_t seconds_; ///< Seconds since 1/1/2000
-    u_int32_t seqno_;   ///< Sub-second sequence number
+    u_int64_t seconds_; ///< Seconds since 1/1/2000
+    u_int64_t seqno_;   ///< Sequence number
 
     /**
      * Default constructor
@@ -40,7 +40,7 @@ struct BundleTimestamp {
     /**
      * Constructor by parts.
      */
-    BundleTimestamp(u_int32_t seconds, u_int32_t seqno)
+    BundleTimestamp(u_int64_t seconds, u_int64_t seqno)
         : seconds_(seconds), seqno_(seqno) {}
     
     /**

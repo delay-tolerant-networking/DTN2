@@ -14,10 +14,6 @@
  *    limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <dtn-config.h>
-#endif
-
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -25,8 +21,9 @@
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <time.h>
+#include <sys/time.h>
+#include <arpa/inet.h>		// htonl()
 
 #ifdef __FreeBSD__
 /* Needed for PATH_MAX, Linux doesn't need it */
@@ -45,7 +42,7 @@
 char *progname;
 
 // global options
-int copies              = 1;    // the number of copies to send
+int num_bundles         = 1;    // the number of bundles to send
 int verbose             = 0;
 int sleep_time          = 0;
 int wait_for_report     = 0;    // wait for bundle status reports
@@ -54,12 +51,6 @@ int wait_for_report     = 0;    // wait for bundle status reports
 int expiration                 = 3600; // expiration timer (default one hour)
 int delivery_options           = 0;    // bundle delivery option bit vector
 dtn_bundle_priority_t priority = COS_NORMAL; // bundle priority
-
-// payload options
-dtn_bundle_payload_location_t
-payload_type        = DTN_PAYLOAD_FILE; // type of payload
-char * data_source  = NULL;             // file or message, depending on type
-char date_buf[256];                     // buffer for date payloads
 
 // extension/metatdata block information
 class ExtBlock {
@@ -109,6 +100,7 @@ private:
     bool                  metadata_;
     dtn_extension_block_t block_;
 };
+
 unsigned int ExtBlock::num_meta_blocks_ = 0;
 
 std::vector<ExtBlock> ext_blocks;
@@ -117,6 +109,9 @@ std::vector<ExtBlock> ext_blocks;
 char * arg_replyto      = NULL;
 char * arg_source       = NULL;
 char * arg_dest         = NULL;
+unsigned int arg_bundlesize = 0;
+
+char *payload_buf       = NULL;
 
 dtn_reg_id_t regid      = DTN_REGID_NONE;
 
@@ -142,12 +137,21 @@ main(int argc, char** argv)
     dtn_bundle_payload_t send_payload;
     dtn_bundle_payload_t reply_payload;
     struct timeval start, end;
+    time_t now;
     
     // force stdout to always be line buffered, even if output is
     // redirected to a pipe or file
     setvbuf(stdout, (char *)NULL, _IOLBF, 0);
     
     parse_options(argc, argv);
+
+    // allocate the payload buffer
+    payload_buf = (char *)malloc(sizeof(uint32_t) + arg_bundlesize);
+    if (payload_buf == NULL) {
+	fprintf(stderr, "can't allocate %d bytes for payload\n", 
+		sizeof(uint32_t) + arg_bundlesize);
+	exit(1);
+    }
 
     // open the ipc handle
     if (verbose) fprintf(stdout, "Opening connection to local DTN daemon\n");
@@ -254,9 +258,17 @@ main(int argc, char** argv)
         bundle_spec.metadata.metadata_val = (dtn_extension_block_t *)buf;
     }
 
+    now = time(0);
+    printf("first bundle sent at %s\n", ctime(&now));
+
     // loop, sending sends and getting replies.
-    for (i = 0; i < copies; ++i) {
+    for (i = 1; i <= num_bundles; ++i) {
         gettimeofday(&start, NULL);
+
+	// put bundle number in first int
+	*(uint32_t *)payload_buf = htonl(i);
+
+	memset(payload_buf + sizeof(uint32_t), ((unsigned char)i & 0xff), arg_bundlesize);
 
         fill_payload(&send_payload);
         
@@ -265,8 +277,8 @@ main(int argc, char** argv)
         if ((ret = dtn_send(handle, regid, &bundle_spec, &send_payload,
                             &bundle_id)) != 0)
         {
-            fprintf(stderr, "error sending bundle: %d (%s)\n",
-                    ret, dtn_strerror(dtn_errno(handle)));
+            fprintf(stderr, "error sending bundle %d: %d (%s)\n",
+                    i, ret, dtn_strerror(dtn_errno(handle)));
             exit(1);
         }
 
@@ -302,6 +314,8 @@ main(int argc, char** argv)
             usleep(sleep_time * 1000);
         }
     }
+    now = time(0) - sleep_time / 1000;
+    printf("last bundle sent at %s\n", ctime(&now));
 
     dtn_close(handle);
  
@@ -325,7 +339,8 @@ main(int argc, char** argv)
 void print_usage()
 {
     fprintf(stderr, "usage: %s [opts] "
-            "-s <source_eid> -d <dest_eid> -t <type> -p <payload>\n",
+            "-s <source_eid> -d <dest_eid> "
+	    "-b <bundle size> -n <num bundles>\n",
             progname);
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -v verbose\n");
@@ -333,12 +348,11 @@ void print_usage()
     fprintf(stderr, " -s <eid|demux_string> source eid)\n");
     fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
     fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
-    fprintf(stderr, " -t <f|t|m|d> payload type: file, tmpfile, message, or date\n");
-    fprintf(stderr, " -p <filename|string> payload data\n");
+    fprintf(stderr, " -b <size> bundle payload size in bytes (default 1, may not be zero)\n");
     fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
     fprintf(stderr, " -P <priority> one of bulk, normal, expedited, or reserved\n");
     fprintf(stderr, " -i <regid> registration id for reply to\n");
-    fprintf(stderr, " -n <int> copies of the bundle to send\n");
+    fprintf(stderr, " -n <int> number of bundle to send\n");
     fprintf(stderr, " -z <time> msecs to sleep between transmissions\n");
     fprintf(stderr, " -c request custody transfer\n");
     fprintf(stderr, " -C request custody transfer receipts\n");
@@ -360,13 +374,12 @@ void print_usage()
 void parse_options(int argc, char**argv)
 {
     int c, done = 0;
-    char arg_type = 0;
 
     progname = argv[0];
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHr:s:d:e:P:n:woDXFRcC1NWt:p:i:z:E:M:O:S:");
+        c = getopt(argc, argv, "vhs:d:b:Hr:e:P:n:woDXFRcC1NWi:z:E:M:O:S:");
         switch (c)
         {
         case 'v':
@@ -386,6 +399,9 @@ void parse_options(int argc, char**argv)
         case 'd':
             arg_dest = optarg;
             break;
+	case 'b':
+	    arg_bundlesize = atoi(optarg);
+	    break;
         case 'e':
             expiration = atoi(optarg);
             break;
@@ -404,7 +420,7 @@ void parse_options(int argc, char**argv)
             }
             break;
         case 'n':
-            copies = atoi(optarg);
+            num_bundles = atoi(optarg);
             break;
         case 'w':
             wait_for_report = 1;
@@ -435,12 +451,6 @@ void parse_options(int argc, char**argv)
             break;
         case 'W':
             delivery_options |= DOPTS_DO_NOT_FRAGMENT;
-            break;
-        case 't':
-            arg_type = optarg[0];
-            break;
-        case 'p':
-            data_source = strdup(optarg);
             break;
         case 'i':
             regid = atoi(optarg);
@@ -478,53 +488,9 @@ void parse_options(int argc, char**argv)
         }
     }
 
-#define CHECK_SET(_arg, _what)                                          \
-    if (_arg == 0) {                                                    \
-        fprintf(stderr, "dtnsend: %s must be specified\n", _what);      \
-        print_usage();                                                  \
-        exit(1);                                                        \
-    }
-    
-    CHECK_SET(arg_source,   "source eid");
-    CHECK_SET(arg_dest,     "destination eid");
-    CHECK_SET(arg_type,     "payload type");
-    if (arg_type != 'd') {
-        CHECK_SET(data_source,  "payload data");
-    }
-
-    switch (arg_type)
-    {
-    case 'f': payload_type = DTN_PAYLOAD_FILE; break;
-    case 't': payload_type = DTN_PAYLOAD_TEMP_FILE; break;
-    case 'm': payload_type = DTN_PAYLOAD_MEM; break;
-    case 'd': 
-        payload_type = DTN_PAYLOAD_MEM;
-        data_source = date_buf;
-        break;
-    default:
-        fprintf(stderr, "dtnsend: type argument '%d' invalid\n", arg_type);
-        print_usage();
-        exit(1);
-    }
-
-    // dtnd needs full pathnames.
-    if ( arg_type == 'f' && data_source[0] != '/' )
-    {
-        char fullpath[PATH_MAX];
-
-        if ( getcwd(fullpath, PATH_MAX) == NULL )
-        {
-            perror("cwd");
-            exit(1);
-        }
-
-        strncat(fullpath, "/", PATH_MAX - strlen(fullpath) - 1 );
-        strncat(fullpath, data_source, PATH_MAX - strlen(fullpath) - 1);
-
-        free(data_source);
-
-        data_source = (char*)malloc(sizeof(char)*(strlen(fullpath) + 1));
-        memcpy(data_source, fullpath, sizeof(char)*(strlen(fullpath) + 1));
+    if (arg_source == 0 || arg_dest == 0 || arg_bundlesize == 0) {
+	print_usage();
+	exit(1);
     }
 }
 
@@ -560,26 +526,28 @@ void fill_payload(dtn_bundle_payload_t* payload)
 {
     memset(payload, 0, sizeof(*payload));
     
-    if (data_source == date_buf) {
-        time_t current = time(NULL);
-        strcpy(date_buf, ctime(&current));
-    }
-
     // if we're sending multiple copies of the file using hard links,
     // the daemon will remove the file once we send it, so we need to
     // make a temp link for the daemon itself to use
-    if (copies != 1 && payload_type == DTN_PAYLOAD_TEMP_FILE) {
-        char tmp[PATH_MAX];
-        snprintf(tmp, PATH_MAX, "%s.tmplink", data_source);
+    if (arg_bundlesize > DTN_MAX_BUNDLE_MEM) {
+	int fd;
+	ssize_t amt;
+        char tmpname[PATH_MAX];
 
-        if (link(data_source, tmp) != 0) {
-            fprintf(stderr, "error creating hard link %s -> %s: %s",
-                    data_source, tmp, strerror(errno));
-            exit(1);
-        }
-        
-        dtn_set_payload(payload, payload_type, tmp, strlen(tmp));
+	strcpy(tmpname, "/tmp/dtnsourceXXXXXX");
+	if ((fd = mkstemp(tmpname)) == 0) {
+	    fprintf(stderr, "can't create temporary file %s\n", tmpname);
+	    exit(1);
+	}
+	amt = write(fd, payload_buf, arg_bundlesize);
+	if ((unsigned int) amt != arg_bundlesize) {
+	    fprintf(stderr, "warning: tried to write %d, wrote %d, "
+		    "bundle will be short\n", 
+		    arg_bundlesize, amt);
+	}
+	close(fd);
+        dtn_set_payload(payload, DTN_PAYLOAD_FILE, tmpname, strlen(tmpname));
     } else {
-        dtn_set_payload(payload, payload_type, data_source, strlen(data_source));
+        dtn_set_payload(payload, DTN_PAYLOAD_MEM, payload_buf, arg_bundlesize);
     }
 }

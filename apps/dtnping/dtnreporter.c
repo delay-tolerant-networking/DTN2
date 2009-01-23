@@ -172,7 +172,7 @@ main(int argc, const char** argv)
 
                 clock = sr_data->delivery_ts.secs + DTNTIME_OFFSET;
                 tm_buf = gmtime(&clock);
-                printf("%s: delivered bundle (%s %d:%d) at %.*s UTC\n",
+                printf("%s: delivered bundle (%s %llu.%llu) at %.*s UTC\n",
                        reply_spec.source.uri,
 		       theSource->uri, theCreationTimestamp->secs, theCreationTimestamp->seqno,
 		       24, asctime(tm_buf));

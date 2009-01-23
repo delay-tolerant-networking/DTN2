@@ -102,9 +102,9 @@ xdr_dtn_timestamp_t (XDR *xdrs, dtn_timestamp_t *objp)
 {
 	register int32_t *buf;
 
-	 if (!xdr_u_int (xdrs, &objp->secs))
+	 if (!xdr_u_quad_t (xdrs, &objp->secs))
 		 return FALSE;
-	 if (!xdr_u_int (xdrs, &objp->seqno))
+	 if (!xdr_u_quad_t (xdrs, &objp->seqno))
 		 return FALSE;
 	return TRUE;
 }

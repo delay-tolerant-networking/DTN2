@@ -200,7 +200,7 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
     // and a pretty formatted creation timestamp
     addElement(Tcl_NewStringObj("creation_ts", -1));
-    sprintf(tmp_buf, "%d.%d", b->creation_ts().seconds_, b->creation_ts().seqno_);
+    sprintf(tmp_buf, "%llu.%llu", b->creation_ts().seconds_, b->creation_ts().seqno_);
     addElement(Tcl_NewStringObj(tmp_buf, -1));
 
     // If we're not an admin bundle, we're done
@@ -240,9 +240,9 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
         // Status fields with timestamps:
 #define APPEND_TIMESTAMP(_flag, _what, _field)                          \
-        if (sr.status_flags_ & BundleStatusReport::_flag) {                 \
+        if (sr.status_flags_ & BundleStatusReport::_flag) {             \
             addElement(Tcl_NewStringObj(_what, -1));                    \
-            sprintf(tmp_buf, "%u.%u",                                   \
+            sprintf(tmp_buf, "%llu.%llu",                               \
                     sr._field.seconds_, sr._field.seqno_);              \
             addElement(Tcl_NewStringObj(tmp_buf, -1));                  \
         }
@@ -267,7 +267,7 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
         
         // Bundle creation timestamp
         addElement(Tcl_NewStringObj("orig_creation_ts", -1));
-        sprintf(tmp_buf, "%u.%u",
+        sprintf(tmp_buf, "%llu.%llu",
                 sr.orig_creation_tv_.seconds_,
                 sr.orig_creation_tv_.seqno_);
         addElement(Tcl_NewStringObj(tmp_buf, -1));
@@ -343,14 +343,14 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
         // Custody signal timestamp
         addElement(Tcl_NewStringObj("custody_signal_time", -1));
-        sprintf(tmp_buf, "%u.%u",
+        sprintf(tmp_buf, "%llu.%llu",
                 cs.custody_signal_tv_.seconds_,
                 cs.custody_signal_tv_.seqno_);
         addElement(Tcl_NewStringObj(tmp_buf, -1));
         
         // Bundle creation timestamp
         addElement(Tcl_NewStringObj("orig_creation_ts", -1));
-        sprintf(tmp_buf, "%u.%u",
+        sprintf(tmp_buf, "%llu.%llu",
                 cs.orig_creation_tv_.seconds_,
                 cs.orig_creation_tv_.seqno_);
         addElement(Tcl_NewStringObj(tmp_buf, -1));

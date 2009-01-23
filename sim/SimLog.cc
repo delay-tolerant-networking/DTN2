@@ -53,9 +53,9 @@ SimLog::flush()
 void
 SimLog::log_entry(const char* what, Node* node, Bundle* bundle)
 {
-    u_int32_t now = BundleTimestamp::get_current_time();
+    u_int64_t now = BundleTimestamp::get_current_time();
 
-    buf_.appendf("%f\t%s\t%s\t%s\t%s\t%u,%u\t%zu\t%u\n",
+    buf_.appendf("%f\t%s\t%s\t%s\t%s\t%llu,%llu\t%zu\t%llu\n",
                  Simulator::time(),
                  node->name(),
                  what,
