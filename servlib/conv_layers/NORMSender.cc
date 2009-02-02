@@ -208,10 +208,8 @@ NORMSender::KeepaliveTimer::timeout(const struct timeval &now)
             char *heartbeat = (char *)malloc(sizeof(char) * heartbeat_len);
             strncpy(heartbeat, KEEPALIVE_STR, heartbeat_len);
         
-            if (! NormSendCommand(sender_->norm_session(), heartbeat,
-                                  heartbeat_len)) {
-                free(heartbeat);
-            }
+            NormSendCommand(sender_->norm_session(), heartbeat, heartbeat_len);
+            free(heartbeat);
         }
     }
 
@@ -275,8 +273,6 @@ NORMSender::handle_bundle_queued()
         size_t total_len = BundleProtocol::total_length(blocks);
         ASSERT(total_len <= pow(2, 32));
 
-        //link->del_from_queue(bref, total_len);
-        //link->add_to_inflight(bref, total_len);
         move_bundle_to_inflight(bref, total_len);
         l.unlock();
 

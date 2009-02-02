@@ -23,12 +23,6 @@ NORM libraries from the Naval Research Lab
    - Unpack the norm code.  cd into the norm top-level directory
      and unpack the protolib code there.
 
-   - Apply the norm-1.4b4-dtn.patch file available in the
-     DTN2/doc directory.  (There's a feature request pending with
-     NRL that will eliminate this step in the future.)
-
-     patch -p1 < "patch file location"
-
    - For linux, cd into the unix directory and type
      make -f Makefile.linux
      make -f Makefile.linux libnorm.a
