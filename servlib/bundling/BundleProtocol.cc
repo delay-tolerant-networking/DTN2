@@ -580,7 +580,7 @@ BundleProtocol::set_timestamp(u_char* ts, size_t len, const BundleTimestamp& tv)
 }
 
 //----------------------------------------------------------------------
-int
+u_int64_t
 BundleProtocol::get_timestamp(BundleTimestamp* tv, const u_char* ts, size_t len)
 {
     u_int64_t tmp;
@@ -588,14 +588,12 @@ BundleProtocol::get_timestamp(BundleTimestamp* tv, const u_char* ts, size_t len)
     int sec_size = SDNV::decode(ts, len, &tmp);
     if (sec_size < 0)
         return -1;
-    ASSERT(tmp < 0xffffffff);
-    tv->seconds_ = (u_int32_t)tmp;
+    tv->seconds_ = tmp;
     
     int seqno_size = SDNV::decode(ts + sec_size, len - sec_size, &tmp);
     if (seqno_size < 0)
         return -1;
-    ASSERT(tmp < 0xffffffff);
-    tv->seqno_ = (u_int32_t)tmp;
+    tv->seqno_ = tmp;
     
     return sec_size + seqno_size;
 }

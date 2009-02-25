@@ -155,7 +155,7 @@ public:
      * transmitted over the network. This does not require the
      * timestamp to be word-aligned.
      */
-    static int get_timestamp(BundleTimestamp* tv, const u_char* bp, size_t len);
+    static u_int64_t get_timestamp(BundleTimestamp* tv, const u_char* bp, size_t len);
 
     /**
      * Return the length required to encode the timestamp as two SDNVs
