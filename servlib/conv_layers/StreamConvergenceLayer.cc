@@ -857,7 +857,7 @@ StreamConvergenceLayer::Connection::handle_poll_timeout()
     // check that it hasn't been too long since we got some data from
     // the other side
     elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
-    if (elapsed > params->data_timeout_) {
+    if (params->keepalive_interval_ > 0 && elapsed > params->data_timeout_) { 
         log_info("handle_poll_timeout: no data heard for %d msecs "
                  "(keepalive_sent %u.%u, data_rcvd %u.%u, now %u.%u, poll_timeout %d) "
                  "-- closing contact",
