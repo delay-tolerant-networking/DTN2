@@ -19,6 +19,12 @@
  * derived from this software without specific prior written permission.
  */
 
+/*
+ * This product includes software written and developed 
+ * by Brian Adamson and Joe Macker of the Naval Research 
+ * Laboratory (NRL).
+ */
+
 #ifndef _NORM_SESSION_MANAGER_H_
 #define _NORM_SESSION_MANAGER_H_
 
