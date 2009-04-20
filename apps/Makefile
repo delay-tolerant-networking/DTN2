@@ -30,7 +30,6 @@ SINGLE_SOURCE_APPS := 			\
 	dtnping/dtnping			\
 	dtnping/dtntraceroute		\
 	dtnping/dtnreporter		\
-	dtnperf/dtnperf-client		\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\
 	dtnsink/dtnsink			\
@@ -40,6 +39,7 @@ OTHER_APPS :=				\
 	dtnmoteproxy/dtnmoteproxy	\
 	dtntest/dtntest			\
 	dtntunnel/dtntunnel		\
+	dtnperf/dtnperf-client		\
 	tca_admin/tca_admin		\
 	dtnsend/dtnsend			\
 	dtnsource/dtnsource		\
@@ -114,6 +114,18 @@ dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/UDPTunnel.o \
 		     $(DTN_LIBS_STATIC)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS++)
+
+
+#
+# Rules for dtnperf-client
+#
+dtnperf/dtnperf-client: dtnperf/utils.o \
+			dtnperf/bundle_tools.o \
+			dtnperf/dtnperf-client.o \
+		    $(DTN_LIBS_STATIC)
+
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS++)
+
 
 #
 # Rules for tca_admin

@@ -1,661 +1,808 @@
 /*
- *    Copyright 2005-2006 Intel Corporation
- * 
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- * 
- *        http://www.apache.org/licenses/LICENSE-2.0
- * 
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- */
+*    Copyright 2005-2006 Intel Corporation
+*
+*    Licensed under the Apache License, Version 2.0 (the "License");
+*    you may not use this file except in compliance with the License.
+*    You may obtain a copy of the License at
+*
+*        http://www.apache.org/licenses/LICENSE-2.0
+*
+*    Unless required by applicable law or agreed to in writing, software
+*    distributed under the License is distributed on an "AS IS" BASIS,
+*    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*    See the License for the specific language governing permissions and
+*    limitations under the License.
+*/
 
-/* ----------------------
- *    dtnperf-client.c
- * ---------------------- */
 
-/* -----------------------------------------------------------
- *  PLEASE NOTE: this software was developed
- *    by Piero Cornice <piero.cornice@gmail.com>
- *    at DEIS - University of Bologna, Italy.
- *  If you want to modify it, please contact me
- *  at piero.cornice(at)gmail.com. Thanks =)
- * -----------------------------------------------------------
- */
 
-/*
- * Modified slightly (and renamed) by Michael Demmer
- * <demmer@cs.berkeley.edu> to fit in with the DTN2
- * source distribution.
- */
-
-/* version 1.6.0 - 23/06/06
+/* ----------------------------------------
+ *         DTNperf 2.3 - CLIENT
  *
- * - compatible with DTN 2.2.0 reference implementation
- * - fixed measure units errors
+ *             developed by
+ * 
+ * Piero Cornice - piero.cornice(at)gmail.com
+ * Marco Livini - marco.livini(at)gmail.com
+ *
+ * DEIS - Dipartimento di Elettronica, Informatica e Sistemistica
+ * Universita' di Bologna
+ * Italy
+ * ----------------------------------------
  */
+
+
 
 #ifdef HAVE_CONFIG_H
-#  include <dtn-config.h>
+#  include <config.h>
 #endif
 
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-#include <strings.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <sys/file.h>
-#include <time.h>
-#include <assert.h>
+#include "includes.h"
+#include "utils.h"
+#include "bundle_tools.h"
 
-#include "dtn_api.h"
-#include "dtn_types.h"
 
-#define MAX_MEM_PAYLOAD 50000 // max payload (in bytes) if bundles are stored into memory
-#define ILLEGAL_PAYLOAD 0     // illegal number of bytes for the bundle payload
-#define DEFAULT_PAYLOAD 50000 // default value (in bytes) for bundle payload
+
+// max payload (in bytes) if bundles are stored into memory
+#define MAX_MEM_PAYLOAD 50000
+
+// illegal number of bytes for the bundle payload
+#define ILLEGAL_PAYLOAD 0
+
+// default value (in bytes) for bundle payload
+#define DEFAULT_PAYLOAD 50000
+
+
 
 /* ---------------------------------------------
  * Values inside [square brackets] are defaults
  * --------------------------------------------- */
 
-char *progname;
-
 // global options
-dtn_bundle_payload_location_t 
-        payload_type    = DTN_PAYLOAD_FILE;    // the type of data source for the bundle [FILE]
-int verbose             = 0;    // if set to 1, execution becomes verbose (-v option) [0]
-char op_mode               ;    // operative mode (t = time_mode, d = data_mode)
-int debug               = 0;    // if set to 1, many debug messages are shown [0]
-int csv_out             = 0;    // if set to 1, a Comma-Separated-Values output is shown [0]
-/* -----------------------------------------------------------------------
- * NOTE - CSV output shows the following columns:
- *  Time-Mode: BUNDLES_SENT, PAYLOAD, TIME, DATA_SENT, GOODPUT
- *  Data-Mode: BUNDLE_ID, PAYLOAD, TIME, GOODPUT
- * ----------------------------------------------------------------------- */
 
-// bundle options
-int expiration          = 3600; // expiration time (sec) [3600]
-int delivery_receipts   = 1;    // request delivery receipts [1]
-int forwarding_receipts = 0;    // request per hop departure [0]
-int custody             = 0;    // request custody transfer [0]
-int custody_receipts    = 0;    // request per custodian receipts [0]
-int receive_receipts    = 0;    // request per hop arrival receipt [0]
-//int overwrite           = 0;    // queue overwrite option [0]
-int wait_for_report     = 1;    // wait for bundle status reports [1]
+int verbose = 0;    // if set to 1, execution becomes verbose (-v option) [0]
+int debug = 0;    // if set to 1, many debug messages are shown [0]
+int debug_level = 0;
+int csv_out = 0;    // if set to 1, a Comma-Separated-Values output is shown [0]
+char* csv_log_filename = NULL;
+FILE* csv_log_file = NULL;
+int create_log = 0;
+char* log_filename = NULL; // name of log destination file;
+FILE* log_file = NULL;
+
+
+
+typedef struct
+{
+	int expiration;				// expiration time (sec) [3600]
+	int delivery_receipts;    	// request delivery receipts [1]
+	int forwarding_receipts;	// request per hop departure [0]
+	int custody_transfer;		// request custody transfer [0]
+	int custody_receipts;		// request per custodian receipts [0]
+	int receive_receipts;		// request per hop arrival receipt [0]
+	int wait_for_report;		// wait for bundle status reports [1]
+}
+dtn_options_t;
+
+
+typedef struct
+{
+	char op_mode ;    		// operative mode (t = time_mode, d = data_mode) [d]
+	long data_qty;			// data to be transmitted (bytes) [0]
+	char * n_arg;			// arguments of -n option
+	char * p_arg;			// arguments of -p option
+	int use_file;			// if set to 1, a file is used instead of memory [1]
+	int transfer_file;		// if set to 1, the transfer involved a real file [0]
+	char data_unit;			// B = bytes, K = kilobytes, M = megabytes [M]
+	int transmission_time;	// seconds of transmission [0]
+	int window;				// trasmission window [1]
+	int slide_on_custody;	// flag sliding window on custody receipts [0] 
+	dtn_reg_id_t regid;   	// registration ID (-i option) [DTN_REGID_NONE]
+	long bundle_payload;  	// quantity of data (in bytes) to send (-p option) [DEFAULT_PAYLOAD]
+	dtn_bundle_payload_location_t payload_type;	// the type of data source for the bundle [DTN_PAYLOAD_FILE]
+}
+dtnperf_options_t;
+
+
+typedef struct
+{
+	dtnperf_options_t *dtnperf_opt;
+	dtn_options_t *dtn_opt;
+}
+global_options_t;
+
+
 
 // specified options for bundle tuples
-char * arg_replyto      = NULL; // replyto_tuple
-char * arg_source       = NULL; // source_tuple
-char * arg_dest         = NULL; // destination_tuple
+char * arg_replyto = NULL; // replyto_tuple
+char * arg_source = NULL; // source_tuple
+char * arg_dest = NULL; // destination_tuple
 
-dtn_reg_id_t regid      = DTN_REGID_NONE;   // registration ID (-i option)
-long bundle_payload     = DEFAULT_PAYLOAD;  // quantity of data (in bytes) to send (-p option)
-char * p_arg              ;                 // argument of -p option
 
-// Time-Mode options
-int transmission_time   = 0;    // seconds of transmission
-
-// Data-Mode options
-long data_qty           = 0;    // data to be transmitted (bytes)
-char * n_arg               ;    // arguments of -n option
-char * p_arg               ;    // arguments of -p option
-int n_copies            = 1;    // number of trasmissions [1]
-int sleepVal            = 0;    // seconds to sleep between transmissions in Data-Mode [0]
-int use_file            = 1;    // if set to 1, a file is used instead of memory [1]
-char data_unit             ;    // B = bytes, K = kilobytes, M = megabytes
 
 // Data-Mode variables
-int fd                     ;    // file descriptor, used with -f option
-int data_written        = 0;    // data written on the file
-int data_read           = 0;    // data read from the file
-char * file_name_src    = INSTALL_LOCALSTATEDIR "/dtn/dtnperf/dtnbuffer.snd";    // name of the SOURCE file to be used
+int fd ;    // file descriptor, used with -f option
+int data_written = 0;    // data written on the file
+int data_read = 0;    // data read from the file
+char * file_name_src = "/var/dtn/dtnperf/dtnbuffer.snd";    // name of the SOURCE file to use
+char * real_file = NULL; // name of the file to tranfer
+int real_file_fd;	// file decriptor of the file to tranfer
+
+
 
 /* -------------------------------
  *       function interfaces
  * ------------------------------- */
-void parse_options(int, char**);
-dtn_endpoint_id_t* parse_eid(dtn_handle_t handle, dtn_endpoint_id_t * eid, char * str);
+
+void parse_options(int, char**, dtnperf_options_t *, dtn_options_t *);
 void print_usage(char* progname);
-void print_eid(char * label, dtn_endpoint_id_t * eid);
-void pattern(char *outBuf, int inBytes);
-struct timeval set(double sec);
-struct timeval add(double sec);
-void show_report (u_int buf_len, char* eid, struct timeval start, struct timeval end, int data);
-void csv_time_report(int b_sent, int payload, struct timeval start, struct timeval end);
-void csv_data_report(int b_id, int payload, struct timeval start, struct timeval end);
-long bundles_needed (long data, long pl);
-void check_options();
-void show_options();
-void add_time(struct timeval *tot_time, struct timeval part_time);
-long mega2byte(long n);
-long kilo2byte(long n);
-char findDataUnit(const char *inarg);
 
-/* -------------------------------------------------
- * main
- * ------------------------------------------------- */
-int main(int argc, char** argv)
+void check_options(dtnperf_options_t *perf_opt, dtn_options_t *dtn_opt);
+void show_options(dtnperf_options_t *perf_opt, dtn_options_t *dtn_opt);
+
+void init_dtnperf_options(dtnperf_options_t *);
+void init_dtn_options(dtn_options_t*);
+void set_dtn_options(dtn_bundle_spec_t *, dtn_options_t*);
+
+// Thread functions
+void* send_bundle(void *opt);
+void* receive_ack(void *opt);
+
+
+/* -----------------------
+ *  variables declaration
+ * ----------------------- */
+int ret;                        // result of DTN-registration
+struct timeval start, end,
+			p_start, p_end, now; // time-calculation variables
+
+send_information_t* send_info;
+
+int i, j;                       // loop-control variables
+
+int n_bundles = 0;              // number of bundles needed (Data-Mode)
+
+
+// DTN variables
+dtn_handle_t handle;
+dtn_reg_info_t reginfo;
+dtn_bundle_spec_t bundle_spec;
+dtn_bundle_spec_t reply_spec;
+dtn_bundle_id_t bundle_id;
+dtn_bundle_payload_t send_payload;
+dtn_bundle_payload_t reply_payload;
+char demux[64];
+
+
+// buffer settings
+char* buffer = NULL;            // buffer containing data to be transmitted
+int bufferLen;                  // lenght of buffer
+int sent_bundles;               // number of bundles sent in Time-Mode
+
+int bundles_ready;
+int orphan_acks = 0;
+int close_ack_receiver = 0;
+
+pthread_t sender;
+pthread_t ack_receiver;
+pthread_mutex_t mutexdata;
+pthread_cond_t cond_sender;
+pthread_cond_t cond_ackreceiver;
+
+
+
+/* -----------------------
+ *        M A I N
+ * ----------------------- */
+int main(int argc, char *argv[])
 {
-    /* -----------------------
-     *  variables declaration
-     * ----------------------- */
-    int ret;                        // result of DTN-registration
-    struct timeval start, end,
-                   p_start, p_end, now; // time-calculation variables
-
-    int i, j;                       // loop-control variables
-    const char* time_report_hdr = "BUNDLE_SENT,PAYLOAD,TIME,DATA_SENT,GOODPUT";
-    const char* data_report_hdr = "BUNDLE_ID,PAYLOAD,TIME,GOODPUT";
-    int n_bundles = 0;              // number of bundles needed (Data-Mode)
-    
-    // DTN variables
-    dtn_handle_t        handle;
-    dtn_reg_info_t      reginfo;
-    dtn_bundle_spec_t   bundle_spec;
-    dtn_bundle_spec_t   reply_spec;
-    dtn_bundle_id_t     bundle_id;
-    dtn_bundle_payload_t send_payload;
-    dtn_bundle_payload_t reply_payload;
-    char demux[64];
-
-    // buffer specifications
-    char* buffer = NULL;            // buffer containing data to be transmitted
-    int bufferLen;                  // lenght of buffer
-    int bundles_sent;               // number of bundles sent in Time-Mode
-    
-    /* -------
-     *  begin
-     * ------- */
-
-    // print information header
-    printf("\nDTNperf - CLIENT - v 1.6.0");
-    printf("\nwritten by piero.cornice@gmail.com");
-    printf("\nDEIS - University of Bologna, Italy");
-    printf("\n");
-
-    // parse command-line options
-    parse_options(argc, argv);
-    if (debug) printf("[debug] parsed command-line options\n");
-
-    // check command-line options
-    if (debug) printf("[debug] checking command-line options...");
-    check_options();
-    if (debug) printf(" done\n");
-
-    // show command-line options (if verbose)
-    if (verbose) {
-        show_options();
-    }
-
-    // open the ipc handle
-    if (debug) fprintf(stdout, "Opening connection to local DTN daemon...");
-    int err = dtn_open(&handle);
-    if (err != DTN_SUCCESS) {
-        fprintf(stderr, "fatal error opening dtn handle: %s\n", dtn_strerror(err));
-        exit(1);
-    }
-    if (debug) printf(" done\n");
-
-
-    /* ----------------------------------------------------- *
-     *   initialize and parse bundle src/dest/replyto EIDs   *
-     * ----------------------------------------------------- */
-
-    // initialize bundle spec
-    if (debug) printf("[debug] memset for bundle_spec...");
-    memset(&bundle_spec, 0, sizeof(bundle_spec));
-    if (debug) printf(" done\n");
-
-    // SOURCE is local eid + demux string (optionally with file path)
-    sprintf(demux, "/dtnperf:/src");
-    dtn_build_local_eid(handle, &bundle_spec.source, demux);
-    if (verbose) printf("\nSource     : %s\n", bundle_spec.source.uri);
-
-    // DEST host is specified at run time, demux is hardcoded
-    sprintf(demux, "/dtnperf:/dest");
-    strcat(arg_dest, demux);
-    parse_eid(handle, &bundle_spec.dest, arg_dest);
-    if (verbose) printf("Destination: %s\n", bundle_spec.dest.uri);
-
-    // REPLY-TO (if none specified, same as the source)
-    if (arg_replyto == NULL) {
-        if (debug) printf("[debug] setting replyto = source...");
-        dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
-        if (debug) printf(" done\n");
-    }
-    else {
-        sprintf(demux, "/dtnperf:/src");
-        strcat(arg_replyto, demux);
-        parse_eid(handle, &bundle_spec.dest, arg_replyto);
-    }
-    if (verbose) printf("Reply-to   : %s\n\n", bundle_spec.replyto.uri);
-
-    /* ------------------------
-     * set the dtn options
-     * ------------------------ */
-    if (debug) printf("[debug] setting the DTN options: ");
-
-    // expiration
-    bundle_spec.expiration = expiration;
-
-    // set the delivery receipt option
-    if (delivery_receipts) {
-        bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
-        if (debug) printf("DELIVERY_RCPT ");
-    }
-
-    // set the forward receipt option
-    if (forwarding_receipts) {
-        bundle_spec.dopts |= DOPTS_FORWARD_RCPT;
-        if (debug) printf("FORWARD_RCPT ");
-    }
-
-    // request custody transfer
-    if (custody) {
-        bundle_spec.dopts |= DOPTS_CUSTODY;
-        if (debug) printf("CUSTODY ");
-    }
-
-    // request custody transfer
-    if (custody_receipts) {
-        bundle_spec.dopts |= DOPTS_CUSTODY_RCPT;
-        if (debug) printf("CUSTODY_RCPT ");
-    }
-
-    // request receive receipt
-    if (receive_receipts) {
-        bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
-        if (debug) printf("RECEIVE_RCPT ");
-    }
-
-/*
-    // overwrite
-    if (overwrite) {
-        bundle_spec.dopts |= DOPTS_OVERWRITE;
-        if (debug) printf("OVERWRITE ");
-    }
-*/
-    if (debug) printf("option(s) set\n");
-
-    /* ----------------------------------------------
-     * create a new registration based on the source
-     * ---------------------------------------------- */
-    if (debug) printf("[debug] memset for reginfo...");
-    memset(&reginfo, 0, sizeof(reginfo));
-    if (debug) printf(" done\n");
-
-    if (debug) printf("[debug] copying bundle_spec.replyto to reginfo.endpoint...");
-    dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
-    if (debug) printf(" done\n");
-
-    if (debug) printf("[debug] setting up reginfo...");
-    reginfo.flags = DTN_REG_DEFER;
-    reginfo.regid = regid;
-    reginfo.expiration = 30;
-    if (debug) printf(" done\n");
-
-    if (debug) printf("[debug] registering to local daemon...");
-    if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
-        fprintf(stderr, "error creating registration: %d (%s)\n",
-                ret, dtn_strerror(dtn_errno(handle)));
-        exit(1);
-    }    
-    if (debug) printf(" done: regid 0x%x\n", regid);
-
-    // if bundle_payload > MAX_MEM_PAYLOAD, transfer a file
-    if (bundle_payload > MAX_MEM_PAYLOAD)
-        use_file = 1;
-    else
-        use_file = 0;
-    
-    /* ------------------------------------------------------------------------------
-     * select the operative-mode (between Time_Mode and Data_Mode)
-     * ------------------------------------------------------------------------------ */
-
-    if (op_mode == 't') {
-    /* ---------------------------------------
-     * Time_Mode
-     * --------------------------------------- */
-        if (verbose) printf("Working in Time_Mode\n");
-        if (verbose) printf("requested %d second(s) of transmission\n", transmission_time);
-
-        if (debug) printf("[debug] bundle_payload %s %d bytes\n",
-                            use_file ? ">=" : "<",
-                            MAX_MEM_PAYLOAD);
-        if (verbose) printf(" transmitting data %s\n", use_file ? "using a file" : "using memory");
-
-        // reset data_qty
-        if (debug) printf("[debug] reset data_qty and bundles_sent...");
-        data_qty = 0;
-        bundles_sent = 0;
-        if (debug) printf(" done\n");
-
-        // allocate buffer space
-        if (debug) printf("[debug] malloc for the buffer...");
-        buffer = malloc(bundle_payload);
-        if (debug) printf(" done\n");
-        
-        // initialize buffer
-        if (debug) printf("[debug] initialize the buffer with a pattern...");
-        pattern(buffer, bundle_payload);
-        if (debug) printf(" done\n");
-        bufferLen = strlen(buffer);
-        if (debug) printf("[debug] bufferLen = %d\n", bufferLen);
-
-        if (use_file) {
-            // create the file
-            if (debug) printf("[debug] creating file %s...", file_name_src);
-            fd = open(file_name_src, O_CREAT|O_TRUNC|O_WRONLY|O_APPEND, 0666);
-            if (fd < 0) {
-                fprintf(stderr, "ERROR: couldn't create file %s [fd = %d]: %s\n",
-                        file_name_src, fd, strerror(errno));
-                exit(2);
-            }
-            if (debug) printf(" done\n");
-
-            // fill in the file with a pattern
-            if (debug) printf("[debug] filling the file (%s) with the pattern...", file_name_src);
-            data_written += write(fd, buffer, bufferLen);
-            if (debug) printf(" done. Written %d bytes\n", data_written);
-
-            // close the file
-            if (debug) printf("[debug] closing file (%s)...", file_name_src);
-            close(fd);
-            if (debug) printf(" done\n");
-        }
-
-        // memset for payload
-        if (debug) printf("[debug] memset for payload...");
-        memset(&send_payload, 0, sizeof(send_payload));
-        if (debug) printf(" done\n");
-
-        // fill in the payload
-        if (debug) printf("[debug] filling payload...");
-        if (use_file)
-            dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, file_name_src, strlen(file_name_src));
-        else
-            dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufferLen);
-        if (debug) printf(" done\n");
-
-        // initialize timer
-        if (debug) printf("[debug] initializing timer...");
-        gettimeofday(&start, NULL);
-        if (debug) printf(" start.tv_sec = %d sec\n", (u_int)start.tv_sec);
-
-        // calculate end-time
-        if (debug) printf("[debug] calculating end-time...");
-        end = set (0);
-        end.tv_sec = start.tv_sec + transmission_time;
-        if (debug) printf(" end.tv_sec = %d sec\n", (u_int)end.tv_sec);
-
-        // loop
-        if (debug) printf("[debug] entering loop...\n");
-        for (now.tv_sec = start.tv_sec; now.tv_sec <= end.tv_sec; gettimeofday(&now, NULL)) {
-
-            if (debug) printf("\t[debug] now.tv_sec = %u sec of %u\n", (u_int)now.tv_sec, (u_int)end.tv_sec);
-
-            // send the bundle
-            if (debug) printf("\t[debug] sending the bundle...");
-            memset(&bundle_id, 0, sizeof(bundle_id));
-            if ((ret = dtn_send(handle, regid, &bundle_spec, &send_payload, &bundle_id)) != 0) {
-                fprintf(stderr, "error sending bundle: %d (%s)\n",
-                        ret, dtn_strerror(dtn_errno(handle)));
-                exit(1);
-            }
-            if (debug) printf(" bundle sent\n");
-
-            // increment bundles_sent
-            bundles_sent++;
-            if (debug) printf("\t[debug] now bundles_sent is %d\n", bundles_sent);
-    
-            // increment data_qty
-            data_qty += bundle_payload;
-            if (debug) printf("\t[debug] now data_qty is %lu\n", data_qty);
-
-            // prepare memory for the reply
-            if (wait_for_report)
-            {
-                if (debug) printf("\t[debug] memset for reply_spec...");
-                memset(&reply_spec, 0, sizeof(reply_spec));
-                if (debug) printf(" done\n");
-                if (debug) printf("\t[debug] memset for reply_payload...");
-                memset(&reply_payload, 0, sizeof(reply_payload));
-                if (debug) printf(" done\n");
-            }
-            
-            // wait for the reply
-            if (debug) printf("\t[debug] waiting for the reply...");
-            if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
-            {
-                fprintf(stderr, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
-                exit(1);
-            }
-            if (debug) printf(" reply received\n");
-
-            // get the PARTIAL end time
-            if (debug) printf("\t[debug] getting partial end-time...");
-            gettimeofday(&p_end, NULL);
-            if (debug) printf(" end.tv_sec = %u sec\n", (u_int)p_end.tv_sec);
-
-            if (debug) printf("----- END OF THIS LOOP -----\n\n");
-        } // -- for
-        if (debug) printf("[debug] out from loop\n");
-
-        // deallocate buffer memory
-        if (debug) printf("[debug] deallocating buffer memory...");
-        free((void*)buffer);
-        if (debug) printf(" done\n");
-
-        // get the TOTAL end time
-        if (debug) printf("[debug] getting total end-time...");
-        gettimeofday(&end, NULL);
-        if (debug) printf(" end.tv_sec = %u sec\n", (u_int)end.tv_sec);
-    
-        // show the report
-        if (csv_out == 0) {
-            printf("%d bundles sent, each with a %ld bytes payload\n", bundles_sent, bundle_payload);
-            show_report(reply_payload.buf.buf_len,
-                        reply_spec.source.uri,
-                        start,
-                        end,
-                        data_qty);
-        }
-        if (csv_out == 1) {
-            printf("%s\n", time_report_hdr);
-            csv_time_report(bundles_sent, bundle_payload, start, end);
-        }
-
-    } // -- time_mode
-
-    else if (op_mode == 'd') {
-    /* ---------------------------------------
-     * Data_Mode
-     * --------------------------------------- */
-        if (verbose) printf("Working in Data_Mode\n");
-
-        // initialize the buffer
-        if (debug) printf("[debug] initializing buffer...");
-        if (!use_file) {
-            buffer = malloc( (data_qty < bundle_payload) ? data_qty : bundle_payload );
-            memset(buffer, 0, (data_qty < bundle_payload) ? data_qty : bundle_payload );
-            pattern(buffer, (data_qty < bundle_payload) ? data_qty : bundle_payload );
-        }
-        if (use_file) {
-            buffer = malloc(data_qty);
-            memset(buffer, 0, data_qty);
-            pattern(buffer, data_qty);
-        }
-        bufferLen = strlen(buffer);
-        if (debug) printf(" done. bufferLen = %d (should equal %s)\n",
-                            bufferLen, use_file ? "data_qty" : "bundle_payload");
-
-        if (use_file) {
-            // create the file
-            if (debug) printf("[debug] creating file %s...", file_name_src);
-            fd = open(file_name_src, O_CREAT|O_TRUNC|O_WRONLY|O_APPEND, 0666);
-            if (fd < 0) {
-                fprintf(stderr, "ERROR: couldn't create file [fd = %d]. Maybe you don't have permissions\n", fd);
-                exit(2);
-            }
-            if (debug) printf(" done\n");
-
-            // fill in the file with a pattern
-            if (debug) printf("[debug] filling the file (%s) with the pattern...", file_name_src);
-            data_written += write(fd, buffer, bufferLen);
-            if (debug) printf(" done. Written %d bytes\n", data_written);
-
-            // close the file
-            if (debug) printf("[debug] closing file (%s)...", file_name_src);
-            close(fd);
-            if (debug) printf(" done\n");
-        }
-
-        // fill in the payload
-        if (debug) printf("[debug] filling the bundle payload...");
-        memset(&send_payload, 0, sizeof(send_payload));
-        if (use_file) {
-            dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, file_name_src, strlen(file_name_src));
-        } else {
-            dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufferLen);
-        }
-        if (debug) printf(" done\n");
-
-        // if CSV option is set, print the data_report_hdr
-        if (csv_out == 1)
-            printf("%s\n", data_report_hdr);
-
-        // 1) If you're using MEMORY (-m option), the maximum data quantity is MAX_MEM_PAYLOAD bytes.
-        //    So, if someone tries to send more data, you have to do multiple transmission
-        //    in order to avoid daemon failure.
-        //    This, however, doesn't affect the goodput measurement, since it is calculated
-        //    for each transmission.
-        // 2) If you are using FILE, you may want to send an amount of data
-        //    using smaller bundles.
-        // So it's necessary to calculate how many bundles are needed.
-        if (debug) printf("[debug] calculating how many bundles are needed...");
-        n_bundles = bundles_needed(data_qty, bundle_payload);
-        if (debug) printf(" n_bundles = %d\n", n_bundles);
-
-        // initialize TOTAL start timer
-        if (debug) printf("[debug] initializing TOTAL start timer...");
-        gettimeofday(&start, NULL);
-        if (debug) printf(" start.tv_sec = %u sec\n", (u_int)start.tv_sec);
-
-        if (debug) printf("[debug] entering n_copies loop...\n");
-        // --------------- loop until all n_copies are sent
-        for (i=0; i<n_copies; i++) {
-
-                if (debug) printf("\t[debug] entering n_bundles loop...\n");
-                for (j=0; j<n_bundles; j++) {
-
-                    // initialize PARTIAL start timer
-                    if (debug) printf("\t\t[debug] initializing PARTIAL start timer...");
-                    gettimeofday(&p_start, NULL);
-                    if (debug) printf(" p_start.tv_sec = %u sec\n", (u_int)p_start.tv_sec);
-
-                    // send the bundle
-                    if (debug) printf("\t\t[debug] sending copy %d...", i+1);
-                    memset(&bundle_id, 0, sizeof(bundle_id));
-                    if ((ret = dtn_send(handle, regid, &bundle_spec, &send_payload, &bundle_id)) != 0) {
-                        fprintf(stderr, "error sending bundle: %d (%s)\n",
-                                ret, dtn_strerror(dtn_errno(handle)));
-                        exit(1);
-                    }
-                    if (debug) printf(" bundle sent\n");
-
-                    // prepare memory areas for the reply
-                    if (wait_for_report)
-                    {
-                        if (debug) printf("\t\t[debug] setting memory for reply...");
-                        memset(&reply_spec, 0, sizeof(reply_spec));
-                        memset(&reply_payload, 0, sizeof(reply_payload));
-                        if (debug) printf(" done\n");
-                    }
-
-                    // wait for the reply
-                    if (debug) printf("\t\t[debug] waiting for the reply...");
-                    if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
-                    {
-                        fprintf(stderr, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
-                        exit(1);
-                    }
-                    if (debug) printf(" reply received\n");
-
-                    // get PARTIAL end time
-                    if (debug) printf("\t\t[debug] stopping PARTIAL timer...");
-                    gettimeofday(&p_end, NULL);
-                    if (debug) printf(" p_end.tv_sec = %u sec\n", (u_int)p_end.tv_sec);
-
-                    // show the PARTIAL report (verbose mode)
-                    if (verbose) {
-                        printf("[%d/%d] ", j+1, n_bundles);
-                        show_report(reply_payload.buf.buf_len,
-                                    bundle_spec.source.uri,
-                                    p_start,
-                                    p_end,
-                                    ((bundle_payload <= data_qty)?bundle_payload:data_qty));
-                    }
-                } // end for(n_bundles)
-                if (debug) printf("\t[debug] ...out from n_bundles loop\n");
-
-            // calculate TOTAL end time
-            if (debug) printf("\t[debug] calculating TOTAL end time...");
-            gettimeofday(&end, NULL);
-            if (debug) printf(" end.tv_sec = %u sec\n", (u_int)end.tv_sec);
-
-            // show the TOTAL report
-            if (csv_out == 0) {
-                show_report(reply_payload.buf.buf_len,
-                            reply_spec.source.uri,
-                            start,
-                            end,
-                            data_qty);
-            }
-            if (csv_out == 1) {    
-                csv_data_report(i+1, data_qty, start, end);
-            }
-
-            if (n_copies > 0)
-                sleep(sleepVal);
-
-        } // end for(n_copies)
-        if (debug) printf("[debug] ...out from n_copies loop\n");
-        // -------------------------- end of loop
-
-        // deallocate buffer memory
-        if (debug) printf("[debug] deallocating buffer memory...");
-        free(buffer);
-        if (debug) printf(" done\n");
-
-    } // -- data_mode
-
-    else {        // this should not be executed (written only for debug purpouse)
-        fprintf(stderr, "ERROR: invalid operative mode! Specify -t or -n\n");
-        exit(3);
-    }
-
-    // close dtn-handle -- IN DTN_2.1.1 SIMPLY RETURNS -1
-    if (debug) printf("[debug] closing DTN handle...");
-    if (dtn_close(handle) != DTN_SUCCESS)
-    {
-        fprintf(stderr, "fatal error closing dtn handle: %s\n",
-                strerror(errno));
-        exit(1);
-    }
-    if (debug) printf(" done\n");
-
-    // final carriage return
-    printf("\n");
-
-    return 0;
-} // end main
+	int pthread_status;
+
+	dtnperf_options_t dtnperf_options;
+	dtn_options_t dtn_options;
+
+
+	// Init options
+	init_dtnperf_options(&dtnperf_options);
+	init_dtn_options(&dtn_options);
+
+
+	// Parse and check command line options
+	parse_options(argc, argv, &dtnperf_options, &dtn_options);
+
+	if ((debug) && (debug_level > 0))
+		printf("[debug] parsed command-line options\n");
+
+	if ((debug) && (debug_level > 0))
+		printf("[debug] checking command-line option...");
+
+	check_options(&dtnperf_options, &dtn_options);
+
+	if ((debug) && (debug_level > 0))
+		printf(" done\n");
+
+	if (debug)
+		show_options(&dtnperf_options, &dtn_options);
+
+
+
+	// Create a new log file
+	if (create_log)
+	{
+		if ((log_file = fopen(log_filename, "w")) == NULL)
+		{
+			fprintf(stderr, "fatal error opening log file\n");
+			exit(1);
+		}
+	}
+
+	if (csv_out)
+	{
+		if ((csv_log_file = fopen(csv_log_filename, "w")) == NULL)
+		{
+			fprintf(stderr, "fatal error opening log file\n");
+			exit(1);
+		}
+	}
+
+	if (dtnperf_options.transfer_file)
+	{
+		if ((real_file_fd = open(real_file, O_RDONLY)) < 0)
+		{
+			fprintf(stderr, "fatal error opening file %s\n", real_file);
+			exit(1);
+		}
+	}
+
+
+	// Connect to DTN Daemon
+	if ((debug) && (debug_level > 0))
+		printf("[debug] opening connection to local DTN daemon...");
+
+	int err = dtn_open(&handle);
+
+	if (err != DTN_SUCCESS)
+	{
+		fprintf(stderr, "fatal error opening dtn handle: %s\n", dtn_strerror(err));
+		if (create_log)
+			fprintf(log_file, "fatal error opening dtn handle: %s\n", dtn_strerror(err));
+		exit(1);
+	}
+
+	if ((debug) && (debug_level > 0))
+		printf("done\n");
+
+
+
+	/* -----------------------------------------------------
+	 *   initialize and parse bundle src/dest/replyto EIDs
+	 * ----------------------------------------------------- */
+
+	memset(&bundle_spec, 0, sizeof(bundle_spec));
+
+
+	// SOURCE is local EID + demux string (with optional file path)
+	sprintf(demux, "/dtnperf:/src");
+	dtn_build_local_eid(handle, &bundle_spec.source, demux);
+
+	if (debug)
+		printf("\nSource     : %s\n", bundle_spec.source.uri);
+
+	if (create_log)
+		fprintf(log_file, "\nSource     : %s\n", bundle_spec.source.uri);
+
+
+	// DEST host is specified at runtime, demux is hardcoded
+	sprintf(demux, "/dtnperf:/dest");
+	strcat(arg_dest, demux);
+
+	if (verbose)
+		fprintf(stdout, "%s (local)\n", arg_dest);
+
+	if (parse_eid(handle, &bundle_spec.dest, arg_dest) == NULL)
+	{
+		fprintf(stderr, "fatal error parsing dtn EID: invalid eid string '%s'\n", arg_dest);
+		exit(1);
+	}
+
+	if (debug)
+		printf("Destination: %s\n", bundle_spec.dest.uri);
+
+	if (create_log)
+		fprintf(log_file, "Destination: %s\n", bundle_spec.dest.uri);
+
+
+	// REPLY-TO (if none specified, same as the source)
+	if (arg_replyto == NULL)
+	{
+		if ((debug) && (debug_level > 0))
+			printf("[debug] setting replyto = source...");
+
+		dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
+
+		if ((debug) && (debug_level > 0))
+			printf(" done\n");
+	}
+	else
+	{
+		sprintf(demux, "/dtnperf:/src");
+		strcat(arg_replyto, demux);
+		parse_eid(handle, &bundle_spec.dest, arg_replyto);
+	}
+
+	if (debug)
+		printf("Reply-to   : %s\n\n", bundle_spec.replyto.uri);
+
+	if (create_log)
+		fprintf(log_file, "Reply-to   : %s\n\n", bundle_spec.replyto.uri);
+
+
+
+	/* ------------------------
+	 * set DTN options
+	 * ------------------------ */
+
+	if ((debug) && (debug_level > 0))
+		printf("[debug] setting the DTN options: ");
+
+	if (create_log)
+		fprintf(log_file, " DTN options: ");
+
+	set_dtn_options(&bundle_spec, &dtn_options);
+
+	if ((debug) && (debug_level > 0))
+		printf("option(s) set\n");
+
+
+	/* ----------------------------------------------
+	 * create a new registration based on the source
+	 * ---------------------------------------------- */
+
+	memset(&reginfo, 0, sizeof(reginfo));
+
+
+	if ((debug) && (debug_level > 0))
+		printf("[debug] copying bundle_spec.replyto to reginfo.endpoint...");
+
+	dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
+
+	if ((debug) && (debug_level > 0))
+		printf(" done\n");
+
+	if ((debug) && (debug_level > 0))
+		printf("[debug] setting up reginfo...");
+
+	reginfo.flags = DTN_REG_DEFER;
+	reginfo.regid = dtnperf_options.regid;
+	reginfo.expiration = 30;
+
+	if ((debug) && (debug_level > 0))
+		printf(" done\n");
+
+	if ((debug) && (debug_level > 0))
+		printf("[debug] registering to local daemon...");
+
+	if ((ret = dtn_register(handle, &reginfo, &dtnperf_options.regid)) != 0)
+	{
+		fprintf(stderr, "error creating registration: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+		if (create_log)
+			fprintf(log_file, "error creating registration: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+		exit(1);
+	}
+
+	if ((debug) && (debug_level > 0))
+		printf(" done: regid 0x%x\n", dtnperf_options.regid);
+
+	if (create_log)
+		fprintf(log_file, " regid 0x%x\n", dtnperf_options.regid);
+
+
+	// if bundle_payload > MAX_MEM_PAYLOAD, then transfer a file
+	if (dtnperf_options.bundle_payload > MAX_MEM_PAYLOAD)
+		dtnperf_options.use_file = 1;
+	else
+		dtnperf_options.use_file = 0;
+
+	if (csv_out)
+		fprintf(csv_log_file, "TIME,STATUS,SENDER,ID,RECEIVER\n");
+
+
+	/* ------------------------------------------------------------------------------
+	 * select the operative-mode (between Time_Mode and Data_Mode)
+	 * ------------------------------------------------------------------------------ */
+	
+	
+	if (dtnperf_options.op_mode == 't')	// Time mode
+	{
+
+		if (debug)
+			printf("Working in Time_Mode\n");
+
+		if (create_log)
+			fprintf(log_file, "Working in Time_Mode\n");
+
+		if (debug)
+			printf("requested %d second(s) of transmission\n", dtnperf_options.transmission_time);
+
+		if (create_log)
+			fprintf(log_file, "requested %d second(s) of transmission\n", dtnperf_options.transmission_time);
+
+		if ((debug) && (debug_level > 0))
+			printf("[debug] bundle_payload %s %d bytes\n", dtnperf_options.use_file ? ">=" : "<", MAX_MEM_PAYLOAD);
+
+		if (create_log)
+			fprintf(log_file, " bundle_payload %s %d bytes\n", dtnperf_options.use_file ? ">=" : "<", MAX_MEM_PAYLOAD);
+
+		if (debug)
+			printf(" transmitting data %s\n", dtnperf_options.use_file ? "using a file" : "using memory");
+
+		if (create_log)
+			fprintf(log_file, " transmitting data %s\n", dtnperf_options.use_file ? "using a file" : "using memory");
+
+
+		dtnperf_options.data_qty = 0;
+		sent_bundles = 0;
+
+		// Init buffer
+		buffer = malloc(dtnperf_options.bundle_payload * sizeof(char));
+
+		if ((debug) && (debug_level > 0))
+			printf("[debug] initialize the buffer with a pattern... ");
+
+		pattern(buffer, dtnperf_options.bundle_payload);
+		bufferLen = strlen(buffer);
+
+		if ((debug) && (debug_level > 0))
+			printf("done\n[debug] bufferLen = %d\n", bufferLen);
+
+
+		if (dtnperf_options.use_file)
+		{
+			// create the file
+			if ((debug) && (debug_level > 0))
+				printf("[debug] creating file %s...", file_name_src);
+
+			fd = open(file_name_src, O_CREAT | O_TRUNC | O_WRONLY | O_APPEND, 0666);
+
+			if (fd < 0)
+			{
+				fprintf(stderr, "ERROR: couldn't create file %s [fd = %d].\n \b Maybe you don't have permissions\n", file_name_src, fd);
+
+				if (create_log)
+					fprintf(log_file, "ERROR: couldn't create file %s [fd = %d].\n \b Maybe you don't have permissions\n", file_name_src, fd);
+
+				exit(2);
+			}
+
+			if ((debug) && (debug_level > 0))
+				printf(" done\n");
+
+
+			// Fill in the file with a pattern
+			if ((debug) && (debug_level > 0))
+				printf("[debug] filling the file (%s) with the pattern...", file_name_src);
+
+			data_written += write(fd, buffer, bufferLen);
+
+			if ((debug) && (debug_level > 0))
+				printf(" done. Written %d bytes\n", data_written);
+
+			// Close the file
+			if ((debug) && (debug_level > 0))
+				printf("[debug] closing file (%s)...", file_name_src);
+
+			close(fd);
+
+			if ((debug) && (debug_level > 0))
+				printf(" done\n");
+		}
+
+
+		bundles_ready = dtnperf_options.window;
+
+
+		// Create the array for the bundle send info
+		if ((debug) && (debug_level > 0))
+			printf("[debug] creating structure for sending information...");
+
+		if (dtnperf_options.slide_on_custody==1)
+		{
+			send_info = (send_information_t*) malloc((dtnperf_options.window+1000) * sizeof(send_information_t));
+			init_info(send_info, dtnperf_options.window+1000);
+		}
+		else
+		{
+			send_info = (send_information_t*) malloc(dtnperf_options.window * sizeof(send_information_t));
+			init_info(send_info, dtnperf_options.window);
+		}
+
+		if ((debug) && (debug_level > 0))
+			printf(" done\n");
+
+
+		// Fill the payload
+		memset(&send_payload, 0, sizeof(send_payload));
+
+		if ((debug) && (debug_level > 0))
+			printf("[debug] filling payload...");
+
+		if (dtnperf_options.use_file)
+			dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, file_name_src, strlen(file_name_src));
+		else
+			dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufferLen);
+
+		if ((debug) && (debug_level > 0))
+			printf(" done\n");
+
+
+		// Run threads
+		pthread_cond_init(&cond_sender, NULL);
+		pthread_cond_init(&cond_ackreceiver, NULL);
+		pthread_mutex_init (&mutexdata, NULL);
+
+		global_options_t arg;
+		arg.dtnperf_opt = &dtnperf_options;
+		arg.dtn_opt = &dtn_options;
+
+		pthread_create(&sender, NULL, send_bundle, (void*)&arg);
+		pthread_create(&ack_receiver, NULL, receive_ack, (void*)&arg);
+
+		pthread_join(ack_receiver, (void**)&pthread_status);
+		pthread_join(sender, (void**)&pthread_status);
+
+		pthread_mutex_destroy(&mutexdata);
+
+		if ((debug) && (debug_level > 0))
+			printf("[debug] out from loop\n");
+
+
+		free((void*)buffer);
+
+
+		// Get the TOTAL end time
+		if ((debug) && (debug_level > 0))
+			printf("[debug] getting total end-time...");
+
+		gettimeofday(&end, NULL);
+
+		if ((debug) && (debug_level > 0))
+			printf(" end.tv_sec = %u sec\n", (u_int)end.tv_sec);
+
+
+		// Show the report
+		printf("%d bundles sent, each with a %ld bytes payload\n", sent_bundles, dtnperf_options.bundle_payload);
+
+		show_report(reply_payload.buf.buf_len,
+		            reply_spec.source.uri,
+		            start,
+		            end,
+		            dtnperf_options.data_qty,
+		            NULL);
+
+
+		if (create_log)
+		{
+			fprintf(log_file, "%d bundles sent, each with a %ld bytes payload\n", sent_bundles, dtnperf_options.bundle_payload);
+
+			show_report(reply_payload.buf.buf_len,
+			            reply_spec.source.uri,
+			            start,
+			            end,
+			            dtnperf_options.data_qty,
+			            log_file);
+		}
+
+		if (csv_out)
+		{
+			csv_time_report(sent_bundles, dtnperf_options.bundle_payload, start, end, csv_log_file);
+		}
+	}
+	// End of Time Mode
+
+
+	else if (dtnperf_options.op_mode == 'd')	// Data mode
+	{
+		if (debug)
+			printf("Working in Data_Mode\n");
+
+		// Initialize the buffer
+		if (!dtnperf_options.transfer_file)
+		{
+
+			if ((debug) && (debug_level > 0))
+				printf("[debug] initializing buffer...");
+
+			if (!dtnperf_options.use_file)
+			{
+				buffer = malloc( (dtnperf_options.data_qty < dtnperf_options.bundle_payload) ?
+				                 dtnperf_options.data_qty :
+				                 dtnperf_options.bundle_payload );
+
+				memset(buffer, 0, (dtnperf_options.data_qty < dtnperf_options.bundle_payload) ?
+				       dtnperf_options.data_qty : dtnperf_options.bundle_payload );
+
+				pattern(buffer, (dtnperf_options.data_qty < dtnperf_options.bundle_payload) ?
+				        dtnperf_options.data_qty : dtnperf_options.bundle_payload );
+			}
+			else
+			{
+				buffer = malloc( (dtnperf_options.data_qty < dtnperf_options.bundle_payload) ?
+				                 dtnperf_options.data_qty : dtnperf_options.bundle_payload );
+
+				memset(buffer, 0, (dtnperf_options.data_qty < dtnperf_options.bundle_payload) ?
+				       dtnperf_options.data_qty : dtnperf_options.bundle_payload );
+
+				pattern(buffer, (dtnperf_options.data_qty < dtnperf_options.bundle_payload) ?
+				        dtnperf_options.data_qty : dtnperf_options.bundle_payload );
+			}
+
+			bufferLen = strlen(buffer);
+
+			if ((debug) && (debug_level > 0) && (!dtnperf_options.transfer_file))
+				printf(" done. bufferLen = %d (should equal %s)\n",
+				       bufferLen, dtnperf_options.use_file ? "data_qty" : "bundle_payload");
+
+			if (dtnperf_options.use_file)
+			{
+				// Create the file
+				if ((debug) && (debug_level > 0))
+					printf("[debug] creating file %s...", file_name_src);
+
+				fd = open(file_name_src, O_CREAT | O_TRUNC | O_WRONLY | O_APPEND, 0666);
+
+				if (fd < 0)
+				{
+					fprintf(stderr, "ERROR: couldn't create file [fd = %d]. Maybe you don't have permissions\n", fd);
+
+					if (create_log)
+						fprintf(log_file, "ERROR: couldn't create file [fd = %d]. Maybe you don't have permissions\n", fd);
+
+					exit(2);
+				}
+
+				if ((debug) && (debug_level > 0))
+					printf(" done\n");
+
+				// Fill in the file with a pattern
+				if ((debug) && (debug_level > 0))
+					printf("[debug] filling the file (%s) with the pattern...", file_name_src);
+
+				data_written += write(fd, buffer, bufferLen);
+
+				if ((debug) && (debug_level > 0))
+					printf(" done. Written %d bytes\n", data_written);
+
+
+				// Close the file
+				if ((debug) && (debug_level > 0))
+					printf("[debug] closing file (%s)...", file_name_src);
+
+				close(fd);
+
+				if ((debug) && (debug_level > 0))
+					printf(" done\n");
+			}
+		}
+
+		// 1) If you're using MEMORY (-m option), the maximum data quantity is MAX_MEM_PAYLOAD bytes.
+		//    So if someone tries to send more data, you will have to do multiple transmission
+		//    in order to avoid daemon failure.
+		//    This, however, doesn't affect the goodput measurement, since it is calculated
+		//    for each transmission.
+		//
+		// 2) If you are using FILE, you may want to send an amount of data
+		//    using smaller bundles.
+		//
+		// In both cases we shall calculate how many bundles are needed.
+
+		if (dtnperf_options.transfer_file)
+		{
+			dtnperf_options.data_qty = lseek(real_file_fd, 0, SEEK_END);
+			lseek(real_file_fd, 0, SEEK_SET);
+		}
+
+		if ((debug) && (debug_level > 0))
+			printf("[debug] calculating how many bundles are needed...");
+
+		n_bundles = bundles_needed(dtnperf_options.data_qty, dtnperf_options.bundle_payload);
+
+		if (dtnperf_options.transfer_file)
+			n_bundles++;
+
+		if ((debug) && (debug_level > 0))
+			printf(" n_bundles = %d\n", n_bundles);
+
+		bundles_ready = dtnperf_options.window;
+
+
+		// Create the array for the bundle send info
+		if ((debug) && (debug_level > 0))
+			printf("[debug] creating structure for sending information...");
+
+		if (dtnperf_options.slide_on_custody==1)
+		{
+			send_info = (send_information_t*) malloc((dtnperf_options.window+1000) * sizeof(send_information_t));
+			init_info(send_info, dtnperf_options.window+1000);
+		}
+		else
+		{
+			send_info = (send_information_t*) malloc(dtnperf_options.window * sizeof(send_information_t));
+			init_info(send_info, dtnperf_options.window);
+		}
+
+		if ((debug) && (debug_level > 0))
+			printf(" done\n");
+
+
+		// Run threads
+		pthread_cond_init(&cond_sender, NULL);
+		pthread_cond_init(&cond_ackreceiver, NULL);
+		pthread_mutex_init (&mutexdata, NULL);
+
+		global_options_t arg;
+		arg.dtnperf_opt = &dtnperf_options;
+		arg.dtn_opt = &dtn_options;
+
+		pthread_create(&sender, NULL, send_bundle, (void*) &arg);
+		pthread_create(&ack_receiver, NULL, receive_ack, (void*)&arg);
+
+		pthread_join(ack_receiver, (void**)&pthread_status);
+		pthread_join(sender, (void**)&pthread_status);
+
+		pthread_mutex_destroy(&mutexdata);
+
+		// Close source file
+		if ((debug) && (debug_level > 0) && (dtnperf_options.transfer_file))
+			printf("[debug] deallocating buffer memory...");
+
+		if (dtnperf_options.transfer_file)
+			close(real_file_fd);
+
+		if ((debug) && (debug_level > 0) && (dtnperf_options.transfer_file))
+			printf(" done\n");
+
+
+		free(buffer);
+	}
+	else
+	{
+		// This should not be executed (written only for debug purpouse)
+		fprintf(stderr, "ERROR: invalid operative mode! Specify -t or -n\n");
+		exit(3);
+	}
+
+
+	// Close the DTN handle -- IN DTN_2.1.1 SIMPLY RETURNS -1
+	if ((debug) && (debug_level > 0))
+		printf("[debug] closing DTN handle...");
+
+	if (dtn_close(handle) != DTN_SUCCESS)
+	{
+		fprintf(stderr, "fatal error closing dtn handle: %s\n", strerror(errno));
+		if (create_log)
+			fprintf(log_file, "fatal error closing dtn handle: %s\n", strerror(errno));
+		exit(1);
+	}
+
+	if ((debug) && (debug_level > 0))
+		printf(" done\n");
+
+	if (create_log)
+		fclose(log_file);
+
+	if (csv_out)
+		fclose(csv_log_file);
+
+	free(send_info);
+
+	pthread_exit(NULL);
+
+
+	// Final carriage return
+	printf("\n");
+
+	return 0;
+} // End main
+
 
 
 
@@ -663,461 +810,1248 @@ int main(int argc, char** argv)
  *           UTILITY FUNCTIONS
  * ---------------------------------------- */
 
+
 /* ----------------------------
  * print_usage
  * ---------------------------- */
 void print_usage(char* progname)
 {
-    fprintf(stderr, "\nSYNTAX: %s "
-            "-d <dest_eid> "
-            "[-t <sec> | -n <num>] [options]\n\n", progname);
-    fprintf(stderr, "where:\n");
-    fprintf(stderr, " -d <eid> destination eid (required)\n");
-    fprintf(stderr, " -t <sec> Time-Mode: seconds of transmission\n");
-    fprintf(stderr, " -n <num> Data-Mode: number of MBytes to send\n");
-    fprintf(stderr, "Options common to both Time and Data Mode:\n");
-    fprintf(stderr, " -p <size> size in KBytes of bundle payload\n");
-    fprintf(stderr, " -r <eid> reply-to eid (if none specified, source tuple is used)\n");
-    fprintf(stderr, "Data-Mode options:\n");
-    fprintf(stderr, " -m use memory instead of file\n");
-    fprintf(stderr, " -B <num> number of consecutive transmissions (default 1)\n");
-    fprintf(stderr, " -S <sec> sleeping seconds between consecutive transmissions (default 1)\n");
-    fprintf(stderr, "Other options:\n");
-    fprintf(stderr, " -c CSV output (useful with redirection of the output to a file)\n");
-    fprintf(stderr, " -h help: show this message\n");
-    fprintf(stderr, " -v verbose\n");
-    fprintf(stderr, " -D debug messages (many)\n");
-    fprintf(stderr, " -F enables forwarding receipts\n");
-    fprintf(stderr, " -R enables receive receipts\n");
-    fprintf(stderr, "\n");
-    exit(1);
+	fprintf(stderr, "\nSYNTAX: %s "
+	        "-d <dest_eid> "
+	        "(-t <sec> || -n <num>) [options]\n\n", progname);
+	
+	fprintf(stderr, "Destination:\n");
+	fprintf(stderr, " -d, --destination <eid>    Destination eid (required)\n\n");
+	
+	fprintf(stderr, "Time-Mode and Data-Mode (alternative) choice:\n");
+	fprintf(stderr, " -t, --time <sec>    Time-Mode: transmission length in seconds\n");
+	fprintf(stderr, " -n, --data (<num[BKM]> || <file_name>)    Data-Mode: amount of bytes to transmit.\n\tIf no data unit is specified, assuming 'M' (MBytes)\n\n");
+	
+	fprintf(stderr, "Options\n\n");
+	
+	fprintf(stderr, "Main options (common to both Time-Mode and Data-Mode):\n");
+	fprintf(stderr, " -p, --payload <size[BKM]>	   Size in bytes of bundle payload (default 50K).\n\tIf no data unit is indicated, assuming 'K' (KBytes)\n");
+	fprintf(stderr, " -w, --window <size>    Size in bundle of trasmission window (default 1).\n\tThe transmission window is the number of allowed in-flight bundles (i.e. sent but not yet delivered).\n\tIt runs on \"STATUS_DELIVERED\" receipts\n");
+	fprintf(stderr, " -C, --custody [SONC || Slide_on_Custody]    Enable custody transfer and custody transfer receipts.\n\tIf SONC || Slide_on_Custody is set, the trasmission window slides on first intermediate node \"STATUS_CUSTODY_ACCEPTED\" receipts instead of \"STATUS_DELIVERED\" receipts\n\n");
+
+	fprintf(stderr, "Memory options:\n");
+	fprintf(stderr, " -m, --memory    Use memory support instead of file\n\n");
+	
+	fprintf(stderr, "Other options (common to both Time-Mode and Data-Mode):\n");
+	fprintf(stderr, " -h, --help    Show this message\n");
+	fprintf(stderr, " -c, --csvout <csv_log_filename>    Create a CSV log file (brief log of all bundle receipts and final goodput)\n");
+	fprintf(stderr, " -D, --debug <level>    Debug level [0-1-2] (default 0)\n");
+	fprintf(stderr, " -L, --log <log_filename>    Create a log file (detailed log)\n");
+	fprintf(stderr, " -F, --freceipts    Enable \"STATUS_FORWARDED\" receipts\n");
+	fprintf(stderr, " -R, --rreceipts    Enable \"STATUS_RECEIVED\" receipts\n\n");
+	exit(1);
 } // end print_usage
+
+
+
+void init_dtnperf_options(dtnperf_options_t *opt)
+{
+	opt->op_mode = 'd';
+	opt->data_qty = 0;
+	opt->n_arg = NULL;
+	opt->p_arg = NULL;
+	opt->use_file = 1;
+	opt->transfer_file = 0;
+	opt->data_unit = 'M';
+	opt->transmission_time = 0;
+	opt->window = 1;
+	opt->slide_on_custody=0;
+	opt->regid = DTN_REGID_NONE;
+	opt->bundle_payload = DEFAULT_PAYLOAD;
+	opt->payload_type = DTN_PAYLOAD_FILE;
+}
+
+
+
+void init_dtn_options(dtn_options_t* opt)
+{
+	opt->expiration = 3600; // expiration time (sec) [3600]
+	opt->delivery_receipts = 1;    // request delivery receipts [1]
+	opt->forwarding_receipts = 0;    // request per hop departure [0]
+	opt->custody_transfer = 0;    // request custody transfer [0]
+	opt->custody_receipts = 0;    // request per custodian receipts [0]
+	opt->receive_receipts = 0;    // request per hop arrival receipt [0]
+	opt->wait_for_report = 1;    // wait for bundle status reports [1]
+}
+
+
+void set_dtn_options(dtn_bundle_spec_t *bundle_spec, dtn_options_t *opt)
+{
+	// Bundle expiration
+	bundle_spec->expiration = opt->expiration;
+
+
+	// Delivery receipt option
+	if (opt->delivery_receipts)
+	{
+		bundle_spec->dopts |= DOPTS_DELIVERY_RCPT;
+
+		if ((debug) && (debug_level > 0))
+			printf("DELIVERY_RCPT ");
+
+		if (create_log)
+			fprintf(log_file, "DELIVERY_RCPT ");
+	}
+
+	// Forward receipt option
+	if (opt->forwarding_receipts)
+	{
+		bundle_spec->dopts |= DOPTS_FORWARD_RCPT;
+
+		if ((debug) && (debug_level > 0))
+			printf("FORWARD_RCPT ");
+
+		if (create_log)
+			fprintf(log_file, "FORWARD_RCPT ");
+	}
+
+	// Custody transfer
+	if (opt->custody_transfer)
+	{
+		bundle_spec->dopts |= DOPTS_CUSTODY;
+
+		if ((debug) && (debug_level > 0))
+			printf("CUSTODY ");
+
+		if (create_log)
+			fprintf(log_file, "CUSTODY ");
+	}
+
+
+	// Custody receipts
+	if (opt->custody_receipts)
+	{
+		bundle_spec->dopts |= DOPTS_CUSTODY_RCPT;
+
+		if ((debug) && (debug_level > 0))
+			printf("CUSTODY_RCPT ");
+
+		if (create_log)
+			fprintf(log_file, "CUSTODY_RCPT ");
+	}
+
+	// Receive receipt
+	if (opt->receive_receipts)
+	{
+		bundle_spec->dopts |= DOPTS_RECEIVE_RCPT;
+
+		if ((debug) && (debug_level > 0))
+			printf("RECEIVE_RCPT ");
+
+		if (create_log)
+			fprintf(log_file, "RECEIVE_RCPT ");
+	}
+} // end set_dtn_options
+
 
 
 /* ----------------------------
  * parse_options
  * ---------------------------- */
-void parse_options(int argc, char**argv)
+void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_options_t *dtn_opt)
 {
-    int c, done = 0;
+	char c, done = 0;
 
-    while (!done)
-    {
-        c = getopt(argc, argv, "hvDcmr:d:i:t:p:n:S:B:FRf:");
-        switch (c)
-        {
-        case 'v':
-            verbose = 1;
-            break;
-        case 'h':
-            print_usage(argv[0]);
-            exit(0);
-            return;
-        case 'c':
-            csv_out = 1;
-            break;
-        case 'r':
-            arg_replyto = optarg;
-            break;
-        case 'd':
-            arg_dest = optarg;
-            break;
-        case 'i':
-            regid = atoi(optarg);
-            break;
-        case 'D':
-            debug = 1;
-            break;
-        case 't':
-            op_mode = 't';
-            transmission_time = atoi(optarg);
-            break;
-        case 'n':
-            op_mode = 'd';
-            n_arg = optarg;
-            data_unit = findDataUnit(n_arg);
-            switch (data_unit) {
-                case 'B':
-                    data_qty = atol(n_arg);
-                    break;
-                case 'K':
-                    data_qty = kilo2byte(atol(n_arg));
-                    break;
-                case 'M':
-                    data_qty = mega2byte(atol(n_arg));
-                    break;
-                default:
-                    printf("\nWARNING: (-n option) invalid data unit, assuming 'M' (MBytes)\n\n");
-                    data_qty = mega2byte(atol(n_arg));
-                    break;
-            }
-            break;
-        case 'p':
-            p_arg = optarg;
-            data_unit = findDataUnit(p_arg);
-            switch (data_unit) {
-                case 'B':
-                    bundle_payload = atol(p_arg);
-                    break;
-                case 'K':
-                    bundle_payload = kilo2byte(atol(p_arg));
-                    break;
-                case 'M':
-                    bundle_payload = mega2byte(atol(p_arg));
-                    break;
-                default:
-                    printf("\nWARNING: (-p option) invalid data unit, assuming 'K' (KBytes)\n\n");
-                    bundle_payload = kilo2byte(atol(p_arg));
-                    break;
-            }
-            break;
-        case 'B':
-            n_copies = atoi(optarg);
-            break;
-        case 'S':
-            sleepVal = atoi(optarg);
-            break;
+	while (!done)
+	{
+		static struct option long_options[] =
+		    {
+			    {"destination", required_argument, 0, 'd'},
+			    {"time", required_argument, 0, 't'},
+			    {"data", required_argument, 0, 'n'},
+			    {"file", required_argument, 0, 'f'},
+			    {"custody", optional_argument, 0, 'C'},
+			    {"window", required_argument, 0, 'w'},
+			    {"payload", required_argument, 0, 'p'},
+			    {"memory", no_argument, 0, 'm'},
+			    {"csvout", required_argument, 0, 'c'},
+			    {"help", no_argument, 0, 'h'},
+			    {"debug", required_argument, 0, 'D'},
+			    {"log", required_argument, 0, 'L'},
+			    {"freceipts", no_argument, 0, 'F'},
+			    {"rreceipts", no_argument, 0, 'R'},
+			    {"creceipts", no_argument, 0, 'T'}
+		    };
 
-        case 'f':
-            use_file = 1;
-            file_name_src = strdup(optarg);
-            break;
+		int option_index = 0;
+		c = getopt_long(argc, argv, "hvD::c:mC::w:d:i:t:p:n:FRTf:L:", long_options, &option_index);
 
-        case 'm':
-            use_file = 0;
-            payload_type = DTN_PAYLOAD_MEM;
-            break;
+		switch (c)
+		{
+		case 'h':
+			print_usage(argv[0]);
+			exit(0);
+			return ;
 
-        case 'F':
-            forwarding_receipts = 1;
-            break;
+		case 'c':
+			csv_out = 1;
+			csv_log_filename = strdup(optarg);
+			break;
 
-        case 'R':
-            receive_receipts = 1;
-            break;
+		case 'C':
+			dtn_opt->custody_transfer = 1;
+			dtn_opt->custody_receipts = 1;
+			if ((optarg!=NULL && (strncmp(optarg, "SONC", 4)==0||strncmp(optarg, "Slide_on_Custody", 16)==0))||((argv[optind]!=NULL)&&(strncmp(argv[optind], "SONC", 4)==0||strncmp(argv[optind], "Slide_on_Custody", 16)==0))){
+				perf_opt->slide_on_custody=1;
+			}
+			break;
 
-        case -1:
-            done = 1;
-            break;
-        default:
-            // getopt already prints an error message for unknown option characters
-            print_usage(argv[0]);
-            exit(1);
-        } // --switch
-    } // -- while
+		case 'w':
+			perf_opt->window = atoi(optarg);
+			break;
 
-#define CHECK_SET(_arg, _what)                                          \
-    if (_arg == 0) {                                                    \
-        fprintf(stderr, "\nSYNTAX ERROR: %s must be specified\n", _what);      \
-        print_usage(argv[0]);                                                  \
-        exit(1);                                                        \
+		case 'd':
+			arg_dest = optarg;
+			break;
+
+		case 'i':
+			perf_opt->regid = atoi(optarg);
+			break;
+
+		case 'D':
+			debug = 1;
+			if (optarg != NULL)
+				debug_level = atoi(optarg);
+			break;
+
+		case 't':
+			perf_opt->op_mode = 't';
+			perf_opt->transmission_time = atoi(optarg);
+			break;
+
+		case 'n':
+			perf_opt->op_mode = 'd';
+			if (optarg[strlen(optarg) - 1] == '/')
+			{
+				optarg[strlen(optarg) - 1] = optarg[strlen(optarg)];
+				real_file = get_filename(optarg); //strdup(optarg);
+				perf_opt->transfer_file = 1;
+				break;
+			}
+			perf_opt->n_arg = strdup(optarg);
+			perf_opt->data_unit = find_data_unit(perf_opt->n_arg);
+
+			switch (perf_opt->data_unit)
+			{
+			case 'B':
+				perf_opt->data_qty = atol(perf_opt->n_arg);
+				break;
+			case 'K':
+				perf_opt->data_qty = kilo2byte(atol(perf_opt->n_arg));
+				break;
+			case 'M':
+				perf_opt->data_qty = mega2byte(atol(perf_opt->n_arg));
+				break;
+			default:
+				printf("\nWARNING: (-n option) invalid data unit, assuming 'M' (MBytes)\n\n");
+				perf_opt->data_qty = mega2byte(atol(perf_opt->n_arg));
+				break;
+			}
+			break;
+
+		case 'p':
+			perf_opt->p_arg = optarg;
+			perf_opt->data_unit = find_data_unit(perf_opt->p_arg);
+			switch (perf_opt->data_unit)
+			{
+			case 'B':
+				perf_opt->bundle_payload = atol(perf_opt->p_arg);
+				break;
+			case 'K':
+				perf_opt->bundle_payload = kilo2byte(atol(perf_opt->p_arg));
+				break;
+			case 'M':
+				perf_opt->bundle_payload = mega2byte(atol(perf_opt->p_arg));
+
+				break;
+			default:
+				printf("\nWARNING: (-p option) invalid data unit, assuming 'K' (KBytes)\n\n");
+				perf_opt->bundle_payload = kilo2byte(atol(perf_opt->p_arg));
+				break;
+			}
+			break;
+
+		case 'f':
+			perf_opt->use_file = 1;
+			file_name_src = strdup(optarg);
+			break;
+
+		case 'm':
+			perf_opt->use_file = 0;
+			perf_opt->payload_type = DTN_PAYLOAD_MEM;
+			break;
+
+		case 'F':
+			dtn_opt->forwarding_receipts = 1;
+			break;
+
+		case 'R':
+			dtn_opt->receive_receipts = 1;
+			break;
+
+		case 'T':
+			dtn_opt->custody_receipts = 1;
+			break;
+
+		case 'L':
+			create_log = 1;
+			log_filename = strdup(optarg);
+			break;
+
+		case '?':
+			break;
+
+		case - 1:
+			done = 1;
+			break;
+
+		default:
+			// getopt already prints an error message for unknown option characters
+			print_usage(argv[0]);
+			exit(1);
+		} // --switch
+	} // -- while
+
+#define CHECK_SET(_arg, _what)                                          	\
+    if (_arg == 0) {                                                    	\
+        fprintf(stderr, "\nSYNTAX ERROR: %s must be specified\n", _what);   \
+        print_usage(argv[0]);                                               \
+        exit(1);                                                        	\
     }
-    
-    CHECK_SET(arg_dest,     "destination tuple");
-    CHECK_SET(op_mode,      "-t or -n");
+
+	CHECK_SET(arg_dest, "destination tuple");
+	CHECK_SET(perf_opt->op_mode, "-t or -n");
 } // end parse_options
 
-/* ----------------------------
- * check_options
- * ---------------------------- */
-void check_options() {
-    // checks on values
-    if (n_copies <= 0) {
-        fprintf(stderr, "\nSYNTAX ERROR: (-B option) consecutive retransmissions should be a positive number\n\n");
-        exit(2);
-    }
-    if (sleepVal < 0) {
-        fprintf(stderr, "\nSYNTAX ERROR: (-S option) sleeping seconds should be a positive number\n\n");
-        exit(2);
-    }
-    if ((op_mode == 't') && (transmission_time <= 0)) {
-        fprintf(stderr, "\nSYNTAX ERROR: (-t option) you should specify a positive time\n\n");
-        exit(2);
-    }
-    if ((op_mode == 'd') && (data_qty <= 0)) {
-        fprintf(stderr, "\nSYNTAX ERROR: (-n option) you should send a positive number of MBytes (%ld)\n\n", data_qty);
-        exit(2);
-    }
-    // checks on options combination
-    if ((use_file) && (op_mode == 't')) {
-        if (bundle_payload <= ILLEGAL_PAYLOAD) {
-            bundle_payload = DEFAULT_PAYLOAD;
-            fprintf(stderr, "\nWARNING (a): bundle payload set to %ld bytes\n", bundle_payload);
-            fprintf(stderr, "(use_file && op_mode=='t' + payload <= %d)\n\n", ILLEGAL_PAYLOAD);
-        }
-    }
-    if ((use_file) && (op_mode == 'd')) {
-        if ((bundle_payload <= ILLEGAL_PAYLOAD) || (bundle_payload > data_qty)) {
-            bundle_payload = data_qty;
-            fprintf(stderr, "\nWARNING (b): bundle payload set to %ld bytes\n", bundle_payload);
-            fprintf(stderr, "(use_file && op_mode=='d' + payload <= %d or > %ld)\n\n", ILLEGAL_PAYLOAD, data_qty);
-        }
-    }
-    if ((!use_file) && (bundle_payload <= ILLEGAL_PAYLOAD) && (op_mode == 'd')) {
-        if (data_qty <= MAX_MEM_PAYLOAD) {
-            bundle_payload = data_qty;
-            fprintf(stderr, "\nWARNING (c1): bundle payload set to %ld bytes\n", bundle_payload);
-            fprintf(stderr, "(!use_file + payload <= %d + data_qty <= %d + op_mode=='d')\n\n",
-                            ILLEGAL_PAYLOAD, MAX_MEM_PAYLOAD);
-        }
-        if (data_qty > MAX_MEM_PAYLOAD) {
-            bundle_payload = MAX_MEM_PAYLOAD;
-            fprintf(stderr, "(!use_file + payload <= %d + data_qty > %d + op_mode=='d')\n",
-                            ILLEGAL_PAYLOAD, MAX_MEM_PAYLOAD);
-            fprintf(stderr, "\nWARNING (c2): bundle payload set to %ld bytes\n\n", bundle_payload);
-        }
-    }
-    if ((!use_file) && (op_mode == 't')) {
-        if (bundle_payload <= ILLEGAL_PAYLOAD) {
-            bundle_payload = DEFAULT_PAYLOAD;
-            fprintf(stderr, "\nWARNING (d1): bundle payload set to %ld bytes\n\n", bundle_payload);
-            fprintf(stderr, "(!use_file + payload <= %d + op_mode=='t')\n\n", ILLEGAL_PAYLOAD);
-        }
-        if (bundle_payload > MAX_MEM_PAYLOAD) {
-            fprintf(stderr, "\nWARNING (d2): bundle payload was set to %ld bytes, now set to %ld bytes\n",
-                    bundle_payload, (long)DEFAULT_PAYLOAD);
-            bundle_payload = DEFAULT_PAYLOAD;
-            fprintf(stderr, "(!use_file + payload > %d)\n\n", MAX_MEM_PAYLOAD);
-        }
-    }
-    if ((csv_out == 1) && ((verbose == 1) || (debug == 1))) {
-        fprintf(stderr, "\nSYNTAX ERROR: (-c option) you cannot use -v or -D together with CSV output\n\n");
-        exit(2);
-    }
-    if ((op_mode == 't') && (n_copies != 1)) {
-        fprintf(stderr, "\nSYNTAX ERROR: you cannot use -B option in Time-Mode\n\n");
-        exit(2);
-    }
-    if ((op_mode == 't') && (sleepVal != 0)) {
-        fprintf(stderr, "\nSYNTAX ERROR: you cannot use -S option in Time-Mode\n\n");
-        exit(2);
-    }
-} // end check_options
 
 
 /* ----------------------------
  * show_options
  * ---------------------------- */
-void show_options() {
-    printf("\nRequested");
-    if (op_mode == 't')
-        printf(" %d second(s) of transmission\n", transmission_time);
-    if (op_mode == 'd') {
-        printf(" %ld byte(s) to be transmitted %d time(s) every %d second(s)\n", 
-                data_qty, n_copies, sleepVal);
-    }
-    printf(" payload of each bundle = %ld byte(s)", bundle_payload);
-    printf("\n\n");
-}
+void show_options(dtnperf_options_t *perf_opt, dtn_options_t *dtn_opt)
+{
+	printf("\nRequested");
+	if (perf_opt->op_mode == 't')
+		printf(" %d second(s) of transmission\n", perf_opt->transmission_time);
+	if (perf_opt->op_mode == 'd')
+	{
+		if (!perf_opt->transfer_file)
+			printf(" %ld byte(s) to be transmitted\n", perf_opt->data_qty);
+		else
+			printf(" %s file to be transmitted\n", real_file);
+	}
+	printf(" payload of each bundle = %ld byte(s)", perf_opt->bundle_payload);
+	printf("\n\n");
+} // end show_options
+
 
 
 /* ----------------------------
- * parse_eid
+ * check_options
  * ---------------------------- */
-dtn_endpoint_id_t* parse_eid(dtn_handle_t handle, dtn_endpoint_id_t* eid, char * str)
+void check_options(dtnperf_options_t *perf_opt, dtn_options_t *dtn_opt)
 {
-    // try the string as an actual dtn tuple
-    if (!dtn_parse_eid_string(eid, str)) 
-    {
-//        if (verbose) fprintf(stdout, "%s (literal)\n", str);
-        return eid;
-    }
-    // build a local tuple based on the configuration of our dtn
-    // router plus the str as demux string
-    else if (!dtn_build_local_eid(handle, eid, str))
-    {
-        if (verbose) fprintf(stdout, "%s (local)\n", str);
-        return eid;
-    }
-    else
-    {
-        fprintf(stderr, "invalid eid string '%s'\n", str);
-        exit(1);
-    }
-} // end parse_eid
+	// checks on values
+	if ((perf_opt->op_mode == 'd') && (perf_opt->data_qty <= 0) && (real_file == NULL))
+	{
+		fprintf(stderr, "\nSYNTAX ERROR: (-n option) you should send a positive number of MBytes (%ld) or inicate the name of file to transfer\n\n",
+		        perf_opt->data_qty);
+		exit(2);
+	}
+	if ((perf_opt->op_mode == 't') && (perf_opt->transmission_time <= 0))
+	{
+		fprintf(stderr, "\nSYNTAX ERROR: (-t option) you should specify a positive time\n\n");
+		exit(2);
+	}
+	// checks on options combination
+	if ((perf_opt->use_file) && (perf_opt->op_mode == 't'))
+	{
+		if (perf_opt->bundle_payload <= ILLEGAL_PAYLOAD)
+		{
+			perf_opt->bundle_payload = DEFAULT_PAYLOAD;
+			fprintf(stderr, "\nWARNING (a): bundle payload set to %ld bytes\n", perf_opt->bundle_payload);
+			fprintf(stderr, "(use_file && op_mode=='t' + payload <= %d)\n\n", ILLEGAL_PAYLOAD);
+		}
+	}
+	if ((perf_opt->use_file) && (perf_opt->op_mode == 'd'))
+	{
+		if ((perf_opt->bundle_payload <= ILLEGAL_PAYLOAD)
+		        || ((perf_opt->bundle_payload > perf_opt->data_qty)	&& (perf_opt->data_qty > 0)))
+		{
+			perf_opt->bundle_payload = perf_opt->data_qty;
+			fprintf(stderr, "\nWARNING (b): bundle payload set to %ld bytes\n", perf_opt->bundle_payload);
+			fprintf(stderr, "(use_file && op_mode=='d' + payload <= %d or > %ld)\n\n", ILLEGAL_PAYLOAD, perf_opt->data_qty);
+		}
+	}
+	if ((!perf_opt->use_file)
+	        && (perf_opt->bundle_payload <= ILLEGAL_PAYLOAD)
+	        && (perf_opt->op_mode == 'd'))
+	{
+		if (perf_opt->data_qty <= MAX_MEM_PAYLOAD)
+		{
+			perf_opt->bundle_payload = perf_opt->data_qty;
+			fprintf(stderr, "\nWARNING (c1): bundle payload set to %ld bytes\n", perf_opt->bundle_payload);
+			fprintf(stderr, "(!use_file + payload <= %d + data_qty <= %d + op_mode=='d')\n\n",
+			        ILLEGAL_PAYLOAD, MAX_MEM_PAYLOAD);
+		}
+		if (perf_opt->data_qty > MAX_MEM_PAYLOAD)
+		{
+			perf_opt->bundle_payload = MAX_MEM_PAYLOAD;
+			fprintf(stderr, "(!use_file + payload <= %d + data_qty > %d + op_mode=='d')\n",
+			        ILLEGAL_PAYLOAD, MAX_MEM_PAYLOAD);
+			fprintf(stderr, "\nWARNING (c2): bundle payload set to %ld bytes\n\n", perf_opt->bundle_payload);
+		}
+	}
+	if ((!perf_opt->use_file) && (perf_opt->op_mode == 't'))
+	{
+		if (perf_opt->bundle_payload <= ILLEGAL_PAYLOAD)
+		{
+			perf_opt->bundle_payload = DEFAULT_PAYLOAD;
+			fprintf(stderr, "\nWARNING (d1): bundle payload set to %ld bytes\n\n", perf_opt->bundle_payload);
+			fprintf(stderr, "(!use_file + payload <= %d + op_mode=='t')\n\n", ILLEGAL_PAYLOAD);
+		}
+		if (perf_opt->bundle_payload > MAX_MEM_PAYLOAD)
+		{
+			fprintf(stderr, "\nWARNING (d2): bundle payload was set to %ld bytes, now set to %ld bytes\n",
+			        perf_opt->bundle_payload, (long)DEFAULT_PAYLOAD);
+			perf_opt->bundle_payload = DEFAULT_PAYLOAD;
+			fprintf(stderr, "(!use_file + payload > %d)\n\n", MAX_MEM_PAYLOAD);
+		}
+	}
+
+	if (perf_opt->window <= 0)
+	{
+		fprintf(stderr, "\nSYNTAX ERROR: (-w option) you should specify a positive value of window\n\n");
+		exit(2);
+	}
+
+	if ((perf_opt->op_mode == 't') && (perf_opt->window == 0))
+	{
+		fprintf(stderr, "\nSYNTAX ERROR: you cannot use -w option in Time-Mode\n\n");
+		exit(2);
+	}
+
+	if ((create_log == 1) && (log_filename == NULL))
+	{
+		fprintf(stderr, "\nSYNTAX ERROR: if you use -L option you should insert a file name for the log file\n\n");
+		exit(2);
+	}
+
+	if ((csv_out == 1) && (csv_log_filename == NULL))
+	{
+		fprintf(stderr, "\nSYNTAX ERROR: if you use -L option you should insert a file name for the log file\n\n");
+		exit(2);
+	}
+} // end check_options
 
 
-/* ----------------------------
- * print_eid
- * ---------------------------- */
-void print_eid(char *  label, dtn_endpoint_id_t * eid)
+
+
+
+void* send_bundle(void *opt)
 {
-    printf("%s [%s]\n", label, eid->uri);
-} // end print_eid
+	dtnperf_options_t *perf_opt = ((global_options_t *)(opt))->dtnperf_opt;
+	dtn_options_t *dtn_opt = ((global_options_t *)(opt))->dtn_opt;
+
+	u_int relative_bundleId = 0;
+
+	// Time Mode
+	if (perf_opt->op_mode == 't')
+	{
+		// Initialize timer
+		if ((debug) && (debug_level > 0))
+			printf("[debug] initializing timer...");
+
+		if (create_log)
+			fprintf(log_file, " initializing timer...");
+
+		gettimeofday(&start, NULL);
+
+		if ((debug) && (debug_level > 0))
+			printf(" start.tv_sec = %d sec\n", (u_int)start.tv_sec);
+
+		if (create_log)
+			fprintf(log_file, " start.tv_sec = %d sec\n", (u_int)start.tv_sec);
+
+		// Calculate end-time
+		if ((debug) && (debug_level > 0))
+			printf("[debug] calculating end-time...");
+
+		if (create_log)
+			fprintf(log_file, " calculating end-time...");
+
+		end = set (0);
+		end.tv_sec = start.tv_sec + perf_opt->transmission_time;
+
+		if ((debug) && (debug_level > 0))
+			printf(" end.tv_sec = %d sec\n", (u_int)end.tv_sec);
+
+		if (create_log)
+			fprintf(log_file, " end.tv_sec = %d sec\n", (u_int)end.tv_sec);
+
+		if ((debug) && (debug_level > 0))
+			printf("[debug] entering loop...\n");
+
+		if (create_log)
+			fprintf(log_file, " entering loop...\n");
 
 
-/* -------------------------------------------------------------------
- * pattern
- *
- * Initialize the buffer with a pattern of (index mod 10).
- * ------------------------------------------------------------------- */
-void pattern(char *outBuf, int inBytes) {
-    assert (outBuf != NULL);
-    while (inBytes-- > 0) {
-        outBuf[inBytes] = (inBytes % 10) + '0';
-    }
-} // end pattern
+		for (now.tv_sec = start.tv_sec;
+		        now.tv_sec <= end.tv_sec;
+		        gettimeofday(&now, NULL))
+		{
+			pthread_mutex_lock(&mutexdata);
+
+			if (bundles_ready == 0)
+			{
+				pthread_cond_wait(&cond_sender, &mutexdata);
+				pthread_mutex_unlock(&mutexdata);
+				continue;
+			}
+
+			// Send the bundle
+			if (debug)
+				printf("\t sending the bundle...");
+
+			memset(&bundle_id, 0, sizeof(bundle_id));
+
+			if ((ret = dtn_send(handle, perf_opt->regid, &bundle_spec, &send_payload, &bundle_id)) != 0)
+			{
+				fprintf(stderr, "error sending bundle: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+				if (create_log)
+					fprintf(log_file, "error sending bundle: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+				exit(1);
+			}
+
+			gettimeofday(&p_start, NULL);
+			--bundles_ready;
+			++orphan_acks;
+			relative_bundleId = add_info(send_info, bundle_id, p_start, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window);
+
+			if (debug)
+				printf(" bundle sent\n");
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] bundle sent: %qu.%qu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+			if (create_log)
+				fprintf(log_file, "\t bundle sent %qu.%qu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+			if (csv_out)
+			{
+				fprintf(csv_log_file, "%f,STATUS_SENT,%s", ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))), bundle_spec.source.uri);
+				fprintf(csv_log_file, ",%u,%s\n", relative_bundleId, bundle_spec.dest.uri);
+			}
 
 
-/* -------------------------------------------------------------------
- * Set timestamp to the given seconds
- * ------------------------------------------------------------------- */
-struct timeval set( double sec ) {
-    struct timeval mTime;
+			// Increment sent_bundles
+			++sent_bundles;
 
-    mTime.tv_sec  = (long) sec;
-    mTime.tv_usec = (long) ((sec - mTime.tv_sec) * 1000000);
-
-    return mTime;
-} // end set
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] now bundles_sent is %d\n", sent_bundles);
+			if (create_log)
+				fprintf(log_file, "\t now bundles_sent is %d\n", sent_bundles);
 
 
-/* -------------------------------------------------------------------
- * Add seconds to my timestamp.
- * ------------------------------------------------------------------- */
-struct timeval add( double sec ) {
-    struct timeval mTime;
+			// Increment data_qty
+			perf_opt->data_qty += perf_opt->bundle_payload;
 
-    mTime.tv_sec  = (long) sec;
-    mTime.tv_usec = (long) ((sec - ((long) sec )) * 1000000);
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] now data_qty is %lu\n", perf_opt->data_qty);
+			if (create_log)
+				fprintf(log_file, "\t now data_qty is %lu\n", perf_opt->data_qty);
 
-    // watch for overflow
-    if ( mTime.tv_usec >= 1000000 ) {
-        mTime.tv_usec -= 1000000;
-        mTime.tv_sec++;
-    }
+			pthread_cond_signal(&cond_ackreceiver);
+			pthread_mutex_unlock(&mutexdata);
+		}
+	}
+	else	// Data Mode
+	{
+		long reads = 0;
+		long actual_payload = perf_opt->bundle_payload;
 
-    assert( mTime.tv_usec >= 0  && mTime.tv_usec <  1000000 );
+		data_written = 0;
+		j = 0;
 
-    return mTime;
-} // end add
+		// Fill the payload
+		if ((debug) && (debug_level > 0) && (!perf_opt->transfer_file))
+			printf("[debug] filling the bundle payload...");
 
+		memset(&send_payload, 0, sizeof(send_payload));
 
-/* --------------------------------------------------
- * show_report
- * -------------------------------------------------- */
-void show_report (u_int buf_len, char* eid, struct timeval start, struct timeval end, int data) {
-    double g_put;
+		if ((perf_opt->use_file) && (!perf_opt->transfer_file))
+		{
+			dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, file_name_src, strlen(file_name_src));
+		}
+		else if ((!perf_opt->use_file) && (!perf_opt->transfer_file))
+		{
+			dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufferLen);
+		}
 
-    printf("got %d byte report from [%s]: time=%.1f ms - %d bytes sent",
-                buf_len,
-                eid,
-                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                (double)(end.tv_usec - start.tv_usec)/1000.0),
-                data);
+		if ((debug) && (debug_level > 0) && (!perf_opt->transfer_file))
+			printf(" done\n");
 
-    // report goodput (bits transmitted / time)
-    g_put = (data*8) / ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                      (double)(end.tv_usec - start.tv_usec)/1000.0);
-    printf(" (goodput = %.2f Kbit/s)\n", g_put);
-
-    if (debug) {
-        // report start - end time
-        printf("[debug] started at %u sec - ended at %u sec\n", (u_int)start.tv_sec, (u_int)end.tv_sec);
-    }
-} // end show_report
-
-
-/* --------------------------------------------------
- * csv_time_report
- * -------------------------------------------------- */
-void csv_time_report(int b_sent, int payload, struct timeval start, struct timeval end) {
-    
-    double g_put, data;
-
-    data = b_sent * payload;
-    
-    g_put = (data*8) / ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                      (double)(end.tv_usec - start.tv_usec)/1000.0);
-
-    printf("%d,%d,%.1f,%d,%.2f\n", b_sent, 
-                                   payload,
-                                   ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                                       (double)(end.tv_usec - start.tv_usec)/1000.0),
-                                   (b_sent * payload),
-                                   g_put);
-} // end csv_time_report
+		// Set the file name
+		if (perf_opt->transfer_file)
+		{
+			char temp[1024];
+			free(buffer);
+			sprintf(temp, "%s/%ld", real_file, perf_opt->data_qty);
+			bufferLen = strlen(temp) + 1;
+			buffer = malloc(bufferLen);
+			strcpy(buffer, temp);
+			dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufferLen);
+		}
 
 
-/* --------------------------------------------------
- * csv_data_report
- * -------------------------------------------------- */
-void csv_data_report(int b_id, int payload, struct timeval start, struct timeval end) {
-    // const char* time_hdr = "BUNDLES_ID,PAYLOAD,TIME,GOODPUT";
-    double g_put;
-    
-    g_put = (payload*8) / ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                      (double)(end.tv_usec - start.tv_usec)/1000.0);
+		// Reset data_qty
+		if ((debug) && (debug_level > 0))
+			printf("[debug] reset data_qty and bundles_sent...");
+		perf_opt->data_qty = 0;
 
-    printf("%d,%d,%.1f,%.2f\n", b_id,
-                                payload,
-                                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                                       (double)(end.tv_usec - start.tv_usec)/1000.0),
-                                g_put);
-} // end csv_data_report
+		sent_bundles = 0;
 
+		if ((debug) && (debug_level > 0))
 
-/* ----------------------------------------------
- * bundles_needed
- * ---------------------------------------------- */
-long bundles_needed (long data, long pl) {
-    long res = 0;
-    ldiv_t r;
+			printf(" done\n");
 
-    r = ldiv(data, pl);
-    res = r.quot;
-    if (r.rem > 0)
-        res += 1;
+		// Initialize TOTAL start timer
+		if ((debug) && (debug_level > 0))
+			printf("[debug] initializing TOTAL start timer...");
+		if (create_log)
+			fprintf(log_file, " initializing TOTAL start timer...");
 
-    return res;
-} // end bundles_needed
+		gettimeofday(&start, NULL);
+
+		if ((debug) && (debug_level > 0))
+			printf(" start.tv_sec = %u sec\n", (u_int)start.tv_sec);
+		if (create_log)
+			fprintf(log_file, " start.tv_sec = %u sec\n", (u_int)start.tv_sec);
 
 
-/* ------------------------------------------
- * add_time
- * ------------------------------------------ */
-void add_time(struct timeval *tot_time, struct timeval part_time) {
-    tot_time->tv_sec += part_time.tv_sec;
-    tot_time->tv_usec += part_time.tv_sec;
+		// Send the name of the file to transfer
+		if (perf_opt->transfer_file)
+		{
+			pthread_mutex_lock(&mutexdata);
 
-    if (tot_time->tv_usec >= 1000000) {
-        tot_time->tv_sec++;
-        tot_time->tv_usec -= 1000000;
-    }
+			// send the bundle
+			if (debug)
+				printf("\t sending the name of file...");
 
-} // end add_time
+			memset(&bundle_id, 0, sizeof(bundle_id));
 
-/* ------------------------------------------
- * mega2byte
- *
- * Converts MBytes into Bytes
- * ------------------------------------------ */
-long mega2byte(long n) {
-    return (n * 1048576);
-} // end mega2byte
+			if ((ret = dtn_send(handle, perf_opt->regid, &bundle_spec, &send_payload, &bundle_id)) != 0)
+			{
+				fprintf(stderr, "error sending bundle: %d (%s)\n",
+				        ret, dtn_strerror(dtn_errno(handle)));
+				if (create_log)
+					fprintf(log_file, "error sending bundle: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+				exit(1);
+			}
 
-/* ------------------------------------------
- * kilo2byte
- *
- * Converts KBytes into Bytes
- * ------------------------------------------ */
-long kilo2byte(long n) {
-    return (n * 1024);
-} // end kilo2byte
+			if (debug)
+				printf(" sent\n");
 
-/* ------------------------------------------
- * findDataUnit
- *
- * Extracts the data unit from the given string.
- * If no unit is specified, returns 'Z'.
- * ------------------------------------------ */
-char findDataUnit(const char *inarg) {
-    // units are B (Bytes), K (KBytes) and M (MBytes)
-    const char unitArray[] = {'B', 'K', 'M'};
-    char * unit = malloc(sizeof(char));
+			gettimeofday(&p_start, NULL);
+			--bundles_ready;
+			++orphan_acks;
+			++j;
 
-    if ((unit = strpbrk(inarg, unitArray)) == NULL) {
-        unit = "Z";
-    }
-    return unit[0];
-} // end findUnit
+			relative_bundleId = add_info(send_info, bundle_id, p_start, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window);
+
+			if ((debug) && (debug_level > 0))
+				printf(" bundle sent %qu.%qu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+			if (create_log)
+				fprintf(log_file, " bundle sent %qu.%qu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+
+
+			// Increment sent_bundles
+			++sent_bundles;
+
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] now bundles_sent is %d of %d\n", sent_bundles, n_bundles);
+			if (create_log)
+				fprintf(log_file, "\t now bundles_sent is %d of %d\n", sent_bundles, n_bundles);
+			if (csv_out)
+			{
+				fprintf(csv_log_file, "%f,STATUS_SENT,%s",
+				        ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))),
+				        bundle_spec.source.uri);
+				fprintf(csv_log_file, ",%u,%s\n", relative_bundleId, bundle_spec.dest.uri);
+			}
+
+			pthread_mutex_unlock(&mutexdata);
+		}
+
+		if (perf_opt->transfer_file)
+		{
+			free(buffer);
+			buffer = malloc(perf_opt->bundle_payload);
+			memset(buffer, 0, perf_opt->bundle_payload * sizeof(char));
+		}
+
+		if ((debug) && (debug_level > 0))
+			printf("\t[debug] entering loop...\n");
+		if (create_log)
+			fprintf(log_file, "\t entering loop...\n");
+
+		for ( ;
+		        (((perf_opt->transfer_file) && ((reads = read(real_file_fd, buffer, perf_opt->bundle_payload)) > 0))
+		         || (j < n_bundles));
+		        ++j)
+		{
+
+			pthread_mutex_lock(&mutexdata);
+			if ((bundles_ready == 0))
+			{
+				pthread_cond_wait(&cond_sender, &mutexdata);
+				--j;
+				lseek(real_file_fd, data_written, 0);
+				pthread_mutex_unlock(&mutexdata);
+				continue;
+			}
+			if (perf_opt->transfer_file)
+			{
+				// Read from the source file
+				bufferLen = reads;
+
+				// Create the file
+				if ((debug) && (debug_level > 0))
+					printf("[debug] creating file %s...", file_name_src);
+
+				fd = open(file_name_src, O_CREAT | O_TRUNC | O_WRONLY | O_APPEND, 0666);
+
+				if (fd < 0)
+				{
+					fprintf(stderr, "ERROR: couldn't create file [fd = %d]. Maybe you don't have permissions\n", fd);
+					if (create_log)
+						fprintf(log_file, "ERROR: couldn't create file [fd = %d]. Maybe you don't have permissions\n", fd);
+					exit(2);
+				}
+
+				if ((debug) && (debug_level > 0))
+					printf(" done\n");
+
+				// Fill the new file with a content of the source file
+				if ((debug) && (debug_level > 0))
+					printf("[debug] filling the file (%s) with the file_source %s...", file_name_src, real_file);
+
+				actual_payload = write(fd, buffer, bufferLen);
+				data_written += actual_payload;
+
+				if ((debug) && (debug_level > 0))
+					printf(" done. Written %d bytes\n", data_written);
+
+				// Close the file
+				if ((debug) && (debug_level > 0))
+					printf("[debug] closing file (%s)...", file_name_src);
+				close(fd);
+				if ((debug) && (debug_level > 0))
+					printf(" done\n");
+
+				// Fill the payload if transfer_file is set
+				dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, file_name_src, strlen(file_name_src));
+
+				// Reset the buffer
+				free(buffer);
+				buffer = malloc(perf_opt->bundle_payload);
+				memset(buffer, 0, perf_opt->bundle_payload);
+
+				lseek(real_file_fd, data_written, 0);
+			}
+
+
+			// Send the bundle
+			if (debug)
+				printf("\t sending the bundle...");
+
+			memset(&bundle_id, 0, sizeof(bundle_id));
+
+			if ((ret = dtn_send(handle, perf_opt->regid, &bundle_spec, &send_payload, &bundle_id)) != 0)
+			{
+				fprintf(stderr, "error sending bundle: %d (%s)\n",
+				        ret, dtn_strerror(dtn_errno(handle)));
+				if (create_log)
+					fprintf(log_file, "error sending bundle: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+
+				exit(1);
+			}
+
+			if (debug)
+				printf(" sent\n");
+
+			gettimeofday(&p_start, NULL);
+			--bundles_ready;
+			++orphan_acks;
+
+			relative_bundleId = add_info(send_info, bundle_id, p_start, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window);
+
+			if ((debug) && (debug_level > 0))
+				printf(" bundle sent %qu.%qu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+			if (create_log)
+				fprintf(log_file, " bundle sent %qu.%qu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+
+
+			// Increment sent_bundles
+			++sent_bundles;
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] now bundles_sent is %d of %d\n", sent_bundles, n_bundles);
+			if (create_log)
+				fprintf(log_file, "\t now bundles_sent is %d of %d\n", sent_bundles, n_bundles);
+			if (csv_out)
+			{
+				fprintf(csv_log_file, "%f,STATUS_SENT,%s", ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))), bundle_spec.source.uri);
+				fprintf(csv_log_file, ",%u,%s\n", relative_bundleId, bundle_spec.dest.uri);
+			}
+
+			// Increment data_qty
+			perf_opt->data_qty += actual_payload;
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] now data_qty is %lu\n", perf_opt->data_qty);
+			if (create_log)
+				fprintf(log_file, "\t now data_qty is %lu\n", perf_opt->data_qty);
+
+			pthread_cond_signal(&cond_ackreceiver);
+			pthread_mutex_unlock(&mutexdata);
+		} // end for(n_bundles)
+
+	}
+
+	if ((debug) && (debug_level > 0))
+		printf("[debug] ...out from loop\n");
+	if (create_log)
+		fprintf(log_file, " ...out from loop\n");
+
+	pthread_mutex_lock(&mutexdata);
+	close_ack_receiver = 1;
+	pthread_cond_signal(&cond_ackreceiver);
+	pthread_mutex_unlock(&mutexdata);
+	pthread_exit(NULL);
+
+} // end send_bundle
+
+
+
+
+void* receive_ack(void *opt)
+{
+	dtnperf_options_t *perf_opt = ((global_options_t *)(opt))->dtnperf_opt;
+	dtn_options_t *dtn_opt = ((global_options_t *)(opt))->dtn_opt;
+
+	char* ack_sender = strdup(arg_dest);
+	int ack_set = 0;
+
+
+	if (perf_opt->op_mode == 't')
+	{
+		int position = -1;
+
+
+		while ((close_ack_receiver == 0) || (orphan_acks > 0))
+		{
+			pthread_mutex_lock(&mutexdata);
+			if (orphan_acks == 0)
+			{
+				pthread_cond_wait(&cond_ackreceiver, &mutexdata);
+				pthread_mutex_unlock(&mutexdata);
+				pthread_yield();
+				continue;
+			}
+
+			// Set memory for the reply
+			if (dtn_opt->wait_for_report)
+			{
+				memset(&reply_spec, 0, sizeof(reply_spec));
+				memset(&reply_payload, 0, sizeof(reply_payload));
+			}
+
+
+			// Wait for the reply
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] waiting for the reply...\n");
+
+			fflush(stdout);
+
+			if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
+			{
+				fprintf(stderr, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+				exit(1);
+			}
+
+			gettimeofday(&p_end, NULL);
+
+			// Set the source of the ack
+			if (ack_set == 0)
+			{
+				if (perf_opt->slide_on_custody==1)
+				{
+					if ((strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0) &&
+					        (is_in_info(send_info, reply_payload.status_report->bundle_id, (perf_opt->window)+1000) >= 0) &&
+					        (strncmp(reply_spec.source.uri, bundle_spec.source.uri, (strlen(reply_spec.source.uri))) != 0) &&
+					        (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED))
+					{
+						ack_sender = strdup(reply_spec.source.uri);
+						ack_set=1;
+					}
+				}
+			}
+ 
+			if ((strncmp(reply_spec.source.uri, ack_sender, (strlen(reply_spec.source.uri))) == 0)
+			        && (strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0)
+			        && ((position = is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window)) >= 0)
+			        && (perf_opt->slide_on_custody==0 ? reply_payload.status_report->flags == STATUS_DELIVERED : reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED))
+			{
+				if (reply_payload.status_report->flags == STATUS_DELIVERED)
+				{
+					if (debug)
+						printf("\t Received ack\n");
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] STATUS_DELIVERED in %ld ms from its shipment\n", (((p_end.tv_sec - (send_info[position].send_time.tv_sec))*1000) + ((p_end.tv_usec - (send_info[position].send_time.tv_usec)) / 1000)) );
+					if (create_log)
+						fprintf(log_file, "\t %f\t STATUS_DELIVERED in %ld ms from its shipment\n", ((((float)(p_end.tv_sec - start.tv_sec)) + ((float)((p_end.tv_usec - start.tv_usec)) / 1000000))), (((p_end.tv_sec - (send_info[position].send_time.tv_sec))*1000) + ((p_end.tv_usec - (send_info[position].send_time.tv_usec)) / 1000)) );
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_DELIVERED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					remove_from_info(send_info, position);
+				}
+				else if (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_CUSTODY_ACCEPTED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				--orphan_acks;
+				++bundles_ready;
+			}
+			else if ((strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0)
+			         && ((position = is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window)) >= 0))
+			{
+				if (reply_payload.status_report->flags == STATUS_DELIVERED)
+				{
+					if (debug)
+						printf("\t Received ack\n");
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] STATUS_DELIVERED in %ld ms from its shipment\n", (((p_end.tv_sec - (send_info[position].send_time.tv_sec))*1000) + ((p_end.tv_usec - (send_info[position].send_time.tv_usec)) / 1000)) );
+					if (create_log)
+						fprintf(log_file, "\t %f\t STATUS_DELIVERED in %ld ms from its shipment\n", ((((float)(p_end.tv_sec - start.tv_sec)) + ((float)((p_end.tv_usec - start.tv_usec)) / 1000000))), (((p_end.tv_sec - (send_info[position].send_time.tv_sec))*1000) + ((p_end.tv_usec - (send_info[position].send_time.tv_usec)) / 1000)) );
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_DELIVERED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					remove_from_info(send_info, position);
+				}
+				else if (reply_payload.status_report->flags == STATUS_RECEIVED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_RECEIVED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_RECEIVED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_RECEIVED from %s for: %u.%u created by %s\n",
+						        ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))),
+						        reply_spec.source.uri,
+						        reply_payload.status_report->bundle_id.creation_ts.secs,
+						        reply_payload.status_report->bundle_id.creation_ts.seqno,
+						        reply_payload.status_report->bundle_id.source.uri);
+				}
+				else if (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_CUSTODY_ACCEPTED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				else if (reply_payload.status_report->flags == STATUS_FORWARDED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_FORWARDED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_FORWARDED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_FORWARDED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				else if (reply_payload.status_report->flags == STATUS_DELETED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_DELETED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_DELETED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_DELETED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				else if (reply_payload.status_report->flags == STATUS_ACKED_BY_APP)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_ACKED_BY_APP from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_ACKED_BY_APP,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_ACKED_BY_APP from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+			}
+
+			else
+			{
+				if ((debug) && (debug_level > 1))
+					printf("\t[debug] received bundle outside sequence: %u.%u da %s\n", reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				if (create_log)
+					fprintf(log_file, "\t %f\t received bundle fuori outside sequence: %u.%u\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno);
+			}
+			pthread_cond_signal(&cond_sender);
+			pthread_mutex_unlock(&mutexdata);
+			pthread_yield();
+		}
+		pthread_exit(NULL);
+	}
+	else
+	{
+		int position = -1;
+		int j = 0;
+
+
+		while ((close_ack_receiver == 0) || (orphan_acks > 0))
+		{
+			pthread_mutex_lock(&mutexdata);
+			if (orphan_acks == 0)
+			{
+				pthread_cond_wait(&cond_ackreceiver, &mutexdata);
+				pthread_mutex_unlock(&mutexdata);
+				pthread_yield();
+				continue;
+			}
+
+			// Prepare memory areas for the reply
+			if (dtn_opt->wait_for_report)
+			{
+				if ((debug) && (debug_level > 0))
+					printf("\t[debug] memset for reply_spec...");
+				memset(&reply_spec, 0, sizeof(reply_spec));
+				memset(&reply_payload, 0, sizeof(reply_payload));
+				if ((debug) && (debug_level > 0))
+					printf(" done\n");
+			}
+
+			// Wait for the reply
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] waiting for the reply...\n");
+			if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
+			{
+				fprintf(stderr, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+				if (create_log)
+					fprintf(log_file, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
+				exit(1);
+			}
+			gettimeofday(&p_end, NULL);
+
+
+			// Set the source of the ack
+			if (ack_set == 0)
+			{
+				if (perf_opt->slide_on_custody==1)
+				{
+					if ((strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0) &&
+					        (is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window) >= 0) &&
+					        (strncmp(reply_spec.source.uri, bundle_spec.source.uri, (strlen(reply_spec.source.uri))) != 0) &&
+					        (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED))
+					{
+						ack_sender = strdup(reply_spec.source.uri);
+						ack_set=1;
+					}
+				}
+			}
+
+			if ((strncmp(reply_spec.source.uri, ack_sender, (strlen(reply_spec.source.uri))) == 0)
+			        && (strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0)
+			        && ((position = is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window)) >= 0)
+			        && (perf_opt->slide_on_custody==0 ? reply_payload.status_report->flags == STATUS_DELIVERED : reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED))
+			{
+				if (reply_payload.status_report->flags == STATUS_DELIVERED)
+				{
+					if (debug)
+						printf("\t Received ack\n");
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] STATUS_DELIVERED in %ld ms from its shipment\n", (((p_end.tv_sec - (send_info[position].send_time.tv_sec))*1000) + ((p_end.tv_usec - (send_info[position].send_time.tv_usec)) / 1000)) );
+					if (create_log)
+						fprintf(log_file, "\t %f\t STATUS_DELIVERED in %ld ms from its shipment\n", ((((float)(p_end.tv_sec - start.tv_sec)) + ((float)((p_end.tv_usec - start.tv_usec)) / 1000000))), (((p_end.tv_sec - (send_info[position].send_time.tv_sec))*1000) + ((p_end.tv_usec - (send_info[position].send_time.tv_usec)) / 1000)) );
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_DELIVERED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+				remove_from_info(send_info, position);
+				}
+				else if (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_CUSTODY_ACCEPTED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				--orphan_acks;
+				++bundles_ready;
+			}
+			else if ((strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0)
+			         && ((position = is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window)) >= 0))
+			{
+				if (reply_payload.status_report->flags == STATUS_DELIVERED)
+				{
+					if (debug)
+						printf("\t Received ack\n");
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] STATUS_DELIVERED in %ld ms from its shipment\n", (((p_end.tv_sec - (send_info[position].send_time.tv_sec))*1000) + ((p_end.tv_usec - (send_info[position].send_time.tv_usec)) / 1000)) );
+					if (create_log)
+						fprintf(log_file, "\t %f\t STATUS_DELIVERED in %ld ms from its shipment\n", ((((float)(p_end.tv_sec - start.tv_sec)) + ((float)((p_end.tv_usec - start.tv_usec)) / 1000000))), (((p_end.tv_sec - (send_info[position].send_time.tv_sec))*1000) + ((p_end.tv_usec - (send_info[position].send_time.tv_usec)) / 1000)) );
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_DELIVERED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+				remove_from_info(send_info, position);
+				}
+				else if (reply_payload.status_report->flags == STATUS_RECEIVED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_RECEIVED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_RECEIVED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_RECEIVED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				else if (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_CUSTODY_ACCEPTED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				else if (reply_payload.status_report->flags == STATUS_FORWARDED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_FORWARDED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_FORWARDED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_FORWARDED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				else if (reply_payload.status_report->flags == STATUS_DELETED)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_DELETED from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_DELETED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_DELETED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+				else if (reply_payload.status_report->flags == STATUS_ACKED_BY_APP)
+				{
+					if ((debug) && (debug_level > 1))
+						printf("\t[debug] signalling of STATUS_ACKED_BY_APP from %s for: %u.%u created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					if (csv_out)
+					{
+						fprintf(csv_log_file, "%f,STATUS_ACKED_BY_APP,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
+						fprintf(csv_log_file, ",%u,%s\n", send_info[position].relative_id, reply_payload.status_report->bundle_id.source.uri);
+					}
+					if (create_log)
+						fprintf(log_file, "\t %f\t signalling of STATUS_ACKED_BY_APP from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+				}
+			}
+
+			else
+			{
+				if ((debug) && (debug_level > 1))
+					printf("\t[debug] received bundle outside sequence: %u.%u\n", reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno);
+				if (create_log)
+					fprintf(log_file, "\t %f\t received bundle outside sequence: %u.%u\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno);
+			}
+			pthread_cond_signal(&cond_sender);
+			pthread_mutex_unlock(&mutexdata);
+			//pthread_yield();
+		} // end while(n_bundles)
+
+
+		// Calculate TOTAL end time
+		if ((debug) && (debug_level > 0))
+			printf("[debug] calculating TOTAL end time...");
+
+		gettimeofday(&end, NULL);
+
+		if ((debug) && (debug_level > 0))
+			printf(" end.tv_sec = %u sec\n", (u_int)end.tv_sec);
+
+
+		// Show the TOTAL report
+		printf("%d bundles sent, each with a %ld bytes payload\n", sent_bundles, perf_opt->bundle_payload);
+		show_report(reply_payload.buf.buf_len,
+		            reply_spec.source.uri,
+		            start,
+		            end,
+		            perf_opt->data_qty,
+		            NULL);
+
+
+		if (create_log)
+		{
+			fprintf(log_file, "%d bundles sent, each with a %ld bytes payload\n", sent_bundles, perf_opt->bundle_payload);
+			show_report(reply_payload.buf.buf_len,
+			            reply_spec.source.uri,
+			            start,
+			            end,
+			            perf_opt->data_qty,
+			            log_file);
+		}
+
+		if (csv_out == 1)
+		{
+			csv_data_report(sent_bundles, perf_opt->data_qty, start, end, csv_log_file);
+		}
+		pthread_exit(NULL);
+	}
+	return NULL;
+} // end receive_ack
