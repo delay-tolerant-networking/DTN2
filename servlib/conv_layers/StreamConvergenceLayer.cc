@@ -438,6 +438,9 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     DataBitmap::iterator iter = incoming->ack_data_.begin();
     bool generated_ack = false;
     
+    StreamLinkParams* params = dynamic_cast<StreamLinkParams*>(params_);
+    ASSERT(params != NULL); 
+    
     // when data segment headers are received, the last bit of the
     // segment is marked in ack_data, thus if there's nothing in
     // there, we don't need to send out an ack.
@@ -454,37 +457,40 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         size_t ack_len     = *iter + 1;
         size_t segment_len = ack_len - incoming->acked_length_;
         (void)segment_len;
-        
-        if (ack_len > rcvd_bytes) {
-            log_debug("send_pending_acks: "
+
+	if(params->segment_ack_enabled_)
+        {        
+            if (ack_len > rcvd_bytes) {
+                log_debug("send_pending_acks: "
                       "waiting to send ack length %zu for %zu byte segment "
                       "since only received %zu",
                       ack_len, segment_len, rcvd_bytes);
-            break;
-        }
+                break;
+            }
 
-        // make sure we have space in the send buffer
-        size_t encoding_len = 1 + SDNV::encoding_len(ack_len);
-        if (encoding_len > sendbuf_.tailbytes()) {
-            log_debug("send_pending_acks: "
+            // make sure we have space in the send buffer
+            size_t encoding_len = 1 + SDNV::encoding_len(ack_len);
+            if (encoding_len > sendbuf_.tailbytes()) {
+                log_debug("send_pending_acks: "
                       "no space for ack in buffer (need %zu, have %zu)",
                       encoding_len, sendbuf_.tailbytes());
-            break;
-        }
+                break;
+            }
         
-        log_debug("send_pending_acks: "
+            log_debug("send_pending_acks: "
                   "sending ack length %zu for %zu byte segment "
                   "[range %u..%u] ack_data *%p",
                   ack_len, segment_len, incoming->acked_length_, *iter,
                   &incoming->ack_data_);
         
-        *sendbuf_.end() = ACK_SEGMENT;
-        int len = SDNV::encode(ack_len, (u_char*)sendbuf_.end() + 1,
+            *sendbuf_.end() = ACK_SEGMENT;
+            int len = SDNV::encode(ack_len, (u_char*)sendbuf_.end() + 1,
                                sendbuf_.tailbytes() - 1);
-        ASSERT(encoding_len = len + 1);
-        sendbuf_.fill(encoding_len);
+            ASSERT(encoding_len = len + 1);
+            sendbuf_.fill(encoding_len);
 
-        generated_ack = true;
+            generated_ack = true;
+	}
         incoming->acked_length_ = ack_len;
         incoming->ack_data_.clear(*iter);
         iter = incoming->ack_data_.begin();
@@ -720,18 +726,32 @@ StreamConvergenceLayer::Connection::check_completed(InFlightBundle* inflight)
     // for the bundle has been received (determined by looking at
     // inflight->ack_data_)
 
+    StreamLinkParams* params = dynamic_cast<StreamLinkParams*>(params_);
+    ASSERT(params != NULL);
+
     if (current_inflight_ == inflight) {
         log_debug("check_completed: bundle %d still waiting for finish_bundle",
                   inflight->bundle_->bundleid());
         return;
     }
 
-    u_int32_t acked_len = inflight->ack_data_.num_contiguous();
-    if (acked_len < inflight->total_length_) {
-        log_debug("check_completed: bundle %d only acked %u/%u",
+    if(params->segment_ack_enabled_) { 
+        u_int32_t acked_len = inflight->ack_data_.num_contiguous();
+        if (acked_len < inflight->total_length_) {
+            log_debug("check_completed: bundle %d only acked %u/%u",
                   inflight->bundle_->bundleid(),
                   acked_len, inflight->total_length_);
-        return;
+            return;
+        }
+    }
+    else {
+        inflight->transmit_event_posted_ = true;
+
+        BundleDaemon::post(
+           new BundleTransmittedEvent(inflight->bundle_.object(),
+           contact_,contact_->link(),
+           inflight->sent_data_.num_contiguous(),
+           inflight->sent_data_.num_contiguous()));
     }
 
     log_debug("check_completed: bundle %d transmission complete",
