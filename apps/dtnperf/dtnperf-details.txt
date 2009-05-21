@@ -4,7 +4,7 @@
                          * DETAILED INSTRUCTIONS *
                          *************************
 
-Hi :) this document describes, with a certain detail, the functions of dtnperf.
+This document describes, in a certain detail, the functions of dtnperf.
 
 * DTNPERF - SERVER
 
