@@ -112,6 +112,7 @@ public:
     bool        custody()      const { return custody_; }
     bool        internet_gw()  const { return internet_gateway_; }
     virtual const char* dest_id() const { return dest_id_.c_str(); }
+    const std::string &dest_id_ref() const { return dest_id_; }
     u_int32_t   age()          const { return age_; }
     const NodeParams* params() const { return params_; }
     ///@}

@@ -179,7 +179,10 @@ ProphetRouter::handle_bundle_received(BundleReceivedEvent* e)
     const prophet::Link* l = NULL;
 
     oasys::ScopeLock sl(lock_, "handle_bundle_received");
-    if (e->source_ != EVENTSRC_APP)
+    // Locally generated files do not have a link specified either
+    // The ping reflector generates bundles with EVENTSRC_ADMIN
+    // [Note from Elwyn Davies: Maybe using a special link might be useful]
+    if ((e->source_ != EVENTSRC_APP) && (e->source_ != EVENTSRC_ADMIN))
     {
 	// The external CL does not set this field, which the Prophet
 	// implementation needs. We want to fail quickly if we're

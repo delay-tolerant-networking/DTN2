@@ -356,7 +356,7 @@ Table::truncate(double epsilon)
         n = heap_.top();
         while (n->p_value() < epsilon)
         {
-            if (find(n->dest_id(),&i))
+            if (find(n->dest_id_ref(),&i)) // if (find(n->dest_id(),&i))
             {
                 // remove this element and clean up its memory
                 remove(&i);
