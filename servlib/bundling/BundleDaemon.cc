@@ -2114,8 +2114,8 @@ BundleDaemon::event_handlers_completed(BundleEvent* event)
     if (event->type_ == BUNDLE_EXPIRED) {
         bundle = ((BundleExpiredEvent*)event)->bundleref_.object();
         size_t num_mappings = bundle->num_mappings();
-        if (num_mappings != 0) {
-            log_warn("expired bundle *%p still has %zu mappings",
+        if (num_mappings != 1) {
+            log_warn("expired bundle *%p still has %zu mappings (i.e. not just in ALL_BUNDLES)",
                      bundle.object(), num_mappings);
         }
     }
