@@ -193,7 +193,7 @@ AC_DEFUN(AC_CONFIG_NORM, [
          -o "$ac_use_norm" = yes \ 
          -o "$ac_use_norm" = "" ; then
         AC_MSG_RESULT([try])
-        ac_norm_inst_dirs="/usr /usr/local"
+        ac_norm_inst_dirs="$ac_pwd/../norm /usr /usr/local"
     else
         AC_MSG_RESULT([yes (dir $ac_use_norm)])
         ac_norm_inst_dirs="$ac_use_norm"
@@ -203,21 +203,20 @@ AC_DEFUN(AC_CONFIG_NORM, [
     ac_save_EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS"
     
     AC_MSG_CHECKING([whether norm libraries are available])
-    AC_CACHE_VAL(cv_path_norm,
+    AC_CACHE_VAL(dtn_cv_path_norm,
     [
         for ac_norm_inst_dir in $ac_norm_inst_dirs; do
             if test -d "$ac_norm_inst_dir"; then
                 AC_LANG([C++])
-                EXTLIB_CFLAGS="-I$ac_norm_inst_dir/include \
-                               -DFILE_OFFSET_BITS=64 \
-                               $ac_norm_inst_dir/lib/libnorm.a\
-                               $ac_norm_inst_dir/lib/libProtokit.a"
-                EXTLIB_LDFLAGS="-lpthread"
+                EXTLIB_CFLAGS="-DFILE_OFFSET_BITS=64"
+                EXTLIB_LDFLAGS="-L$ac_pwd/../norm/build/default \
+                                -L$ac_pwd/../norm/build/default/protolib \
+                                -lnorm -lprotokit -lpthread"
     
                 AC_COMPILE_IFELSE(
                     AC_LANG_PROGRAM(
                         [
-                            #include <normApi.h>
+                            #include "$ac_norm_inst_dir/include/normApi.h"
                         ],
     
                         [
@@ -225,11 +224,11 @@ AC_DEFUN(AC_CONFIG_NORM, [
                             NormDestroyInstance(handle);
                         ]),
                     [
-                        cv_path_norm="$ac_norm_inst_dir"
+                        dtn_cv_path_norm="$ac_norm_inst_dir"
                         break
                     ],
                     [
-                        cv_path_norm=
+                        dtn_cv_path_norm=
                     ]
                 )
             fi
@@ -239,17 +238,18 @@ AC_DEFUN(AC_CONFIG_NORM, [
     EXTLIB_CFLAGS="$ac_save_EXTLIB_CFLAGS"
     EXTLIB_LDFLAGS="$ac_save_EXTLIB_LDFLAGS"
 
-    if test -z "$cv_path_norm"; then
+    if test -z "$dtn_cv_path_norm"; then
         AC_MSG_RESULT([no])
         NORM_ENABLED=0
     else
         AC_MSG_RESULT([yes])
         NORM_ENABLED=1
         AC_DEFINE(NORM_ENABLED, 1, [whether norm support is enabled])
-        if test ! "$cv_path_norm" = /usr ; then
-            EXTLIB_CFLAGS="$EXTLIB_CFLAGS -I$cv_path_norm/include"
+        if test ! "$dtn_cv_path_norm" = /usr && test ! "$dtn_cv_path_norm" = /usr/local; then
+            EXTLIB_CFLAGS="$EXTLIB_CFLAGS -I$dtn_cv_path_norm/include"
+            EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS -L$dtn_cv_path_norm/build/default -L$dtn_cv_path_norm/build/default/protolib"
         fi
-        EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS -lnorm -lProtokit"
+        EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS -lnorm -lprotokit"
     fi
 
     fi

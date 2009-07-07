@@ -81,10 +81,10 @@ NORMSender::init()
     apply_cc();
     NormSetGroupSize(norm_session(), link_params_->group_size());
     NormSetBackoffFactor(norm_session(), link_params_->backoff_factor());
-    NormSetTransmitCacheBounds(norm_session(),
-                               link_params_->tx_cache_size_max(),
-                               link_params_->tx_cache_count_min(),
-                               link_params_->tx_cache_count_max());
+    NormSetTxCacheBounds(norm_session(),
+                         link_params_->tx_cache_size_max(),
+                         link_params_->tx_cache_count_min(),
+                         link_params_->tx_cache_count_max());
     NormSetAutoParity(norm_session(), link_params_->auto_parity());
     apply_tos();
 
@@ -175,9 +175,9 @@ NORMSender::apply_cc()
 {
     if (link_params_->cc()) {
         NormSetCongestionControl(norm_session(), true);
-        NormSetTransmitRateBounds(norm_session(), -1.0, link_params_->rate());
+        NormSetTxRateBounds(norm_session(), -1.0, link_params_->rate());
     } else {
-        NormSetTransmitRate(norm_session(), link_params_->rate());
+        NormSetTxRate(norm_session(), link_params_->rate());
     }
 }
 
