@@ -17,7 +17,7 @@
 
 
 /* ----------------------------------------
- *         DTNperf 2.3 - SERVER
+ *         DTNperf 2.4 - SERVER
  *
   *             developed by
  * 
@@ -697,13 +697,12 @@ void print_usage(char* progname)
 	fprintf(stderr, "SYNTAX: %s [options]\n", progname);
 	fprintf(stderr, "\n");
 	fprintf(stderr, "options:\n");
-	fprintf(stderr, " -d, --ddir <dir>    destination directory (if using -f) \n");
-	fprintf(stderr, "           [default destination dir: %s]\n", BUNDLE_DIR_DEFAULT);
-	fprintf(stderr, " -D, --debug <level>    debug messages [0-1] (default 0)\n");
-	fprintf(stderr, " -m, --memory    save received bundles into memory\n");
-	fprintf(stderr, " -h, --help    shows this help\n");
-	fprintf(stderr, " -v    verbose (same as -D 0)\n");
-	fprintf(stderr, " -a, --aggregate <n>    print message every n arrivals\n");
+	fprintf(stderr, " -d, --ddir <dir>\tDestination directory (if using -f), if dir is not indicated assume dir=%s.\n", BUNDLE_DIR_DEFAULT);
+	fprintf(stderr, " -D, --debug <level>\tDebug messages [0-1], if level is not indicated assume level=0.\n");
+	fprintf(stderr, " -m, --memory\tSave received bundles into memory.\n");
+	fprintf(stderr, " -v    verbose\tSame as -D 0.\n");
+	fprintf(stderr, " -a, --aggregate <n>\tPrint message every n arrivals.\n");
+	fprintf(stderr, " -h, --help\tHelp.\n");
 	fprintf(stderr, "\n");
 	exit(1);
 }
