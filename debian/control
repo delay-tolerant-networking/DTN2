@@ -1,8 +1,8 @@
 Source: dtn
 Section: net
 Priority: optional
-Maintainer: Michael Demmer [demmer@cs.berkeley.edu]
-Build-Depends: liboasys-dev, python, python2.4-dev
+Maintainer: dtn-users mailing list [dtn-users@mailman.dtnrg.org]
+Build-Depends: liboasys-dev, python2.4-dev | python2.5-dev | python2.6-dev | python3.0-dev
 
 
 Package: dtn

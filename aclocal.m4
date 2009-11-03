@@ -483,7 +483,26 @@ dnl
 dnl Autoconf support for configuring whether Apple's Bonjour stack is 
 dnl available on the system
 dnl
+AC_DEFUN(AC_BONJOUR_HELP, [
+cat <<EOF
 
+Configure error with bonjour...
+
+The default is to try to compile in bonjour support and
+if development headers and libraries are not present
+proceed. You appear to have stated '[$ac_use_bonjour]' 
+when asked whether bonjour support should be enabled
+Can't find the required development headers (dns_sd.h) or 
+function (DNSServiceRegister) in dns_sd of the Avahi 
+Apple Bonjour library. 
+
+
+If you do not want bonjour support at all, you can specify
+--without-bonjour.
+
+
+EOF
+])
 AC_DEFUN(AC_CONFIG_BONJOUR, [
 
     AC_ARG_WITH(bonjour,
@@ -497,16 +516,18 @@ AC_DEFUN(AC_CONFIG_BONJOUR, [
 
     AC_MSG_CHECKING([whether bonjour support should be enabled])
 
-    if test "$ac_use_bonjour" = "no"; then
-        AC_MSG_RESULT(no)
 
-    else
-        AC_MSG_RESULT($ac_use_bonjour)
+	if test "$ac_use_bonjour" = "no"; then
+	AC_MSG_RESULT(no)
+
+	else
+	AC_MSG_RESULT($ac_use_bonjour)
 	
 	dnl look for the library and the header
 	AC_EXTLIB_PREPARE
-        AC_CHECK_HEADERS([dns_sd.h], ac_has_bonjour_h=yes)
-        AC_SEARCH_LIBS(DNSServiceRegister, dns_sd, ac_has_bonjour_lib=yes)
+	AC_MSG_CHECKING([searching for the bonjour library development headers])
+        AC_CHECK_HEADERS([dns_sd.h], ac_has_bonjour_h=yes, AC_MSG_RESULT(bonjour header not found))
+        AC_SEARCH_LIBS(DNSServiceRegister, dns_sd, ac_has_bonjour_lib=yes, AC_MSG_RESULT(function not found in bonjour library))
 	AC_EXTLIB_SAVE
 
 	dnl print the result
@@ -520,7 +541,8 @@ AC_DEFUN(AC_CONFIG_BONJOUR, [
           AC_MSG_RESULT(no)
 
         else
-          AC_MSG_ERROR([can't find bonjour headers or library])
+	AC_BONJOUR_HELP
+          AC_MSG_ERROR([can't find the required development headers for the Avahi Apple Bonjour library])
         fi
     fi
 ])
@@ -585,7 +607,7 @@ AC_DEFUN(AC_CONFIG_DB, [
 
     AC_ARG_WITH(dbver,
         AC_HELP_STRING([--with-dbver=VERSION],
-    		   Berkeley DB versions to try (default 4.5-4.2)),
+    		   Berkeley DB versions to try (default 4.7-4.2)),
         ac_dbvers=$withval)
 
     dnl
@@ -1026,8 +1048,8 @@ AC_DEFUN(AC_OASYS_CONFIG_GCC_VERSION, [
                        ac_with_cxx=$withval)
     
     if test "x$ac_with_cc" = "x" ; then
-        ac_try_cc="gcc gcc-4.1 gcc-4.0 gcc-3.4 gcc-3.3"
-        ac_try_cxx="g++ g++-4.0 g++-4.0 g++-3.4 g++-3.3"
+        ac_try_cc="gcc gcc-4.3 gcc-4.2 gcc-4.1 gcc-4.0 gcc-3.4 gcc-3.3"
+        ac_try_cxx="g++ g++-4.3 g++-4.2 g++-4.1 g++-4.0 g++-3.4 g++-3.3"
     else
         ac_try_cc=$ac_with_cc
 
@@ -1629,13 +1651,17 @@ AC_DEFUN(AC_CONFIG_MYSQL, [
        AC_DEFINE_UNQUOTED(LIBMYSQLD_ENABLED, 1, 
            [whether the mysql embedded server is enabled])
 
-       AC_SEARCH_LIBS(request_init, wrap, [], 
+	AC_MSG_CHECKING([for mysql external dependencies.: checking for request_init() in libwrap])
+	AC_SEARCH_LIBS(request_init, wrap, [], 
                       AC_MSG_ERROR([can't find request_init() in libwrap]))
-       AC_SEARCH_LIBS(exp, m, [],
+	AC_MSG_CHECKING([for mysql external dependencies.: checking for exp() in libm])
+	AC_SEARCH_LIBS(exp, m, [],
                       AC_MSG_ERROR([can't find exp() in libm]))
-       AC_SEARCH_LIBS(crypt, crypt, [],
+	AC_MSG_CHECKING([for mysql external dependencies.: checking for crypt() in libcrypt])
+	AC_SEARCH_LIBS(crypt, crypt, [],
                       AC_MSG_ERROR([can't find crypt() in libcrypt]))
-       AC_SEARCH_LIBS(compress, z, [],
+	AC_MSG_CHECKING([for mysql external dependencies.: checking for compress() in libz])
+	AC_SEARCH_LIBS(compress, z, [],
                       AC_MSG_ERROR([can't find compress() in libz]))
     fi
 
@@ -1767,6 +1793,39 @@ AC_DEFUN(AC_OASYS_FIND_MYSQL, [
         AC_MSG_ERROR([can't find usable mysql library])
     fi
 ])
+
+dnl
+dnl Check if oasys has support for the given feature. Returns result
+dnl in ac_oasys_supports_result.
+dnl
+AC_DEFUN(AC_OASYS_SUPPORTS, [
+    AC_MSG_CHECKING(whether oasys is configured with $1)
+
+    if test x$cv_oasys_supports_$1 != x ; then
+        ac_oasys_supports_result=$cv_oasys_supports_$1
+        AC_MSG_RESULT($ac_oasys_supports_result (cached))
+    else
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
+    AC_LINK_IFELSE(
+      AC_LANG_PROGRAM(
+        [
+            #include <oasys/oasys-config.h>
+            #ifndef $1
+            #error $1 not configured
+            #endif
+        ], [] ),
+      ac_oasys_supports_result=yes,
+      ac_oasys_supports_result=no)
+
+    cv_oasys_supports_$1=$ac_oasys_supports_result
+    
+    AC_MSG_RESULT([$ac_oasys_supports_result])
+    CPPFLAGS=$ac_save_CPPFLAGS
+
+    fi
+])
 dnl
 dnl    Copyright 2007 Intel Corporation
 dnl 
@@ -1790,7 +1849,7 @@ dnl
 
 AC_DEFUN(AC_OASYS_CONFIG_HELP, [
 cat <<EOF
-
+    
 Configure error finding oasys.
 
 This script first looks for an oasys installation in the same location
@@ -1803,6 +1862,11 @@ using the --with-oasys argument to configure.
 
 If problems still exist, then look in the config.log to see exactly
 what the failing command was.
+
+Download oasys-$ac_oasysver_major.$ac_oasysver_minor (or later) 
+from http://dtn.hg.sourceforge.net/hgweb/dtn/oasys to $ac_oasysdir. 
+You will then probably have to run ./configure and make  
+in the oasys code tree in order to be able to compile DTN2
 
 EOF
 
@@ -1828,36 +1892,49 @@ AC_DEFUN(AC_OASYS_CONFIG, [
 
     ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
     if test "$ac_oasysdir" = "" ; then
-       if test -d "$ac_oasysdir_ver" ; then
-          ac_oasysdir=$ac_oasysdir_ver
-       elif test -d ../oasys ; then
-          ac_oasysdir=../oasys
-       else
-          ac_oasysdir=/usr
-       fi
+	if test -d "$ac_oasysdir_ver" ; then
+	    ac_oasysdir=$ac_oasysdir_ver
+	elif test -d ../oasys ; then
+	    ac_oasysdir=../oasys
+
+	else
+	    ac_oasysdir=/usr
+	    # Set the oasys paths properly. OASYS_INCDIR points to the parent
+	    # directory containing the oasys header files or the source
+	    # directory itself with a symlink (include/oasys -> .),
+	    # OASYS_LIBDIR points to the directory where the libraries are.
+	    # OASYS_ETCDIR points to where the various scripts are.
+	    #
+	    OASYS_INCDIR="$ac_oasysdir/include"
+	    OASYS_LIBDIR="$ac_oasysdir/lib"
+	    OASYS_ETCDIR="$ac_oasysdir/share/oasys"
+	fi
+    	if test -d oasys ; then
+	    	rm -rf oasys
+	fi
+	    mkdir oasys oasys/include
+	    OASYS_INCDIR="oasys/include/oasys"
+	    OASYS_LIBDIR="oasys/lib"
+	    OASYS_ETCDIR="oasys/share"
+	    ln -s ../../$ac_oasysdir $OASYS_INCDIR
+	    ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
+	    ln -s ../$ac_oasysdir $OASYS_ETCDIR
     fi
 
     #
-    # Set the oasys paths properly. OASYS_INCDIR points to the parent
-    # directory containing the oasys header files or the source
-    # directory itself with a symlink (include/oasys -> .),
-    # OASYS_LIBDIR points to the directory where the libraries are.
-    # OASYS_ETCDIR points to where the various scripts are.
-    #
-    OASYS_INCDIR="$ac_oasysdir/include"
-    OASYS_LIBDIR="$ac_oasysdir/lib"
-    OASYS_ETCDIR="$ac_oasysdir/share/oasys"
-
-    if test ! -d $OASYS_INCDIR ; then
-       AC_MSG_ERROR(nonexistent oasys include directory $OASYS_INCDIR)
+    if test ! -d $OASYS_INCDIR ; then echo ""
+    AC_OASYS_CONFIG_HELP
+    AC_MSG_ERROR(nonexistent oasys include directory $OASYS_INCDIR)
     fi
 
-    if test ! -d $OASYS_LIBDIR ; then
-       AC_MSG_ERROR(nonexistent oasys library directory $OASYS_LIBDIR)
+    if test ! -d $OASYS_LIBDIR ; then echo ""
+    AC_OASYS_CONFIG_HELP
+    AC_MSG_ERROR(nonexistent oasys library directory $OASYS_LIBDIR)
     fi
 
-    if test ! -d $OASYS_ETCDIR ; then
-       AC_MSG_ERROR(nonexistent oasys tools directory $OASYS_ETCDIR)
+    if test ! -d $OASYS_ETCDIR ; then echo ""
+    AC_OASYS_CONFIG_HELP
+    AC_MSG_ERROR(nonexistent oasys tools directory $OASYS_ETCDIR)
     fi
 
     if test "$ac_oasysver_major" = "" ; then
@@ -1879,30 +1956,26 @@ AC_DEFUN(AC_OASYS_CONFIG, [
     ac_save_LDFLAGS=$LDFLAGS
     LDFLAGS="$LDFLAGS $OASYS_LDFLAGS"
     AC_LINK_IFELSE(
-      AC_LANG_PROGRAM(
-      [
+	AC_LANG_PROGRAM(
+    [
 	#include <oasys/oasys-version.h>
 	#if (OASYS_VERSION_MAJOR != ${ac_oasysver_major}) || \
             (OASYS_VERSION_MINOR <  ${ac_oasysver_minor})
 	#error incorrect oasys version (wanted ${ac_oasysver_major}.${ac_oasysver_minor})
 	#endif
-      ], 
-      [
-          const char* s = oasys_version;
-	  (void)s;
-      ]),
-      [ 
-          AC_MSG_RESULT($ac_oasysdir)
-      ],
-      [
-          AC_MSG_RESULT([no])
-	  AC_MSG_ERROR([can't find compatible oasys install (version $ac_oasysver_major.$ac_oasysver_minor or better) at $ac_oasysdir])
+    ], 
+    [
+	const char* s = oasys_version;
+	(void)s;
+    ]),
+    [ 
+    AC_MSG_RESULT($ac_oasysdir)
+    ],
+    [
+    AC_MSG_RESULT([no])
+    AC_OASYS_CONFIG_HELP
+    AC_MSG_ERROR([Can't find compatible oasys libraries which are a required for DTN2.]) 
       ])
-
-    #
-    # Create a symlink to the oasys directory for the test scripts
-    #
-    ln -s $ac_oasysdir oasys
 
     CFLAGS=$ac_save_CFLAGS
     LDFLAGS=$ac_save_LDFLAGS
@@ -1951,39 +2024,6 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
 
     AC_SUBST(SYS_EXTLIB_CFLAGS)
     AC_SUBST(SYS_EXTLIB_LDFLAGS)
-])
-
-dnl
-dnl Check if oasys has support for the given feature. Returns result
-dnl in ac_oasys_supports_result.
-dnl
-AC_DEFUN(AC_OASYS_SUPPORTS, [
-    AC_MSG_CHECKING(whether oasys is configured with $1)
-
-    if test x$cv_oasys_supports_$1 != x ; then
-        ac_oasys_supports_result=$cv_oasys_supports_$1
-        AC_MSG_RESULT($ac_oasys_supports_result (cached))
-    else
-
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
-    AC_LINK_IFELSE(
-      AC_LANG_PROGRAM(
-        [
-            #include <oasys/oasys-config.h>
-            #ifndef $1
-            #error $1 not configured
-            #endif
-        ], [] ),
-      ac_oasys_supports_result=yes,
-      ac_oasys_supports_result=no)
-
-    cv_oasys_supports_$1=$ac_oasys_supports_result
-    
-    AC_MSG_RESULT([$ac_oasys_supports_result])
-    CPPFLAGS=$ac_save_CPPFLAGS
-
-    fi
 ])
 dnl
 dnl    Copyright 2005-2006 Intel Corporation
@@ -2477,14 +2517,14 @@ AC_DEFUN(AC_CONFIG_TCL, [
 
     AC_ARG_WITH(tclver,
         AC_HELP_STRING([--with-tclver=VERSION],
-    		   [tcl version to use (default 8.4 or 8.3)]),
+    		   [tcl version to use (default 8.5 - 8.3)]),
         ac_tclvers=$withval)
 
     dnl
     dnl We don't accept --without-tcl
     dnl
     if test $ac_tcldir = no ; then
-       AC_MSG_ERROR([cannot configure without tcl])
+       AC_MSG_ERROR([tcl MUST be installed to configure])
     fi
 
     dnl
@@ -2492,9 +2532,9 @@ AC_DEFUN(AC_CONFIG_TCL, [
     dnl
     AC_EXTLIB_PREPARE
     AC_SEARCH_LIBS(pow, m, [],
-      AC_MSG_ERROR([can't find required library function (pow)]))
+      AC_MSG_ERROR([can't find standard C library function (pow) required by tcl]))
     AC_SEARCH_LIBS(dlopen, dl, [],
-      AC_MSG_ERROR([can't find required library function (dlopen)]))
+      AC_MSG_ERROR([can't find standard library function (dlopen) required by tcl]))
     AC_EXTLIB_SAVE
 
     dnl
@@ -2502,8 +2542,8 @@ AC_DEFUN(AC_CONFIG_TCL, [
     dnl specified something with --with-tcl, in which case we force 
     dnl it to redo the checks (i.e. ignore the cached values).
     dnl
-    if test $ac_tcldir = system -a ! x$oasys_cv_path_tcl_h = x ; then
-        echo "checking for tcl installation... (cached) $oasys_cv_path_tcl_h/tcl.h, $oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
+    if test $ac_tcldir = system -a ! x$oasys_cv_path_tcl_h = x ; then \
+	echo "checking for tcl installation... (cached) $oasys_cv_path_tcl_h/tcl.h, $oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
     else
         AC_FIND_TCL
     fi
@@ -2539,9 +2579,9 @@ AC_DEFUN(AC_FIND_TCL, [
         ac_tcldir=system
         ac_tclincdirs="/usr/include /usr/local/include"
 	for ac_tclver in $ac_tclvers ; do
-           ac_tclincdirs="$ac_tclincdirs /usr/include/tcl$ac_tclver"
-           ac_tclincdirs="$ac_tclincdirs /usr/local/include/tcl$ac_tclver"
-        done
+           ac_tclincdirs="$ac_tclincdirs /usr/include/tcl$ac_tclver /usr/local/include/tcl$ac_tclver"
+           ac_tclincdirs="$ac_tclincdirs"
+       done
         ac_tcllibdirs="/usr/lib /usr/local/lib"
     else
         ac_tclincdirs=$ac_tcldir/include
@@ -2643,7 +2683,7 @@ AC_DEFUN(AC_FIND_TCL, [
     LIBS="$ac_save_LIBS"
 
     if test x$oasys_cv_path_tcl_h = x ; then
-        AC_MSG_ERROR([can't find usable tcl.h])
+        AC_MSG_ERROR([Please install the tcl development files headers and libraries. Can't find usable tcl.h ])
     fi
 ])
 dnl
@@ -2667,20 +2707,50 @@ dnl Autoconf support for tclreadline
 dnl
 
 dnl
+dnl help 
+dnl
+AC_DEFUN(AC_TCLRL_HELP, [
+cat <<EOF
+
+Configure error with tclreadline...
+
+If you do not want tclreadline support at all, you can specify
+--without-tclreadline.
+
+Download tclreadline from http://tclreadline.sourceforge.net/
+
+Before trying to compile tclreadline you should do the following things:
+
+    (a) Make sure you have tcl 8.0 or higher.
+        tclreadline relies on a proper tcl installation:
+        It uses the tclConfig.sh file, which should reside somewhere
+        in /usr/local/lib/ or /usr/local/lib/tcl8.0/...
+
+    (b) Make sure you have gnu readline 2.2 or higher.
+        tclreadline uses the gnu readline callback handler
+
+    (c) The usual ./configure; make; make install sequence should do the rest.
+
+
+EOF
+
+])
+dnl
 dnl Main macro for finding a usable db installation 
 dnl
 AC_DEFUN(AC_CONFIG_TCLREADLINE, [
+#ac_tclreadlinedir='system'
+
     AC_ARG_WITH(tclreadline,
         AC_HELP_STRING([--with-tclreadline],
     		   [enable or disable tclreadline (default try)]),
         [ac_tclreadline=$withval],
         [ac_tclreadline=try])
 
-    AC_MSG_CHECKING([whether tclreadline support should be enabled])
-
     dnl
     dnl First make sure we even want it
     dnl
+	AC_MSG_CHECKING([whether tclreadline support should be enabled])
     if test "$ac_tclreadline" = no ; then
     AC_MSG_RESULT([no])
     TCLREADLINE_ENABLED=0
@@ -2702,11 +2772,13 @@ AC_DEFUN(AC_CONFIG_TCLREADLINE, [
     if test $BUILD_SYSTEM = 'CYGWIN' ; then
         TCLREADLINE_ENABLED=0
     else 
-        AC_EXTLIB_PREPARE
-        AC_SEARCH_LIBS(readline, 
-                       readline, 
-	    	       [TCLREADLINE_ENABLED=1],
-	    	       [TCLREADLINE_ENABLED=0])
+    dnl	
+    dnl look for the library and the header
+    dnl
+	AC_EXTLIB_PREPARE
+        AC_MSG_CHECKING([searching for the readline library development headers])
+        AC_CHECK_HEADERS([readline/readline.h], TCLREADLINE_ENABLED=1, TCLREADLINE_ENABLED=0)
+	AC_SEARCH_LIBS(readline, readline, TCLREADLINE_ENABLED=1, TCLREADLINE_ENABLED=0)
         AC_EXTLIB_SAVE
     fi
 
@@ -2714,7 +2786,7 @@ AC_DEFUN(AC_CONFIG_TCLREADLINE, [
     dnl Find out if we're using the BSD libedit implementation of 
     dnl readline functionality.
     dnl
-    if test $TCLREADLINE_ENABLED = 1 ; then
+    if test "$TCLREADLINE_ENABLED" = 1; then
          AC_CACHE_CHECK([whether readline is GNU readline or BSD editline],
 	  	        [oasys_cv_readline_is_editline],
  		        [AC_LINK_IFELSE([AC_LANG_CALL([], [rl_extend_line_buffer])],
@@ -2728,10 +2800,16 @@ AC_DEFUN(AC_CONFIG_TCLREADLINE, [
 	dnl Finally, spit out an informative message
 	AC_MSG_CHECKING([whether tclreadline support was found])
         AC_MSG_RESULT([yes])
+
     else
+
 	dnl Finally, spit out an informative message
 	AC_MSG_CHECKING([whether tclreadline support was found])
-        AC_MSG_RESULT([no])
+	AC_MSG_RESULT([no])
+	if test "$ac_tclreadline" = yes; then
+	AC_TCLRL_HELP
+	AC_MSG_ERROR([can't find usable tclreadline])
+	fi
     fi
 
     fi # ac_tclreadline != no
@@ -2782,6 +2860,9 @@ AC_DEFUN(AC_CONFIG_XERCES, [
     if test "$ac_with_xerces_c" = no; then
         AC_MSG_RESULT([no])
         XERCES_C_ENABLED=0
+	echo ""
+	AC_MSG_NOTICE([Proceeding without xerces-c support as requested])
+	echo ""
     else
 
     dnl

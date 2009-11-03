@@ -1,3 +1,9 @@
+dtn (2.6.0) unstable; urgency=low
+
+  * 2.6.0 release upgrade
+
+ -- Alex McMahon <ailex.mcmahon@cs.tcd.ie>  Fri, 08 May 2009 20:07:09 +0100
+
 dtn (2.5.1-1) unstable; urgency=low
 
   * 2.5.1 release update

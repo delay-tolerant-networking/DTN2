@@ -2038,8 +2038,8 @@ fi
 
 
     if test "x$ac_with_cc" = "x" ; then
-        ac_try_cc="gcc gcc-4.1 gcc-4.0 gcc-3.4 gcc-3.3"
-        ac_try_cxx="g++ g++-4.0 g++-4.0 g++-3.4 g++-3.3"
+        ac_try_cc="gcc gcc-4.3 gcc-4.2 gcc-4.1 gcc-4.0 gcc-3.4 gcc-3.3"
+        ac_try_cxx="g++ g++-4.3 g++-4.2 g++-4.1 g++-4.0 g++-3.4 g++-3.3"
     else
         ac_try_cc=$ac_with_cc
 
@@ -4109,40 +4109,122 @@ $as_echo_n "checking for an oasys installation (version $ac_oasysver_major.$ac_o
 
     ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
     if test "$ac_oasysdir" = "" ; then
-       if test -d "$ac_oasysdir_ver" ; then
-          ac_oasysdir=$ac_oasysdir_ver
-       elif test -d ../oasys ; then
-          ac_oasysdir=../oasys
-       else
-          ac_oasysdir=/usr
-       fi
+	if test -d "$ac_oasysdir_ver" ; then
+	    ac_oasysdir=$ac_oasysdir_ver
+	elif test -d ../oasys ; then
+	    ac_oasysdir=../oasys
+
+	else
+	    ac_oasysdir=/usr
+	    # Set the oasys paths properly. OASYS_INCDIR points to the parent
+	    # directory containing the oasys header files or the source
+	    # directory itself with a symlink (include/oasys -> .),
+	    # OASYS_LIBDIR points to the directory where the libraries are.
+	    # OASYS_ETCDIR points to where the various scripts are.
+	    #
+	    OASYS_INCDIR="$ac_oasysdir/include"
+	    OASYS_LIBDIR="$ac_oasysdir/lib"
+	    OASYS_ETCDIR="$ac_oasysdir/share/oasys"
+	fi
+    	if test -d oasys ; then
+	    	rm -rf oasys
+	fi
+	    mkdir oasys oasys/include
+	    OASYS_INCDIR="oasys/include/oasys"
+	    OASYS_LIBDIR="oasys/lib"
+	    OASYS_ETCDIR="oasys/share"
+	    ln -s ../../$ac_oasysdir $OASYS_INCDIR
+	    ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
+	    ln -s ../$ac_oasysdir $OASYS_ETCDIR
     fi
 
     #
-    # Set the oasys paths properly. OASYS_INCDIR points to the parent
-    # directory containing the oasys header files or the source
-    # directory itself with a symlink (include/oasys -> .),
-    # OASYS_LIBDIR points to the directory where the libraries are.
-    # OASYS_ETCDIR points to where the various scripts are.
-    #
-    OASYS_INCDIR="$ac_oasysdir/include"
-    OASYS_LIBDIR="$ac_oasysdir/lib"
-    OASYS_ETCDIR="$ac_oasysdir/share/oasys"
+    if test ! -d $OASYS_INCDIR ; then echo ""
 
-    if test ! -d $OASYS_INCDIR ; then
-       { { $as_echo "$as_me:$LINENO: error: nonexistent oasys include directory $OASYS_INCDIR" >&5
+cat <<EOF
+
+Configure error finding oasys.
+
+This script first looks for an oasys installation in the same location
+as the tool that is using the oasys library (where this configure
+script is run from). In other words, it first tries ../oasys.
+
+If ../oasys does not exist, it looks for an oasys installation in
+/usr. If that is not found, you need to specify the location of oasys
+using the --with-oasys argument to configure.
+
+If problems still exist, then look in the config.log to see exactly
+what the failing command was.
+
+Download oasys-$ac_oasysver_major.$ac_oasysver_minor (or later)
+from http://dtn.hg.sourceforge.net/hgweb/dtn/oasys to $ac_oasysdir.
+You will then probably have to run ./configure and make
+in the oasys code tree in order to be able to compile DTN2
+
+EOF
+
+
+    { { $as_echo "$as_me:$LINENO: error: nonexistent oasys include directory $OASYS_INCDIR" >&5
 $as_echo "$as_me: error: nonexistent oasys include directory $OASYS_INCDIR" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
-    if test ! -d $OASYS_LIBDIR ; then
-       { { $as_echo "$as_me:$LINENO: error: nonexistent oasys library directory $OASYS_LIBDIR" >&5
+    if test ! -d $OASYS_LIBDIR ; then echo ""
+
+cat <<EOF
+
+Configure error finding oasys.
+
+This script first looks for an oasys installation in the same location
+as the tool that is using the oasys library (where this configure
+script is run from). In other words, it first tries ../oasys.
+
+If ../oasys does not exist, it looks for an oasys installation in
+/usr. If that is not found, you need to specify the location of oasys
+using the --with-oasys argument to configure.
+
+If problems still exist, then look in the config.log to see exactly
+what the failing command was.
+
+Download oasys-$ac_oasysver_major.$ac_oasysver_minor (or later)
+from http://dtn.hg.sourceforge.net/hgweb/dtn/oasys to $ac_oasysdir.
+You will then probably have to run ./configure and make
+in the oasys code tree in order to be able to compile DTN2
+
+EOF
+
+
+    { { $as_echo "$as_me:$LINENO: error: nonexistent oasys library directory $OASYS_LIBDIR" >&5
 $as_echo "$as_me: error: nonexistent oasys library directory $OASYS_LIBDIR" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
-    if test ! -d $OASYS_ETCDIR ; then
-       { { $as_echo "$as_me:$LINENO: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&5
+    if test ! -d $OASYS_ETCDIR ; then echo ""
+
+cat <<EOF
+
+Configure error finding oasys.
+
+This script first looks for an oasys installation in the same location
+as the tool that is using the oasys library (where this configure
+script is run from). In other words, it first tries ../oasys.
+
+If ../oasys does not exist, it looks for an oasys installation in
+/usr. If that is not found, you need to specify the location of oasys
+using the --with-oasys argument to configure.
+
+If problems still exist, then look in the config.log to see exactly
+what the failing command was.
+
+Download oasys-$ac_oasysver_major.$ac_oasysver_minor (or later)
+from http://dtn.hg.sourceforge.net/hgweb/dtn/oasys to $ac_oasysdir.
+You will then probably have to run ./configure and make
+in the oasys code tree in order to be able to compile DTN2
+
+EOF
+
+
+    { { $as_echo "$as_me:$LINENO: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&5
 $as_echo "$as_me: error: nonexistent oasys tools directory $OASYS_ETCDIR" >&2;}
    { (exit 1); exit 1; }; }
     fi
@@ -4225,8 +4307,8 @@ int
 main ()
 {
 
-          const char* s = oasys_version;
-	  (void)s;
+	const char* s = oasys_version;
+	(void)s;
 
   ;
   return 0;
@@ -4254,7 +4336,7 @@ $as_echo "$ac_try_echo") >&5
 	 $as_test_x conftest$ac_exeext
        }; then
 
-          { $as_echo "$as_me:$LINENO: result: $ac_oasysdir" >&5
+    { $as_echo "$as_me:$LINENO: result: $ac_oasysdir" >&5
 $as_echo "$ac_oasysdir" >&6; }
 
 else
@@ -4262,10 +4344,34 @@ else
 sed 's/^/| /' conftest.$ac_ext >&5
 
 
-          { $as_echo "$as_me:$LINENO: result: no" >&5
+    { $as_echo "$as_me:$LINENO: result: no" >&5
 $as_echo "no" >&6; }
-	  { { $as_echo "$as_me:$LINENO: error: can't find compatible oasys install (version $ac_oasysver_major.$ac_oasysver_minor or better) at $ac_oasysdir" >&5
-$as_echo "$as_me: error: can't find compatible oasys install (version $ac_oasysver_major.$ac_oasysver_minor or better) at $ac_oasysdir" >&2;}
+
+cat <<EOF
+
+Configure error finding oasys.
+
+This script first looks for an oasys installation in the same location
+as the tool that is using the oasys library (where this configure
+script is run from). In other words, it first tries ../oasys.
+
+If ../oasys does not exist, it looks for an oasys installation in
+/usr. If that is not found, you need to specify the location of oasys
+using the --with-oasys argument to configure.
+
+If problems still exist, then look in the config.log to see exactly
+what the failing command was.
+
+Download oasys-$ac_oasysver_major.$ac_oasysver_minor (or later)
+from http://dtn.hg.sourceforge.net/hgweb/dtn/oasys to $ac_oasysdir.
+You will then probably have to run ./configure and make
+in the oasys code tree in order to be able to compile DTN2
+
+EOF
+
+
+    { { $as_echo "$as_me:$LINENO: error: Can't find compatible oasys libraries which are a required for DTN2." >&5
+$as_echo "$as_me: error: Can't find compatible oasys libraries which are a required for DTN2." >&2;}
    { (exit 1); exit 1; }; }
 
 fi
@@ -4273,11 +4379,6 @@ fi
 rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
-
-    #
-    # Create a symlink to the oasys directory for the test scripts
-    #
-    ln -s $ac_oasysdir oasys
 
     CFLAGS=$ac_save_CFLAGS
     LDFLAGS=$ac_save_LDFLAGS
@@ -4768,12 +4869,13 @@ fi
     { $as_echo "$as_me:$LINENO: checking whether bonjour support should be enabled" >&5
 $as_echo_n "checking whether bonjour support should be enabled... " >&6; }
 
-    if test "$ac_use_bonjour" = "no"; then
-        { $as_echo "$as_me:$LINENO: result: no" >&5
+
+	if test "$ac_use_bonjour" = "no"; then
+	{ $as_echo "$as_me:$LINENO: result: no" >&5
 $as_echo "no" >&6; }
 
-    else
-        { $as_echo "$as_me:$LINENO: result: $ac_use_bonjour" >&5
+	else
+	{ $as_echo "$as_me:$LINENO: result: $ac_use_bonjour" >&5
 $as_echo "$ac_use_bonjour" >&6; }
 
 
@@ -4785,6 +4887,8 @@ $as_echo "$ac_use_bonjour" >&6; }
     LDFLAGS=
     LIBS=
 
+	{ $as_echo "$as_me:$LINENO: checking searching for the bonjour library development headers" >&5
+$as_echo_n "checking searching for the bonjour library development headers... " >&6; }
 
 for ac_header in dns_sd.h
 do
@@ -4927,6 +5031,9 @@ as_val=`eval 'as_val=${'$as_ac_Header'}
 #define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
  ac_has_bonjour_h=yes
+else
+  { $as_echo "$as_me:$LINENO: result: bonjour header not found" >&5
+$as_echo "bonjour header not found" >&6; }
 fi
 
 done
@@ -5016,6 +5123,9 @@ ac_res=$ac_cv_search_DNSServiceRegister
 if test "$ac_res" != no; then
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
   ac_has_bonjour_lib=yes
+else
+  { $as_echo "$as_me:$LINENO: result: function not found in bonjour library" >&5
+$as_echo "function not found in bonjour library" >&6; }
 fi
 
 
@@ -5052,8 +5162,28 @@ $as_echo "yes" >&6; }
 $as_echo "no" >&6; }
 
         else
-          { { $as_echo "$as_me:$LINENO: error: can't find bonjour headers or library" >&5
-$as_echo "$as_me: error: can't find bonjour headers or library" >&2;}
+
+cat <<EOF
+
+Configure error with bonjour...
+
+The default is to try to compile in bonjour support and
+if development headers and libraries are not present
+proceed. You appear to have stated '$ac_use_bonjour'
+when asked whether bonjour support should be enabled
+Can't find the required development headers (dns_sd.h) or
+function (DNSServiceRegister) in dns_sd of the Avahi
+Apple Bonjour library.
+
+
+If you do not want bonjour support at all, you can specify
+--without-bonjour.
+
+
+EOF
+
+          { { $as_echo "$as_me:$LINENO: error: can't find the required development headers for the Avahi Apple Bonjour library" >&5
+$as_echo "$as_me: error: can't find the required development headers for the Avahi Apple Bonjour library" >&2;}
    { (exit 1); exit 1; }; }
         fi
     fi
@@ -6045,7 +6175,7 @@ fi
 # Output
 # -------------------------------------------------------------------------
 
-INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
+INCFLAGS="-I\$(OASYS_INCDIR)/ext -I\$(SRCDIR)/servlib"
 
 
 ac_config_files="$ac_config_files Rules.make:$OASYS_ETCDIR/Rules.make.in"

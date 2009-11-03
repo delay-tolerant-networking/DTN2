@@ -342,22 +342,64 @@ following variables:
 
 <tr>
 <td><tt>dbdir</tt>
-<td>any directory name
+<td>directory
 <td>/var/dtn/db
 <td>The directory where the DB files will be stored. Only used for
 type BerkeleyDB.
 
 <tr>
 <td><tt>dbfile</tt>
-<td>any file name
+<td>name
 <td>DTN.db
 <td>The file name of the BerkeleyDB database.
 
 <tr>
 <td><tt>payloaddir</tt>
-<td>a directory name
+<td>directory
 <td>/var/dtn/bundles
 <td>The directory where bundles in transit will be stored.
+
+<tr>
+<td><tt>payload_quota</tt>
+<td>number (bytes)
+<td>0 
+<td>storage quota for bundle payloads (0 is unlimited).
+
+<tr>
+<td><tt>payload_fd_cache_size</tt>
+<td>number
+<td>32
+<td>number of payload file descriptors to keep open in a cache.
+
+<tr>
+<td><tt>server_port</tt>
+<td>number (port)
+<td>0
+<td>TCP port for IPC to external data store.
+
+<tr>
+<td><tt>schema</tt>
+<td>name
+<td>none
+<td>File containing the XML schema for the external data store interface.
+
+<tr>
+<td><tt>type</tt>
+<td>berkeleydb, mysql, postgres, filesysdb, memorydb, filesysdb
+<td>berkeleydb
+<td>Which database backend will be used.
+
+<tr>
+<td><tt>dbname</tt>
+<td>name
+<td>DB
+<td>Set the database name (appended with .db as the filename in berkeleydb, used as-is for SQL variants.
+
+<tr>
+<td><tt>init_db</tt>
+<td>true, false
+<td>false
+<td>When true, dtnd initialize the database on startup.
 
 <tr>
 <td><tt>tidy</tt>
@@ -367,10 +409,76 @@ type BerkeleyDB.
 at startup.
 
 <tr>
-<td><tt>type</tt>
-<td>berkeleydb, mysql, postgres
-<td>berkeleydb
-<td>Which database backend will be used.
+<td><tt>tidy_wait</tt>
+<td>number (seconds)
+<td>3
+<td>How long to wait before really doing a tidy.
+
+<tr>
+<td><tt>leave_clean_file</tt>
+<td>true, false
+<td>true
+<td>Leave a .ds_clean file on clean.
+
+<tr>
+<td><tt>fs_fd_cache_size</tt>
+<td>number
+<td>0
+<td>Number of open fds to cache - if > 0 then this # of open fds will be cached  when using Filesystem DB.
+
+<tr>
+<td><tt>db_mpool</tt>
+<td>true, false
+<td>true
+<td>Use mpool in Berkeley DB.
+
+<tr>
+<td><tt>db_log</tt>
+<td>true, false
+<td>true
+<td>Use logging in Berkeley DB.
+
+<tr>
+<td><tt>db_txn</tt>
+<td>true, false
+<td>true
+<td>Use transactions in Berkeley DB.
+
+<tr>
+<td><tt>db_sharefile</tt>
+<td>true, false
+<td>false
+<td>Use shared database file in Berkeley DB.
+
+<tr>
+<td><tt>db_max_tx</tt>
+<td>number
+<td>0
+<td>Max # of active transactions in Berkeley DB.
+
+<tr>
+<td><tt>db_max_locks</tt>
+<td>number
+<td>0
+<td>Max # of active locks in Berkeley DB.
+
+<tr>
+<td><tt>db_max_lockers</tt>
+<td>number
+<td>0
+<td>Max # of active locking threads in Berkeley DB.
+
+<tr>
+<td><tt>db_max_lockedobjs</tt>
+<td>number
+<td>0
+<td>Max # of active locked objects in Berkeley DB.
+
+<tr>
+<td><tt>db_lockdetect</tt>
+<td>number (frequency)
+<td>5000
+<td>Frequency to check for Berkeley DB deadlocks (zero disables locking).
 
 </table>
 
@@ -389,6 +497,64 @@ variables described in the <a
 href="http://www.postgresql.org/docs/8.0/interactive/libpq-envars.html">PostgreSQL
 manual</a>.
 
+<a name="route"/>
+<h2> route </h2>
+
+<p>
+Syntax: <tt>route set <i>variable</i> <i>value</i> </tt>
+<br>
+Example: <tt>route set type static</tt>
+
+<p>
+Use the <tt>route</tt> command to configure the manner in which
+DTN2 will route. You may set the
+following variables:
+
+<p>
+<table>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>type</tt>
+<td>static, prophet, flood, dtlsr, tca_router, tca_gateway, external
+<td>static
+<td>Which routing algorithm to use.
+
+<tr>
+<td><tt>add_nexthop_routes</tt>
+<td>true, false
+<td>true
+<td>Whether or not to automatically add routes for next hop links .
+
+<tr>
+<td><tt>open_discovered_links</tt>
+<td>true, false
+<td>true
+<td>Whether or not to automatically open discovered opportunistic links.
+
+<tr>
+<td><tt>default_priority</tt>
+<td>number
+<td>0
+<td>Default priority for new routes.
+
+<tr>
+<td><tt>max_route_to_chain</tt>
+<td>number
+<td>10
+<td>Maximum number of route_to links to follow.
+
+<tr>
+<td><tt>subscription_timeout</tt>
+<td>number
+<td>600
+<td>Default timeout for upstream subscription.
+
+</table>
 </body>
 </html>
 
