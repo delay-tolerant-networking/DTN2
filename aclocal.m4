@@ -1912,11 +1912,11 @@ AC_DEFUN(AC_OASYS_CONFIG, [
     	if test -d oasys ; then
 	    	rm -rf oasys
 	fi
-	    mkdir oasys oasys/include
-	    OASYS_INCDIR="oasys/include/oasys"
+	    mkdir oasys 
+	    OASYS_INCDIR="oasys/include"
 	    OASYS_LIBDIR="oasys/lib"
 	    OASYS_ETCDIR="oasys/share"
-	    ln -s ../../$ac_oasysdir $OASYS_INCDIR
+	    ln -s ../$ac_oasysdir $OASYS_INCDIR
 	    ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
 	    ln -s ../$ac_oasysdir $OASYS_ETCDIR
     fi

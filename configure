@@ -4129,11 +4129,11 @@ $as_echo_n "checking for an oasys installation (version $ac_oasysver_major.$ac_o
     	if test -d oasys ; then
 	    	rm -rf oasys
 	fi
-	    mkdir oasys oasys/include
-	    OASYS_INCDIR="oasys/include/oasys"
+	    mkdir oasys
+	    OASYS_INCDIR="oasys/include"
 	    OASYS_LIBDIR="oasys/lib"
 	    OASYS_ETCDIR="oasys/share"
-	    ln -s ../../$ac_oasysdir $OASYS_INCDIR
+	    ln -s ../$ac_oasysdir $OASYS_INCDIR
 	    ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
 	    ln -s ../$ac_oasysdir $OASYS_ETCDIR
     fi
