@@ -1098,7 +1098,7 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 		case '?':
 			break;
 
-		case - 1:
+		case (char)(-1):
 			done = 1;
 			break;
 

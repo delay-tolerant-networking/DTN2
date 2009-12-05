@@ -19,7 +19,7 @@
 /* ----------------------------------------
  *         DTNperf 2.4 - SERVER
  *
-  *             developed by
+ *             developed by
  * 
  * Piero Cornice - piero.cornice(at)gmail.com
  * Marco Livini - marco.livini(at)gmail.com
@@ -763,7 +763,7 @@ void parse_options (int argc, char** argv)
 		case '?':
 			break;
 
-		case - 1:
+		case (char)(-1):
 			done = 1;
 			break;
 		default:
