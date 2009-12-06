@@ -17,7 +17,7 @@
 
 
 /* ----------------------------------------
- *         DTNperf 2.4 - CLIENT
+ *         DTNperf 2.5 - CLIENT
  *
  *             developed by
  * 
@@ -80,6 +80,7 @@ typedef struct
 	int custody_receipts;		// request per custodian receipts [0]
 	int receive_receipts;		// request per hop arrival receipt [0]
 	int wait_for_report;		// wait for bundle status reports [1]
+	int disable_fragmentation;	// disable bundle fragmentation [0]
 }
 dtn_options_t;
 
@@ -281,7 +282,7 @@ int main(int argc, char *argv[])
 
 
 	// SOURCE is local EID + demux string (with optional file path)
-	sprintf(demux, "/dtnperf:/src");
+	sprintf(demux, "/dtnperf:/src_%d",getpid());
 	dtn_build_local_eid(handle, &bundle_spec.source, demux);
 
 	if (debug)
@@ -324,7 +325,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		sprintf(demux, "/dtnperf:/src");
+		sprintf(demux, "/dtnperf:/src_%d", getpid());
 		strcat(arg_replyto, demux);
 		parse_eid(handle, &bundle_spec.dest, arg_replyto);
 	}
@@ -826,7 +827,8 @@ void print_usage(char* progname)
 	fprintf(stderr, "Options common to both Time and Data Mode:\n");
 	fprintf(stderr, " -C, --custody [SONC||Slide_on_Custody]\tEnable Custody transfer and custody transfer receipts , if SONC||Slide_on_Custody are set the transmission window is updated on custody accepted status reports.\n");
 	fprintf(stderr, " -w, --window <size>\tSize in bundle of transmission window, if the size is not indicated assume size=1.\n");
-	fprintf(stderr, " -p, --payload <size[BKM]>\tSize in bytes of bundle payload; if the data unit is not indicated assume 'M' (Kbytes).\n");
+	fprintf(stderr, " -p, --payload <size[BKM]>\tSize in bytes of bundle payload; if the data unit is not indicated assume 'K' (Kbytes).\n");
+	fprintf(stderr, " -u, --nofragment\tDisable bundle fragmentation.\n");
 	fprintf(stderr, "Data-Mode options:\n");
 	fprintf(stderr, " -m, --memory\tStore the bundle into memory instead of file (if payload < 50KB).\n");
 	fprintf(stderr, "Other options:\n");
@@ -869,6 +871,7 @@ void init_dtn_options(dtn_options_t* opt)
 	opt->custody_receipts = 0;    // request per custodian receipts [0]
 	opt->receive_receipts = 0;    // request per hop arrival receipt [0]
 	opt->wait_for_report = 1;    // wait for bundle status reports [1]
+	opt->disable_fragmentation =0; //disable bundle fragmentation[0]
 }
 
 
@@ -938,6 +941,20 @@ void set_dtn_options(dtn_bundle_spec_t *bundle_spec, dtn_options_t *opt)
 		if (create_log)
 			fprintf(log_file, "RECEIVE_RCPT ");
 	}
+
+	//Disable bunle fragmentation
+
+	if (opt->disable_fragmentation)
+	{
+		bundle_spec->dopts |= DOPTS_DO_NOT_FRAGMENT;
+
+		if ((debug) && (debug_level > 0))
+			printf("DO_NOT_FRAGMENT ");
+
+		if (create_log)
+			fprintf(log_file, "DO_NOT_FRAGMENT ");
+	}
+
 } // end set_dtn_options
 
 
@@ -967,11 +984,12 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 			    {"log", required_argument, 0, 'L'},
 			    {"freceipts", no_argument, 0, 'F'},
 			    {"rreceipts", no_argument, 0, 'R'},
-			    {"creceipts", no_argument, 0, 'T'}
+			    {"creceipts", no_argument, 0, 'T'},
+			    {"nofragment", no_argument, 0, 'u'}
 		    };
 
 		int option_index = 0;
-		c = getopt_long(argc, argv, "hvD::c:mC::w:d:i:t:p:n:FRTf:L:", long_options, &option_index);
+		c = getopt_long(argc, argv, "hvD::c:mC::w:d:i:t:p:n:FRTuf:L:", long_options, &option_index);
 
 		switch (c)
 		{
@@ -1088,6 +1106,10 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 
 		case 'T':
 			dtn_opt->custody_receipts = 1;
+			break;
+		
+		case 'u':
+			dtn_opt->disable_fragmentation = 1;
 			break;
 
 		case 'L':
