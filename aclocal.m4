@@ -1876,7 +1876,7 @@ dnl
 dnl AC_OASYS_CONFIG [major] [minor]
 dnl
 AC_DEFUN(AC_OASYS_CONFIG, [
-    rm -f oasys
+    rm -rf oasys
 
     ac_oasysver_major=$1
     ac_oasysver_minor=$2
@@ -1912,11 +1912,11 @@ AC_DEFUN(AC_OASYS_CONFIG, [
     	if test -d oasys ; then
 	    	rm -rf oasys
 	fi
-	    mkdir oasys 
+	    mkdir oasys oasys/include
 	    OASYS_INCDIR="oasys/include"
 	    OASYS_LIBDIR="oasys/lib"
 	    OASYS_ETCDIR="oasys/share"
-	    ln -s ../$ac_oasysdir $OASYS_INCDIR
+	    ln -s ../../$ac_oasysdir $OASYS_INCDIR
 	    ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
 	    ln -s ../$ac_oasysdir $OASYS_ETCDIR
     fi

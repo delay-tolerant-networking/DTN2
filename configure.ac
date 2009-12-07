@@ -134,7 +134,7 @@ AC_CONFIG_OPENSSL
 # Output
 # -------------------------------------------------------------------------
 
-INCFLAGS="-I\$(OASYS_INCDIR)/ext -I\$(SRCDIR)/servlib"
+INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
 AC_SUBST(INCFLAGS)
 
 AC_CONFIG_FILES([Rules.make:$OASYS_ETCDIR/Rules.make.in])

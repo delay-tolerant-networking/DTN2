@@ -4090,7 +4090,7 @@ fi
 
 
 
-    rm -f oasys
+    rm -rf oasys
 
     ac_oasysver_major=1
     ac_oasysver_minor=3
@@ -4129,11 +4129,11 @@ $as_echo_n "checking for an oasys installation (version $ac_oasysver_major.$ac_o
     	if test -d oasys ; then
 	    	rm -rf oasys
 	fi
-	    mkdir oasys
+	    mkdir oasys oasys/include
 	    OASYS_INCDIR="oasys/include"
 	    OASYS_LIBDIR="oasys/lib"
 	    OASYS_ETCDIR="oasys/share"
-	    ln -s ../$ac_oasysdir $OASYS_INCDIR
+	    ln -s ../../$ac_oasysdir $OASYS_INCDIR
 	    ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
 	    ln -s ../$ac_oasysdir $OASYS_ETCDIR
     fi
@@ -6175,7 +6175,7 @@ fi
 # Output
 # -------------------------------------------------------------------------
 
-INCFLAGS="-I\$(OASYS_INCDIR)/ext -I\$(SRCDIR)/servlib"
+INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
 
 
 ac_config_files="$ac_config_files Rules.make:$OASYS_ETCDIR/Rules.make.in"
