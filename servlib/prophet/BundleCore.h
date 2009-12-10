@@ -23,7 +23,7 @@
 #include "BundleImpl.h"
 #include "BundleList.h"
 #include "Link.h"
-
+#include <stdio.h>
 #include <stdarg.h>
 #include <string>
 #include <list>
