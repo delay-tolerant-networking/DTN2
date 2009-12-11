@@ -17,7 +17,7 @@
 
 
 /* ----------------------------------------
- *         DTNperf 2.4 - SERVER
+ *         DTNperf 2.5.1 - SERVER
  *
  *             developed by
  * 

@@ -17,7 +17,7 @@
 
 
 /* ----------------------------------------
- *         DTNperf 2.5 - CLIENT
+ *         DTNperf 2.5.1 - CLIENT
  *
  *             developed by
  * 
@@ -1660,6 +1660,7 @@ void* receive_ack(void *opt)
 
 	if (perf_opt->op_mode == 't')
 	{
+		// Time Mode
 		int position = -1;
 
 
@@ -1675,12 +1676,12 @@ void* receive_ack(void *opt)
 			}
 
 			// Set memory for the reply
-			if (dtn_opt->wait_for_report)
-			{
-				memset(&reply_spec, 0, sizeof(reply_spec));
-				memset(&reply_payload, 0, sizeof(reply_payload));
-			}
-
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] memset for reply_spec...");
+			memset(&reply_spec, 0, sizeof(reply_spec));
+			memset(&reply_payload, 0, sizeof(reply_payload));
+			if ((debug) && (debug_level > 0))
+				printf(" done\n");
 
 			// Wait for the reply
 			if ((debug) && (debug_level > 0))
@@ -1839,6 +1840,9 @@ void* receive_ack(void *opt)
 				if (create_log)
 					fprintf(log_file, "\t %f\t received bundle fuori outside sequence: %u.%u\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno);
 			}
+
+			dtn_free_payload(&reply_payload);
+
 			pthread_cond_signal(&cond_sender);
 			pthread_mutex_unlock(&mutexdata);
 			pthread_yield();
@@ -1847,6 +1851,7 @@ void* receive_ack(void *opt)
 	}
 	else
 	{
+		// Data Mode
 		int position = -1;
 		int j = 0;
 
@@ -1863,15 +1868,12 @@ void* receive_ack(void *opt)
 			}
 
 			// Prepare memory areas for the reply
-			if (dtn_opt->wait_for_report)
-			{
-				if ((debug) && (debug_level > 0))
-					printf("\t[debug] memset for reply_spec...");
-				memset(&reply_spec, 0, sizeof(reply_spec));
-				memset(&reply_payload, 0, sizeof(reply_payload));
-				if ((debug) && (debug_level > 0))
-					printf(" done\n");
-			}
+			if ((debug) && (debug_level > 0))
+				printf("\t[debug] memset for reply_spec...");
+			memset(&reply_spec, 0, sizeof(reply_spec));
+			memset(&reply_payload, 0, sizeof(reply_payload));
+			if ((debug) && (debug_level > 0))
+				printf(" done\n");
 
 			// Wait for the reply
 			if ((debug) && (debug_level > 0))
@@ -2024,6 +2026,9 @@ void* receive_ack(void *opt)
 				if (create_log)
 					fprintf(log_file, "\t %f\t received bundle outside sequence: %u.%u\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno);
 			}
+
+			dtn_free_payload(&reply_payload);
+
 			pthread_cond_signal(&cond_sender);
 			pthread_mutex_unlock(&mutexdata);
 			//pthread_yield();
