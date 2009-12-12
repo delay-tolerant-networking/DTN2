@@ -1356,7 +1356,7 @@ void* send_bundle(void *opt)
 			if (csv_out)
 			{
 				fprintf(csv_log_file, "%f,STATUS_SENT,%s", ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))), bundle_spec.source.uri);
-				fprintf(csv_log_file, ",%u, ,%s\n", relative_bundleId, bundle_spec.dest.uri);
+				fprintf(csv_log_file, ",%u,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
 
 
@@ -1493,7 +1493,7 @@ void* send_bundle(void *opt)
 				fprintf(csv_log_file, "%f,STATUS_SENT,%s",
 				        ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))),
 				        bundle_spec.source.uri);
-				fprintf(csv_log_file, ",%u, ,%s\n", relative_bundleId, bundle_spec.dest.uri);
+				fprintf(csv_log_file, ",%u,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
 
 			pthread_mutex_unlock(&mutexdata);
@@ -1617,7 +1617,7 @@ void* send_bundle(void *opt)
 			if (csv_out)
 			{
 				fprintf(csv_log_file, "%f,STATUS_SENT,%s", ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))), bundle_spec.source.uri);
-				fprintf(csv_log_file, ",%u, ,%s\n", relative_bundleId, bundle_spec.dest.uri);
+				fprintf(csv_log_file, ",%u,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
 
 			// Increment data_qty
@@ -1675,13 +1675,18 @@ void* receive_ack(void *opt)
 				continue;
 			}
 
+			/*
 			// Set memory for the reply
-			if ((debug) && (debug_level > 0))
-				printf("\t[debug] memset for reply_spec...");
-			memset(&reply_spec, 0, sizeof(reply_spec));
-			memset(&reply_payload, 0, sizeof(reply_payload));
-			if ((debug) && (debug_level > 0))
-				printf(" done\n");
+			if (dtn_opt->wait_for_report)
+			{
+				if ((debug) && (debug_level > 0))
+					printf("\t[debug] memset for reply_spec...");
+				memset(&reply_spec, 0, sizeof(reply_spec));
+				memset(&reply_payload, 0, sizeof(reply_payload));
+				if ((debug) && (debug_level > 0))
+					printf(" done\n");
+			}
+			*/
 
 			// Wait for the reply
 			if ((debug) && (debug_level > 0))
@@ -1855,7 +1860,6 @@ void* receive_ack(void *opt)
 		int position = -1;
 		int j = 0;
 
-
 		while ((close_ack_receiver == 0) || (orphan_acks > 0))
 		{
 			pthread_mutex_lock(&mutexdata);
@@ -1867,13 +1871,18 @@ void* receive_ack(void *opt)
 				continue;
 			}
 
+			/*
 			// Prepare memory areas for the reply
-			if ((debug) && (debug_level > 0))
-				printf("\t[debug] memset for reply_spec...");
-			memset(&reply_spec, 0, sizeof(reply_spec));
-			memset(&reply_payload, 0, sizeof(reply_payload));
-			if ((debug) && (debug_level > 0))
-				printf(" done\n");
+			if (dtn_opt->wait_for_report)
+			{
+				if ((debug) && (debug_level > 0))
+					printf("\t[debug] memset for reply_spec...");
+				memset(&reply_spec, 0, sizeof(reply_spec));
+				memset(&reply_payload, 0, sizeof(reply_payload));
+				if ((debug) && (debug_level > 0))
+					printf(" done\n");
+			}
+			*/
 
 			// Wait for the reply
 			if ((debug) && (debug_level > 0))
