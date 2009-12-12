@@ -105,6 +105,8 @@ installbin: installdirs
 		    apps/dtncp/dtncp \
 		    apps/dtncpd/dtncpd \
 		    apps/dtnhttpproxy/dtnhttpproxy \
+		    apps/dtnperf/dtnperf-client \
+		    apps/dtnperf/dtnperf-server \
 		    apps/dtnping/dtnping \
 		    apps/dtnping/dtntraceroute \
 		    apps/dtnrecv/dtnrecv \
