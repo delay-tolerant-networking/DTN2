@@ -1,0 +1,103 @@
+%no_path	    # Don't display log path
+#no_time	    # Don't display time stamp
+#no_level	    # Don't display log level
+#brief		    # Truncate log name to a fixed length and use brief error codes
+%color		    # Use terminal escape code to colorize output
+%object		    # When possible, display the address of the object that generated the log.
+%classname	    # When possible, display the class that generated the log message.
+
+/dtn/tclcmd/gettimeofday		warn
+/dtn/tclcmd/help			warn
+/dtn/tclcmd/debug			warn
+/dtn/tclcmd/api				warn
+/dtn/tclcmd/bundle			warn
+/dtn/tclcmd/interface			warn
+/dtn/tclcmd/link			warn
+/dtn/tclcmd/param			warn
+/dtn/tclcmd/registration		warn
+/dtn/tclcmd/route			warn
+/dtn/tclcmd/discovery			warn
+/dtn/tclcmd/prophet			warn
+/dtn/tclcmd/shutdown			warn
+/dtn/tclcmd/quit			warn
+/dtn/tclcmd/storage			warn
+/dtn/tclcmd/ecla			warn
+/dtn/tclcmd/console			warn
+/dtn/tclcmd/test			warn
+/dtn/tclcmd/debug			warn
+/dtn/tclcmd/log				warn
+/dtn/tclcmd				debug
+
+/dtn/apiserver/notifier			warn
+/dtn/apiserver				warn
+
+/dtn/apiclient				warn
+/dtn/interface/table			warn
+/dtn/interface				debug
+
+/dtn/cl/udp/receiver/notifier		warn
+/dtn/cl/udp/iface/udp0			warn
+/dtn/cl/udp				warn
+/dtn/cl/tcp/listener/notifier		warn
+/dtn/cl/tcp/iface/tcp0			warn
+/dtn/cl/tcp				warn
+/dtn/cl/bt				warn
+
+/dtn/contact/manager			warn
+
+/dtn/route/flood			warn	
+/dtn/route				debug
+
+/dtn/routing/flood/table		warn
+
+/dtn/storage/bundles			warn
+/dtn/storage/globals			warn
+/dtn/storage/registrations		warn
+/dtn/storage/links			warn
+/dtn/storage				debug
+
+/dtn/discovery/bt/notifier		debug
+/dtn/discovery/bt			debug
+/dtn/discovery/ip/sock			warn
+/dtn/discovery/ip			warn
+/dtn/discovery/table			warn
+/dtn/discovery				debug
+
+/dtn/disc/bt/sdp/client	    		debug
+/dtn/btinquiry				debug
+/dtn/link/link1	    			warn
+/dtn/link/link2				warn
+/dtn/link/refs				warn
+/dtn/link				debug
+
+/dtn/bundle/free			warn
+/dtn/bundle/list			warn
+/dtn/bundle/daemon/notifier		warn
+/dtn/bundle/daemon/loop			warn
+/dtn/bundle/daemon/msgqueue		warn
+/dtn/bundle/daemon			info
+/dtn/bundle				info
+
+/dtn/registration/table			warn
+/dtn/registration			warn
+
+/dtn/reg/ping				warn
+/dtn/reg				warn
+
+/dtn/naming/endpoint			warn
+/dtn/naming				debug
+
+/dtn/scheme/dtn				warn
+
+/dtn					debug
+
+/command/completion_notifier/notifier	warn
+
+/oasys/util/uri				warn
+
+/udpclient				warn
+/thread					warn
+/log					warn
+/timer					warn
+/dtnd					debug
+/					debug

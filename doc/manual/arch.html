@@ -4,15 +4,284 @@
 <link rel="stylesheet" type="text/css" href="manual.css" />
 </head>
 <body>
+<a name="arch"/>
 <h1>Architecture of DTN2
 </h1>
 
-<i>
-In this page, you would find a sketch of how the whole thing
-fits together. Please see <a href="todo.html"> the to do list</a>
-for information on how you can help.
+<h2>Implementation overview</h2>
+
+<p>
+The following text is intended to provide a sketch of how the whole thing fits together. It is a brief synopsis of DTN2s implementation, taken entirely from <a href="http://www.cs.berkeley.edu/~demmer/papers/dtn-irb-tr-04-020.pdf">this paper</a> by Michael Demmer and others. For more information about DTN2's architecture and role as a platform for experimentation, see <a
+href="http://www.cs.berkeley.edu/~demmer/papers/dtn-irb-tr-04-020.pdf">this paper</a>.
+
+<h3><The major components</h3>
+
+<p>The major message processing, management and application support modules of the DTN Bundle forwarding system are provided below. The bundle router module requires the most detailed information regarding the state of the system upon which to base routing decisions. Decisions made by the router are passed as a set of instructions (actions) to the forwarder which is responsible for executing the actions.</p> 
+
+<p>This separation between policy and function allows for easy extension, modification, and replacement of the potentially complex router module.</p>
+
+<h3>Bundle Router and Bundle Forwarder</h3>
+
+<p>The router component implements all the route selection
+and scheduling policy decision making. It takes as input a large variety of events that could potentially affect routing decisions and issues encoded instructions that are passed to the bundle forwarder, which is in turn charged with the responsibility to execute them. The forwarder executes the router's decisions by interacting with the Convergence Layers, Registrations, and the Persistent Store. The separation of router from forwarder represents an instance of separating policy from mechanism. Separating the calculation of instructions from their execution helps to isolate the routing code from changes in the other internal APIs.
+
+<h3>Convergence Layers</h3>
+<p>Convergence Layers are the adapters between the DTN bundling protocols and various underlying transports, similar to drivers within an operating system. At the most basic level, they perform basic data plane functions: a particular layer must be able to transmit and receive bundles over a single hop (in the overlay topology). In some cases they also process signaling information required by the bundle router (e.g. such as failed connections and restarts). Convergence Layers are discussed in more detail in the following section. 
+
+<h3>Persistent Store</h3>
+<p>Persistent storage is used to hold the contents of bundles during the store-and-forward process. A common abstraction for persistent storage allows a particular system instance to select (at runtime) to use either a relational database model or a simple file model.
+
+<h3>Fragmentation Module</h3>
+<p>The fragmentation module is responsible for fragmenting and reassembling bundle fragments. This module is capable of sending a signal to the bundle router when all the fragments of a subject bundle have been received.
+
+<h3>Contact Manager</h3>
+<p>The Contact Manager is responsible for keeping track of which links are currently available, any historical information regarding their connectivity or performance,
+and any known future schedules of when connectivity may be available. The primary task of the contact manager is to transform the information learned about contacts from
+environment-specific mechanisms into abstract contact descriptions that can be used by the bundle router.
+
+<h3>Management Interface</h3>
+<p>The management interface is used to signal the bundle router about any special policy constraints or preferences that may affect its data routing decisions. It is implemented as a generic interprocess communication capability so that multiple applications or processes may be supported. 
+
+<h3>Console / Config</h3>
+<p>The console/configuration module provides a command line interface and an event loop for testing and debugging of the implementation, as well as a structured method
+to set initial configuration options. An embedded Tcl interpreter is used to parse and execute user commands and settings. 
+
+<h3>Application IPC / Registration Module</h3>
+<p>DTN applications are written to use a thin library that communicates with the router via an inter-process communication channel. Most of this interaction relates to
+sending and receiving application messages and manipulating message demultiplexing bindings. 
+
 </i>
 
+<p>
+<a name="DTN2 api"/>
+<h2>DTN2 API</h2>
+<a name="API functions"/>
+<h3>API functions</h3>
+<p>
+<table>
+<tr>
+<th>Interface
+<th>Function
+<th>Returns
+<th>Comments
+
+<tr>
+<td>Open a new connection to the router.
+<td><tt>extern int dtn_open(dtn_handle_t* handle)</tt>
+<td> DTN_SUCCESS | dtn_errno error code.
+<td> On success, initializes the handle parameter as a new handle
+to the daemon and returns DTN_SUCCESS. On failure, sets handle to
+NULL and returns a dtn_errno error code.
+
+<tr>
+<td>Close an open dtn handle.
+<td><tt>extern int dtn_close(dtn_handle_t handle);</tt>
+<td>DTN_SUCCESS
+<td>Returns DTN_SUCCESS on success.
+
+<tr>
+<td>Get the error associated with the given handle.
+<td><tt>extern int dtn_errno(dtn_handle_t handle);</tt>
+<td>TBC
+<td>None
+
+<tr>
+<td>Set the error associated with the given handle
+<td><tt>extern void dtn_set_errno(dtn_handle_t handle, int err);</tt>
+<td>TBC
+<td>None
+
+<tr>
+<td>Build a local endpoint id
+<td><tt>extern int dtn_build_local_eid(dtn_handle_t handle,
+                               dtn_endpoint_id_t* local_eid,
+                               const char* service_tag);</tt>
+<td>TBC
+<td>Build an appropriate local endpoint id by appending the specified
+service tag to the daemon's preferred administrative endpoint id.
+
+<tr>
+<td>Create a dtn registration.
+<td><tt>extern int dtn_register(dtn_handle_t handle,
+                        dtn_reg_info_t* reginfo,
+                        dtn_reg_id_t* newregid);</tt>
+<td>TBC
+<td>If the init_passive flag in the reginfo struct is true, 
+the registration is initially in passive state, requiring 
+a call to dtn_bind to activate it. Otherwise, the call to
+dtn_bind is unnecessary as the registration will be created 
+in the active state and bound to the handle.
+
+<tr>
+<td>Remove a dtn registration.
+<td><tt>extern int dtn_unregister(dtn_handle_t handle,
+                          dtn_reg_id_t regid);</tt>
+<td>TBC
+<td>If the registration is in the passive state (i.e. not bound to any
+handle), it is immediately removed from the system. If it is in
+active state and bound to the given handle, the removal is deferred
+until the handle unbinds the registration or closes. This allows
+applications to pre-emptively call unregister so they don't leak
+registrations.
+
+<tr>
+<td>Check for an existing registration.
+<td><tt>extern int dtn_find_registration(dtn_handle_t handle,
+                                 dtn_endpoint_id_t* eid,
+                                 dtn_reg_id_t* newregid);</tt>
+<td>DTN_SUCCESS | ENOENT
+<td>Check for an existing registration on the given endpoint id.
+Return DTN_SUCCESS and fill in the registration id if it
+exists, or return ENOENT if it doesn't.
+
+<tr>
+<td>Modify an existing registration.
+<td><tt>extern int dtn_change_registration(dtn_handle_t handle,
+                                   dtn_reg_id_t regid,
+                                   dtn_reg_info_t *reginfo);</tt>
+<td>TBC
+<td>None
+
+<tr>
+<td>Associate a registration with the current ipc channel.
+<td><tt>extern int dtn_bind(dtn_handle_t handle, dtn_reg_id_t regid);</tt>
+<td>TBC
+<td>Associate a registration with the current ipc channel.
+This serves to put the registration in "active" mode.
+
+<tr>
+<td>Explicitly remove an association from the current ipc handle.
+<td><tt>extern int dtn_unbind(dtn_handle_t handle, dtn_reg_id_t regid);</tt>
+<td>TBC
+<td>Note that this is also implicitly done when the handle is closed.
+This serves to put the registration back in "passive" mode.
+
+
+<tr>
+<td>Send a bundle. 
+<td><tt>extern int dtn_send(dtn_handle_t handle,
+                    dtn_reg_id_t regid,
+                    dtn_bundle_spec_t* spec,
+                    dtn_bundle_payload_t* payload,
+                    dtn_bundle_id_t* id);</tt>
+<td>TBC
+<td>Send a bundle either from memory or from a file.
+
+<tr>
+<td>Cancel a bundle transmission.
+<td><tt>extern int dtn_cancel(dtn_handle_t handle,
+                      dtn_bundle_id_t* id);</tt>
+<td>TBC
+<td>None
+
+<tr>
+<td>Blocking receive for a bundle.
+<td><tt>extern int dtn_recv(dtn_handle_t handle,
+                    dtn_bundle_spec_t* spec,
+                    dtn_bundle_payload_location_t location,
+                    dtn_bundle_payload_t* payload,
+                    dtn_timeval_t timeout);</tt>
+<td>TBC
+<td>Fill in the spec and payload structures with the bundle data. 
+The location parameter indicates the manner by which the caller 
+wants to receive payload data (i.e. either in memory or in a file). 
+The timeout parameter specifies an interval in milliseconds to block 
+on the server-side (-1 means infinite wait). 
+<p>Note that it is advisable to call dtn_free_payload on the returned structure, 
+otherwise the XDR routines will memory leak.
+
+<tr>
+<td>Blocking query for new subscribers on a session. 
+<td><tt>extern int dtn_session_update(dtn_handle_t handle,
+                              unsigned int* status,
+                              dtn_endpoint_id_t* session,
+                              dtn_timeval_t timeout);</tt>
+<td>Indication that a subscriber was added or removed.
+<td>One or more registrations must have been bound to the handle 
+with the SESSION_CUSTODY flag set. Returns an indication 
+that the subscription state in the given session has changed 
+
+
+<tr>
+<td>Return a file descriptor for the given handle. 
+<td><tt>extern int dtn_poll_fd(dtn_handle_t handle);</tt>
+<td>File descriptor.
+<td>Return a file descriptor for the given handle. suitable for calling
+poll() or select() in conjunction with a call to dtn_begin_poll().
+
+<tr>
+
+<td>Begin a polling period for incoming bundles. 
+<td><tt>extern int dtn_begin_poll(dtn_handle_t handle, dtn_timeval_t timeout);</tt>
+<td>File descriptor 
+<td>Returns a file descriptor suitable for calling poll() or select() on 
+(similar to dtn_poll_fd). Note that dtn_bind() must have been 
+previously called at least once on the handle.
+
+<p>If the kernel returns an indication that there is data ready on the
+file descriptor, a call to dtn_recv will then return the bundle
+ithout blocking, then dtn_poll must be called again to wait for
+more bundles.
+
+<p>Also, no other API calls besides dtn_recv can be executed during a
+polling period, so an app must call dtn_cancel_poll before trying
+to run other API calls.
+
+<tr>
+<td>Cancel a polling interval.
+<td><tt>extern int dtn_cancel_poll(dtn_handle_t handle);</tt>
+<td>TBC
+<td>None
+</table>
+
+<a name="Utility functions"/>
+<h3>Utility Functions</h3>
+
+<p>
+<table>
+<tr>
+<th>Interface
+<th>Function
+<th>Returns
+<th>Comments
+
+<tr>
+<td>Copy the contents of one eid into another.
+<td><tt>extern void dtn_copy_eid(dtn_endpoint_id_t* dst, dtn_endpoint_id_t* src);</tt>
+<td>TBC
+<td>None
+
+<tr>
+<td>Parse a string into an endpoint id structure.
+<td><tt>extern int dtn_parse_eid_string(dtn_endpoint_id_t* eid, const char* str);</tt>
+<td>TBC
+<td>Parse a string into an endpoint id structure, validating that it is
+in fact a valid endpoint id (i.e. a URI
+
+<tr>
+<td>Set the value of the given payload structure
+<td><tt>extern int dtn_set_payload(dtn_bundle_payload_t* payload,
+                           dtn_bundle_payload_location_t location,
+                           char* val, int len);</tt>
+<td> 0 | DTN_ESIZE 
+<td>Set the value of the given payload structure to either a memory
+buffer or a file location.Returns: 0 on success, DTN_ESIZE if the memory location is
+selected and the payload is too big.
+
+
+
+<tr>
+<td>Free dynamic storage.
+<td><tt>void dtn_free_payload(dtn_bundle_payload_t* payload);</tt>
+<td>TBC
+<td>Frees dynamic storage allocated by the xdr for a bundle payload in dtn_recv.
+
+<tr>
+<td>Return a string version of a status report reason code.
+<td><tt>const char* dtn_status_report_reason_to_str(dtn_status_report_reason_t err);</tt>
+<td>String
+<td>None
+</table>
 </body>
 </html>
 

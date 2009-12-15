@@ -1,0 +1,14 @@
+<html>
+<head>
+<title> DTN2 Manual: DTLSR Protocol </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>DTLSR PROTOCOL
+</h1>
+
+<p>
+Delay Tolerant Link State Routing (DTLSR) is modelled closely on classic link state algorithms. As the network state changes, link state announcements are flooded throughout the network. Each node maintains a graph representing its current view of the state of the network, and uses a shortest path computation e.g. Dijkstra to find routes for messages. Each node in the system is assigned to an administrative area, and a link state protocol instance operates only within a single area. This helps to constrain the size of the network graph and limits the scope of announcement messages, if required. Nodes that have neighbors in other areas learn the set of endpoint identifers reachable via the other area and announce themselves as a gateway to those endpoint identifers. For more information please see the <a href="configuration.html#route">route</a> command.
+</body>
+</html>
+

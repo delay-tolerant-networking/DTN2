@@ -1,0 +1,35 @@
+<html>
+<head>
+<title> DTN2 Manual: Null Convergence Layer </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>Null Convergence Layer
+</h1>
+
+<p>
+The Null convergence layer consumes all bundles immediately and does no actual transmission, roughly similar to /dev/null. To add a null interface in your config file, use:
+
+
+<p>Syntax: <tt>interface add <i>name</i> <i>CL</i> [<i>arg=val arg=val2 argN=valN...</i>]</tt>
+<p>Example: <tt>interface add null0 null </tt>
+<p>Valid arguments for <tt><i>arg</i></tt> are:
+
+<p>
+<table>
+<tr>
+<th>arg
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>can_transmit</tt>
+<td>true or false
+<td>true
+<td>Whether null CL can transmit
+</table>
+<p> <b>Note</b>
+</body>
+</html>
+

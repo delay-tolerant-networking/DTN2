@@ -1,0 +1,52 @@
+<html>
+<head>
+<title> DTN2 Man pages: dtncat </title>
+
+</head>
+<body>
+<h1>dtncat
+</h1>
+
+<p>
+<h2>NAME
+</h2>
+<p>
+<tt>dtncat -	source bundles from stdin or receive bundles to stdout. Resembles the nc (netcat) unix program
+
+<h2>SYNOPSIS
+</h2> 
+<p>
+To source bundles from stdin:
+<p>
+usage: <tt>dtncat [opts] -s EID -d EID</tt>
+<p>
+To receive bundles to stdout:
+<p>
+usage: <tt>dtncat [opts] -l EID</tt>
+<h2>DESCRIPTION
+</h2>
+<p>common options:
+<blockquote><pre>
+ -v verbose
+ -h/H help
+ -i <i>regid</i> registration id for listening
+receive only options (-l option required):
+ -l <i>eid</i> receive bundles destined for eid (instead of sending)
+ -n <i>count</i> exit after count bundles received (-l option required)
+send only options (-l option prohibited):
+ -s <i>eid|demux_string</i> source eid
+ -d <i>eid|demux_string</i> destination eid
+ -r <i>eid|demux_string</i> reply to eid
+ -e <i>time</i> expiration time in seconds (default: one hour)
+ -c request custody transfer
+ -C request custody transfer receipts
+ -D request for end-to-end delivery receipt
+ -R request for bundle reception receipts
+ -F request for bundle forwarding receipts
+ -w wait for bundle status reports
+ -S <i>sequence_id</i> sequence id vector
+ -O <i>obsoletes_id</i> obsoletes id vector
+</pre><blockquote>
+</body>
+</html>
+

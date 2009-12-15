@@ -75,18 +75,63 @@ API clients.
 <h2> bundle </h2>
 
 <p> You can use the <tt>bundle</tt> command to see the status of
-bundles currently being held by your dtnd. While testing a DTN,
-you can also inject bundles. 
+bundles currently being held by your dtnd. 
 
-<h3> Getting statistics </h3>
+<p>
+Syntax: <tt>bundle <i>command</i> [<i>id</i>] </tt>
+<br>
+Example: <tt>storage set type berkeleydb</tt>
+
+<p>
+Use the <tt>bundle</tt> command to get high level information on the bundle and bundle daemon statistcs,
+
+<p>
+<table>
+<tr>
+<th>Command
+<th>Comments
+<tr>
+<td><tt>stats</tt>
+<td>list bundle statistics.
+
+<tr>
+<td><tt>daemon_stats</tt>
+<td>list bundle daemon statistics.
+
+<tr>
+<td><tt>reset_stats</tt>
+<td>reset bundle statistics.
+
+<tr>
+<td><tt>list</tt>
+<td>list all bundle.
+
+<tr>
+<td><tt>ids</tt>
+<td>list all bundle IDs.
+</table>
+
+<p>While testing a DTN, you can also inject bundles. 
+<p>
+Syntax: <tt>bundle inject <i>src</i> <i>dest</i> <i>payload</i> <i>opt1=val1, opt2=val2 optN=valN...</tt>
+<br>
+Example: <tt>bundle inject dtn://source.dtn dtn://dest.dtn payload</tt>
+
+<a name="Getting bundle and bundle daemon statistics"/>
+<h3> Getting bundle and bundle daemon statistics </h3>
 
 <p>The <tt>bundle stats</tt> command shows the following counts:
 <ul>
 <li> pending
+<li> custody
 <li> received
-<li> locally delivered
+<li> delivered
+<li> generated
 <li> transmitted
 <li> expired
+<li> duplicate
+<li> deleted
+<li> injected
 </ul>
 
 <p>Pending is the current count of bundles in dtnd's store, which may
@@ -97,9 +142,15 @@ practically limited by the storage system and the memory use of dtnd.
 The other counters are unsigned 32-bit integers, and will roll over
 accordingly.
 
-<p> At present there is no way to zero the counters other than by
-restarting the server.
+<p> bundle <i>reset_stats</i> may be used to reset currently maintained statistics.
 
+<p>The <tt>bundle daemon_stats</tt> command shows the following counts:
+<ul>
+<li> pending_events
+<li> processed_event
+<li> pending_timers
+</ul>
+<a name="Getting a list of pending bundles"/>
 <h3> Getting a list of pending bundles </h3>
 
 <p>
@@ -116,6 +167,7 @@ internally by dtnd to keep track of bundles. Remote DTN
 implementations will never see the bundle ID. However, you can use
 the bundle ID with the following commands to inspect the bundles.
 
+<a name="Looking at a bundle"/>
 <h3> Looking at a bundle </h3>
 
 <p> Using <tt>bundle info <i>bundle-id</i></tt>, you can see more
@@ -124,6 +176,7 @@ you can see a hex dump of the bundle. If you know the bundle has only
 printable characters in it, you can see it formatted as a text
 file using <tt>bundle dump_ascii <i>bundle-id</i></tt>.
 
+<a name="Injecting a bundle"/>
 <h3> Injecting a bundle </h3>
 
 <p>
@@ -157,6 +210,53 @@ bundle and the remainder of the bundle is filled with zeros.
 (But there's a bug that makes this not work right. Try dumping
 out a bundle you made this way to see an assert.)
 
+<a name="console"/>
+<h2> console </h2>
+<p> The <tt>console</tt> command is used spawn interpreter on 
+stdin/stdout, set the console prompt string and set the console 
+listening address and port number.
+
+<h4> console <i>cmd</i> </h4>
+<p>
+Syntax: <tt>console <i>set</i> <i>arg</i> </tt>
+<br>
+Example: <tt>console set prompt "$shorthostname dtn% "</i> </tt>
+<p>
+<table>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>stdio</tt>
+<td>None 
+<td>stdio 
+<td>spawn interpreter on stdin/stdout
+
+<tr>
+<td><tt>addr</tt>
+<td>A.B.C.D
+<td>127.0.0.1
+<td>console listening address
+
+<tr>
+<td><tt>port</tt>
+<td>number
+<td>0
+<td>console listening port
+
+<tr>
+<td><tt>prompt</tt>
+<td>string
+<td>shorthostname [lindex [split [info hostname] .] 0] dtn%
+<td>console prompt string
+
+
+
+</table>
+
 <a name="debug"/>
 <h2> debug </h2>
 
@@ -170,27 +270,288 @@ by running <tt>help debug</tt>.
 in use using <tt>debug dump_memory</tt>.  After doing one dump, you
 can get diffs with <tt>debug dump_memory_diffs</tt>.
 
+<p> For information on debugging and configuring logging of the dtn 
+daemon please see the <a href="logging.html">logging</a> section and <a href="logging.html#dtndebug">.dtndebug</a>
+
+<a name="discovery"/>
+<h2> discovery </h2>
+
+<p> The <tt>discovery</tt> command is used to configure the abstraction 
+of a neighbor discovery agent. Much like Interface, Discovery is generally 
+created by the configuration file / console. Derived classes (such as 
+IPDiscovery) typically bind to a UDP socket to listen for neighbor beacons.  
+Bluetooth has built-in discovery mechanisms, so BluetoothDiscovery polls 
+via Inquiry instead of listening on a socket.
+
+<p>To advertise a local convergence layer, register its local address (and port) 
+by calling "discovery add".  For each registered CL, Discovery will 
+advertise (outbound) the CL's presence to neighbors,and distribute 
+(inbound) each event of neighbor discovery to each CL.
+
+<a name="discovery_add"/>
+<h4> The discovery <i>add</i> command</h4>
+<p>
+This command is used to add a discovery agent.
+<p>
+Syntax: <tt>discovery <i>add</i> <i>discovery_name</i> <i>cl-type</i> [ <i>args</i> ]</tt>
+<br>
+<p>
+Example: <tt>discovery add udp0d ip port=9556</tt>
+<br>
+<p>
+Example : <tt>discovery add btd bt</tt>
+<br>
+<p>
+Example: <tt>discovery add bonjourd bonjour</tt>
+
+<p>
+<table>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Comments
+
+<tr>
+<td><tt>discovery_name</tt>
+<td>string
+<td> A name string to identify the discovery agent
+
+<tr>
+<td><tt>cl-type</tt>
+<td>bt | ip | bonjour
+<td> The convergence layer type. 
+</table>
+
+
+<p>
+<table>
+<tr>
+<th>args
+<th>Possible settings
+<th>Comments
+
+<tr>
+<td><tt>port</tt>
+<td>number
+<td> Discovery port number if IP based
+
+<tr>
+<td><tt>continue_on_error</tt>
+<td>true or false
+<td> Whether to continue on an error
+
+<tr>
+<td><tt>addr</tt>
+<td>A.B.C.D
+<td> IPv4 address of ..
+
+<tr>
+<td><tt>local_addr</tt>
+<td>A.B.C.D
+<td> IPv4 address of ..
+
+<tr>
+<td><tt>multicast_ttl</tt>
+<td>number
+<td> Multicast time to live
+
+<tr>
+<td><tt>unicast</tt>
+<td>true or false
+<td> Whether is unicast
+</table>
+<a name="discovery_announce"/>
+<h4> The discovery <i>announce</i> command</h4>
+<p>
+This command is used to announce the address of a local interface (convergence layer).
+<p>
+Syntax: <tt>discovery <i>announce</i> <i>cl-name</i> <i>discovery_name</i> <i>cl-type</i> <interval=N> [ <i>args</i> ]</tt>
+<br>
+<p>
+Example <tt>discovery announce udp0 udp0d udp interval=10</tt>
+<br>
+<p>
+Example <tt>discovery announce bt0 btd bt interval=1</tt>
+<p>
+<table>
+<tr>
+<th>args
+<th>Possible settings
+<th>Comments
+
+<tr>
+<td><tt>cl_addr</tt>
+<td>A.B.C.D
+<td> IPv4 address of CL to announce
+
+<tr>
+<td><tt>cl_port</tt>
+<td>number (port)
+<td> port number of CL to announce
+</table>
+<a name="discovery_remove"/>
+<h4> The discovery <i>remove</i> command</h4>
+<p>
+This command is used to remove an announcement for a local interface.
+<p>
+Syntax: <tt>discovery <i>remove</i> <i>announce</i> <i>discovery_name</i></tt>
+<br>
+<p>
+Example: <tt>discovery remove bt0 btd</tt>
+<br>
+<a name="discovery_delete"/>
+<h4> The discovery <i>del</i> command</h4>
+<p>
+This command is used to delete a discovery agent.
+<p>
+Syntax: <tt>discovery <i>del</i> <i>discovery_name</i></tt>
+<br>
+<p>
+Example: <tt>discovery del btd</tt>
+<br>
+<a name="discovery_list"/>
+<h4> The discovery <i>list</i> command</h4>
+<p>
+This command is used to list agents and their announcement parameters.
+<p>
+Syntax: <tt>discovery <i>list</i></tt>
+<br>
+<p>
+Example: <tt>discovery list</tt>
+<br>
+
+
+<a name="ecla"/>
+<h2> ecla </h2>
+<p>The <tt>ecla</tt> command is used to control the external convergence layer (ECL) is the gateway between DTN2 and convergence layer adapters (CLAs) running outside of DTN2. Please see <a href="cl-extcl.html#ecla_cmd">ecla</a> for details.
+
+<p>
+Syntax: <tt>ecla <i>command</i> </tt>
+<br>
+Example: <tt>ecla set create_discovered_links</tt>
+
+<a name="gettimeofday"/>
+<h2> gettimeofday </h2>
+<p>The <tt>gettimeofday</tt> command is used to print the result of gettimeofday() in secs.usecs format.
+
+<p>
+Syntax: <tt>gettimeofday</tt>
+<br>
+Example: <tt>gettimeofday</tt>
+
 <a name="help"/>
 <h2> help </h2>
 
 <p>
 You can get help on any of the additional TCL commands in dtnd's
 TCL interpreter using the <tt>help</tt> command.
+<p>
+Syntax: <tt>help <i>command</i> </tt>
+<br>
+Example: <tt>help interface</tt
 
+<p>
+<table>
+<tr>
+<th>Command
+<th>Comments
+
+<tr>
+<td><a href="#bundle">bundle</a>
+<td>print bundle and bundle daemon statistics and interact with the bundle daemon. Also used to examine, dump, expire, cancel and inject bundles.
+
+<tr>
+<td><a href="#console">console</a>
+<td>set console parameters
+
+<tr>
+<td><a href="#debug">debug</a>
+<td>Command for memory debugging. Only available if "--enable-debug-memory" was given to the configure script. 
+<tr>
+<td><a href="#discovery">discovery</a>
+<td>add, delete and list discovery agent and announce parameters
+
+<tr>
+<td><a href="#ecla">ecla</a>
+<td>list and set the external convergence layer adapter parameters
+
+<tr>
+<td><a href="#gettimeofday">gettimeofday</a>
+<td>print the result of gettimeofday() in secs.usecs format.
+
+<tr>
+<td><a href="#help">help</a>
+<td>print the help documentation for cmd.
+
+<tr>
+<td><a href="#interface">interface</a>
+<td>add, delete and list interface parameters.
+
+<tr>
+<td><a href="#link">link</a>
+<td>add, delete, reconfigure and list link parameters and statistics. Also used to modify default CLA parameters.
+
+<tr>
+<td><a href="#log">log</a>
+<td>set log and debug file pathname and level and prefix. Also used to rotate log file, reparse rule file and list filter rules.
+
+<tr>
+<td><a href="#param">param</a>
+<td>set various dtnd daemon parameters and policy.
+
+<tr>
+<td><a href="#prophet">prophet</a>
+<td>manipulate the prophet routing protocol. These parameters should be manipulated under the route command interface like other DTN routing algorithms and protocols.
+
+<tr>
+<td><a href="#quit">quit</a>
+<td>shutdown the daemon
+
+<tr>
+<td><a href="#registration">registration</a>
+<td>add, delete and list endpoint (EID) registrations and modify registration logger.
+
+<tr>
+<td><a href="#route">route</a>
+<td>add, delete, list routes, select and configure routing algorithms/protocols. Can be used to set various route parameters including setting of type, next hop routes, route priority, interaction with discovery, DTLSR parameters, and external route parameters.   
+
+<tr>
+<td><a href="#shutdown">shutdown</a>
+<td>gracefully shutdown the dtnd daemon.
+
+<tr>
+<td><a href="#storage">storage</a>
+<td>set storage backend type, parameters and view statistics.
+
+<tr>
+<td><a href="#test">test</a>
+<td>Command for developer tests 
+
+</table>
+
+</table>
 <a name="interface"/>
 <h2> interface </h2>
 
-<p>Use the interface commands to add and delete interfaces to the
+<p>Use the interface command to add and delete interfaces to the
 networks that your dtnd will talk on.
 
+<a name="Adding an interface"/>
 <h3> Adding an interface </h3>
 
 <p>
 Syntax: <tt>interface add <i>interface-name</i> <i>convergence-layer</i> [ <i>args</i> ]</tt>
+<p>
 <br>
 Example: <tt>interface add tcp0 tcp</tt><br>
-Example: <tt>interface add udp0 udp local_host=1.2.3.4 local_port=9999</tt>
-
+<br>
+Example: <tt>interface add udp0 udp local_host=1.2.3.4 local_port=9999</tt><br>
+<br>
+Example: <tt>interface add bt0 bt channel=10</tt><br>
+<br>
+Example: <tt>interface add eth string://eth0 beacon_interval=1</tt><br>
+<br>
+Example: <tt>interface add null</tt><br>
 <p> When dtnd encounters an <tt>interface add</tt> command, it
 checks to make sure the named interface has not been created before.
 Next, it looks for a matching convergence layer. 
@@ -213,8 +574,15 @@ and what arguments they take.
 <li><a href="cl-udp.html">udp</a>
 <li><a href="cl-eth.html">eth</a>
 <li><a href="cl-file.html">file</a>
+<li><a href="cl-bt.html">bt</a>
+<li><a href="cl-serial.html">serial</a>
+<li><a href="cl-norm.html">norm</a>
+<li><a href="cl-extcl.html">extcl</a>
+<li><a href="cl-null.html">null</a>
+
 </ul>
 
+<a name="Deleting an interface"/>
 <h3> Deleting an interface </h3>
 
 <p>
@@ -228,6 +596,7 @@ handles this individually, but generally the convergence layer
 stops listening for new bundles and cleans up any resources it
 was using.
 
+<a name="Listing an interface"/>
 <h3> Listing the interfaces </h3>
 
 <p>
@@ -245,7 +614,7 @@ Prints a list of the current interfaces.
 The <tt>log</tt> command deals with the log file, and the log messages
 in it. You can add messages of your own to the log file, or trigger
 various actions related to the log file.
-
+<a name="Logging a message of your own"/>
 <h3> Logging a message of your own </h3>
 <p>
 Syntax: <tt>log <i>log-path</i> <i>log-level</i> <i>log-string</i> </tt>
@@ -257,6 +626,7 @@ You can use the <tt>log</tt> command to add a log message to the dtnd
 log file. The log-path and log-level are used to filter out messages,
 as described in the section on <a href="logging.html">Logging</a>.
 
+<a name="Set the log prefix"/>
 <h3> Set the log prefix </h3>
 
 <p>
@@ -319,7 +689,203 @@ section of the manual.  This command forces dtnd to re-read the
 <tt>.dtndebug</tt> file and take into account any new rules that it
 finds for showing or hiding messages.
 
-<a name="storage"/>
+
+<a name="param"/>
+<h2> param </h2>
+
+<p>
+The <tt>param</tt> command is used to configure policy parameters.
+<h4> param set </h4>
+<p>
+Syntax: <tt>param <i>set</i> <i>arg</i> <i>val</i></tt>
+<br>
+Example: <tt>param set link_min_retry_interval 30</tt>
+
+<p>
+<table>
+<tr>
+<th>arg
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>payload_test_no_remove</tt>
+<td>true or false
+<td>false
+<td>Whether not to remove bundles (for testing).
+
+<tr>
+<td><tt>early_deletion</tt>
+<td>true or false
+<td>true
+<td>Whether to delete forwarded / delivered bundles before they've expired
+
+<tr>
+<td><tt>suppress_duplicates</tt>
+<td>true or false
+<td>true
+<td>Whether to not route bundles that are a duplicate of any currently pending bundle
+
+<tr>
+<td><tt>accept_custody</tt>
+<td>true or false
+<td>true
+<td>Whether to accept custody when requested 
+
+<tr>
+<td><tt>reactive_frag_enabled</tt>
+<td>true or false
+<td>true
+<td>Whether reactive fragmentation is enabled
+
+<tr>
+<td><tt>retry_reliable_unacked</tt>
+<td>true or false
+<td>true
+<td>Whether to retry unacked transmissions on reliable CLs
+
+<tr>
+<td><tt>test_permuted_delivery</tt>
+<td>true or false
+<td>false
+<td>Whether to permute the order of bundles before delivering to registrations.
+
+<tr>
+<td><tt>injected_bundles_in_memory</tt>
+<td>true or false
+<td>false
+<td>Whether injected bundles are held in memory by default.
+
+<tr>
+<td><tt>is_singleton_default</tt>
+<td>unknown|singleton|multinode
+<td>TBC
+<td>How to set the is_singleton bit for unknown schemes.
+
+<tr>
+<td><tt>glob_unknown_schemes</tt>
+<td>true or false
+<td>false
+<td>Whether unknown schemes use glob-based matching for registrations and routes.
+
+<tr>
+<td><tt>link_min_retry_interval</tt>
+<td>number (interval in seconds)
+<td>TBC
+<td>Default minimum connection retry interval for links.
+
+<tr>
+<td><tt>link_max_retry_interval</tt>
+<td>number (interval in seconds)
+<td>TBC
+<td>Default maximum connection retry interval for links.
+
+<tr>
+<td><tt>custody_timer_min</tt>
+<td>number (seconds)
+<td>TBC
+<td>Default value for custody timer min.
+
+<tr>
+<td><tt>custody_timer_lifetime_pct</tt>
+<td>number (per cent)
+<td>TBC
+<td>Default value for custody timer lifetime percentage
+
+<tr>
+<td><tt>custody_timer_max</tt>
+<td>number (seconds)
+<td>TBC
+<td>Default value for custody timer max.
+
+</table>
+
+<a name="prophet"/>
+<h2> prophet </h2>
+
+<p>
+The prophet command is used to configure the prophet router. This command should be a route sub command (see  <a href="#route">route</a>route) as are other DTN routing protocol and algorithm commands. Please see <a href="ro_prophet.html#prophet_cmd">prophet router</a> for detailed infomation.
+<a name="quit"/>
+<h2> quit </h2>
+
+<p>
+The <tt>quit</tt> command is used to shutdown the DTN2 daemon. It is the same as <a href="#shutdown">shutdown</a>.
+<p>
+Syntax: <tt>quit</tt>
+<br>
+Example: <tt>quit</tt>
+
+<a name="registration"/>
+<h2> registration </h2>
+<p>
+A registration is used to represent an "application" endpoint ID registration, loosely defined to also include internal router mechanisms that consume bundles. Registration state is stored persistently in the database.
+
+<p>
+The <tt> registration</tt> command is used add, delete and list EID registrations.
+<a name="registration_add"/>
+<h4> registration add </h4>
+<p>
+Syntax: <tt>registration <i>add</i> <i>opt</i> <i>endpoint</i> <i><args..></i></tt>
+<br>
+Example: <tt>registration add tcl dtn:alex</tt>
+<p>
+<table>
+<tr>
+<th>opt
+<th>Possible settings
+<th>Comments
+
+<tr>
+<td><tt>opt</tt>
+<td>logger or tcl
+<td>Whether to add a logger or tcl representation
+
+<tr>
+<td><tt>endpoint</tt>
+<td>An EID (URI)
+<td>The EID which you wish to add a registration for
+
+</table>
+
+<p>
+The logger option is used mostly for testing registrations. When created, this sets up a new registration within the daemon, and for any bundles that arrive, outputs logs of the bundle header fields as well as the payload data (if ascii). The implementation is structured as a thread that blocks (forever) waiting for bundles to arrive on the registration's bundle list, then logging the bundles and looping again. The logpath is set to /dtn/reg/logging/.
+<p>
+
+<a name="registration_delete"/>
+<h4> registration delete </h4>
+<p>
+Syntax: <tt>registration <i>del</i> <i>reg_id</i></tt>
+<br>
+Example: <tt>registration del 14</tt>
+
+<a name="registration_list"/>
+<h4> registration list </h4>
+<p>
+Syntax: <tt>registration <i>list</i></tt>
+<br>
+Example: <tt>registration list</tt>
+
+<a name="registration_dump"/>
+<h4> registration dump_tcl </h4>
+<p>dump_tcl is used to dump a tcl representation of the registration using its registration id.
+<p>
+Syntax: <tt>registration <i>dump_tcl</i> <i>reg_id</i></tt>
+<br>
+Example: <tt>registration dump_tcl 14</tt>
+
+<a name="shutdown"/>
+<h2> shutdown </h2>
+
+<p>
+The <tt>shutdown</tt> command is used to shutdown the DTN2 daemon. It is the same as <a href="#quit">quit</a>.
+<p>
+Syntax: <tt>shutdown</tt>
+<br>
+Example: <tt>shutdown</tt>
+
+
+<a name="storage"/> 
 <h2> storage </h2>
 
 <p>
@@ -481,8 +1047,8 @@ at startup.
 <td>Frequency to check for Berkeley DB deadlocks (zero disables locking).
 
 </table>
-
-<h4>Notes</h4>
+<a name="Storage notes"/>
+<h4>Storage Notes</h4>
 
 <p> Tidy is useful when there are pending bundles in the system that
 you do not want dtnd to continue to try to deliver. If you allow dtnd
@@ -531,6 +1097,24 @@ following variables:
 <td>Whether or not to automatically add routes for next hop links .
 
 <tr>
+<td><tt>add</tt>
+<td>dest link/endpoint [opts]     
+<td>N/A
+<td>Add a static route
+
+<tr>     
+<td><tt>del</tt>
+<td>dest link/endpoint        
+<td>N/A
+<td>Delete a static route
+
+<tr>
+<td><tt>dump</tt>
+<td>N/A                  
+<td>N/A
+<td>print all of the static routes
+
+<tr>
 <td><tt>open_discovered_links</tt>
 <td>true, false
 <td>true
@@ -554,7 +1138,423 @@ following variables:
 <td>600
 <td>Default timeout for upstream subscription.
 
+<tr>
+<td><tt>dtlsr_area</tt>
+<td>string
+<td>tbc
+<td>DTLSR Administrative area for the local node.
+
+<tr>
+<td><tt>dtlsr_weight_fn</tt>
+<td>number
+<td>10
+<td>DTLSR weight function for the graph.
+
+<tr>
+<td><tt>dtlsr_weight_shift</tt>
+<td>number
+<td>0
+<td>DTLSR scale factor to scale the weight on down links factor by which to age the cost of a link based on its uptimei. As a link's uptime goes to zero, the cost increases by 10x the original cost. 
+
+<tr>
+<td><tt>dtlsr_uptime_factor</tt>
+<td>number
+<td>10
+<td>DTLSR aging pct for cost of down links.
+
+<tr>
+<td><tt>dtlsr_keep_down_links</tt>
+<td>true or false
+<td>true
+<td>DTLSR whether or not to keep down links in the graph, marking them as stale.
+
+<tr>
+<td><tt>dtlsr_recompute_delay</tt>
+<td>number (seconds)
+<td>1
+<td>DTLSR delay (in seconds) after receiving an LSA when we recompute the routes. Needed to prevent some flapping.
+
+<tr>
+<td><tt>dtlsr_aging_interval</tt>
+<td>number (seconds)
+<td>5
+<td>DTLSR interval after which we locally recompute the routes to properly age links that we believe to be down.
+
+<tr>
+<td><tt>dtlsr_lsa_interval</tt>
+<td>number (seconds)
+<td>3600
+<td>DTLSR interval at which we proactively send new LSA. Default is once per hour.
+
+<tr>
+<td><tt>dtlsr_min_lsa_interval</tt>
+<td>number (seconds)
+<td>5
+<td>DTLSR minimum interval between LSA transmission. Default is once per five seconds. 
+
+<tr>
+<td><tt>dtlsr_lsa_lifetime</tt>
+<td>number (seconds)
+<td>86400
+<td>DTLSR expiration time for lsa announcements (default is 24 hours).
+
+<tr>
+<td><tt>server_port</tt>
+<td>number (port)
+<td>8001
+<td>UDP port for IPC with external router(s)
+
+<tr>
+<td><tt>hello_interval</tt>
+<td>number (seconds)
+<td>30
+<td>Seconds between hello messages with external router(s)
+
+<tr>
+<td><tt>schema</tt>
+<td>string (pathname)
+<td>/router.xsd
+<td>Location of the external router interface message schema
+
+<tr>
+<td><tt>xml_server_validation</tt>
+<td>true or false
+<td>true
+<td>Perform xml validation on plug-in interface messages when using external router(s)
+
+<tr>
+<td><tt>xml_client_validation</tt>
+<td>true or false
+<td>false
+<td>Include meta-info in xml messages so plug-in routers can perform validation when using external router(s)
+ 
+ </table>
+<a name="Router Notes"/>
+<h4>Router Notes</h4>
+
+<p> TCARouter is an implementation of the TCA bundle routing algorithm.
+A TCARouter is a specialized TableBasedRouter where the route
+table is manipulated in response to certain control bundles
+(for example, a "register" bundle, or a "change-of-address" bundle).
+Specialized routing logic is then applied in order to route late-bound
+bundles addressed to a mobile node, to the mobile's current location
+in the network.
+
+The main interface point is the overridden handle_bundle_received
+function which tests for the special TCA bundles (control bundles and
+late-bound data bundles).
+ 
+<a name="link"/>
+<h2> link </h2>
+
+<p>
+A link is an abstraction for a DTN link, i.e. a one way communication channel to
+a next hop node in the DTN overlay. Use the <tt>link</tt> command
+to configure the manner in which DTN2 will establish a communications
+channel to a next hop node. You may set the following variables:
+
+<p>
+
+
+<h4> link <i>cmd</i></h4>
+<p>
+Syntax: <tt>link <i>cmd</i> <i>name</i> </tt>
+<br>
+Example: <tt>link delete <i>trinity_od</i> </tt>       
+<p>
+<table>
+<tr>
+<th>cmd
+<th>name
+<th>Comments
+
+<tr>
+<td><tt>Open</tt>
+<td>String
+<td>open a link 
+
+<tr>
+<td><tt>close</tt>
+<td>String
+<td>Close a link
+
+<tr>
+<td><tt>delete</tt> 
+<td>String
+<td>Delete a link
+
+<tr>
+<td><tt>state</tt>
+<td>String
+<td>Get state of a link
+
+<tr>
+<td><tt>stats</tt>
+<td>String
+<td>Get link statistics
+
 </table>
+
+<a name="link set available"/>
+<h4> link set_available</h4>
+<p>
+Syntax: <tt>link set_available <i>name</i> <i>avail</i></tt>
+<br>
+Example: <tt>link set_available <i>trinity_od</i> <i>true</i> </tt>
+
+<p>
+<table>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>name</tt>
+<td>String
+<td>N/A
+<td>Specify a name of a link
+
+<tr>
+<td><tt>avail</tt>
+<td>true or false
+<td>true
+<td>hacky way to make the link available (only used with <i>set_available</i>)
+<tr>
+
+</table>
+
+<a name="link reconfigure"/>
+<h4> link reconfigure</h4>
+<p>
+Syntax: <tt>link reconfigure <i>name</i> <i>opt=val opt2=val2 optN=valN</i></tt>
+<br>
+Example: <tt>link reconfigure <i>trinity_od</i> <i>mtu=1024 idle_close_time=35</i></tt>
+
+<a name="link set_cl_defaults"/>
+<h4>link set_cl_defaults</h4>
+<p>
+Syntax: <tt>link set_cl_defaults <i>name</i> <i>conv_layer</i> <i>opt=val opt2=val2 optN=valN</i></tt>
+<br>
+Example: <tt>link set_cl_defaults <i>trinity_od</i> <i>tcp</i> <i>mtu=1024 idle_close_time=35</i></tt>
+
+<a name="link add"/>
+<h4>link add</h4>
+<p>
+Syntax: <tt>link add <i>name</i> <i>nexthop</i> <i>type</i> <i>conv_layer</i> <i>opt=val opt2=val2 optN=valN</i> </tt>
+<br>
+Example: <tt>link add <i>trinity_od</i> <i>192.168.1.2</i> <i>ONDEMAND</i> <i>tcp</i> <i>mtu=1024 potential_downtime=25</i> </tt> 
+
+<p>
+<table>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>name</tt>
+<td>String
+<td>N/A
+<td>Specify a name of a link
+
+<tr>
+<td><tt>nexthop</tt>
+<td>String (address)
+<td>N/A
+<td>Specify the next hop node. For IP-based links (tcp or udp),
+the nexthop should contain a DNS hostname or IP address, followed
+optionally by a : and a port. If the port is not specified, the
+default of 4556 is used.
+
+<tr>
+<td><tt>type</tt>
+<td>Link type (see note)
+<td>ALLWAYSON, ONDEMAND, SCHEDULED, OPPORTUNISTIC
+<td>Specify the link type
+
+<tr>
+<td><tt>conv_layer</tt>
+<td>udp, tcp, bt, file, eth, norm, null, extcl, serial
+<td>N/A
+<td>Specify a Convergence Layer Adapter (CLA)
+<tr>
+<th>   opt  
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>mtu</tt>
+<td>number (MTU)
+<td>Set by link type
+<td>The MTU of the link, used to control proactive fragmentation.
+
+<tr>
+<td><tt>min_retry_interval</tt>
+<td>number (seconds)
+<td>Set by link type
+<td>The minimum amount to wait between attempts to re-open the link. Default is set by the various link types but can be overridden by configuration parameters.
+
+<tr>
+<td><tt>max_retry_interval</tt>
+<td>number (seconds)
+<td>Set by link type
+<td>The minimum amount to wait between attempts to re-open the link. Default is set by the various link types but can be overridden by configuration parameters.
+
+<tr>
+<td><tt>idle_close_time</tt>
+<td>number (seconds)
+<td>30 for ONDEMAND or 0 for OPPORTUNISTIC & ALLWAYSON
+<td>Idle time before the link is closed. MUST be zero for always on links (i.e. they are never closed). Default is 30 seconds for on demand links, zero for opportunistic links.
+
+<tr>
+<td><tt>potential_downtime</tt>
+<td>number (seconds)
+<td>30
+<td>A conservative estimate of the maximum amount of time that the link may be down during 'normal' operation. Used by routing algorithms to determine how long to leave bundles queued on the down link before rerouting them.
+
+<tr>
+<td><tt>prevhop_hdr</tt>
+<td>true or false
+<td>false
+<td>Indicates whether or not to send the previous hop header on this link.
+
+<tr>
+<td><tt>cost</tt>
+<td>number (abstract cost)
+<td>100
+<td>The abstract cost of the link, used by routing algorithms.
+<tr>
+<td><tt>qlimit_bundles_high</tt>
+<td>number (bundles)
+<td>tbc
+<td> The high limits on the number of bundles that should be queued on the link. The high limits are used to indicate whether or not more bundles can be queued onto the link to effect backpressure from the convergence layers.
+
+<tr>
+<td><tt>qlimit_bundles_low</tt>
+<td>number (bundles)
+<td>tbc
+<td>The low limits on the number of bundles that should be queued on the link. The low limits can be used by the router to determine when to re-scan the pending bundle lists.
+
+<tr>
+<td><tt>qlimit_bytes_high</tt>
+<td>number (bytes)
+<td>tbc
+<td> The high limits on the number of bytes that should be queued on the link. The high limits are used to indicate whether or not more bundles can be queued onto the link to effect backpressure from the convergence layers.
+
+<tr>
+<td><tt>qlimit_bytes_low</tt>
+<td>number (bytes)
+<td>tbc
+<td>The low limits on the number of bytes that should be queued on the link. The low limits can be used by the router to determine when to re-scan the pending bundle lists.
+
+<tr>
+<td><tt>retry_interval</tt>
+<td>number (seconds)
+<td>min_retry_interval
+<td>The seconds to wait between attempts to re-open an unavailable link. Initially set to min_retry_interval, then doubles up to max_retry_interval
+
+</table>
+
+<a name="Link Notes"/>
+<h4>Link Notes</h4>
+
+
+<p>Links are of types as discussed in the DTN architecture
+ALWAYSON, ONDEMAND, SCHEDULED, OPPORTUNISTIC. The key differences from an 
+implementation perspective are "who" and "when" manipulates 
+the link state regarding availability.
+
+<p>ONDEMAND links are initializd in the AVAILABLE state, as one would
+expect. It remains in this state until a router explicitly opens
+it. An ONDEMAND link can then be closed either due to connection
+failure or because the link has been idle for too long, both
+triggered by the convergence layer. If an ONDEMAND link is closed
+due to connection failure, then the contact manager is notified of
+this event and periodically tries to re-establish the link.
+
+<p>For OPPORTUNISTIC links the availability state is set by the code
+which detects that there is a new link available to be used. SCHEDULED 
+links have their availability dictated by the schedule implementation.
+
+<p>All links in the OPEN state have an associated contact that
+represents an actual connection. Every link has a unique name 
+associated with it which is used to identify it. The name is 
+configured explicitly when the link is created.
+
+<a name="Link stats"/>
+<h3> Getting link statistics </h3>
+
+<p>The <tt>link dump </tt> command shows the following attributes for all links:
+<ul>
+<li> link
+<li> nexthop
+<li> remote eid
+<li> type
+<li> clayer
+<li> state
+</ul>
+
+<p>The <tt>link dump <i>name</i> </tt> command shows the following detailed attributes for a specified link:
+<ul>
+<li> Link 
+<li> clayer
+<li> type
+<li> state
+<li> deleted
+<li> nexthop
+<li> remote eid
+<li> mtu
+<li> min_retry_interval
+<li> max_retry_interval
+<li> idle_close_time
+<li> potential_downtime
+<li> prevhop_hdr
+<li> reactive_frag_enabled
+<li> sendbuf_len
+<li> recvbuf_len
+<li> data_timeout
+<li> test_read_delay
+<li> test_write_delay
+<li> test_recv_delay
+<li> segment_ack_enabled
+<li> negative_ack_enabled
+<li> keepalive_interval
+<li> segment_length
+<li> local_addr
+<li> remote_addr
+<li> remote_port
+</ul>
+
+<p>The <tt>link stats <i>name</i> </tt> command shows the following counts for a specified link:
+<ul>
+<li> contact_attempts
+<li> contacts
+<li> bundles_transmitted 
+<li> bytes_transmitted 
+<li> bundles_queued
+<li> bytes_queued 
+<li> bundles_inflight
+<li> bytes_inflight
+<li> bundles_cancelled
+<li> uptime 
+<li> throughput_bps
+<li> bundles_deferred
+</ul>
+
+<a name="test"/>
+<h2> test </h2>
+
+<p>
+The <tt>test</tt> command is used by developers to test the DTN2 daemon. It is capable of generating a segfault, triggering a panic or false assert.
+<p>
+Syntax: <tt>test <i>cmd</i></tt>
+<br>
+Example: <tt>test segfault</tt>
+
 </body>
 </html>
 

@@ -1,0 +1,53 @@
+<html>
+<head>
+<title> DTN2 Man pages: dtnsend </title>
+
+</head>
+<body>
+<h1>dtnsend
+</h1>
+
+<p>
+<h2>NAME
+</h2>
+<p>
+<tt>dtnsend -	sends a bundle with payload of file, tmpfile, message, or date
+
+<h2>SYNOPSIS
+</h2> 
+<p>
+usage: <tt>dtnsend [opts] -s &lt;source_eid&gt; -d &lt;dest_eid&gt; -t &lt;type&gt; -p &lt;payload&gt;</tt>
+<h2>DESCRIPTION
+</h2>
+<p>common options:
+<blockquote><pre>
+ -v verbose
+ -h help
+ -s &lt;eid|demux_string&gt; source eid)
+ -d &lt;eid|demux_string&gt; destination eid)
+ -r &lt;eid|demux_string&gt; reply to eid)
+ -t &lt;f|t|m|d&gt; payload type: file, tmpfile, message, or date
+ -p &lt;filename|string&gt; payload data
+ -e &lt;time&gt; expiration time in seconds (default: one hour)
+ -P &lt;priority&gt; one of bulk, normal, expedited, or reserved
+ -i &lt;regid&gt; registration id for reply to
+ -n &lt;int&gt; copies of the bundle to send
+ -z &lt;time&gt; msecs to sleep between transmissions
+ -c request custody transfer
+ -C request custody transfer receipts
+ -D request for end-to-end delivery receipt
+ -X request for deletion receipt
+ -R request for bundle reception receipts
+ -F request for bundle forwarding receipts
+ -1 assert destination endpoint is a singleton
+ -N assert destination endpoint is not a singleton
+ -W set the do not fragment option
+ -w wait for bundle status reports
+ -E &lt;int&gt; include extension block and specify type
+ -M &lt;int&gt; include metadata block and specify type
+ -O &lt;int&gt; flags to include in extension/metadata block
+ -S &lt;string&gt; extension/metadata block content
+</pre><blockquote>
+</body>
+</html>
+

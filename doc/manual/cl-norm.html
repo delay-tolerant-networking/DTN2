@@ -1,0 +1,359 @@
+<html>
+<head>
+<title> DTN2 Manual: NORM Convergence Layer </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>NORM Convergence Layer
+</h1>
+
+<p>
+A Nack-Oriented Reliable Multicast (NORM) convergence layer. The <a href="http://cs.itd.nrl.navy.mil/work/norm/index.php">NORM</a> protocol is designed to provide end-to-end reliable transport of bulk data objects or streams over generic IP multicast routing and forwarding services. NORM uses a selective, negative acknowledgement (NACK) mechanism for transport reliability and offers additional protocol mechanisms to conduct reliable multicast sessions with limited "a priori" coordination among senders and receivers. A congestion control scheme is specified to allow the NORM protocol fairly share available network bandwidth with other transport protocols such as Transmission Control Protocol (TCP). 
+<p>It is capable of operating with both reciprocal multicast routing among senders and receivers and with asymmetric connectivity (possibly a unicast return path) from the senders to receivers. The protocol offers a number of features to allow different types of applications or possibly other higher level transport protocols to utilize its service in different ways. The protocol leverages the use of FEC-based repair and other IETF reliable multicast transport (RMT) building blocks in its design. Norm sessions persist across link down/up events in order to take full advantage of the built-up tx cache used to satisfy repair requests.
+
+<h2><p>Common Configurations
+<p>---------------------</h2>
+
+<p>Here are some basic examples to get you started.  The full list of link:w
+
+parameters are summarized in the next section.
+
+<p>Assume DTN nodes A, B, and C can communicate over an IP network.
+<p>
+<table>
+<tr>
+<th>EID
+<th>IPv4 Address
+
+<tr>
+<td><tt>dtn://node_a</tt>
+<td>10.1.101.1
+
+<tr>
+<td><tt>dtn://node_b</tt>
+<td>10.1.102.1
+
+<tr>
+<td><tt>dtn://node_c</tt>
+<td>10.1.103.1
+
+<tr>
+<td><tt>dtn://node_d</tt>
+<td>10.1.104.1
+</table>
+<h4>Point-to-point link A <-> B</h4>
+
+<p>Below are the "link add" directives for an always-on unicast link between
+nodes A and B.  Congestion control is enabled (cc) with a maximum tx rate
+of 230Kbps.  "ack" places the remote node in the acking_list; positive
+acknowledgment is expected after zero of more nack-based repair cycles.
+"ack" may reduce the number of flush messages.
+<p>
+<p><i> Node A configuration</i>
+    <p><tt>link add link_to_b 10.1.102.1:4557 ALWAYSON norm remote_eid=dtn://node_b cc ack rate=230000</tt>
+<p><i> Node B configuration</i>
+   <p><tt> link add link_to_a 10.1.101.1:4557 ALWAYSON norm remote_eid=dtn://node_a cc ack rate=230000</tt>
+
+<h4>One-to-many multicast A -> B,C,D</h4>
+
+<p>For a one-to-many multicast link, use "link add" on the node sourcing data and
+use "interface add" on the sink nodes.  The Node A "acking_list" requests postive
+acknowledgments from Nodes B and C (after zero or more nack-based repair
+cycles).  Delivery to Node D may not succeeed because it's not in the acking_list.
+"nodeid" might be needed for senders and/or receivers when nodes are multi-homed.
+<p>
+<p><i> Node A configuration</i>
+    <p><tt>link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group 
+cc rate=230000 acking_list=10.1.102.1,10.1.103.1</tt>
+<p><i> Node B configuration</i>
+   <p><tt> interface add norm0 norm multicast_interface=eth0 group_addr=239.255.0.1 nodeid=10.1.102.1</tt>
+<p><i> Node C configuration</i>
+   i<p><tt> interface add norm0 norm multicast_interface=eth0 group_addr=239.255.0.1 nodeid=10.1.103.1</tt>
+<p><i> Node D configuration</i>
+   <p><tt> interface add norm0 norm multicast_interface=eth0 group_addr=239.255.0.1 nodeid=10.1.104.1</tt>
+
+<h4>Many-to-many</h4>
+
+<p>For a many-to-many multicast link, use "link add" on all the nodes sourcing data.
+Below, all nodes can send to and receive from the multicast group.  Note the
+acking_list is adjusted accordingly in each directive.
+<p>
+<p><i> Node A configuration</i>
+   <p><tt> link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group 
+cc rate=230000 acking_list=10.1.102.1,10.1.103.1,10.1.104.1</tt>
+<p><i> Node B configuration</i>
+   <p><tt> link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group 
+cc rate=230000 acking_list=10.1.101.1,10.1.103.1,10.1.104.1</tt>
+<p><i> Node C configuration</i>
+   <p><tt> link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group 
+cc rate=230000 acking_list=10.1.101.1,10.1.102.1,10.1.104.1</tt>
+<p><i> Node D configuration</i>
+    <p><tt> link add link_to_bc 239.255.0.1:4558 ALWAYSON norm multicast_interface=eth0 remote_eid=dtn://group 
+cc rate=230000 acking_list=10.1.101.1,10.1.102.1,10.1.103.1</tt>
+
+<h2><p>Link Parameters
+<p>---------------</h2>
+
+To add a norm interface in your config file, use:
+<p>
+Syntax: <tt>link add <i>name</i> <i>nexthop</i> <i>type</i> <i>norm</i> [<i>arg=val arg2=val2 argN=valN...</i>]</tt>
+<p>Valid arguments for <tt><i>arg</i></tt> are:
+
+<p>
+<table>
+<tr>
+<th>arg
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>cc</tt>
+<td>true or false
+<td>false
+<td> Whether NORM congestion control is enabled.
+
+<tr>
+<td><tt>rate</tt>
+<td>number (bps)
+<td>64000
+<td> Rate of NORM link in bits per second (bps). If congestion control is
+enabled (see cc) this is the maximum achievable rate.
+
+<tr>
+<td><tt>nodeid</tt>
+<td>string (hostname || IPv4 address)
+<td>none
+<td> Uniquely identify this node on the NORM link with an IPv4 address.
+(Normally only needed for multi-homed nodes).
+
+<tr>
+<td><tt>segment_size</tt>
+<td>number (bytes)
+<td>1400
+<td> Maximum payload size of NORM sender messages in bytes (not incl.
+NORM message header fields).
+
+<tr>
+<td><tt>local_port</tt>
+<td>number (port)
+<td>4558
+<td> (NORM interfaces only) Local UDP port to listen on for 
+incoming multicast traffic.
+
+<tr>
+<td><tt>remote_addr</tt>
+<td>number (bytes)
+<td>acquired from the "link add" directive
+<td> Remote NORM link IP address (not used -- normally acquired from the 
+"link add" directive)
+
+<tr>
+<td><tt>remote_port</tt>
+<td>number (port)
+<td>4557
+<td> Remote NORM link port. (not used -- normally acquired from the "link
+add" directive)
+
+<tr>
+<td><tt>multicast_interface</tt>
+<td>interface
+<td>tbc
+<td> The host interface to use when working with multicast groups.
+
+<tr>
+<td><tt>group_addr</tt>
+<td>IP address (IPv4)
+<td>tbc
+<td> (NORM interfaces only) Multicast IPv4 address to join.  
+For multicast links, the group address is acquired from 
+the "link add" directive.
+
+
+
+<tr>
+<td><tt>tx_robust_factor</tt>
+<td>number 
+<td>20
+<td> The number of flush messages sent at the end of each transmission.
+Flush messages are used to prompt receivers to request needed repairs.
+With "acking_list" or "ack", periodic flush messages cease once positive
+ack(s) are received.
+
+<tr>
+<td><tt>rx_robust_factor</tt>
+<td>number
+<td>20
+<td> The number of times a receiver will nack for repairs before giving up.
+
+<tr>
+<td><tt>tos</tt>
+<td>number (marking)
+<td>0
+<td> DSCP marking (0-64) for all bundles on a specific link
+Size of the receive buffer for each NORM link.
+
+<tr>
+<td><tt>acking_list</tt>
+<td>string (comma delimited list)
+<td>tbc
+<td> (multicast links) A comma separated list of IPv4 addresses (NORM node ids) that must
+positively ack sender-initiated flush messages (once any nack-based
+repair process has completed).
+
+<tr>
+<td><tt>ack</tt>
+<td>tbc
+<td>tbc
+<td> A shorthand way of requesting positive acks from the remote end of unicast
+links.
+
+<tr>
+<td><tt>silent</tt>
+<td>true or false
+<td>false
+<td>"silent" receivers do not originate any NORM traffic and must rely on 
+proactive FEC for repairs.
+
+<tr>
+<td><tt>ecn</tt>
+<td>true or false
+<td>false
+<td> Whether NORM explicit congestion notification support is enabled.
+Size of the receive buffer for each NORM link.
+
+
+<tr>
+<td><tt>object_size</tt>
+<td>number (objects)
+<td>0
+<td>Partition large DTN bundles into multiple NORM data objects for
+transmission. With the default of zero bytes, no object partitioning
+is performed. Setting object size to a relatively small value, e.g.
+50000 bytes, may be useful in some contention based networks (see
+tx_spacer). This feature is similar in concept to proactive bundle
+fragmentation or "bundle MTU" (neither yet implemented in DTN2).
+(see tx_spacer). 
+
+<tr>
+<td><tt>tx_spacer</tt>
+<td>number (ms)
+<td>0
+<td> When combined with object_size, tx_spacer may be used to add a 
+constant pause time (ms) between successive NORM data object 
+transmissions. On contention based networks, this pause time may 
+give other nodes a chance to transmit.
+
+<tr>
+<td><tt>keepalive_intvl</tt>
+<td>number (ms)
+<td>5000
+<td>For DTN opportunistic links, keepalive_intvl is the number of
+miliseconds between successive keepalive packets. Opportunistic
+links are made unavailable when three remote keepalive packets are
+missed. In addition, reliable mode links send watermarks at
+keepalive intervals.
+
+<tr>
+<td><tt>fec_buf_size</tt>
+<td>number (bytes)
+<td>1048576
+<td> The number of bytes allocated for sender calculated FEC segments and repair state.
+
+<tr>
+<td><tt>block_size</tt>
+<td>number (source symbol segments)
+<td>64
+<td> The number of source symbol segments per coding block for the systematic Reed-Solomon FEC code used in the NRL NORM implementation.
+
+<tr>
+<td><tt>num_parity</tt>
+<td>number (parity blocks)
+<td>16
+<td> The maximum number of parity blocks the sender is willing to calculate per coding block.
+
+<tr>
+<td><tt>auto_parity</tt>
+<td>number (messages)
+<td>0
+<td> The number of "auto-parity" messages sent at the end of each coding block.
+
+<tr>
+<td><tt>backoff_factor</tt>
+<td>number (factor) 
+<td>0.0 for unicast; 4.0 for multicast links
+<td>  Used to scale various timeouts during the NACK repair process.
+
+<tr>
+<td><tt>group_size</tt>
+<td>number 
+<td>1000
+<td> Group size is advertised to the receiver group where it is used in 
+calculating backoff timers. Due to encoding techniques in the NORM 
+header, 1000 receivers is the smallest value allowed by the NORM 
+protocol.
+
+<tr>
+<td><tt>tx_cache_size_max</tt>
+<td>number (bytes)
+<td>20971520
+<td> Size of the NORM object cache per link.
+
+<tr>
+<td><tt>tx_cache_count_min</tt>
+<td>number (objects)
+<td>8
+<td> At at minimum, this many objects are allowed to be enqueued in the 
+NORM engine regardless of the object sizes. After the tx_cache_count_min 
+value is surpassed, cache size contraints are in effect (see tx_cache_size_max).
+
+<tr>
+<td><tt>tx_cache_count_max</tt>
+<td>number (objects)
+<td>1024
+<td> The maximum number of objects that may be enqueued for transmission 
+with the NORM engine assuming the total size is less that tx_cache_size_max.
+
+<tr>
+<td><tt>rx_buf_size</tt>
+<td>number (bytes)
+<td>300000
+<td> Size of the receive buffer for each NORM link.
+
+</table>
+
+<p> <b>Note</b>
+<p><h5>Requirements
+<p>------------</h5>
+
+<p>
+NORM libraries from the Naval Research Lab
+
+<ul>
+<li>Download <a href="http://downloads.pf.itd.nrl.navy.mil/norm/">norm-nightlybuild.tgz</a> (tested with version 1.4b4)
+ and <a href="http://downloads.pf.itd.nrl.navy.mil/protolib/">protolib-nightlybuild.tgz</a>
+
+<li>Unpack the norm code.  cd into the norm top-level directory
+    and unpack the protolib code there.
+
+<li>For linux, cd into the unix directory and type
+<tt><p>make -f Makefile.linux
+<p>make -f Makefile.linux libnorm.a</tt>
+
+<li>Copy libnorm.a and ../protolib/unix/libProtokit.a to
+     /usr/lib or /usr/local/lib
+
+<li>Copy ../common/normApi.h to /usr/include or /usr/local/include
+</ul>
+<a name="install_norm"/>
+<p><h5>Installation
+<p>------------</h5>
+
+<p>Configure DTN2 using <i>'--with-norm'</i> and (re)compile.
+
+<p>Add NORM links to dtn.conf, for example:
+   <p><tt>link add norm_link remote_host:4557 ALWAYSON norm</tt>
+
+</body>
+</html>
+

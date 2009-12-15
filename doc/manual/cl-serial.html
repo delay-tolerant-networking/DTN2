@@ -1,0 +1,70 @@
+<html>
+<head>
+<title> DTN2 Manual: Serial Convergence Layer </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>Serial Convergence Layer
+</h1>
+
+<p>
+When using the Serial convergence layer a connection is either a receiver or a sender. First it parses and attempts to resolve the next hop address and if able to do so opens a tty. To add a serial interface in your config file, use:
+
+<p>Syntax: <tt>interface add <i>name</i> <i>CL</i> [<i>arg=val arg=val2 argN=valN...</i>]</tt>
+<p>Example: <tt>interface add serial0 serial </tt>
+<p>Valid arguments for <tt><i>arg</i></tt> are:
+
+<p>
+<table>
+<tr>
+<th>arg
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>hexdump</tt>
+<td>true or false
+<td>false
+<td>Whether to log a hexdump of all traffic
+
+<tr>
+<td><tt>initstr</tt>
+<td>string
+<td>""
+<td>String to initialize the tty
+
+<tr>
+<td><tt>ispeed</tt>
+<td>number
+<td>19200
+<td>Input speed on the tty
+
+<tr>
+<td><tt>ospeed</tt>
+<td>number 
+<td>19200
+<td>Output speed on the tty
+
+<tr>
+<td><tt>sync_interval</tt>
+<td>number
+<td>1000
+<td>Interval to send initial sync bits
+
+
+
+</table>
+<p> <b>Note</b>
+<p>
+The side which initiates the active connect is not necessarily the sender.
+<p>
+The serial CL first attempt to parse the next hop address and if unable to do so, the link can't be opened. If it can it opens the tty and set the tty parameters and initializes the timer. If there's a dialing string, it will attempt to send it, reserve space in the buffer and send a sync byte to kick things off. 
+<p>
+During the session it will check that it hasn't been too long since it got some data from the other side and if it has it will time out the connection.
+<p> 
+Once data is received on the channel, it means the other side is up and trying to sync, so it will send the contact header
+
+</body>
+</html>
+

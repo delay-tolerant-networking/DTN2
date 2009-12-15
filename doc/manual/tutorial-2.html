@@ -19,14 +19,14 @@ dtnd, you can send and receive bundles.
 
 <p>
 The most basic tools to send bundles through the DTN network
-are <tt>dtnsend</tt> and <tt>dtnrecv</tt>. You can use
-<tt>dtnsend</tt> to create a bundle and set various options
+are <a href="man_dtnsend.html">dtnsend</a> and <a href="man_dtnrecv.html">dtnrecv</a>. You can use
+<a href="man_dtnsend.html">dtnsend</a> to create a bundle and set various options
 in it. The bundle will move through the DTN until it gets
-to the destination node. You'll then use <tt>dtnrecv</tt>
+to the destination node. You'll then use <a href="man_dtnrecv.html">dtnrecv</a>
 to retrieve the bundle out of the final dtnd.
 
 <p>
-First, take a look at the options <tt>dtnsend</tt> takes:
+First, take a look at the options <a href="man_dtnsend.html">dtnsend</a> takes:
 
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -h</font>
 usage: dtnsend [opts] -s &lt;source_eid&gt; -d &lt;dest_eid&gt; -t
@@ -54,7 +54,7 @@ options:
 </pre></blockquote>
 
 <p>
-To use <tt>dtnsend</tt>, you need to give it a source and
+To use <a href="man_dtnsend.html">dtnsend</a>, you need to give it a source and
 destination. Then you tell it what kind of data to send, and
 where to find it. You may use other command line options to
 set some optional flags in the bundle.
@@ -62,7 +62,7 @@ set some optional flags in the bundle.
 <p>
 First, let's send in a little test message that we will be
 able to see inside the daemon, and then will be able to fetch with
-<tt>dtnrecv</tt>.
+<a href="man_dtnrecv.html">dtnrecv</a>.
 
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend
     -s dtn://dtn-a.dtn/me
@@ -74,7 +74,7 @@ hostname <i>dtn-a</i>, use the local eid you configured in your
 dtn.conf file. 
 
 <p>
-In the window where dtnd is running, type "bundle list". You should
+In the window where dtnd is running, type <a href="configuration.html#Getting a list of pending bundles">bundle list</a>. You should
 get something like this:
 
 <blockquote><pre>dtn% <font color=blue>bundle list</font>
@@ -110,13 +110,13 @@ say, "the final destination is the same place we put it in!". Ok,
 you've got a point. But later we'll try something fancier and
 with some imagination, you'll be able to pretend you've sent a
 bundle all the way to Mars. Before that though, we've got to get our
-bundle back out. And for that, we use <tt>dtnrecv</tt>.
+bundle back out. And for that, we use <a href="man_dtnrecv.html">dtnrecv</a>.
 
 <p>
-The usage of <tt>dtnrecv</tt> is much easier to remember than
-that of <tt>dtnsend</tt>. You only need to tell it the name of
+The usage of <a href="man_dtnrecv.html">dtnrecv</a> is much easier to remember than
+that of <a href="man_dtnsend.html">dtnsend</a>. You only need to tell it the name of
 the endpoint who's bundles you want to pick up. Because
-<tt>dtnrecv</tt> cannot pick up bundles from across the DTN, but only
+<a href="man_dtnrecv.html">dtnrecv</a> cannot pick up bundles from across the DTN, but only
 on the local node, it's options are much simpler.
 
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtnrecv/dtnrecv dtn://dtn-a.dtn/testing</font>
@@ -133,13 +133,13 @@ dtn_recv [dtn://dtn-a.dtn/testing]...
 
 <p>
 As before, there's a couple of things to note here. First, notice
-how <tt>dtnrecv</tt> was able to figure out the local eid for the
+how <a href="man_dtnrecv.html">dtnrecv</a> was able to figure out the local eid for the
 local dtnd, and them add the argument onto the end to make the
 complete eid. It did that by asking the local server what its
 local eid is. The second thing to notice is that the answer 
 did indeed come back correctly. The 7 bytes we put into the DTN
-with <tt>dtnsend</tt> came back out with <tt>dtnrecv</tt>. Finally,
-note that <tt>dtnrecv</tt> stayed running until we killed it with
+with <a href="man_dtnsend.html">dtnsend</a> came back out with <a href="man_dtnrecv.html">dtnrecv</a>. Finally,
+note that <a href="man_dtnrecv.html">dtnrecv</a> stayed running until we killed it with
 Ctrl-C. It was waiting for more bundles for that endpoint to arrive.
 
 <p>
@@ -185,14 +185,14 @@ dtnd process, otherwise you will get unexpected results due to state
 that is not properly cleaned up from the above tests. -demmer</i>
 
 <p>
-If you add the -e and -w options to the <tt>dtnsend</tt> command
+If you add the -e and -w options to the <a href="man_dtnsend.html">dtnsend</a> command
 above, something different happens. The -e argument asks the
 far end DTN server (in this case, still our local server) to
 make up a receipt and send it via the DTN back to our reply
 address. Because we did not use the -r argument to explicitly
 set a reply address, the receipt will come to the source eid
 we specified with the -s option. The -w argument tells
-<tt>dtnsend</tt> to wait for incoming messages to the reply
+<a href="man_dtnsend.html">dtnsend</a> to wait for incoming messages to the reply
 endpoint. So, here's an example of it in action:
 
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -e -w -s dtn://dtn-a.dtn/me
@@ -209,12 +209,12 @@ got 67 byte report from [dtn://dtn-a.dtn]: time=18893.0 ms
 Well, recall that this is a disruption tolerant network, and that
 the application on the other end may not have been running at the time
 we sent the message. In fact it was not. The 18 seconds was how long
-it took me to find another window and run <tt>dtnrecv</tt>. (So
+it took me to find another window and run <a href="man_dtnrecv.html">dtnrecv</a>. (So
 I type slow. Sue me.) The dtnd server couldn't create and send a
 receipt until it had delivered the bundle to the final destination,
-which in this case was the <tt>dtnrecv</tt> process that I started
-a few seconds after I ran <tt>dtnsend</tt>. If I'd had my
-<tt>dtnrecv</tt> up and running before I ran <tt>dtnsend</tt> the
+which in this case was the <a href="man_dtnrecv.html">dtnrecv</a> process that I started
+a few seconds after I ran <a href="man_dtnsend.html">dtnsend</a>. If I'd had my
+<a href="man_dtnrecv.html">dtnrecv</a> up and running before I ran <a href="man_dtnsend.html">dtnsend</a> the
 receipt would have arrived in just a few milliseconds.
 
 <h2>dtncp and dtncpd</h2>
@@ -222,7 +222,7 @@ receipt would have arrived in just a few milliseconds.
 <p>
 What if you wanted to move a file to another node on the DTN?
 You've have to have someone logged into that machine ready to run
-<tt>dtnrecv</tt> on it. And of course, you can't log in to it,
+<a href="man_dtnrecv.html">dtnrecv</a> on it. And of course, you can't log in to it,
 because the other bundle router is on the other side of Mars.
 And of course, you can't put your buddy there to run the command,
 because, well, it's on the other side of Mars. What to do? If
@@ -232,23 +232,23 @@ local files and send them to the endpoint the far side was
 waiting on, you could move files!
 
 <p>
-That's exactly how <tt>dtncp</tt> and <tt>dtncpd</tt> work.
-<tt>dtncp</tt> is used to pick up a file from the local
+That's exactly how <a href="man_dtncp.html">dtncp</a> and <a href="man_dtncpd.html">dtndcpd</a> work.
+<a href="man_dtncp.html">dtncp</a> is used to pick up a file from the local
 filesystem send it as a bundle.
-<tt>dtncpd</tt> is the daemon, which would stay running
+<a href="man_dtncpd.html">dtndcpd</a> is the daemon, which would stay running
 all the time. It registers with the local bundle router
 requesting a notification when a bundle comes in that was sent
-by <tt>dtncp</tt>. It copies the bundle into an "incoming files"
+by <a href="man_dtncp.html">dtncp</a>. It copies the bundle into an "incoming files"
 directory. Voila, you've copied a file.
 
 <p>
-You need to run a <tt>dtncpd</tt> on every node in the
+You need to run a <a href="man_dtncpd.html">dtndcpd</a> on every node in the
 network where you want to be able to copy files. If a node
-is only sending out files, it need not have a <tt>dtncpd</tt>
+is only sending out files, it need not have a <a href="man_dtncpd.html">dtndcpd</a>
 running.
 
 <p>
-Note that <tt>dtncpd</tt> is not a general purpose file copy
+Note that <a href="man_dtncpd.html">dtndcpd</a> is not a general purpose file copy
 system like <tt>scp</tt>. It can only deposit files into a
 specific directory. It was written this way because it is an
 example application, and implementing the security-critical
@@ -263,8 +263,8 @@ choose to make in the future.
 <h3> An example </h3>
 
 <p>
-In one window, we get a directory ready for <tt>dtncpd</tt>
-to put files into, then start it. <tt>dtncpd</tt> registers
+In one window, we get a directory ready for <a href="man_dtncpd.html">dtndcpd</a>
+to put files into, then start it. <a href="man_dtncpd.html">dtndcpd</a> registers
 on the endpoint <i>/dtncp/recv:*</i>, then waits for incoming
 files.
 
@@ -282,7 +282,7 @@ In another window, we copy a file:
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtncp/dtncp /etc/motd dtn://dtn-a.dtn</font></pre></blockquote>
 
 <p>
-And in the first window, <tt>dtncpd</tt> says:
+And in the first window, <a href="man_dtncpd.html">dtndcpd</a> says:
 
 <blockquote><pre>======================================
  File Received at Sun Mar  6 01:03:24 2005
@@ -295,7 +295,7 @@ And in the first window, <tt>dtncpd</tt> says:
    loc    : /home/fred/dtn/incoming/dtn-a//passwd</pre></blockquote>
 
 <p>
-You may also give <tt>dtncp</tt> a third argument, which will
+You may also give <a href="man_dtncp.html">dtncp</a> a third argument, which will
 be the filename on the far side. The default, if you neglect
 to provide this argument, is to make the far side file have the
 same name as the local file.
@@ -306,8 +306,8 @@ same name as the local file.
 The DTN2 implementation treats <b>*</b> (asterisk) as a
 special character in endpoints. The asterisk denotes
 that any endpoint that matches the prefix before the asterix
-will match that endpoint. <tt>dtncpd</tt> uses a wildcard
-endpoint to be able to match the endpoints that <tt>dtncp</tt>
+will match that endpoint. <a href="man_dtncpd.html">dtndcpd</a> uses a wildcard
+endpoint to be able to match the endpoints that <a href="man_dtncp.html">dtncp</a>
 makes by adding the desired remote filename onto the end of
 the first part of the endpoint string, <i>/dtncp/recv:</i>.
 

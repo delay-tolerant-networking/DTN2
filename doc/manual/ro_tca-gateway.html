@@ -1,0 +1,29 @@
+<html>
+<head>
+<title> DTN2 Manual: tca-router Routing Algorithm </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>tca-router Routing Algorithm
+</h1>
+
+<p>
+This is the implementation of the TCA bundle routing algorithm.
+<p>
+A TCARouter is a specialized TableBasedRouter where the route
+table is manipulated in response to certain control bundles
+(for example, a "register" bundle, or a "change-of-address" bundle).
+Specialized routing logic is then applied in order to route late-bound
+bundles addressed to a mobile node, to the mobile's current location
+in the network.
+<p>
+The main interface point is the overridden handle_bundle_received
+function which tests for the special TCA bundles (control bundles and
+late-bound data bundles). For more information please see the 
+<a href="configuration.html#route">route</a> command.
+
+
+
+</body>
+</html>
+

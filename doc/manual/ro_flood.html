@@ -1,0 +1,35 @@
+<html>
+<head>
+<title> DTN2 Manual: Flood Router </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>Flood Router
+</h1>
+
+<p>
+This is the implementation of a flooding based bundle router.
+
+<p>
+In the implementation an internal BundleList is maintaned in which 
+all bundles are kept until their expiration time. This prevents 
+the main daemon logic from opportunistically deleting bundles when 
+they've been transmitted.
+
+<p>
+Whenever a new link arrives, we add a wildcard route to the table.
+Then when a bundle arrives, we can stick it on the all_bundles list
+and just call the base class route_bundle function. The core base
+class logic then makes sure that a copy of the bundle is forwarded
+exactly once to each neighbor.For more information please see the 
+<a href="configuration.html#route">route</a> command.
+
+<p>
+Note: At present this will forward a bundle back to the node from 
+which it arrived. 
+
+
+<p>
+</body>
+</html>
+

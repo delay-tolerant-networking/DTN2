@@ -13,23 +13,45 @@ The DTN2 implementation uses the logging facility from
 levels for each log path.
 
 <p>
+The logging in DTN is organized into hierarchical paths. 
+The basic idea is that a logf command contains an arbitrary log path,
+a level, and a printf-style body. For example:
+<p>
+logf("/some/path", LOG_INFO, "something happened %d times", count);
+
+
+<a name="dtndebug"/>
+<p><h2>.dtndebug</h2>
 If the file <tt>~/.dtndebug</tt> exists, it can be used to customize
 which log messages are emitted and which are ignored. It is read
-one line at a time. Lines may start with "#" to indicate a
+from the top down, one line at a time. Lines may start with "#" to indicate a
 comment. Blank lines are ignored. Any other line should have
 a logpath in the left column, and a log level in the right
 column. The columns are separated by spaces and/or tabs.
 
 <p>
-For instance, this .dtndebug file makes the default
-level info, but causes debug info to be printed for all link
+For instance, this .dtndebug file makes the default level for 
+/dtn/* to be info, but causes debug info to be printed for all link
 operations other than for tcp0.
 
 <blockquote><pre># example .dtndebug file
 
-/		info
-/link/tcp0	info
-/link		debug</pre></blockquote>
+/dtn/link/tcp0	info
+/dtn/link	debug
+/dtn		info
+</pre></blockquote>
+
+<p> 
+Note that the order is important. If <tt>/dtn	info</tt> was place 
+first in the list the entries this would have the effect of overriding 
+entries after to log level<tt> info</tt>.
+
+<blockquote><pre># example .dtndebug file
+
+/dtn            info
+/dtn/link/tcp0  info
+/dtn/link       debug   
+</pre></blockquote>
 
 <p>In dtnd, the log messages go out to standard out, by default. You can
 change that using the "-o filename" option to dtnd.
@@ -45,28 +67,78 @@ change that using the "-o filename" option to dtnd.
 <li>always
 </ul>
 
-<p>Below is an incomplete list of log paths used by the DTN2
-implementation. You can find others by observing output with
-logging turned up to the maximum ("/ debug") or by searching
-for <tt>logpath</tt> in the source code.
+<p>
 
+<p><h3>~/.dtndebug file options</h3>
+
+<p>There are several options that can be used to customize the display
+of debug output, and these options are specified on a line in the
+.dtndebug file prefixed with '%' <p> A detailed example of a .dtndebug file with
+ options (incomplete!) is provided <a href=".dtndebug">here</a>.
 <p>
 <table border>
-<tr><td>/dtnd			<td>dtnd server startup/operation
-<tr><td>/dtnserver		<td>dtnd internals
-<tr><td>/interface		<td>interface management
-<tr><td>/link/$linkname		<td>link management
-<tr><td>/storage/$dbtype	<td>database operations
-<tr><td>/route			<td>routing related messages
-<tr><td>/tcl			<td>Errors from TCL (the underlying interpreter)
-<tr><td>/assert			<td>Failing assertions
-<tr><td>/apisrv			<td>API Server
-<tr><td>/apisrv/sock		<td>API Server (socket-specific messages)
-<tr><td>/cl/tcp			<td>TCP Convergence Layer
-<tr><td>/cl/tcp/conn/$ip:$port	<td>connection specific messages
-<tr><td>/cl/udp			<td>UDP Convergence Layer
-<tr><td>/contact/bundles	<td>&nbsp;
-<tr><td>/registration		<td>&nbsp;
+
+<tr><td>no_path	    <td>Don't display log path
+<tr><td>no_time	    <td>Don't display time stamp
+<tr><td>no_level    <td>Don't display log level
+<tr><td>brief	    <td>Truncate log name to a fixed length and use brief error codes
+<tr><td>color	    <td>Use terminal escape code to colorize output
+<tr><td>object	    <td>When possible, display the address of the object that 
+generated the log.
+<tr><td>classname   <td>When possible, display the class that generated the log message.
+</table>
+<p>See comments in oasys/debug/{Log,Logger}.h for a more in-depth explanation.
+
+<h4>Logging Targets</h4>
+
+<p>Below is an incomplete list of logging targets used by the DTN2
+implementation. You can find others by observing output with
+logging turned up to the maximum ("/ debug" || dtnd -l debug) or by searching
+for <tt>logpath</tt> in the source code.
+<p>
+<table>
+
+<tr><td>/command                        <td>Singleton tcl command interpreter
+<tr><td>/command/&lt;command_name&gt;   <td>Specific command "command_name"
+<tr><td>/log                            <td>Internal logging system
+<tr><td>/timer                          <td>Timer system
+<tr><td>/thread                         <td>Threading system
+
+<tr><td>/dtnd                           <td>DTN daemon wrapper
+<tr><td>/dtn/bundle/actions             <td>BundleActions interface
+<tr><td>/dtn/bundle/daemon              <td>BundleDaemon forwarder and basic logic
+<tr><td>/dtn/bundle/fragmentation       <td>Fragmentation related code
+<tr><td>/dtn/bundle/list/&lt;name&gt;   <td>BundleList data structure
+<tr><td>/dtn/bundle/protocol            <td>Bundle wire protocol
+<tr><td>/dtn/bundle/refs                <td>Reference counting for in-memory bundle objs
+<tr><td>/dtn/cl/&lt;name&gt;            <td>Convergence layer
+<tr><td>/dtn/cl/tcp                     <td>TCP Convergence Layer
+<tr><td>/dtn/cl/udp                     <td>UDP Convergence Laye
+<tr><td>/dtn/cl/tcp/conn                <td>TCP convergence layer connection
+<tr><td>/dtn/contact/manager            <td>Contact Managment
+<tr><td>/dtn/interface/table            <td>Local Interface table
+<tr><td>/dtn/link/&lt;name&gt;          <td>Links to next-hop peers
+<tr><td>/dtn/link/&lt;name&gt;/contact  <td>Open contact on links
+<tr><td>/dtn/route/&lt;name&gt;         <td>BundleRouter &lt;name&gt;
+<tr><td>/dtn/registration/&lt;regid&gt; <td>Registration
+<tr><td>/dtn/registration/table         <td>Table of registrations
+<tr><td>/dtn/storage/bundles            <td>Storage backend for bundles
+<tr><td>/dtn/storage/global             <td>Storage backend for global data
+<tr><td>/dtn/interface			<td>interface management
+<tr><td>/dtn/tclcmd			<td>Errors from TCL commands
+<tr><td>/dtn/apiserver			<td>API Server
+<tr><td>/dtn/apiclient			<td>API Client
+<tr><td>/dtn/discovery$name		<td>discovery
+<tr><td>/dtn/discovery/ip		<td>IP discovery
+<tr><td>/dtn/discovery/bt		<td>Bluetooth discovery
+<tr><td>/dtn/bundle			<td>Bundle
+<tr><td>/dtn/bundle/actions		<td>BundleActions interface
+<tr><td>/dtn/bundle/daemon		<td>BundleDaemon forwarder and basic logic
+<tr><td>/dtn/bundle/fragmentation	<td>Fragmentation related code
+<tr><td>/dtn/bundle/list/$name		<td>BundleList data structure
+<tr><td>/dtn/bundle/protocol		<td>Bundle wire protocol
+<tr><td>/dtn/bundle/refs		<td>Reference counting for in-memory bundle objs
+<tr><td>/dtn/contact/manager		<td>Contact manager&nbsp;
 </table>
 
 <h2>Rereading the .dtndebug file </h2>

@@ -30,21 +30,60 @@ namespace dtn {
 DiscoveryCommand::DiscoveryCommand()
     : TclCommand("discovery")
 {
-    add_to_help("add <discovery_name> <address_family> <port=N> "
-                "[<continue_on_error=true|false> "
-                "<addr=A.B.C.D> <local_addr=A.B.C.D> <multicast_ttl=N> "
-                "<unicast=true|false>]",
-                "add discovery agent (address family can be ip or bt "
-                "[Bluetooth])");
-    
-    add_to_help("del <discovery_name>","remove discovery agent"); 
+    add_to_help("add <discovery_name> <cl_type> [ <port=val> "
+                "<continue_on_error=val> <addr=val> <local_addr=val> "
+		"<multicast_ttl=val> <unicast=val> ]",
+                "add a discovery agent\n"
+	"	valid options:\n"
+	"		<discovery_name>\n"
+	"			A string to define agent name\n"
+	"		<cl_type>\n"
+	"			The CLA type\n"
+	"				    bt\n"
+	"				    ip\n"
+	"				    bonjour\n"
+        "		[ CLA specific options ]\n"
+	"			<port=port>\n"
+	"			<continue_on_error=true or false>\n"
+	"			<addr=A.B.C.D>\n"
+	"			<local_addr=A.B.C.D>\n"
+	"			<multicast_ttl=TTL number>\n"
+	"			<unicast=true or false>\n");
+
+    add_to_help("del <discovery_name>",
+		"remove discovery agent\n"
+	"	valid options:\n"
+	"		<discovery_name>\n"
+	"			A string to define agent name\n"); 
 
     add_to_help("announce <cl_name> <discovery_name> <cl_type> "
-                "<interval=N> [<cl_addr=A.B.C.D> <cl_port=N>]",
-                "announce the address of a local interface (convergence "
-                "layer)");
-    add_to_help("remove <name>","remove announcement for local interface");
-    add_to_help("list","list all discovery agents and announcements");
+		"<interval=val> [ <cl_addr=val> <cl_port=val> ]",
+		"announce the address of a local interface (convergence "
+		"layer)\n"
+	"	valid options:\n"
+	"		<cl_name>\n"
+	"			The CLA name\n"
+	"		<discovery_name>\n"
+	"                       An agent name string\n"
+	"		<cl_type>\n"
+	"			The CLA type\n"
+	"                                   bt\n"
+	"                                   ip\n"
+	"		<interval=val>\n"
+	"			Periodic announcement interval\n"
+	"				    <interval=number>\n"
+        "               [ CLA specific options ]\n"
+	"			<cl_addr=A.B.C.D>\n"
+	"			<cl_port=port number>\n");
+
+    add_to_help("remove <cl_name>",
+		"remove announcement for local interface\n"
+	"	valid options:\n"
+	"		<cl_name>\n"
+	"			The CLA name\n");
+
+    add_to_help("list",
+		"list all discovery agents and announcements\n");
 }
 
 int

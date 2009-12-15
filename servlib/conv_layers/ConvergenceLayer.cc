@@ -65,9 +65,8 @@ ConvergenceLayer::init_clayers()
     add_clayer(new NORMConvergenceLayer());
 #endif
     // XXX/demmer fixme
-    // add_clayer("file", new FileConvergenceLayer());
+    //add_clayer("file", new FileConvergenceLayer());
 }
-
 //----------------------------------------------------------------------
 CLVector::~CLVector()
 {

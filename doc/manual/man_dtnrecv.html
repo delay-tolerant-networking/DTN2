@@ -1,0 +1,44 @@
+<html>
+<head>
+<title> DTN2 Man pages: dtnrecv </title>
+
+</head>
+<body>
+<h1>dtnrecv
+</h1>
+
+<p>
+<h2>NAME
+</h2>
+<p>
+<tt>dtnrecv -	receive a bundle on a registration
+
+<h2>SYNOPSIS
+</h2> 
+<p>
+<tt>dtnrecv [opts] eid</tt>
+<blockquote><pre>
+options:
+ -v verbose
+ -q quiet
+ -h help
+ -s &lt;eid|demux_string&gt; source eid)
+ -d &lt;eid|demux_string&gt; endpoint id
+ -r &lt;regid&gt; use existing registration regid
+ -n &lt;count&gt; exit after count bundles received
+ -e &lt;time&gt; registration expiration time in seconds (default: one hour)
+ -f &lt;defer|drop|exec&gt; failure action
+ -F &lt;script&gt; failure script for exec action
+ -x call dtn_register and immediately exit
+ -c call dtn_change_registration and immediately exit
+ -u call dtn_unregister and immediately exit
+ -N don't try to find an existing registration
+ -t &lt;timeout&gt; timeout value for call to dtn_recv
+ -o &lt;template&gt; Write out transfers to files using this template 
+(# chars are replaced with a counter). Example: f##.bin goes to f00.bin, f01.bin, etc...
+</pre></blockquote>
+<h2>DESCRIPTION
+</h2>
+</body>
+</html>
+

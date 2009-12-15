@@ -6,11 +6,32 @@
 <body>
 <h1>File Convergence Layer
 </h1>
+<p> DO NOT USE - NOT WORKING 12/11/09
+<p>
+To add a file interface in your config file, use:
+
 
 <p>
-This page is not yet done. Please see <a href="todo.html">the todo
-list</a> for information on how you can help finish this manual.
+Syntax: <tt>interface add <i>name</i> <i>CL</i> [<i>arg=val arg=val2 argN=valN...</i>]</tt>
+<p>Example: <tt>interface add file0 file </tt>
+<p>Valid arguments for <tt><i>arg</i></tt> are:
+<p>
+<table>
+<tr>
+<th>arg
+<th>Possible settings
+<th>Default
+<th>Comments
 
+<tr>
+<td><tt>secs_per_scan</tt>
+<td>number (seconds)
+<td>5
+<td>Directory scan interval
+</table>
+<p> <b>Note</b>
+The ssp part of the next hop URI (the contact EID) MUST be of the form: /path1/path2.
+The given directory indicated by the spp part MUST exist and the permissions MUST be correct
 </body>
 </html>
 

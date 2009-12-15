@@ -41,105 +41,162 @@ RouteCommand::RouteCommand()
     : TclCommand("route")
 {
     bind_var(new oasys::StringOpt("type", &BundleRouter::config_.type_, 
-                                  "type", "Which routing algorithm to use."));
+                                  "type", "Which routing algorithm to use "
+				"(default static).\n"
+		"	valid options:\n"
+		"			static\n"
+		"			prophet\n"
+		"			flood\n"
+		"			dtlsr\n"
+		"			tca_router\n"
+		"			tca_gateway\n"
+		"			external"));
 
     bind_var(new oasys::BoolOpt("add_nexthop_routes",
                                 &BundleRouter::config_.add_nexthop_routes_,
-                                "Whether or not to automatically add routes "
-                                "for next hop links"));
+				"Whether or not to automatically add routes "
+				"for next hop links (default is true)\n"
+    		"	valid options:	true or false\n"));
     
+    add_to_help("add <dest> <link/endpoint> [opts]", "add a route");
+   
+    add_to_help("del <dest> <link/endpoint>", "delete a route");
+    
+    add_to_help("dump", "dump all of the static routes");
+
     bind_var(new oasys::BoolOpt("open_discovered_links",
                                 &BundleRouter::config_.open_discovered_links_,
-                                "Whether or not to automatically open "
-                                "discovered opportunistic links"));
+				"Whether or not to automatically open "
+				"discovered opportunistic links (default is true)\n"
+    		"	valid options:  true or false\n"));
     
     bind_var(new oasys::IntOpt("default_priority",
                                &BundleRouter::config_.default_priority_,
-                               "priority",
-                               "Default priority for new routes "
-                               "(initially zero)"));
+				"priority",
+				"Default priority for new routes "
+				"(default 0)\n"
+		"	valid options:	number\n"));
 
     bind_var(new oasys::IntOpt("max_route_to_chain",
                                &BundleRouter::config_.max_route_to_chain_,
-                               "length",
-                               "Maximum number of route_to links to follow"));
+				"length",
+				"Maximum number of route_to links to follow "
+				"(default 10)\n"
+		"	valid options:  number\n"));
 
     bind_var(new oasys::UIntOpt("subscription_timeout",
                                 &BundleRouter::config_.subscription_timeout_,
-                                "timeout",
-                                "Default timeout for upstream subscription"));
+				"timeout",
+				"Default timeout for upstream subscription "
+				"(default 600)\n"
+		"	valid options:  number\n"));
              
     bind_var(new oasys::StringOpt("dtlsr_area",
                                   &DTLSRConfig::instance()->area_,
-                                  "area", "Administrative area for the local node"));
+                                "area", "Administrative area for the local node "
+				"(default "")\n"
+		"	valid options:  string\n"));
+
 
     bind_var(new oasys::EnumOpt("dtlsr_weight_fn",
                                 DTLSRConfig::instance()->weight_opts_,
                                 (int*)&DTLSRConfig::instance()->weight_fn_,
-                                "fn", "Weight function for the graph"));
+                                "fn", "Weight function for the graph "
+				"(default 10.0)\n"
+		"	valid options:  number\n"));
 
     bind_var(new oasys::UIntOpt("dtlsr_weight_shift",
                                 &DTLSRConfig::instance()->weight_shift_,
-                                "shift", "Scale the weight on down links"));
+                                "shift", "Scale the weight on down links"
+                                "Factor by which to age the cost of a link "
+                                "based on its uptime, "
+                                "as a link's uptime goes to zero, the cost "
+                                "increases by 10x the original cost "
+                                "(default 0)\n"
+                "	valid options:  number\n"));
+
                                   
     bind_var(new oasys::DoubleOpt("dtlsr_uptime_factor",
-                                  &DTLSRConfig::instance()->uptime_factor_,
-                                  "pct", "Aging pct for cost of down links"));
+				&DTLSRConfig::instance()->uptime_factor_,
+				"pct", "Aging pct for cost of down links"
+				"(default 10.0)\n"
+		"	valid options:  number\n"));
 
     bind_var(new oasys::BoolOpt("dtlsr_keep_down_links",
                                 &DTLSRConfig::instance()->keep_down_links_,
-                                "Whether or not to retain down links in the graph"));
+                                "Whether or not to retain down links in the graph "
+				"(default is true)\n"
+		"	valid options:  true or false\n"));
 
     bind_var(new oasys::UIntOpt("dtlsr_recompute_delay",
                                 &DTLSRConfig::instance()->recompute_delay_,
                                 "seconds",
-                                "Delay to compute routes after LSA arrives"));
+                                "Delay to compute routes after LSA arrives "
+				"(default 1)\n"
+		"	valid options:  number\n"));
 
-    bind_var(new oasys::UIntOpt("dtlsr_aging_delay",
+    bind_var(new oasys::UIntOpt("dtlsr_aging_interval",
                                 &DTLSRConfig::instance()->aging_interval_,
                                 "seconds",
-                                "Interval to locally recompute routes"));
+                                "Interval to locally recompute routes "
+				"(default 5)\n"
+		"	valid options:  number\n"));
     
     bind_var(new oasys::UIntOpt("dtlsr_lsa_interval",
                                 &DTLSRConfig::instance()->lsa_interval_,
                                 "seconds",
-                                "Interval to periodically send LSAs"));
+                                "Interval to periodically send LSAs "
+				"(default 3600)\n"
+		"	valid options:  number\n"));
+
+    bind_var(new oasys::UIntOpt("dtlsr_min_lsa_interval",
+				&DTLSRConfig::instance()->min_lsa_interval_,
+				"seconds",
+				"Minimum interval to periodically send LSAs "
+				"(default 5)\n"
+		"	valid options:  number\n"));
     
     bind_var(new oasys::UIntOpt("dtlsr_lsa_lifetime",
                                 &DTLSRConfig::instance()->lsa_lifetime_,
                                 "seconds",
-                                "Lifetime of LSA bundles"));
+                                "Lifetime of LSA bundles "
+				"(default 86400)\n"
+		"	valid options:  number\n"));
     
-    add_to_help("add <dest> <link/endpoint> [opts]", "add a route");
-    add_to_help("del <dest> <link/endpoint>", "delete a route");
-    add_to_help("dump", "dump all of the static routes");
-
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
     bind_var(new oasys::UInt16Opt("server_port",
-                                  &ExternalRouter::server_port,
-                                  "port",
-                                  "UDP port for IPC with external router(s)"));
+				&ExternalRouter::server_port,
+				"port",
+				"UDP port for IPC with external router(s) "
+				"(default 8001)\n"
+		"	valid options:  number\n"));
     
     bind_var(new oasys::UInt16Opt("hello_interval",
-                                  &ExternalRouter::hello_interval,
-                                  "interval",
-                                  "seconds between hello messages"));
+				&ExternalRouter::hello_interval,
+				"interval",
+				"Seconds between hello messages with external router(s)"
+				"(default 30)\n"
+		"	valid options:  number\n"));
     
     bind_var(new oasys::StringOpt("schema", &ExternalRouter::schema,
-                                  "file",
-                                  "The external router interface "
-                                  "message schema."));
+				"file",
+				"The external router interface "
+				"message schema "
+				"(default /router.xsd)\n"
+		"	valid options:  string\n"));
 
     bind_var(new oasys::BoolOpt("xml_server_validation",
                                 &ExternalRouter::server_validation,
                                 "Perform xml validation on plug-in "
-                                "interface messages (default is true)"));
+                                "interface messages (default is true)\n"
+		"	valid options:  true or false\n"));
     
     bind_var(new oasys::BoolOpt("xml_client_validation",
                                 &ExternalRouter::client_validation,
                                 "Include meta-info in xml messages "
                                 "so plug-in routers"
-                                "can perform validation (default is false)"));
+                                "can perform validation (default is false)\n"
+		"	valid options:  true or false\n"));
 #endif
 }
 

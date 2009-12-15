@@ -1,0 +1,36 @@
+<html>
+<head>
+<title> DTN2 Manual: Bluetooth Convergence Layer </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>Bluetooth Convergence Layer
+</h1>
+
+<p>
+In Bluetooth, piconets are formed by one Master connecting to up to seven Slaves.  The device performing connect() is the Master and the device performing listen()/accept() is the Slave. To add a bluetooth interface in your config file, use:
+
+
+<p>
+Syntax: <tt>interface add <i>name</i> <i>CL</i> [<i>arg=val arg=val2 argN=valN...</i>]</tt>
+<p>Example: <tt>interface add bluetooth0 bt channel=10 </tt>
+<p>Valid arguments for <tt><i>arg</i></tt> are:
+
+<p>
+<table>
+<tr>
+<th>arg
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>channel</tt>
+<td>number (channel)
+<td>10
+<td>The bluetooth RFCOMM channel
+</table>
+<p> <b>Note</b>
+</body>
+</html>
+

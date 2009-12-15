@@ -8,8 +8,36 @@
 </h1>
 
 <p>
-This page is not yet done. Please see <a href="todo.html">the todo
-list</a> for information on how you can help finish this manual.
+The EthConvergenceLayer provides access to any ethernet interfaces that
+support RAW sockets. It periodically sends beacons out on each interface 
+to support neighbor discovery. (this may change later). To add an ethernet 
+interface in your config file, use:
+
+
+<p>
+Syntax:	<tt>interface add string://<i>interface</i> <i>CL</i> [<i>arg=val arg=val2 argN=valN...</i>]</tt>
+<p>Example: <tt>interface add string://eth0 eth beacon_interval=1</tt>
+<p>Valid arguments for <tt><i>arg</i></tt> are:
+<p>
+<table>
+<tr>
+<th>arg
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>beacon_interval</tt>
+<td>number (seconds)
+<td>1
+<td>The Ethernet discovery beacon
+</table>
+<p> <b>Note</b>
+<p>link next hop parameter <i>next hop</i> must be set to an Ethernet hardware Address
+<p>Theoretically, any router type should work.
+<p>Beacons timeout every 2.5 seconds by default 
+<p>The max size for and Ethernet packet is 1518 bytes
+<p>The maximum bundle size is s that of the UDP datagram (65507 bytes)
 
 </body>
 </html>

@@ -31,65 +31,130 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
     inited_ = false;
     
     bind_var(new oasys::StringOpt("type", &cfg->type_,
-                                  "type", "What storage system to use."));
+				"type", "What storage system to use "
+				"(default is berkeleydb).\n"
+		"	valid options:\n"
+		"			berkeleydb\n"
+		"			mysql\n"
+		"			postgres\n"
+		"			external\n"
+		"			memorydb\n"
+		"			filesysdb"));    
+
     bind_var(new oasys::StringOpt("dbname", &cfg->dbname_,
-                                  "name", "The database name."));
+				"name", "The database name (default "
+				"DB)\n"
+		"	valid options:	string"));
+
     bind_var(new oasys::StringOpt("dbdir", &cfg->dbdir_,
-                                  "dir", "The database directory."));
+				"dir", "The database directory (default "
+				"/var/dtn/db).\n"
+		"	valid options:	directory"));
 
     bind_var(new oasys::BoolOpt("init_db", &cfg->init_,
-                                "Same as the --init-db argument to dtnd."));
+				"Same as the --init-db argument to dtnd. "
+				"Initialize the database on startup "
+				"(default false)\n"
+		"	valid options:	true or false"));
+
     bind_var(new oasys::BoolOpt("tidy", &cfg->tidy_,
-                                "Same as the --tidy argument to dtnd."));
+				"Same as the --tidy argument to dtnd. "
+				"Cleans out the database and the "
+				"bundle directories (default false)\n"
+		"	valid options:	true or false"));
+
     bind_var(new oasys::IntOpt("tidy_wait", &cfg->tidy_wait_,
-                               "time",
-                               "How long to wait before really doing "
-                               "the tidy operation."));
+				"time",
+				"How long to wait before really doing "
+				"the tidy operation (default 3)\n"
+		"	valid options:	number"));
+
+    bind_var(new oasys::BoolOpt("leave_clean_file", &cfg->leave_clean_file_,
+				"Leave a .ds_clean file on clean "
+				"shutdown (default true)\n"
+		"	valid options:	true or false"));
 
     bind_var(new oasys::IntOpt("fs_fd_cache_size", &cfg->fs_fd_cache_size_, 
-                               "num", "number of open fds to cache"));
+				"num", "number of open fds to cache "
+				"using Filesysyem DB. If > zero then "
+				"this # of open fds will be cached "
+				"(default 0)\n"
+		"	valid options:	number"));
 
     bind_var(new oasys::BoolOpt("db_mpool", &cfg->db_mpool_,
-                                "use mpool in Berkeley DB"));
-    bind_var(new oasys::BoolOpt("db_log", &cfg->db_log_,
-                                "use logging in Berkeley DB"));
-    bind_var(new oasys::BoolOpt("db_txn", &cfg->db_txn_,
-                                "use transactions in Berkeley DB"));
-    bind_var(new oasys::BoolOpt("db_sharefile", &cfg->db_sharefile_,
-                                "use shared database file"));
-    bind_var(new oasys::IntOpt("db_max_tx", &cfg->db_max_tx_,
-                               "num", "max # of active transactions in Berkeley DB"));
-    bind_var(new oasys::IntOpt("db_max_locks", &cfg->db_max_locks_,
-                               "num", "max # of active locks in Berkeley DB"));
-    bind_var(new oasys::IntOpt("db_max_lockers", &cfg->db_max_lockers_,
-                               "num", "max # of active locking threads in Berkeley DB"));
-    bind_var(new oasys::IntOpt("db_max_lockedobjs", &cfg->db_max_lockedobjs_,
-                               "num", "max # of active locked objects in Berkeley DB"));
-    bind_var(new oasys::IntOpt("db_lockdetect", &cfg->db_lockdetect_,
-                               "freq", "frequency to check for Berkeley DB deadlocks "
-                               "(zero disables locking)"));
+				"use mpool in Berkeley DB (default "
+				"true)"
+		"	valid options:	true or false"));
 
-    bind_var(new oasys::StringOpt("payloaddir", &cfg->payload_dir_, "dir",
-                                  "directory for payloads while in transit"));
+    bind_var(new oasys::BoolOpt("db_log", &cfg->db_log_,
+				"use logging in Berkeley DB (default "
+				"true)\n"
+		"	valid options:	true or false"));
+
+    bind_var(new oasys::BoolOpt("db_txn", &cfg->db_txn_,
+				"use transactions in Berkeley DB "
+				"(default true)\n"
+		"	valid options:	true or false"));
+
+    bind_var(new oasys::BoolOpt("db_sharefile", &cfg->db_sharefile_,
+				"use shared database file (and a "
+				"lock) in Berkeley DB (default false)\n"
+		"	valid options:	true or false"));
+
+    bind_var(new oasys::IntOpt("db_max_tx", &cfg->db_max_tx_,
+				"num", "max # of active transactions "
+				"in Berkeley DB (default 0)\n"
+		"	valid options:	number"));
+
+    bind_var(new oasys::IntOpt("db_max_locks", &cfg->db_max_locks_,
+				"num", "max # of active locks in "
+				"Berkeley DB (default 0)\n"
+		"	valid options:	number"));
+
+    bind_var(new oasys::IntOpt("db_max_lockers", &cfg->db_max_lockers_,
+				"num", "max # of active locking threads in "
+				"Berkeley DB (default 0)\n"
+		"	valid options:	number"));
+
+    bind_var(new oasys::IntOpt("db_max_lockedobjs", &cfg->db_max_lockedobjs_,
+				"num", "max # of active locked objects in "
+				"Berkeley DB (default 0)\n"
+		"	valid options:	number"));
+
+    bind_var(new oasys::IntOpt("db_lockdetect", &cfg->db_lockdetect_,
+				"num", "frequency to check for Berkeley "
+				"DB deadlocks (default 5000 and "
+                               "zero disables locking)\n"
+		"	valid options:	number"));
+
+    bind_var(new oasys::StringOpt("payloaddir", &cfg->payload_dir_,
+	                           "dir", "directory for payloads while in "
+		    		"transit (default is /var/dtn/bundles)\n"
+		"	valid options:	directory"));
     
     bind_var(new oasys::UInt64Opt("payload_quota",
-                                  &cfg->payload_quota_, "bytes",
-                                  "storage quota for bundle payloads "
-                                  "(0 is unlimited)"));
+                                  &cfg->payload_quota_,
+                                  "bytes", "storage quota in bytes for bundle "
+				"payloads (default 0 - is unlimited)\n"
+		"	valid options:	number"));
     
     bind_var(new oasys::UIntOpt("payload_fd_cache_size",
-                                &cfg->payload_fd_cache_size_, "num",
-                                "number of payload file descriptors to keep "
-                                "open in a cache"));
+                                &cfg->payload_fd_cache_size_,
+                                "num", "number of payload file descriptors to keep "
+                                "open in a cache (default 32)\n"
+		"	valid options:	number"));
 
     bind_var(new oasys::UInt16Opt("server_port",
                                   &cfg->server_port_,
                                   "port number",
-                                  "TCP port for IPC to external data store"));
+                                  "TCP port for IPC to external data "
+				"store on localhost (default 0)\n"
+		"	valid options:	number"));
 
-    bind_var(new oasys::StringOpt("schema", &cfg->schema_, "pathname",
-                                  "File containing the XML schema for the "
-                                  "external data store interface"));
+    bind_var(new oasys::StringOpt("schema", &cfg->schema_,
+                                  "pathname", "File containing the XML schema for the "
+                                  "external/remote data store interface\n"
+		"	valid options:	filename"));
 
     add_to_help("usage", "print the current storage usage");
 }

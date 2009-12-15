@@ -1320,10 +1320,12 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
 void
 BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
 {
+
     Registration* registration = event->registration_;
     log_info("REGISTRATION_REMOVED %d %s",
              registration->regid(), registration->endpoint().c_str());
-    
+
+
     if (!reg_table_->del(registration->regid())) {
         log_err("error removing registration %d from table",
                 registration->regid());

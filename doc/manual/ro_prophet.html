@@ -1,0 +1,193 @@
+<html>
+<head>
+<title> DTN2 Manual: Prophet Router </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>Prophet Router
+</h1>
+
+<p>
+This is the implementation of a Prophet router. Prophet is an acronym for "probabilistic routing protocol using history of encounters and transitivity." The protocol operates on the assumption that human mobility is non-random, and that a knowledge of the history of previous encounters is a good indicator of future encounters. By leveraging transitive relays in combination with this history of encounters, Prophet exponentially increases its chances of successfully delivering messages.
+
+<p>The protocol has an initialization phase (HELLO), which in turn is dependent on dynamic NeighborDiscovery. After establishing a peering session across the newly-formed dynamic link, the peers alternate as listener and initiator in the Information Exchange phase. The initiator begins by sending a dictionary (RIBD) and a routing information base (RIB) to the listening peer. The listener responds by sending a list of bundles (possibly 0 entries) destined for nodes listed in the initiator's RIB, according to its forwarding strategy. The initiator requests bundles from the bundle offer, and concludes the protocol by sending an empty request after it has received all the requested bundles. The nodes switch roles to complete the other half of the protocol, then idle for 1/2 of HELLO_DEAD intervals before repeating the Information Exchange. For more information please see the <a href="configuration.html#prophet">prophet</a> command.
+
+<h2>Design</h2>
+
+<p>See the PRoPHET website.
+
+<p>The DTN2 Prophet router is based on the March 2006 Prophet internet draft (Prophet I-D, hereafter). The ProphetRouter class extends BundleRouter and serves as the Prophet interface to the DTN bundling system. prophet::Controller is a member of ProphetRouter
+
+<h2>Implementation</h2>
+
+<p>prophet::Node represents an individual route. prophet::Table is a collection of these routes. prophet::Encounter implements the protocol between Prophet peers. prophet::ProphetTLV manages the serialization and deserialization of protocol messages. prophet::Dictionary manages the indexing of the routes in prophet::Table into a RIBD for the protocol exchange. prophet::FwdStrategy is the base comparator for the various strategies. prophet::Repository is a priority queue that enforces the queuing policy, using the runtime selected comparator inherited from prophet::QueueComp. prophet::BundleOffer creates a sorted index of bundles to be sent as a Bundle offer, based on the forwarding strategy's comparator and its prophet::Decider.
+
+<a name="prophet_cmd"/>
+<h2> prophet </h2>
+
+<h4> prophet set  </h4>
+<p>
+Syntax: <tt>prophet <i>cmd</i> <i>arg</i> <i>val</i></tt>
+<br>
+Example: <tt>prophet set hello_dead 100</tt>
+
+You may set the
+following variables:
+
+<p>
+<table>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>age_period</tt>
+<td>seconds
+<td>TBC
+<td>The timeout, in seconds, of the timer that calculates Prophet nodes' aging. The same value is used by the timer that expires Prophet ACKs.
+
+<tr>
+<td><tt>beta</tt>
+<td>number (scale factor)
+<td>0.25
+<td>The scaling factor for the transivity of predictability; the Prophet I-D recommends a default value of 0.25.
+
+<tr>
+<td><tt>encounter</tt>
+<td>number (initialization value)
+<td>0.75
+<td>The initialization value for the direct-contact predictability calculation.
+
+<tr>
+<td><tt>epsilon</tt>
+<td>number (predictability value)
+<td>TBC
+<td>The minimum predictability value before the route is discarded. The granularity of an eight-bit value limits this to 0.0039 (1/255).
+
+<tr>
+<td><tt>gamma</tt>
+<td>number (initialization value)
+<td>0.99
+<td>The aging constant used to diminish the predictability value of a route over time.
+
+
+<tr>
+<td><tt>hello_dead</tt>
+<td>number
+<td>TBC
+<td>The maximum number of HELLO_INTERVALs before a remote session with a Prophet peer is considered unreachable. 
+
+<tr>
+<td><tt>internet_gw</tt>
+<td>flag
+<td>TBC
+<td>The flag that describes whether the Prophet router bridges to the Internet DTN region. Currently not used. 
+
+<tr>
+<td><tt>kappa</tt>
+<td>number(ms)
+<td>TBC
+<td>The number of milliseconds in a given time unit, referenced by Equation 2 (predictability aging), p. 9, section 2.1.1 of the Prophet I-D. 
+
+<tr>
+<td><tt>max_forward</tt>
+<td>number
+<td>TBC
+<td>The maximum number of times a bundle may be forwarded by the GTMX forwarding strategy. 
+
+<tr>
+<td><tt>min_forward</tt>
+<td>number
+<td>TBC
+<td>The minimum number of times a bundle may be forwarded before eviction by the LEPR queuing policy. 
+
+<tr>
+<td><tt>relay_node</tt>
+<td>flag
+<td>TBC
+<td>The flag that describes whether this Prophet node will relay bundles to other nodes. 
+</table>
+
+
+<h4><prophet queue_policy</h4>
+
+<p>To set the queue policy to one of the following, invoke <tt>prophet queue_policy=<i>policyname</i></tt>. Queue policies are discussed in detail in the Prophet I-D on p. 18, section 3.7.
+
+<p>
+<table>
+<tr>
+<th>policyname
+<th>Comments
+
+<tr>
+<td><tt>fifo</tt>
+<td>First In First Out: evict oldest first
+
+<tr>
+<td><tt>mofo</tt>
+<td>Evict most forwarded first
+    
+<tr>
+<td><tt>mopr</tt>
+<td>Evict most favorably forwarded first
+
+<tr>
+<td><tt>lmopr</tt>
+<td>Evict most favorably forwarded first (linear increase)
+
+<tr>
+<td><tt>shli</tt>
+<td>Evict shortest lifetime first (the bundle that will expire soonest)
+
+<tr>
+<td><tt>lepr</tt>
+<td>Evict least probable first (lowest predictability)
+
+</table>
+
+
+<h4>prophet fwd_strategy</h4>
+
+<p>To set the forwarding strategy to one of the following, invoke <tt>prophet fwd_strategy=<i>strategy</i></tt>. Forwarding strategies are discussed in detail in the Prophet I-D on p. 16, section 3.6.
+
+<p>
+<table>
+<tr>
+<th>strategy
+<th>Comments
+
+<tr>
+<td><tt>grtr</tt>
+<td>Forward if remote's predictability is greater than local's
+
+<tr>
+<td><tt>gtmx</tt>
+<td>Forward if grtr and the bundle has been forwarded less than max_forward
+
+<tr>
+<td><tt>grtr_plus</tt>
+<td>Forward if grtr and remote's predictability is greater than max predictability seen so far
+
+<tr>
+<td><tt>gtmx_plus</tt>
+<td>Forward if grtr_plus and the bundle has been forwarded less than max_forward
+
+<tr>
+<td><tt>grtr_sort</tt>
+<td>Forward if grtr and sort descending by P_remote - P_local (subtract local predictability from remote's predictability)
+
+<tr>
+<td><tt>grtr_max</tt>
+<td>Forward if grtr and sort descending by remote's predictability
+</table>
+<h4>prophet hello_interval</h4>
+
+<p>To set the longest acceptable delay between protocol messages, invoke <tt>prophet hello_interval<i>interval</i></tt> where <i>interval</i> is a number of the range 1 through 255 inclusive, representin
+g time units of 100ms. Set the interval to 255 for a maximum acceptable delay of 25.5 seconds.
+
+<p>
+</body>
+</html>
+

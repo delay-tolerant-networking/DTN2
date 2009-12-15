@@ -8,37 +8,122 @@
 </h1>
 
 <ul>
- <li> Getting Started
- <ul>
-  <li> <a href="intro.html">Introduction</a>
-  <li> <a href="license.html">License</a>
-  <li> <a href="compiling.html">Compiling DTN2</a>
- </ul>
+    <li> Getting Started
+    <ul>
+	<li> <a href="intro.html">Introduction</a>
+	<li> <a href="license.html">License</a>
+	<li> <a href="compiling.html">Compiling DTN2</a>
+    </ul>
 
- <li> Tutorials
- <ul>
-  <li> <a href="tutorial-1.html">Starting dtnd and sending a ping</a>
-  <li> <a href="tutorial-2.html">DTN2 applications</a>
-  <li> <a href="tutorial-3.html">Building a bigger DTN</a>
- </ul>
+    <li> Tutorials
+    <ul>
+	<li> <a href="tutorial-1.html">Starting dtnd and sending a ping</a>
+	<li> <a href="tutorial-2.html">DTN2 applications</a>
+	<li> <a href="tutorial-3.html">Building a bigger DTN</a>
+    </ul>
 
- <li> Reference
- <ul>
-  <li> <a href="arch.html">Architecture</a>
-  <li> <a href="logging.html">Logging</a>
-  <li> <a href="configuration.html">Configuration</a>
-  <li> Convergence Layers
-  <ul>
-    <li><a href="cl-tcp.html">TCP</a>
-    <li><a href="cl-udp.html">UDP</a>
-    <li><a href="cl-eth.html">Ethernet</a>
-    <li><a href="cl-file.html">File (SneakerNet)</a>
-    <li><a href="cl-extcl.html">External CL</a>
-  </ul>
-  <li> <a href="environment.html">Environment Variables</a>
-  <li> <a href="man">Man pages for the tools</a>
- </ul>
+    <li> Reference
+    <ul>
+	<li> <a href="arch.html">Architecture</a>
+	<ul>
+	    <li> <a href="arch.html#DTN2 api">DTN2 API</a>
+	    <ul>
+		<li> <a href="arch.html#API functions">API functions
+		<li> <a href="arch.html#Utility functions">Utility functions</a>
+	    </ul>
+	</ul>
+	<li> <a href="configuration.html">Configuration</a>
+	<ul>
+	    <li> <a href="configuration.html#api">The api command</a>
+	    <li> <a href="configuration.html#bundle">The bundle command</a>
+	    <ul>
+		<li> <a href="configuration.html#Getting bundle and bundle daemon statistics">Getting bundle and bundle daemon statistics</a>
+		<li> <a href="configuration.html#Getting a list of pending bundles">Getting a list of pending bundles</a>
+		<li> <a href="configuration.html#Looking at a bundle">Looking at a bundle</a>
+		<li> <a href="configuration.html#Injecting a bundle">Injecting a bundle</a>
+	    </ul>
+	    <li> <a href="configuration.html#console">The console command</a>
+	    <li> <a href="configuration.html#discovery">The discovery command</a>
+	    <ul>
+		<li> <a href="configuration.html#discovery_add">Adding a discovery agent</a>
+		<li> <a href="configuration.html#discovery_announce">Using discovery to announce a CLA</a>
+                <li> <a href="configuration.html#discovery_remove">Removing a discovery announcement for a CLA</a>
+		<li> <a href="configuration.html#discovery_delete">Deleting a discovery agent</a>
+		<li> <a href="configuration.html#discovery_list">Listing discovery agents and their announcement parameters</a>
+	    </ul>
+        <li> <a href="configuration.html#ecla">The ecla command</a>
+        <li> <a href="configuration.html#gettimeofday">The gettimeofday command</a>
+        <li> <a href="configuration.html#help">help</a>
+	<li> <a href="configuration.html#debug">The debug command</a>
+	<li> <a href="configuration.html#interface">The interface command</a>
+        <ul>
+            <li> <a href="configuration.html#Adding an interface">Adding an interface</a>
+            <li> <a href="configuration.html#Deleting an interface">Deleting an interface</a>
+            <li> <a href="configuration.html#Listing an interface">Listing an interface</a>
+        </ul>
 
+        <li> <a href="configuration.html#param">The param command</a>
+        <li> <a href="configuration.html#quit">The quit and exit commands</a>
+        <li> <a href="configuration.html#registration">The registration command</a>
+        <ul>
+            <li> <a href="configuration.html#registration_add">Adding a registration</a>
+            <li> <a href="configuration.html#registration_delete">Deleting a registration</a>
+            <li> <a href="configuration.html#registration_list">Listing registrations</a>
+        </ul>
+	<li> <a href="configuration.html#log">The log command</a>
+	<ul>
+	    <li> <a href="configuration.html#Logging a message of your own">Logging a message of your own</a>
+	    <li> <a href="configuration.html#Set the log prefix">Set the log prefix</a>
+	    <li> <a href="configuration.html#rotate">Rotate the log file</a>
+	    <li> <a href="configuration.html#reparse_debug_file">Change the log level</a>
+	</ul>
+
+	<li> <a href="configuration.html#storage">The storage command</a>
+	<ul>
+	    <li> <a href="configuration.html#Storage Notes">Storage notes</a>
+	</ul>
+
+	<li> <a href="configuration.html#route">The route command</a>
+	<ul>
+	    <li> <a href="configuration.html#Router Notes">Router notes</a>
+	</ul>
+	<li> <a href="configuration.html#link">The link command</a>
+	<ul>
+	    <li><a href="configuration.html#link set available">Set a link to 'available' state</a>
+	    <li><a href="configuration.html#link reconfigure">Reconfigure a link</a>
+	    <li><a href="configuration.html#link set_cl_defaults">Set the convergence layer defaults of a link</a>
+	    <li><a href="configuration.html#link add">Add a link</a>
+	    <li><a href="configuration.html#Link Notes">Link notes</a>
+	    <li><a href="configuration.html#Link stats">Getting link statistics</a>
+	</ul>
+            <li> Routing protocols
+            <ul>
+                <li><a href="ro_static.html">static</a>
+                <li><a href="ro_flood.html">flood</a>
+                <li><a href="ro_dtlsr.html">DTLSR</a>
+                <li><a href="ro_tca-router.html">tca-router</a>
+                <li><a href="ro_tca-client.html">tca-client</a>
+                <li><a href="ro_external.html">external</a>
+                <li><a href="ro_prophet.html">prophet</a>
+            </ul>
+            <li> Convergence Layers
+            <ul>
+                <li><a href="cl-tcp.html">tcp</a>
+                <li><a href="cl-udp.html">udp</a>
+                <li><a href="cl-eth.html">eth</a>
+                <li><a href="cl-file.html">file</a>
+                <li><a href="cl-bt.html">bt</a>
+                <li><a href="cl-serial.html">serial</a>
+                <li><a href="cl-norm.html">norm</a>
+                <li><a href="cl-extcl.html">extcl</a>
+                <li><a href="cl-null.html">null</a>
+            </ul>
+
+    </ul>
+    <li> <a href="logging.html">Logging</a>
+    <li> <a href="environment.html">Environment Variables</a>
+    <li> <a href="man">Man pages for the tools</a>
+    </ul>
  <li> Manual Contruction Topics
  <ul>
   <li><a href="style-guide.html">Style Guide for manual writers</a>
