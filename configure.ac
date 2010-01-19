@@ -123,6 +123,7 @@ AC_CONFIG_BONJOUR
 AC_CONFIG_EXTERNAL_CL
 AC_CONFIG_EXTERNAL_DP
 AC_CONFIG_NORM
+AC_CONFIG_LTP
 
 #--------------------------------------------------------------------------
 # Check if BSP should be enabled, and if so, look for OpenSSL

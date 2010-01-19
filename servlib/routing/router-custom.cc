@@ -28,6 +28,9 @@
 #include "router-custom.h"
 #include <conv_layers/TCPConvergenceLayer.h>
 #include <conv_layers/UDPConvergenceLayer.h>
+#ifdef LTP_ENABLED
+#include <conv_layers/LTPConvergenceLayer.h>
+#endif
 #include <conv_layers/BluetoothConvergenceLayer.h>
 #include <oasys/io/NetUtils.h>
 
@@ -136,6 +139,23 @@ linkType::linkType(Link* l)
             info->rate(params->rate_);
             info->bucket_depth(params->bucket_depth_);
         }
+	
+#ifdef LTP_ENABLED
+	if(clayer().compare("ltp") == 0) {
+		typedef LTPConvergenceLayer::Params ltp_params;
+		ltp_params *params = dynamic_cast<ltp_params*>(l->cl_info());
+		if(params == 0) return;
+
+		oasys::Intoa local_addr(params->local_addr_);
+        	info->local_addr(local_addr.buf());
+	        oasys::Intoa remote_addr(params->remote_addr_);
+                info->remote_addr(remote_addr.buf());
+                info->local_port(params->local_port_);
+                info->remote_port(params->remote_port_);
+                //info->rate(params->rate_);
+                //info->bucket_depth(params->bucket_depth_);
+	}
+#endif
 
 #ifdef OASYS_BLUETOOTH_ENABLED
         if (clayer().compare("bt") == 0) {

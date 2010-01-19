@@ -77,7 +77,7 @@ Optional Internal Packages
 --------------------------
 NORM convergence layer support
 Bundle Security Protocol support (see Note BSP)
-
+LTP convergence layer support via TCD's LTPlib
 
 
 Note - Oasys
@@ -150,3 +150,9 @@ The configuration for OS X users would then be
 ./configure --with-bsp --with-openssl=/path/to/openssl LDFLAGS="-Wl,-search_paths_first"
 Note that the quotes are required for the LDFLAGS argument.
 
+Note - LTP
+----------------------------
+
+This is an initial test of TCD's LTPlib as a CL. To 
+use it go get LTPlib (todo: add URL!) and then 
+./configure --with-ltp

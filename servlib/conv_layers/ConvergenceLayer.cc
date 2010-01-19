@@ -27,6 +27,7 @@
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
 #include "NORMConvergenceLayer.h"
+#include "LTPConvergenceLayer.h"
 
 #include "bundling/BundleDaemon.h"
 
@@ -63,6 +64,9 @@ ConvergenceLayer::init_clayers()
 #endif
 #ifdef NORM_ENABLED
     add_clayer(new NORMConvergenceLayer());
+#endif
+#ifdef LTP_ENABLED
+    add_clayer(new LTPConvergenceLayer());
 #endif
     // XXX/demmer fixme
     //add_clayer("file", new FileConvergenceLayer());
