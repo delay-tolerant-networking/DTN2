@@ -5,9 +5,7 @@
 #include <oasys/thread/Thread.h>
 
 #include "IPConvergenceLayer.h"
-#include "ltp_base.h"
 #include "ltp.h"
-#include "ltp_cues.h"
 namespace dtn{
 
 class LTPConvergenceLayer : public IPConvergenceLayer {
@@ -59,17 +57,21 @@ public:
 	//struct to hold our default parameters
 	static Params defaults_;
 
+	Interface *iface_;
+
 protected:
 
 	bool parse_params(Params* params, int argc, const char** argv,
                       const char** invalidp);
 	
-    	class Receiver : public CLInfo,
-		public Logger, public oasys::Thread {
+   	class Receiver : 
+		public CLInfo,
+		public Logger, 
+		public oasys::Thread {
 	public:
 		
 		//constructor
-		Receiver(LTPConvergenceLayer::Params* params);
+		Receiver(LTPConvergenceLayer::Params *params);
 	
 		//destructor
 		virtual ~Receiver() {}

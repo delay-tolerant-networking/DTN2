@@ -1,4 +1,14 @@
 
+/// TODO:
+/// - receipt of >1 bundle in one LTP block
+/// - make MAXINPUTBUNDLE a parameter or something
+/// - figure out if anything leaks between LTPlib and DTN2
+/// - tests: with schedules, stress, at each point in a 3-hop path
+/// - maybe try speed up UDP packet sending in LTPlib, probably a bit slow now 
+/// - add LTP configuration file support with good defaults
+
+
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -17,6 +27,8 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
+
+#include "contacts/ContactManager.h"
 
 #ifdef LTP_ENABLED
 
@@ -65,26 +77,27 @@ bool
 LTPConvergenceLayer::interface_up(Interface* iface,
                                   int argc, const char* argv[])
 {
-    log_debug("adding interface %s", iface->name().c_str());
+    log_debug("LTP adding interface %s", iface->name().c_str());
+	iface_  = iface;
     
     // parse options (including overrides for the local_addr and
     // local_port settings from the defaults)
     Params params = LTPConvergenceLayer::defaults_;
     const char* invalid;
     if (!parse_params(&params, argc, argv, &invalid)) {
-        log_err("error parsing interface options: invalid option '%s'",
+        log_err("LTP error parsing interface options: invalid option '%s'",
                 invalid);
         return false;
     }
 
     // check that the local interface / port are valid
     if (params.local_addr_ == INADDR_NONE) {
-        log_err("invalid local address setting of 0");
+        log_err("LTP invalid local address setting of 0");
         return false;
     }
 
     if (params.local_port_ == 0) {
-        log_err("invalid local port setting of 0");
+        log_err("LTP invalid local port setting of 0");
         return false;
     }
     
@@ -144,7 +157,7 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() == NULL);
-    log_info("adding %s link %s", link->type_str(), link->nexthop());
+    log_info("LTP adding %s link %s", link->type_str(), link->nexthop());
 
     // Parse the nexthop address but don't bail if the parsing fails,
     // since the remote host may not be resolvable at initialization
@@ -159,13 +172,13 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
 
     const char* invalid;
     if (! parse_params(params, argc, argv, &invalid)) {
-        log_err("error parsing link options: invalid option '%s'", invalid);
+        log_err("LTP error parsing link options: invalid option '%s'", invalid);
         delete params;
         return false;
     }
     
     link->set_cl_info(params);
-    log_debug("LTP::LINK_UP, local: %s:%d, remote: %s:%d",
+    log_debug("LTP Link init'd, local: %s:%d, remote: %s:%d",
 		intoa(params->local_addr_),params->local_port_,
 		intoa(params->remote_addr_),params->remote_port_);
     return true;
@@ -179,7 +192,7 @@ LTPConvergenceLayer::delete_link(const LinkRef& link)
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
 
-    log_debug("LTPConvergenceLayer::delete_link: "
+    log_debug("LTP LTPConvergenceLayer::delete_link: "
               "deleting link %s", link->name());
 
     delete link->cl_info();
@@ -214,19 +227,17 @@ LTPConvergenceLayer::open_contact(const ContactRef& contact)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
-    log_info("LTP::CONTACT_OPEN");
-    log_info("LTPConvergenceLayer::open_contact: "
-              "opening contact for link *%p", link.object());
+    log_info("LTP opening contact for link *%p", link.object());
     
     // parse out the address / port from the nexthop address
     if (! parse_nexthop(link->nexthop(), &addr, &port)) {
-        log_err("invalid next hop address '%s'", link->nexthop());
+        log_err("LTP invalid next hop address '%s'", link->nexthop());
         return false;
     }
 
     // make sure it's really a valid address
     if (addr == INADDR_ANY || addr == INADDR_NONE) {
-        log_err("can't lookup hostname in next hop address '%s'",
+        log_err("LTP can't lookup hostname in next hop address '%s'",
                 link->nexthop());
         return false;
     }
@@ -242,7 +253,7 @@ LTPConvergenceLayer::open_contact(const ContactRef& contact)
     Sender* sender = new Sender(link->contact());
 
     if (!sender->init(params, addr, port)) {
-        log_err("error initializing contact");
+        log_err("LTP error initializing contact");
         BundleDaemon::post(
             new LinkStateChangeRequest(link, Link::UNAVAILABLE,
                                        ContactEvent::NO_INFO));
@@ -285,7 +296,7 @@ LTPConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
     const ContactRef& contact = link->contact();
     Sender* sender = (Sender*)contact->cl_info();
     if (!sender) {
-        log_crit("send_bundles called on contact *%p with no Sender!!",
+        log_crit("LTP send_bundles called on contact *%p with no Sender!!",
                  contact.object());
         return;
     }
@@ -302,7 +313,7 @@ LTPConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
 }
 
 //----------------------------------------------------------------------
-LTPConvergenceLayer::Receiver::Receiver(LTPConvergenceLayer::Params* params)
+LTPConvergenceLayer::Receiver::Receiver(LTPConvergenceLayer::Params *params)
     : Logger("LTPConvergenceLayer::Receiver",
              "/dtn/cl/ltp/receiver/%p", this),
       Thread("LTPConvergenceLayer::Receiver")
@@ -351,8 +362,6 @@ LTPConvergenceLayer::Sender::init(Params* params,
     
 {
 
-	log_info("initialising sender");
-
 	log_info("LTP Sender init: Addr %s",intoa(addr));
 	log_info("LTP Sender init: Port %d",port);
     
@@ -361,19 +370,7 @@ LTPConvergenceLayer::Sender::init(Params* params,
     	int rv;
 			
 	sock = ltp_socket(AF_LTP,SOCK_LTP_SESSION,0);
-	log_info("LTPCL: Socket: %d",sock);
-	
-	/*
-	rv = ltp_setsockopt(sock,SOL_SOCKET,LTP_SO_CLIENTONLY,&foo,sizeof(foo));
-
-	if (rv) {
-		log_info("LTPCL: setsockopt() failed for LTP_SO_CLIENTONLY: rv=%d\n", rv);
-	}
-	
-	if (!sock) {
-		log_info("LTPCL: setsockopt() got a zero socket LTP_SO_CLIENTONLY: rv=%d\n", rv);
-	}
-	*/
+	log_info("LTP Socket: %d",sock);
 	
 	/// set the source
 	str2ltpaddr((char*)intoa(params->local_addr_),&source);
@@ -382,18 +379,18 @@ LTPConvergenceLayer::Sender::init(Params* params,
 	///bind
 	rv = ltp_bind(sock,(ltpaddr*)&source,sizeof(source));
 	if (rv) { 
-		log_err("ltp_bind failed.\n");
+		log_err("LTP ltp_bind failed.\n");
 		return(false);
 	}
 	
 	// set local idea of who I am
-	rv=ltp_cue_set_whoiam(&source);
+	rv=ltp_set_whoiam(&source);
 	if (rv) { 
-		log_err("ltp_cue_set_whoiam failed.\n");
+		log_err("LTP ltp_set_whoiam failed.\n");
 		return(false);
 	}
 
-	///set the destination using only the address for now
+	// set the destination 
 	str2ltpaddr((char*)intoa(addr),&dest);
 	dest.sock.sin_port=port;
 
@@ -420,7 +417,7 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
                                                buf_, 0, sizeof(buf_),
                                                &complete);
 
-	log_debug("LTP::Begin sendto(), sending %d bytes to %s",
+	log_debug("LTP begin sendto(), sending %d bytes to %s",
 			total_len,ltpaddr2str(&dest));
 	
 	///code below is a simple test to check ltplib api calls
@@ -433,12 +430,11 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 	
 	rv = ltp_sendto(sock,inbuf,total_len,flags,(ltpaddr*)&dest,sizeof(dest));
 	if (rv!=total_len) {
-		log_err("ltp_sendto failed: %d\n",rv);
-		log_debug("LTP::End sendto()");
+		log_err("LTP ltp_sendto failed: %d\n",rv);
 		return(-1);
 	}
 	
-	log_debug("LTP::End sendto()");
+	log_debug("LTP end sendto()");
 
 	return(total_len);
 }
@@ -455,11 +451,102 @@ void LTPConvergenceLayer::Receiver::run() {
 		ltp_close(s_sock); 
     	return;
 	} 
-    int rxbufsize = 500000;
+
+
+/// TODO: make this a parameter
+#define MAXINPUTBUNDLE 10000000
+    int rxbufsize = MAXINPUTBUNDLE;
     u_char buf[rxbufsize];
+
+/// TODO: make this a parameter
+#define MAXLTPLISTENERS 32
+
+	ltpaddr listeners[MAXLTPLISTENERS];
+	int nlisteners;
+	int lastlisteners=-1;
     while (1) {
-        if (should_stop())
+        if (should_stop()) {
+			log_info("LTP Receiver::run done\n");
             break;
+		}
+		// who's listening now?
+		nlisteners=MAXLTPLISTENERS;
+		rv=ltp_whos_listening_now(&nlisteners,listeners);
+		if (rv) { 
+			log_err("LTP ltp_whos_listening_now error: %d\n",rv);
+			break;
+		}
+		// don't want crazy logging so just when there's a change
+		if (lastlisteners!=nlisteners) {
+			log_info("LTP who's listening now says %d listeners (was %d)\n",nlisteners,lastlisteners);
+			for (int j=0;j!=nlisteners;j++) {
+				log_debug("LTP \tListener %d %s\n",j,ltpaddr2str(&listeners[j]));
+			}
+		}
+		// if we're in "opportunistic mode"
+		// check if I should change link state, depends on who's
+		// listening and linkpeer;
+		// note that whos_listening can return wildcard type 
+		// ltpaddr's (privately formatted) to handle cases where
+		// LTP has no config. ltpaddr_cmp knows how to handle 
+		// that and can do wildcard matches as needed
+		ContactManager *cm = BundleDaemon::instance()->contactmgr();
+		oasys::ScopeLock cmlock(cm->lock(), "LTPCL::whoslistening");
+		const LinkSet* links=cm->links();
+		for (LinkSet::const_iterator i=links->begin();
+							i != links->end(); i++) {
+
+			// other states (e.g. OPENING) exist that we ignore
+			bool linkopen=(*i)->state()==Link::OPEN;
+			bool linkclosed=(
+				(*i)->state()==Link::UNAVAILABLE || 
+				(*i)->state()==Link::AVAILABLE );
+			ltpaddr linkpeer;
+			// might want to use (*i)->nexthop() instead params
+			str2ltpaddr((char*)(*i)->nexthop(),&linkpeer);
+			if (lastlisteners!=nlisteners) {
+				log_debug("LTP linkpeer: %s\n",ltpaddr2str(&linkpeer));
+				log_debug("LTP link state: %s, link cl name: %s\n",
+					Link::state_to_str((*i)->state()),
+					(*i)->clayer()->name());
+			}
+			if ( ( (*i)->clayer()->name() == (char*) "ltp" ) &&
+				(*i)->type()==Link::OPPORTUNISTIC) {
+
+				if (linkclosed) {
+					// if the linkpeer is a listener then open it
+					bool ispresent=false;
+					for (int j=0;j!=nlisteners && !ispresent;j++) {
+						if (!ltpaddr_cmp(&linkpeer,&listeners[j],sizeof(linkpeer))) {
+							// mark link open!!!
+        					BundleDaemon::post(new LinkStateChangeRequest((*i), Link::OPEN, ContactEvent::NO_INFO));
+							ispresent=true;
+							log_debug("LTP changing link %s to OPEN\n",(*i)->name());
+						}
+					}
+				} else if (linkopen) {
+					// if the linkpeer is not a listener then close it
+					bool ispresent=false;
+					int listenermatch=-1;
+					for (int j=0;j!=nlisteners && !ispresent;j++) {
+						if (!ltpaddr_cmp(&linkpeer,&listeners[j],sizeof(linkpeer))) {
+							ispresent=true;
+							listenermatch=j;
+						}
+					}
+					if (!ispresent) {
+						// close that link
+        				BundleDaemon::post(new LinkStateChangeRequest((*i), Link::CLOSED, ContactEvent::NO_INFO));
+						log_debug("LTP changing link %s to CLOSED\n",(*i)->name());
+					}
+				} // do nothing for other states for now
+
+			}
+		}
+		cmlock.unlock();
+		// don't log stuff next time 'round
+		lastlisteners=nlisteners;
+		// now check if something's arrived for me
 		int flags;
 		ltpaddr from;
 		ltpaddr_len fromlen;
