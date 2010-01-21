@@ -52,7 +52,16 @@ LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceL
     defaults_.local_port_               = LTPCL_DEFAULT_PORT;
     defaults_.remote_addr_              = INADDR_NONE;
     defaults_.remote_port_              = 0;
+	
+	// initialise LTPlib
+	int rv=ltp_init();
+	if (rv) {
+		log_err("LTP initialisation error: %d\n",rv);
+	} else {
+		log_debug("LTP initialised.\n");
+	}
 }
+
 
 bool
 LTPConvergenceLayer::parse_params(Params* params,
@@ -361,46 +370,19 @@ LTPConvergenceLayer::Sender::init(Params* params,
                                   in_addr_t addr, u_int16_t port)
     
 {
-
-	log_info("LTP Sender init: Addr %s",intoa(addr));
-	log_info("LTP Sender init: Port %d",port);
-    
 	params_ = params;
-    
-    	int rv;
-			
-	sock = ltp_socket(AF_LTP,SOCK_LTP_SESSION,0);
-	log_info("LTP Socket: %d",sock);
-	
+
 	/// set the source
 	str2ltpaddr((char*)intoa(params->local_addr_),&source);
 	source.sock.sin_port=params->local_port_;
-	
-	///bind
-	rv = ltp_bind(sock,(ltpaddr*)&source,sizeof(source));
-	if (rv) { 
-		log_err("LTP ltp_bind failed.\n");
-		return(false);
-	}
-	
-	// set local idea of who I am
-	rv=ltp_set_whoiam(&source);
-	if (rv) { 
-		log_err("LTP ltp_set_whoiam failed.\n");
-		return(false);
-	}
-
 	// set the destination 
 	str2ltpaddr((char*)intoa(addr),&dest);
 	dest.sock.sin_port=port;
 
 	char *sstr=strdup(ltpaddr2str(&source));
 	char *dstr=strdup(ltpaddr2str(&dest));
-
 	log_debug("LTP Sender src: %s, dest: %s\n",sstr,dstr);
-
 	free(sstr);free(dstr);
-   
     return true;
 }
     
@@ -417,7 +399,7 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
                                                buf_, 0, sizeof(buf_),
                                                &complete);
 
-	log_debug("LTP begin sendto(), sending %d bytes to %s",
+	log_debug("LTP send_bundle, sending %d bytes to %s",
 			total_len,ltpaddr2str(&dest));
 	
 	///code below is a simple test to check ltplib api calls
@@ -427,20 +409,46 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 	
 	/// unused value in the sendto function?
 	static int flags = 0;
-	
+
+	sock = ltp_socket(AF_LTP,SOCK_LTP_SESSION,0);
+	log_debug("LTP Socket: %d",sock);
+	// need to set the LTP_SO_LINGER sockopt, (its default is false)
+	// we know we can tx the data segments (since the LTPCL link is 
+	// only up when that's true), but we don't know if reports can 
+	// be done in time and we don't want the ltp_close to result 
+	// in sending cancel segments
+	int foo; // dummy sockopt parameter
+	rv=ltp_setsockopt(sock,SOL_SOCKET,LTP_SO_LINGER,&foo,sizeof(foo));
+	if (rv) { 
+		log_err("LTP ltp_setsockopt for SO_LINGER failed.\n");
+		return(-1);
+	}
+	///bind
+	rv = ltp_bind(sock,(ltpaddr*)&source,sizeof(source));
+	if (rv) { 
+		log_err("LTP ltp_bind failed.\n");
+		return(-1);
+	}
+	// set local idea of who I am
+	rv=ltp_set_whoiam(&source);
+	if (rv) { 
+		log_err("LTP ltp_set_whoiam failed.\n");
+		return(-1);
+	}
 	rv = ltp_sendto(sock,inbuf,total_len,flags,(ltpaddr*)&dest,sizeof(dest));
 	if (rv!=total_len) {
 		log_err("LTP ltp_sendto failed: %d\n",rv);
 		return(-1);
 	}
+	ltp_close(sock);
 	
-	log_debug("LTP end sendto()");
-
+	log_debug("LTP sent bundle apparently ok");
 	return(total_len);
 }
 
 
 void LTPConvergenceLayer::Receiver::run() {
+
     int ret;
     int s_sock=ltp_socket(AF_LTP,SOCK_LTP_SESSION,0);
     if (!s_sock) {
@@ -451,7 +459,6 @@ void LTPConvergenceLayer::Receiver::run() {
 		ltp_close(s_sock); 
     	return;
 	} 
-
 
 /// TODO: make this a parameter
 #define MAXINPUTBUNDLE 10000000
@@ -571,6 +578,21 @@ void LTPConvergenceLayer::Receiver::run() {
     		} else {
 				BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_PEER, ret, EndpointID::NULL_EID()));
 			}
+			// need to close that socket since its now bound to that
+			// sender within LTPlib (its no longer an "emptylistener")
+			// TODO: have two sockets (at least) so I don't miss out on
+			// something when I'm in the middle of doing this close()/open()
+			// sequence
+    		ltp_close(s_sock);
+			s_sock=ltp_socket(AF_LTP,SOCK_LTP_SESSION,0);
+			if (!s_sock) {
+				return;
+			}
+			rv=ltp_bind(s_sock,&listener,sizeof(ltpaddr));
+			if (rv) { 
+				ltp_close(s_sock); 
+				return;
+			} 
 		}
     }
     ltp_close(s_sock);
