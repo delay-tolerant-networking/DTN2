@@ -19,22 +19,26 @@ net::num_nodes 3
 
 manifest::file apps/dtnping/dtnping dtnping
 
-dtn::config
-
-dtn::config_interface tcp
-dtn::config_linear_topology ALWAYSON tcp true
-
 global num_pings
 set num_pings 10
+set clayer tcp
 foreach {var val} $opt(opts) {
     if {$var == "-n" } {
 	set num_pings $val
 	
+    } elseif {$var == "-cl" } {
+        set clayer $val
+
     } else {
 	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
+
+dtn::config
+
+dtn::config_interface $clayer
+dtn::config_linear_topology ALWAYSON $clayer true
 
 test::script {
     global num_pings

@@ -75,6 +75,7 @@ set tests(basic) {
     "version-mismatch.tcl"	""
 }
 
+
 # BlueZ utils test group
 set tests(bluez) {
     "bluez-rfcomm.tcl"   ""
@@ -98,6 +99,15 @@ set tests(stress) {
     "dtn-perf.tcl"		"-payload_len 5MB  -file_payload -storage_type filesysdb"
     "dtn-perf.tcl"		"-payload_len 50MB -file_payload -storage_type filesysdb"
 }
+
+# LTP CL utils test group
+set tests(ltp) {
+    "dtn-perf.tcl"		"-cl ltp -payload_len 50B -storage_type filesysdb"
+    "dtn-ping.tcl"		"-cl ltp"
+    "send-one-bundle.tcl"       "-cl ltp"
+}
+
+
 
 set tests(other) {
     "api-leak-test.tcl"		""
@@ -142,7 +152,7 @@ foreach {test testopts} $tests($group) {
     }
 
     # give the last test an extra couple seconds to quit
-    after 2000
+    after 200
 }
 
 

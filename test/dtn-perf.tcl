@@ -23,12 +23,12 @@ manifest::file apps/dtnperf/dtnperf-client dtnperf-client
 set perftime 60
 set delivery_opts ""
 set storage_type berkeleydb
+set clayer tcp
 
 set mode "memory"
 
 for {set i 0} {$i < [llength $opt(opts)]} {incr i} {
     set var [lindex $opt(opts) $i]
-
     if {$var == "-perftime" } {
 	set perftime [lindex $opt(opts) [incr i]]
 
@@ -48,6 +48,9 @@ for {set i 0} {$i < [llength $opt(opts)]} {incr i} {
     } elseif {$var == "-storage_type" } {
 	set storage_type [lindex $opt(opts) [incr i]]
 
+    } elseif {$var == "-cl" || $var == "cl"} {
+        set clayer [lindex $opt(opts) [incr i]]
+
     } else {
 	testlog error "ERROR: unrecognized test option '$var'"
 	exit 1
@@ -55,8 +58,8 @@ for {set i 0} {$i < [llength $opt(opts)]} {incr i} {
 }
 
 dtn::config -storage_type $storage_type
-dtn::config_interface tcp
-dtn::config_linear_topology ONDEMAND tcp true
+dtn::config_interface $clayer
+dtn::config_linear_topology ALWAYSON $clayer true
 
 if {$mode == "memory"} {
     append delivery_opts "-m "
@@ -73,6 +76,7 @@ test::script {
 
     set N [net::num_nodes]
     set last_node [expr $N - 1]
+
     set dest      dtn://host-${last_node}
 
     set server_rundir [dist::get_rundir $net::host($last_node) $last_node]

@@ -61,9 +61,9 @@ proc config {args} {
     dtn::config_console
     dtn::config_api_server
     dtn::config_storage $storage_type
-    if {$null_link} {
-	dtn::config_null_link
-    }
+#    if {$null_link} {
+#	dtn::config_null_link
+#    }
 
     set dtn::router_type $router_type
     dtn::config_dtntest
@@ -104,11 +104,11 @@ proc get_port {what id} {
 	api	{ set port [expr $dtn_portbase + 1] }
 	tcp	{ set port [expr $dtn_portbase + 2] }
 	udp	{ set port [expr $dtn_portbase + 2] }
+        ltp     { set port [expr $dtn_portbase + 2] }
 	dtntest	{ set port [expr $dtn_portbase + 3] }
 	misc	{ set port [expr $dtn_portbase + 4] }
 	default { return -1 }
     }
-
     lappend net::used_ports($id) $port
     return $port
 }
@@ -121,6 +121,7 @@ proc is_bidirectional {cl} {
     switch -- $cl {
 	tcp { return 1 }
 	bt { return 1 }
+
     }
     
     return 0
@@ -136,6 +137,11 @@ proc config_interface {cl args} {
     if {$cl == "bt"} {
     # first pass -- just take defaults ... figure out option parsing later
     conf::add dtnd $id [eval list interface add ${cl}0 $cl]
+    } elseif {$cl == "ltp"} {
+        set addr $net::listen_addr($id)
+        set port [dtn::get_port $cl $id]
+        conf::add dtnd $id [eval list interface add ${cl}0 $cl \
+                local_addr=[info hostname] local_port=$port $args]
     } else {
 	set addr $net::listen_addr($id)
 	set port [dtn::get_port $cl $id]

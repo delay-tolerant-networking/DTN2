@@ -144,27 +144,6 @@ AS_IF([test AS_VAR_GET(ac_Lib) = yes],
 AS_VAR_POPDEF([ac_Lib])dnl
 ])# AC_CHECK_LIB
 dnl 
-dnl   Copyright 2008 The MITRE Corporation
-dnl
-dnl   Licensed under the Apache License, Version 2.0 (the "License");
-dnl   you may not use this file except in compliance with the License.
-dnl   You may obtain a copy of the License at
-dnl
-dnl       http://www.apache.org/licenses/LICENSE-2.0
-dnl
-dnl   Unless required by applicable law or agreed to in writing, software
-dnl   distributed under the License is distributed on an "AS IS" BASIS,
-dnl   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-dnl   See the License for the specific language governing permissions and
-dnl   limitations under the License.
-dnl
-dnl   The US Government will not be charged any license fee and/or royalties
-dnl   related to this software. Neither name of The MITRE Corporation; nor the
-dnl   names of its contributors may be used to endorse or promote products
-dnl   derived from this software without specific prior written permission.
-dnl
-
-dnl 
 dnl Autoconf support for LTP convergence layer based on TCD's LTPLib
 dnl
 
@@ -252,6 +231,28 @@ AC_DEFUN(AC_CONFIG_LTP, [
 
     fi
 ])
+
+
+dnl 
+dnl   Copyright 2008 The MITRE Corporation
+dnl
+dnl   Licensed under the Apache License, Version 2.0 (the "License");
+dnl   you may not use this file except in compliance with the License.
+dnl   You may obtain a copy of the License at
+dnl
+dnl       http://www.apache.org/licenses/LICENSE-2.0
+dnl
+dnl   Unless required by applicable law or agreed to in writing, software
+dnl   distributed under the License is distributed on an "AS IS" BASIS,
+dnl   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+dnl   See the License for the specific language governing permissions and
+dnl   limitations under the License.
+dnl
+dnl   The US Government will not be charged any license fee and/or royalties
+dnl   related to this software. Neither name of The MITRE Corporation; nor the
+dnl   names of its contributors may be used to endorse or promote products
+dnl   derived from this software without specific prior written permission.
+dnl
 
 dnl 
 dnl Autoconf support for NORM convergence layer
@@ -343,9 +344,6 @@ AC_DEFUN(AC_CONFIG_NORM, [
 
     fi
 ])
-
-
-
 dnl
 dnl Autoconf support for finding OpenSSL
 dnl

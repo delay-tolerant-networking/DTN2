@@ -82,6 +82,9 @@ proc config_link {id peerid type cl link_args} {
     
     set peeraddr $net::internal_host($peerid)
     set peerport [dtn::get_port $cl $peerid]
+    set localaddr [info hostname]
+    set localport [dtn::get_port $cl $id]
+
     set link [new_link_name $cl $id $peerid]
     set peer_eid  [get_eid $peerid]
 
@@ -101,17 +104,25 @@ proc config_link {id peerid type cl link_args} {
     if {$cl == "bt"} {
         puts "% bt link nexthop $bluez::btaddr($peerid) -> $peer_eid"
     set nexthop $bluez::btaddr($peerid)  
-    }
+    } 
+    
+    if {$cl == "ltp"} {
+    conf::add dtnd $id [join [list \
+            link add $link $nexthop $type $cl \
+            local_addr=$localaddr local_port=$localport \
+            remote_eid=$peer_eid $link_args]]
+            }
 
+    if {$cl == "tcp" || $cl == "udp"} { 
     conf::add dtnd $id [join [list \
 	    link add $link $nexthop $type $cl \
 	    remote_eid=$peer_eid $link_args]]
-    
+    }
     return $link
-}
 
+}
 #
-# Set up a linear topology using TCP or UDP
+# Set up a linear topology using TCP, UDP or LTP
 #
 proc config_linear_topology {type cl with_routes {link_args ""}} {
     dtn::config_topology_common $with_routes
