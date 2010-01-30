@@ -1138,8 +1138,8 @@ AC_DEFUN(AC_OASYS_CONFIG_GCC_VERSION, [
                        ac_with_cxx=$withval)
     
     if test "x$ac_with_cc" = "x" ; then
-        ac_try_cc="gcc gcc-4.3 gcc-4.2 gcc-4.1 gcc-4.0 gcc-3.4 gcc-3.3"
-        ac_try_cxx="g++ g++-4.3 g++-4.2 g++-4.1 g++-4.0 g++-3.4 g++-3.3"
+        ac_try_cc="gcc gcc-4.4 gcc-4.3 gcc-4.2 gcc-4.1 gcc-4.0 gcc-3.4 gcc-3.3"
+        ac_try_cxx="g++ g++-4.4 g++-4.3 g++-4.2 g++-4.1 g++-4.0 g++-3.4 g++-3.3"
     else
         ac_try_cc=$ac_with_cc
 
