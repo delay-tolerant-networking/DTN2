@@ -17,7 +17,7 @@
 
 
 /* ----------------------------------------
- *         DTNperf 2.5.1 - CLIENT
+ *         DTNperf 2.6 - CLIENT
  *
  *             developed by
  * 
@@ -39,7 +39,7 @@
 #include "includes.h"
 #include "utils.h"
 #include "bundle_tools.h"
-
+#include <signal.h>
 
 
 // max payload (in bytes) if bundles are stored into memory
@@ -96,6 +96,7 @@ typedef struct
 	char data_unit;			// B = bytes, K = kilobytes, M = megabytes [M]
 	int transmission_time;	// seconds of transmission [0]
 	int window;				// trasmission window [1]
+	int wait_before_exit;
 	int slide_on_custody;	// flag sliding window on custody receipts [0] 
 	dtn_reg_id_t regid;   	// registration ID (-i option) [DTN_REGID_NONE]
 	long bundle_payload;  	// quantity of data (in bytes) to send (-p option) [DEFAULT_PAYLOAD]
@@ -148,6 +149,8 @@ void set_dtn_options(dtn_bundle_spec_t *, dtn_options_t*);
 void* send_bundle(void *opt);
 void* receive_ack(void *opt);
 
+//CTRL+C handling
+void sigint(int sig);
 
 /* -----------------------
  *  variables declaration
@@ -404,7 +407,7 @@ int main(int argc, char *argv[])
 		dtnperf_options.use_file = 0;
 
 	if (csv_out)
-		fprintf(csv_log_file, "TIME,STATUS,SENDER,ID,FRAGMENT OFFSET,RECEIVER\n");
+		fprintf(csv_log_file, "TIME,STATUS,SENDER,ID,IS FRAGMENT,FRAGMENT OFFSET,RECEIVER\n");
 
 
 	/* ------------------------------------------------------------------------------
@@ -497,9 +500,7 @@ int main(int argc, char *argv[])
 				printf(" done\n");
 		}
 
-
 		bundles_ready = dtnperf_options.window;
-
 
 		// Create the array for the bundle send info
 		if ((debug) && (debug_level > 0))
@@ -534,6 +535,8 @@ int main(int argc, char *argv[])
 		if ((debug) && (debug_level > 0))
 			printf(" done\n");
 
+		//CTRL+C handling
+		signal(SIGINT, &sigint);
 
 		// Run threads
 		pthread_cond_init(&cond_sender, NULL);
@@ -555,9 +558,7 @@ int main(int argc, char *argv[])
 		if ((debug) && (debug_level > 0))
 			printf("[debug] out from loop\n");
 
-
 		free((void*)buffer);
-
 
 		// Get the TOTAL end time
 		if ((debug) && (debug_level > 0))
@@ -827,6 +828,7 @@ void print_usage(char* progname)
 	fprintf(stderr, "Options common to both Time and Data Mode:\n");
 	fprintf(stderr, " -C, --custody [SONC||Slide_on_Custody]\tEnable Custody transfer and custody transfer receipts , if SONC||Slide_on_Custody are set the transmission window is updated on custody accepted status reports.\n");
 	fprintf(stderr, " -w, --window <size>\tSize in bundle of transmission window, if the size is not indicated assume size=1.\n");
+	fprintf(stderr, " -i, --intervalbeforeexit <time>\tWaiting time of any new status reports since the last status report provided.\n");
 	fprintf(stderr, " -p, --payload <size[BKM]>\tSize in bytes of bundle payload; if the data unit is not indicated assume 'K' (Kbytes).\n");
 	fprintf(stderr, " -u, --nofragment\tDisable bundle fragmentation.\n");
 	fprintf(stderr, "Data-Mode options:\n");
@@ -854,7 +856,8 @@ void init_dtnperf_options(dtnperf_options_t *opt)
 	opt->data_unit = 'M';
 	opt->transmission_time = 0;
 	opt->window = 1;
-	opt->slide_on_custody=0;
+	opt->wait_before_exit = 0;
+	opt->slide_on_custody = 0;
 	opt->regid = DTN_REGID_NONE;
 	opt->bundle_payload = DEFAULT_PAYLOAD;
 	opt->payload_type = DTN_PAYLOAD_FILE;
@@ -871,7 +874,7 @@ void init_dtn_options(dtn_options_t* opt)
 	opt->custody_receipts = 0;    // request per custodian receipts [0]
 	opt->receive_receipts = 0;    // request per hop arrival receipt [0]
 	opt->wait_for_report = 1;    // wait for bundle status reports [1]
-	opt->disable_fragmentation =0; //disable bundle fragmentation[0]
+	opt->disable_fragmentation = 0; //disable bundle fragmentation[0]
 }
 
 
@@ -976,6 +979,7 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 			    {"file", required_argument, 0, 'f'},
 			    {"custody", optional_argument, 0, 'C'},
 			    {"window", required_argument, 0, 'w'},
+			    {"intervalbeforeexit", required_argument, 0, 'i'},
 			    {"payload", required_argument, 0, 'p'},
 			    {"memory", no_argument, 0, 'm'},
 			    {"csvout", required_argument, 0, 'c'},
@@ -1015,12 +1019,12 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 			perf_opt->window = atoi(optarg);
 			break;
 
-		case 'd':
-			arg_dest = optarg;
+		case 'i':
+			perf_opt->wait_before_exit = atoi(optarg)*1000;
 			break;
 
-		case 'i':
-			perf_opt->regid = atoi(optarg);
+		case 'd':
+			arg_dest = optarg;
 			break;
 
 		case 'D':
@@ -1130,6 +1134,7 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 			exit(1);
 		} // --switch
 	} // -- while
+
 
 #define CHECK_SET(_arg, _what)                                          	\
     if (_arg == 0) {                                                    	\
@@ -1265,12 +1270,9 @@ void check_options(dtnperf_options_t *perf_opt, dtn_options_t *dtn_opt)
 
 
 
-
-
 void* send_bundle(void *opt)
 {
 	dtnperf_options_t *perf_opt = ((global_options_t *)(opt))->dtnperf_opt;
-	dtn_options_t *dtn_opt = ((global_options_t *)(opt))->dtn_opt;
 
 	u_int relative_bundleId = 0;
 
@@ -1356,7 +1358,7 @@ void* send_bundle(void *opt)
 			if (csv_out)
 			{
 				fprintf(csv_log_file, "%f,STATUS_SENT,%s", ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))), bundle_spec.source.uri);
-				fprintf(csv_log_file, ",%u,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
+				fprintf(csv_log_file, ",%u,No,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
 
 
@@ -1493,7 +1495,7 @@ void* send_bundle(void *opt)
 				fprintf(csv_log_file, "%f,STATUS_SENT,%s",
 				        ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))),
 				        bundle_spec.source.uri);
-				fprintf(csv_log_file, ",%u,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
+				fprintf(csv_log_file, ",%u,No,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
 
 			pthread_mutex_unlock(&mutexdata);
@@ -1617,7 +1619,7 @@ void* send_bundle(void *opt)
 			if (csv_out)
 			{
 				fprintf(csv_log_file, "%f,STATUS_SENT,%s", ((((float)(p_start.tv_sec - start.tv_sec)) + (((float)(p_start.tv_usec - start.tv_usec)) / 1000000))), bundle_spec.source.uri);
-				fprintf(csv_log_file, ",%u,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
+				fprintf(csv_log_file, ",%u,No,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
 
 			// Increment data_qty
@@ -1648,26 +1650,23 @@ void* send_bundle(void *opt)
 
 
 
-
 void* receive_ack(void *opt)
 {
 	dtnperf_options_t *perf_opt = ((global_options_t *)(opt))->dtnperf_opt;
-	dtn_options_t *dtn_opt = ((global_options_t *)(opt))->dtn_opt;
 
 	char* ack_sender = strdup(arg_dest);
 	int ack_set = 0;
-
+	struct timeval temp;
 
 	if (perf_opt->op_mode == 't')
 	{
 		// Time Mode
 		int position = -1;
 
-
-		while ((close_ack_receiver == 0) || (orphan_acks > 0))
+		while ((close_ack_receiver == 0) || (orphan_acks > 0) || (gettimeofday(&temp, NULL) == 0 && p_end.tv_sec - temp.tv_sec <= perf_opt->wait_before_exit))
 		{
 			pthread_mutex_lock(&mutexdata);
-			if (orphan_acks == 0)
+			if (close_ack_receiver == 0 && orphan_acks == 0)
 			{
 				pthread_cond_wait(&cond_ackreceiver, &mutexdata);
 				pthread_mutex_unlock(&mutexdata);
@@ -1675,27 +1674,16 @@ void* receive_ack(void *opt)
 				continue;
 			}
 
-			/*
-			// Set memory for the reply
-			if (dtn_opt->wait_for_report)
-			{
-				if ((debug) && (debug_level > 0))
-					printf("\t[debug] memset for reply_spec...");
-				memset(&reply_spec, 0, sizeof(reply_spec));
-				memset(&reply_payload, 0, sizeof(reply_payload));
-				if ((debug) && (debug_level > 0))
-					printf(" done\n");
-			}
-			*/
-
 			// Wait for the reply
 			if ((debug) && (debug_level > 0))
 				printf("\t[debug] waiting for the reply...\n");
 
 			fflush(stdout);
 
-			if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
+			if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, orphan_acks==0 ? perf_opt->wait_before_exit:-1)) < 0)
 			{
+				if(orphan_acks == 0 && close_ack_receiver == 1)
+					break;
 				fprintf(stderr, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
 				exit(1);
 			}
@@ -1734,9 +1722,11 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_DELIVERED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					remove_from_info(send_info, position);
+					--orphan_acks;
 				}
 				else if (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED)
 				{
@@ -1745,12 +1735,11 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_CUSTODY_ACCEPTED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
-					}
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 				}
-				--orphan_acks;
 				++bundles_ready;
 			}
 			else if ((strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0)
@@ -1767,9 +1756,11 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_DELIVERED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					remove_from_info(send_info, position);
+					--orphan_acks;
 				}
 				else if (reply_payload.status_report->flags == STATUS_RECEIVED)
 				{
@@ -1778,7 +1769,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_RECEIVED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_RECEIVED from %s for: %u.%u created by %s\n",
@@ -1795,7 +1787,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_CUSTODY_ACCEPTED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -1807,7 +1800,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_FORWARDED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_FORWARDED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -1819,7 +1813,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_DELETED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_DELETED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -1831,7 +1826,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_ACKED_BY_APP,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_ACKED_BY_APP from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -1858,12 +1854,11 @@ void* receive_ack(void *opt)
 	{
 		// Data Mode
 		int position = -1;
-		int j = 0;
 
-		while ((close_ack_receiver == 0) || (orphan_acks > 0))
+		while ((close_ack_receiver == 0) || (orphan_acks > 0) || (gettimeofday(&temp, NULL) == 0 && p_end.tv_sec - temp.tv_sec <= perf_opt->wait_before_exit))
 		{
 			pthread_mutex_lock(&mutexdata);
-			if (orphan_acks == 0)
+			if (close_ack_receiver == 0 && orphan_acks == 0)
 			{
 				pthread_cond_wait(&cond_ackreceiver, &mutexdata);
 				pthread_mutex_unlock(&mutexdata);
@@ -1871,24 +1866,14 @@ void* receive_ack(void *opt)
 				continue;
 			}
 
-			/*
-			// Prepare memory areas for the reply
-			if (dtn_opt->wait_for_report)
-			{
-				if ((debug) && (debug_level > 0))
-					printf("\t[debug] memset for reply_spec...");
-				memset(&reply_spec, 0, sizeof(reply_spec));
-				memset(&reply_payload, 0, sizeof(reply_payload));
-				if ((debug) && (debug_level > 0))
-					printf(" done\n");
-			}
-			*/
-
 			// Wait for the reply
 			if ((debug) && (debug_level > 0))
 				printf("\t[debug] waiting for the reply...\n");
-			if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
+
+			if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, orphan_acks == 0 ? perf_opt->wait_before_exit : -1)) < 0)
 			{
+				if(orphan_acks == 0 && close_ack_receiver == 1)
+					break;
 				fprintf(stderr, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
 				if (create_log)
 					fprintf(log_file, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
@@ -1900,10 +1885,10 @@ void* receive_ack(void *opt)
 			// Set the source of the ack
 			if (ack_set == 0)
 			{
-				if (perf_opt->slide_on_custody==1)
+				if (perf_opt->slide_on_custody == 1)
 				{
 					if ((strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0) &&
-					        (is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window) >= 0) &&
+					        (is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody == 1 ? ((perf_opt->window)+1000) : perf_opt->window) >= 0) &&
 					        (strncmp(reply_spec.source.uri, bundle_spec.source.uri, (strlen(reply_spec.source.uri))) != 0) &&
 					        (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED))
 					{
@@ -1915,8 +1900,8 @@ void* receive_ack(void *opt)
 
 			if ((strncmp(reply_spec.source.uri, ack_sender, (strlen(reply_spec.source.uri))) == 0)
 			        && (strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0)
-			        && ((position = is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window)) >= 0)
-			        && (perf_opt->slide_on_custody==0 ? reply_payload.status_report->flags == STATUS_DELIVERED : reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED))
+			        && ((position = is_in_info(send_info, reply_payload.status_report->bundle_id, perf_opt->slide_on_custody == 1 ? ((perf_opt->window)+1000) : perf_opt->window)) >= 0)
+			        && (perf_opt->slide_on_custody == 0 ? reply_payload.status_report->flags == STATUS_DELIVERED : reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED))
 			{
 				if (reply_payload.status_report->flags == STATUS_DELIVERED)
 				{
@@ -1929,9 +1914,11 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_DELIVERED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 				remove_from_info(send_info, position);
+				--orphan_acks;
 				}
 				else if (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED)
 				{
@@ -1940,12 +1927,12 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_CUSTODY_ACCEPTED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 				}
-				--orphan_acks;
 				++bundles_ready;
 			}
 			else if ((strcmp(reply_payload.status_report->bundle_id.source.uri, bundle_spec.source.uri) == 0)
@@ -1962,9 +1949,11 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_DELIVERED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 				remove_from_info(send_info, position);
+				--orphan_acks;
 				}
 				else if (reply_payload.status_report->flags == STATUS_RECEIVED)
 				{
@@ -1973,7 +1962,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_RECEIVED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_RECEIVED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -1985,7 +1975,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_CUSTODY_ACCEPTED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -1997,7 +1988,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_FORWARDED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_FORWARDED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -2009,7 +2001,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_DELETED,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_DELETED from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -2021,7 +2014,8 @@ void* receive_ack(void *opt)
 					if (csv_out)
 					{
 						fprintf(csv_log_file, "%f,STATUS_ACKED_BY_APP,%s", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri);
-						fprintf(csv_log_file, ",%u,%u,%s\n", send_info[position].relative_id,reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
+						fprintf(csv_log_file, ",%u,%s", send_info[position].relative_id, (reply_payload.status_report->bundle_id.orig_length==0 && reply_payload.status_report->bundle_id.frag_offset ==0)? "No":"Yes");
+						fprintf(csv_log_file, ",%u,%s\n", reply_payload.status_report->bundle_id.frag_offset, reply_payload.status_report->bundle_id.source.uri);
 					}
 					if (create_log)
 						fprintf(log_file, "\t %f\t signalling of STATUS_ACKED_BY_APP from %s for: %u.%u created by %s\n", ((((float)(p_end.tv_sec - start.tv_sec)) + (((float)(p_end.tv_usec - start.tv_usec)) / 1000000))), reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
@@ -2040,7 +2034,7 @@ void* receive_ack(void *opt)
 
 			pthread_cond_signal(&cond_sender);
 			pthread_mutex_unlock(&mutexdata);
-			//pthread_yield();
+			pthread_yield();
 		} // end while(n_bundles)
 
 
@@ -2083,3 +2077,15 @@ void* receive_ack(void *opt)
 	}
 	return NULL;
 } // end receive_ack
+
+
+void sigint(int sig)
+{
+	if(csv_log_file != NULL)
+		fclose(csv_log_file);	
+	
+	if(log_file != NULL)
+		fclose(log_file);	
+
+	exit(0);	
+}

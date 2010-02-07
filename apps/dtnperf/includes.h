@@ -18,8 +18,4 @@
 #include <dtn_types.h>
 
 
-
-
-
-
 #endif /*INCLUDES_H_*/
