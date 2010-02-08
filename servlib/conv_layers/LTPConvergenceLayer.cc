@@ -52,14 +52,9 @@ LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceL
     defaults_.local_port_               = LTPCL_DEFAULT_PORT;
     defaults_.remote_addr_              = INADDR_NONE;
     defaults_.remote_port_              = 0;
-	
-	// initialise LTPlib
-	int rv=ltp_init();
-	if (rv) {
-		log_err("LTP initialisation error: %d\n",rv);
-	} else {
-		log_debug("LTP initialised.\n");
-	}
+
+	ltp_inited=false;
+
 }
 
 
@@ -79,6 +74,17 @@ LTPConvergenceLayer::parse_params(Params* params,
         return false;
     }
 
+	// initialise LTPlib
+	if (!ltp_inited) {
+		int rv=ltp_init();
+		if (rv) {
+			log_err("LTP initialisation error: %d\n",rv);
+		} else {
+			log_debug("LTP initialised.\n");
+			ltp_inited=true;
+		}
+	}
+
     return true;
 };
 
@@ -88,6 +94,17 @@ LTPConvergenceLayer::interface_up(Interface* iface,
 {
     log_debug("LTP adding interface %s", iface->name().c_str());
 	iface_  = iface;
+
+	// initialise LTPlib
+	if (!ltp_inited) {
+		int rv=ltp_init();
+		if (rv) {
+			log_err("LTP initialisation error: %d\n",rv);
+		} else {
+			log_debug("LTP initialised.\n");
+			ltp_inited=true;
+		}
+	}
     
     // parse options (including overrides for the local_addr and
     // local_port settings from the defaults)
@@ -167,6 +184,17 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() == NULL);
     log_info("LTP adding %s link %s", link->type_str(), link->nexthop());
+
+	// initialise LTPlib
+	if (!ltp_inited) {
+		int rv=ltp_init();
+		if (rv) {
+			log_err("LTP initialisation error: %d\n",rv);
+		} else {
+			log_debug("LTP initialised.\n");
+			ltp_inited=true;
+		}
+	}
 
     // Parse the nexthop address but don't bail if the parsing fails,
     // since the remote host may not be resolvable at initialization
@@ -417,7 +445,7 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 	// only up when that's true), but we don't know if reports can 
 	// be done in time and we don't want the ltp_close to result 
 	// in sending cancel segments
-	int foo; // dummy sockopt parameter
+	int foo=1; // sockopt parameter
 	rv=ltp_setsockopt(sock,SOL_SOCKET,LTP_SO_LINGER,&foo,sizeof(foo));
 	if (rv) { 
 		log_err("LTP ltp_setsockopt for SO_LINGER failed.\n");

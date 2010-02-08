@@ -61,6 +61,8 @@ public:
 
 protected:
 
+	bool ltp_inited;
+
 	bool parse_params(Params* params, int argc, const char** argv,
                       const char** invalidp);
 	
