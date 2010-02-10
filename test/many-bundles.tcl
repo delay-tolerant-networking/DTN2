@@ -44,8 +44,8 @@ foreach {var val} $opt(opts) {
 testlog "Configuring $clayer interfaces / links"
 dtn::config -storage_type $storage_type
 dtn::config_interface $clayer
-dtn::config_linear_topology OPPORTUNISTIC $clayer true
-
+#dtn::config_linear_topology OPPORTUNISTIC $clayer true
+dtn::config_linear_topology AlWAYSON $clayer true
 test::script {
     set starttime [clock seconds]
     

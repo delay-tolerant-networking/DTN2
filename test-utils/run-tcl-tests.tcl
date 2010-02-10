@@ -102,11 +102,17 @@ set tests(stress) {
 
 # LTP CL utils test group
 set tests(ltp) {
-    "dtn-perf.tcl"		"-cl ltp -payload_len 50B -storage_type filesysdb"
     "dtn-ping.tcl"		"-cl ltp"
-    "send-one-bundle.tcl"       "-cl ltp"
+    "dtn-ping.tcl"              "-n 1 -cl ltp -s ltp.sched"
+    "send-one-bundle.tcl"       "-cl ltp -length 0"
+    "send-one-bundle.tcl"       "-cl ltp -length 10"
+    "send-one-bundle.tcl"       "-cl ltp -length 100"
+    "send-one-bundle.tcl"       "-cl ltp -length 1000"
+    "dtn-perf.tcl"              "-cl ltp -payload_len 1024B -perftime 30 -storage_type filesysdb"
+    "dtn-perf.tcl"              "-cl ltp -payload_len 10240B -perftime 30 -storage_type filesysdb"
+    "dtn-perf.tcl"              "-cl ltp -payload_len 1MB -perftime 30 -storage_type filesysdb"
+    "custody-transfer.tcl"      "-cl ltp"
 }
-
 
 
 set tests(other) {
@@ -152,7 +158,7 @@ foreach {test testopts} $tests($group) {
     }
 
     # give the last test an extra couple seconds to quit
-    after 200
+   after 500
 }
 
 

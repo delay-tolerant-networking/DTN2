@@ -142,6 +142,7 @@ proc config_interface {cl args} {
         set port [dtn::get_port $cl $id]
         conf::add dtnd $id [eval list interface add ${cl}0 $cl \
                 local_addr=[info hostname] local_port=$port $args]
+
     } else {
 	set addr $net::listen_addr($id)
 	set port [dtn::get_port $cl $id]

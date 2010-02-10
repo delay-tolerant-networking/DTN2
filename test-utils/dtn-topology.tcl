@@ -107,6 +107,7 @@ proc config_link {id peerid type cl link_args} {
     } 
     
     if {$cl == "ltp"} {
+    set nexthop $localaddr:$peerport
     conf::add dtnd $id [join [list \
             link add $link $nexthop $type $cl \
             local_addr=$localaddr local_port=$localport \
@@ -157,6 +158,68 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 	}
     }
 }
+
+
+#
+# Set up a ltp schedule on linear topology using LTP
+# Fist node is the receiver, middle node is a router and 
+# last is the sender
+#
+proc config_ltp_schedule {cl sched} {
+    set last [expr [net::num_nodes] - 1]
+    foreach id [net::nodelist] {
+
+        if { $id == $last } {
+	set distdir test/schedule/ltp-schedule/sender
+    	dbg "% copying files"
+        set hostname $net::host($id)
+        set targetdir [dist::get_rundir $hostname $id]
+
+        dbg "% $distdir -> $hostname:$targetdir"
+
+        if [net::is_localhost $hostname] {
+            testlog "distributing $distdir/$sched to $targetdir/$sched on sending node $hostname"
+            exec cp -r $distdir/$sched $targetdir/$sched
+        } else {
+	    testlog "distributing $distdir/$sched to $hostname:$targetdir/$sched"
+            exec scp -C -r $distdir/$sched $hostname:$targetdir/$sched
+        }
+
+
+        } elseif { $id == 0 } {
+        set distdir test/schedule/ltp-schedule/receiver
+        dbg "% copying files"
+        set hostname $net::host($id)
+        set targetdir [dist::get_rundir $hostname $id]
+
+        dbg "% $distdir -> $hostname:$targetdir"
+
+        if [net::is_localhost $hostname] {
+            testlog "distributing $distdir/$sched to $targetdir/$sched on receiving node $hostname"
+            exec cp -r $distdir/$sched $targetdir/$sched
+        } else {
+            testlog "distributing $distdir/$sched to $hostname:$targetdir/$sched"
+            exec scp -C -r $distdir/$sched $hostname:$targetdir/$sched
+        }
+	} else {
+        set distdir test/schedule/ltp-schedule/router
+        dbg "% copying files"
+        set hostname $net::host($id)
+        set targetdir [dist::get_rundir $hostname $id]
+
+        dbg "% $distdir -> $hostname:$targetdir"
+
+        if [net::is_localhost $hostname] {
+            testlog "distributing $distdir/$sched to $targetdir/$sched on router node $hostname"
+            exec cp -r $distdir/$sched $targetdir/$sched
+        } else {
+            testlog "distributing $distdir/$sched to $hostname:$targetdir/$sched"
+            exec scp -C -r $distdir/$sched $hostname:$targetdir/$sched
+        }
+	}
+	}
+}
+
 
 #
 # Set up a mesh topology with TCP or UDP

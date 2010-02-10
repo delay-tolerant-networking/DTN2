@@ -22,12 +22,16 @@ manifest::file apps/dtnping/dtnping dtnping
 global num_pings
 set num_pings 10
 set clayer tcp
+set sched ltp.sched
 foreach {var val} $opt(opts) {
     if {$var == "-n" } {
 	set num_pings $val
 	
     } elseif {$var == "-cl" } {
         set clayer $val
+   
+    } elseif {$var == "-s" } {
+	set sched $val
 
     } else {
 	testlog error "ERROR: unrecognized test option '$var'"
@@ -39,10 +43,11 @@ dtn::config
 
 dtn::config_interface $clayer
 dtn::config_linear_topology ALWAYSON $clayer true
-
 test::script {
+    if {$var == "-s" } {
+	dtn::config_ltp_schedule $clayer $sched
+}
     global num_pings
-    
     testlog "Running dtnds"
     dtn::run_dtnd *
 
@@ -51,7 +56,9 @@ test::script {
 
     set N [net::num_nodes]
     set last_node [expr $N - 1]
+
     set dest      dtn://host-0/
+#    testlog "receiving node is $first_node and sending node is $last_node"
 
     for {set i $last_node} {$i >= 0} {incr i -1} {
 	testlog "Dtnping'ing from node $last_node to dtn://host-$i\

@@ -16,11 +16,18 @@
 
 test::name custody-transfer
 net::num_nodes 4
+set clayer tcp
+foreach {var val} $opt(opts) {
+    if {$var == "-cl" } {
+        set clayer $val
+    }
+}
+
 
 dtn::config
 
-dtn::config_interface tcp
-dtn::config_linear_topology OPPORTUNISTIC tcp true
+dtn::config_interface $clayer
+dtn::config_linear_topology OPPORTUNISTIC $clayer true
 
 test::script {
     testlog "running dtnds"
@@ -59,8 +66,8 @@ test::script {
     dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     testlog "opening link from 0-1"
-    dtn::tell_dtnd 0 link open tcp-link:0-1
-    dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
+    dtn::tell_dtnd 0 link open $clayer-link:0-1
+    dtn::wait_for_link_state 0 $clayer-link:0-1 OPEN
 
     testlog "checking that custody was transferred"
     dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
@@ -74,8 +81,8 @@ test::script {
     dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     testlog "open the rest of the links, check delivery"
-    dtn::tell_dtnd 1 link open tcp-link:1-2
-    dtn::tell_dtnd 2 link open tcp-link:2-3
+    dtn::tell_dtnd 1 link open $clayer-link:1-2
+    dtn::tell_dtnd 2 link open $clayer-link:2-3
 
     dtn::wait_for_bundle_stats 3 {1 delivered}
     dtn::wait_for_bundle 3 "$src,$timestamp" 30
@@ -136,7 +143,7 @@ test::script {
 
     testlog "switching route back, waiting for retransmission and delivery"
     dtn::tell_dtnd 1 route del $dst_route
-    eval dtn::tell_dtnd 1 route add $dst_route tcp-link:1-2 $custody_timer_opts
+    eval dtn::tell_dtnd 1 route add $dst_route $clayer-link:1-2 $custody_timer_opts
 
     dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
     dtn::wait_for_bundle_stats 1 {2 received 5 transmitted}
@@ -161,7 +168,7 @@ test::script {
 
     testlog "speeding up custody timer for route on node 0"
     dtn::tell_dtnd 0 route del $dst_route
-    eval dtn::tell_dtnd 0 route add $dst_route tcp-link:0-1 $custody_timer_opts
+    eval dtn::tell_dtnd 0 route add $dst_route $clayer-link:0-1 $custody_timer_opts
     
     testlog "removing destination route for node 1"
     dtn::tell_dtnd 1 route del $dst_route
@@ -193,7 +200,7 @@ test::script {
 
     testlog "flipping back the route from 1 to 0"
     dtn::tell_dtnd 1 route del $src_route
-    dtn::tell_dtnd 1 route add $src_route tcp-link:1-0
+    dtn::tell_dtnd 1 route add $src_route $clayer-link:1-0
 
     testlog "waiting for another retransmission, checking custody transferred"
     dtn::wait_for_bundle_stats 0 {2 received 3 transmitted}
@@ -204,7 +211,7 @@ test::script {
 
     testlog "adding route back to 1 and waiting for delivery"
     dtn::tell_dtnd 1 route del $dst_route
-    dtn::tell_dtnd 1 route add $dst_route tcp-link:1-2
+    dtn::tell_dtnd 1 route add $dst_route $clayer-link:1-2
 
     dtn::wait_for_bundle_stats 3 {1 delivered}
     dtn::wait_for_bundle 3 "$src,$timestamp" 30
@@ -242,7 +249,7 @@ test::script {
     dtn::wait_for_bundle_stats 0 {2 delivered}
 
     testlog "re-adding route"
-    dtn::tell_dtnd 1 route add $dst_route tcp-link:1-2
+    dtn::tell_dtnd 1 route add $dst_route $clayer-link:1-2
 
     testlog "*"
     testlog "* Test 5: delivery before taking custody"
