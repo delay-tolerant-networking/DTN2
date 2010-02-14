@@ -33,13 +33,22 @@
 
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include <dtn-config.h>
 #endif
 
 #include "includes.h"
 #include "utils.h"
 #include "bundle_tools.h"
 #include <signal.h>
+
+/* pthread_yield() is not standard, 
+   so use sched_yield if necessary */
+#ifndef HAVE_PTHREAD_YIELD
+#   ifdef HAVE_SCHED_YIELD
+#       include <sched.h>
+#       define pthread_yield    sched_yield
+#   endif
+#endif
 
 
 // max payload (in bytes) if bundles are stored into memory
