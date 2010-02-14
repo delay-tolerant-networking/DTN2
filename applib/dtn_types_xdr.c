@@ -97,14 +97,24 @@ xdr_dtn_timeval_t (XDR *xdrs, dtn_timeval_t *objp)
  */
 #define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
 
+#include "dtn-config.h"
+
+#ifdef HAVE_XDR_U_QUAD_T
+ #define u_hyper u_quad_t
+ #define xdr_u_hyper_t xdr_u_quad_t
+#elif defined(HAVE_XDR_U_INT64_T)
+ #define u_hyper u_int64_t
+ #define xdr_u_hyper_t xdr_u_int64_t
+#endif
+
 bool_t
 xdr_dtn_timestamp_t (XDR *xdrs, dtn_timestamp_t *objp)
 {
 	register int32_t *buf;
 
-	 if (!xdr_u_quad_t (xdrs, &objp->secs))
+	 if (!xdr_u_hyper (xdrs, &objp->secs))
 		 return FALSE;
-	 if (!xdr_u_quad_t (xdrs, &objp->seqno))
+	 if (!xdr_u_hyper (xdrs, &objp->seqno))
 		 return FALSE;
 	return TRUE;
 }

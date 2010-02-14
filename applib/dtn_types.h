@@ -84,9 +84,19 @@ typedef u_int dtn_timeval_t;
  */
 #define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
 
+#include "dtn-config.h"
+
+#ifdef HAVE_XDR_U_QUAD_T
+ #define u_hyper u_quad_t
+ #define xdr_u_hyper_t xdr_u_quad_t
+#elif defined(HAVE_XDR_U_INT64_T)
+ #define u_hyper u_int64_t
+ #define xdr_u_hyper_t xdr_u_int64_t
+#endif
+
 struct dtn_timestamp_t {
-	u_quad_t secs;
-	u_quad_t seqno;
+	u_hyper secs;
+	u_hyper seqno;
 };
 typedef struct dtn_timestamp_t dtn_timestamp_t;
 
