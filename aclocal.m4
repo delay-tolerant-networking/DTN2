@@ -2498,6 +2498,14 @@ AC_DEFUN(AC_OASYS_SYSTEM_LIBRARIES, [
     AC_SEARCH_LIBS(xdr_int, rpc, [],
       AC_MSG_ERROR([can't find required library function (xdr_int)]))
 
+    AC_SEARCH_LIBS(xdr_u_int64_t, rpc,
+                   AC_DEFINE_UNQUOTED(HAVE_XDR_U_INT64_T, 1, [whether xdr_u_int64_t exists]),
+                   [])
+
+    AC_SEARCH_LIBS(xdr_u_quad_t, rpc,
+                   AC_DEFINE_UNQUOTED(HAVE_XDR_U_QUAD_T, 1, [whether xdr_u_quad_t exists]),
+                   [])
+
     AC_SEARCH_LIBS(inet_aton, [nsl resolv socket],
                    AC_DEFINE_UNQUOTED(HAVE_INET_ATON, 1, [wether inet_aton exists]),
                    [])
@@ -2554,7 +2562,24 @@ dnl Checks for library functions.
 dnl -------------------------------------------------------------------------
 AC_DEFUN(AC_OASYS_SYSTEM_FUNCTIONS, [
     # XXX/demmer get rid of me
-    AC_CHECK_FUNCS([fdatasync getaddrinfo getopt_long cfmakeraw cfsetspeed])
+    AC_CHECK_FUNCS([getaddrinfo getopt_long cfmakeraw cfsetspeed])
+])                                
+
+
+AC_DEFUN(AC_OASYS_SYSTEM_FDATASYNC, [
+    AC_CACHE_CHECK([working fdatasync],[ac_cv_func_fdatasync],[
+     ÊAC_LANG_PUSH(C++)
+     ÊAC_RUN_IFELSE([AC_LANG_PROGRAM([[
+    #include <unistd.h>
+     Ê Ê]],[[
+    fdatasync(4);
+     Ê Ê]])],
+     Ê[ac_cv_func_fdatasync=yes],
+     Ê[ac_cv_func_fdatasync=no])
+     ÊAC_LANG_POP()
+    ])
+    AS_IF([test "x${ac_cv_func_fdatasync}" = "xyes"],
+     Ê[AC_DEFINE([HAVE_FDATASYNC],[1],[If the system has a working fdatasync])])
 ])                                
 
 dnl -------------------------------------------------------------------------
