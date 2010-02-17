@@ -70,6 +70,7 @@ public:
 		u_int16_t local_port_;		//local port to bind to
 		in_addr_t remote_addr_;		//address to connect to
 		u_int16_t remote_port_;		//port to connect to
+		u_int16_t mtu_; // outbound MTU for link
 	};
 	//struct to hold our default parameters
 	static Params defaults_;
@@ -108,6 +109,8 @@ protected:
 		int get_sock();
 
 		ltpaddr listener;
+		
+		int lmtu;
 
 	protected:
 		//lets process our incoming ltp segment
@@ -145,6 +148,9 @@ protected:
 		//ltp source and destination
 		ltpaddr source;
 		ltpaddr dest;
+
+		//ltp MTU to use for outbound DS/RS
+		int lmtu;
 		
 		//our receive buffer size
 		int rxbufsize;
@@ -152,8 +158,6 @@ protected:
 		//we need to know what contact we represent
 		ContactRef contact_;
 		
-		// private buffer copy
-		u_char buf_[1000000];
 	};
 	
 };

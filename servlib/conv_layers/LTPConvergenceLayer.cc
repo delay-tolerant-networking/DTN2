@@ -16,13 +16,13 @@
 
 
 /// TODO:
-/// - receipt of >1 bundle in one LTP block
-/// - make MAXINPUTBUNDLE a parameter or something
-/// - figure out if anything leaks between LTPlib and DTN2
-/// - tests: with schedules, stress, at each point in a 3-hop path
-/// - maybe try speed up UDP packet sending in LTPlib, probably a bit slow now 
+/// - send/receipt of >1 bundle in one LTP block
+/// - green/red handling of some sort (now allred)
+/// - add mtu configuration & sockopt() call to dtn.conf
+/// - handle any size bundle for sending
 /// - add LTP configuration file support with good defaults
-
+/// - figure out if anything leaks between LTPlib and DTN2
+/// - maybe try speed up UDP packet sending in LTPlib, probably a bit slow now 
 
 
 #ifdef HAVE_CONFIG_H
@@ -60,6 +60,7 @@ LTPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
     a->process("remote_addr", oasys::InAddrPtr(&remote_addr_));
     a->process("local_port", &local_port_);
     a->process("remote_port", &remote_port_);
+	a->process("mtu",&mtu_);
 }
 
 LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceLayer", "ltp")
@@ -68,6 +69,7 @@ LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceL
     defaults_.local_port_               = LTPCL_DEFAULT_PORT;
     defaults_.remote_addr_              = INADDR_NONE;
     defaults_.remote_port_              = 0;
+    defaults_.mtu_              = 0;
 
 	ltp_inited=false;
 
@@ -85,6 +87,7 @@ LTPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
     p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
     p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
+    p.addopt(new oasys::UInt16Opt("mtu", &params->mtu_));
 
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -201,6 +204,8 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     ASSERT(link->cl_info() == NULL);
     log_info("LTP adding %s link %s", link->type_str(), link->nexthop());
 
+	int lmtu=link->params().mtu_;
+
 	// initialise LTPlib
 	if (!ltp_inited) {
 		int rv=ltp_init();
@@ -222,6 +227,7 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     Params* params = new Params(defaults_);
     params->local_addr_ = INADDR_NONE;
     params->local_port_ = 0;
+    params->mtu_ = lmtu;
 
     const char* invalid;
     if (! parse_params(params, argc, argv, &invalid)) {
@@ -376,6 +382,7 @@ LTPConvergenceLayer::Receiver::Receiver(LTPConvergenceLayer::Params *params)
     params_ = *params;
     should_stop_ = false;
     s_sock = 0;
+	lmtu = params->mtu_;
 
     // start our thread
 }
@@ -423,6 +430,8 @@ LTPConvergenceLayer::Sender::init(Params* params,
 	str2ltpaddr((char*)intoa(addr),&dest);
 	dest.sock.sin_port=port;
 
+	lmtu=params->mtu_;
+
 	char *sstr=strdup(ltpaddr2str(&source));
 	char *dstr=strdup(ltpaddr2str(&dest));
 	log_debug("LTP Sender src: %s, dest: %s\n",sstr,dstr);
@@ -438,9 +447,13 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
     ASSERT(blocks != NULL);
     bool complete = false;
 	//this is creating the bundle and returning the length
+    size_t total_len = BundleProtocol::total_length(blocks);
 	
-	size_t total_len = BundleProtocol::produce(bundle.object(), blocks,
-                                               buf_, 0, sizeof(buf_),
+	u_char *inbuf=(u_char*)calloc (sizeof(char),total_len+1);
+	if ( !inbuf) return(-1);
+	
+	total_len = BundleProtocol::produce(bundle.object(), blocks,
+                                               inbuf, 0, total_len,
                                                &complete);
 
 	log_debug("LTP send_bundle, sending %d bytes to %s",
@@ -448,7 +461,6 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 	
 	///code below is a simple test to check ltplib api calls
 
-	char *inbuf = (char*)buf_;
 	size_t rv;
 	
 	/// unused value in the sendto function?
@@ -465,27 +477,43 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 	rv=ltp_setsockopt(sock,SOL_SOCKET,LTP_SO_LINGER,&foo,sizeof(foo));
 	if (rv) { 
 		log_err("LTP ltp_setsockopt for SO_LINGER failed.\n");
+		free(inbuf);
 		return(-1);
+	}
+	// if the params mtu is set to other than zero then pass it on
+	if (lmtu > 0 ) {
+		log_debug("LTP Tx: setting LTP mtu to %d",lmtu);
+		rv=ltp_setsockopt(sock,SOL_SOCKET,LTP_SO_L2MTU,&lmtu,sizeof(lmtu));
+		if (rv) {
+			log_err("LTP ltp_setsockopt for SO_L2MTU failed.\n");
+			free(inbuf);
+			return(-1);
+		}
+	} else {
+		log_debug("LTP Tx: not setting LTP mtu 'cause its %d",lmtu);
 	}
 	///bind
 	rv = ltp_bind(sock,(ltpaddr*)&source,sizeof(source));
 	if (rv) { 
 		log_err("LTP ltp_bind failed.\n");
+		free(inbuf);
 		return(-1);
 	}
 	// set local idea of who I am
 	rv=ltp_set_whoiam(&source);
 	if (rv) { 
 		log_err("LTP ltp_set_whoiam failed.\n");
+		free(inbuf);
 		return(-1);
 	}
 	rv = ltp_sendto(sock,inbuf,total_len,flags,(ltpaddr*)&dest,sizeof(dest));
 	if (rv!=total_len) {
 		log_err("LTP ltp_sendto failed: %d\n",rv);
+		free(inbuf);
 		return(-1);
 	}
 	ltp_close(sock);
-	
+	free(inbuf);
 	log_debug("LTP sent bundle apparently ok");
 	return(total_len);
 }
@@ -494,20 +522,28 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 void LTPConvergenceLayer::Receiver::run() {
 
     int ret;
+	int rv;
     int s_sock=ltp_socket(AF_LTP,SOCK_LTP_SESSION,0);
     if (!s_sock) {
     	return;
 	}
-	int rv=ltp_bind(s_sock,&listener,sizeof(ltpaddr));
+	// if the params mtu is set to other than zero then pass it on
+	if (lmtu > 0 ) {
+		log_debug("LTP Rx: setting LTP mtu to %d",lmtu);
+		rv=ltp_setsockopt(s_sock,SOL_SOCKET,LTP_SO_L2MTU,&lmtu,sizeof(lmtu));
+		if (rv) {
+			log_err("LTP ltp_setsockopt for SO_L2MTU failed.\n");
+			return;
+		}
+	} else {
+		log_debug("LTP Rx: not setting LTP mtu 'cause its %d",lmtu);
+	}
+	rv=ltp_bind(s_sock,&listener,sizeof(ltpaddr));
 	if (rv) { 
 		ltp_close(s_sock); 
     	return;
 	} 
 
-/// TODO: make this a parameter
-#define MAXINPUTBUNDLE 10000000
-    int rxbufsize = MAXINPUTBUNDLE;
-    u_char buf[rxbufsize];
 
 /// TODO: make this a parameter
 #define MAXLTPLISTENERS 32
@@ -515,6 +551,18 @@ void LTPConvergenceLayer::Receiver::run() {
 	ltpaddr listeners[MAXLTPLISTENERS];
 	int nlisteners;
 	int lastlisteners=-1;
+
+#define START_INPUTBUNDLE 0x10000
+    size_t rxbufsize = START_INPUTBUNDLE;
+	bool buf2free=true;
+    u_char *buf;
+	buf=(u_char*) calloc(sizeof(u_char),START_INPUTBUNDLE);
+	if (!buf) {
+		log_err("LTP Receiver::calloc failed\n");
+		ltp_close(s_sock);
+		return;
+	}
+
     while (1) {
         if (should_stop()) {
 			log_info("LTP Receiver::run done\n");
@@ -606,6 +654,25 @@ void LTPConvergenceLayer::Receiver::run() {
             if (errno == EINTR) {
                 continue;
           	}
+			if (ret == -1 ) { // special case
+				continue;
+			}
+			size_t nbsz=(-1*ret);
+			if (ret < -1 &&  nbsz > rxbufsize) {
+				// try allocate more and go again
+				buf2free=false;
+				free(buf);
+				buf=(u_char*) calloc(sizeof(u_char),nbsz+100);
+				if (!buf) {
+					log_err("LTP Receiver::calloc failed when biggering\n");
+					break;
+				}
+				buf2free=true;
+				rxbufsize=nbsz+100;
+				continue;
+			} else {
+				break;  // dunno how we'd get here! should't happen
+			}
             break;
         } else if (ret>0) {
 			log_info("LTP ltp_recvfrom returned %d byte block\n",ret);
@@ -640,6 +707,7 @@ void LTPConvergenceLayer::Receiver::run() {
 		}
     }
     ltp_close(s_sock);
+	if (buf2free) free(buf);
     return;
 }
 
