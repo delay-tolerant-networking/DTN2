@@ -81,6 +81,9 @@ direct questions to dtn-bugs@mailman.dtnrg.org.
 <p>
 <blockquote><pre>
 applib/		    application interface library and ipc layer
+|-- perl	    Perl interface adaptor
+|-- python	    Python interface adaptor
+|-- tcl		    TCL interaface adaptor
 apps/		    example dtn applications
 doc/		    documentation
 daemon/		    dtn router daemon sources
@@ -198,7 +201,7 @@ then you can enable sha-256 in later versions of 0.9.7,
 such as 0.9.7l and 0.9.7m. To enable sha-256, specify "fips"
 when running "Configure".
 
-<p>If you wish to leave you system installation untouched and
+<p>If you wish to leave your system installation untouched and
 build against a local version, then configure dtn using
 <tt>./configure --with-bsp --with-openssl=<i>/path/to/openssl</i></tt>
 

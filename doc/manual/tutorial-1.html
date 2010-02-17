@@ -188,7 +188,7 @@ you are learning the ins and outs of dtnd, it is best to run it
 this way, so that you can interact with it. Use the <tt>-c</tt>
 argument to tell it where to find the configuration file.
 For information on other arguments you can give dtnd, see
-the <a href="man_dtnd.html">dtnd man page</a>.
+the <a href="man/dtnd.html">dtnd man page</a>.
 
 <p>
 Once you start dtnd with a command like <tt>DTN2/daemon/dtnd -c
@@ -252,14 +252,14 @@ of just your one server) operate is to send a ping bundle into
 to it, and see what comes back out!
 
 <p>
-To ping your server, run the <a href="man_dtnping.html">dtnping</a> command. It lives
+To ping your server, run the <tt>dtnping</tt> command. It lives
 in the <tt>DTN2/apps/dtnping</tt> directory. You'll need to give it
 one argument, which is the EID address of the endpoint that you
 want to ping. Since there is only one server in your DTN, the
 choice should be simple. You need to use the local EID
 that you set in the configuration file. If you'd like to
 check what dtnd thinks it's local EID name is, use the
-<a href="configuration.html#registration_list">registration list</a> command in the window where dtnd is running.
+<tt>registration list</tt> command in the window where dtnd is running.
 The first registration is always the server registering it's own
 EID with itself, so that it can handle administrative bundles, like
 the ping bundle we are about to send.

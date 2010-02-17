@@ -21,7 +21,7 @@ computers and make them talk to one another.
 <h3> Routing </h3>
 
 Find the area called Routing
-configuration. Create a <a href="configuration.html#route">route</a> for each daemon like this:
+configuration. Create a route for each daemon like this:
 
 <blockquote><pre>route local_eid dtn://<i>name</i>.dtn</pre></blockquote>
 
@@ -35,7 +35,7 @@ identify the sender and the final destination of the bundles.
 <p>
 We need to modify the interfaces a little. An interface looks for
 bundles directed to that specific daemon. It is also used for routing bundles
-onwards that are not intended for that specific daemon. The <a href="configuration.html#interface">interface</a>
+onwards that are not intended for that specific daemon. The <tt>interface</tt>
 command has the following format: 
 
 <blockquote>
@@ -60,7 +60,7 @@ machine that the daemon will listen for incoming bundles on. The default is
 
 <h3>Links</h3>
 
-<p> Next we have to set up a <a href="configuration.html#link">link</a> between our computers. A link allows the
+<p> Next we have to set up a link between our computers. A link allows the
 daemons to communicate to one another via the correct IP addresses and ports.
 It points the bundles in the direction of the distant computer.
 Go down to the link section in the conf file. Add the following:
@@ -83,7 +83,7 @@ number that the other DTN daemon will listen on.
 
 <h3>Route</h3>
 
-<p> Lastly, add a <a href="configuration.html#route">route</a> for the end point of the daemon. This locates the
+<p> Lastly, add a route for the end point of the daemon. This locates the
 daemon on the other computer. Without it the bundles will not be sent. 
 
 <blockquote>route add <i>name</i> <i>link_name</i></blockquote>
@@ -96,12 +96,26 @@ Don't forget to add the star. The asterisk is there to make all
 bundles match this route, instead of being mistaken as administrative
 bundles to be processed on the local node.
 
+<h2> Setting System Clocks </h2>
+
+<p>
+DTN uses the system clock to place an expiry timestamp into each bundle created 
+in the node. This timestamp controls 
+when the bundle will be discarded.  The timestamp is compared with the 
+local system clock on any node that processes the bundle.  If the system 
+clock is set to a value that is very different from the value in other nodes, 
+bundles may be discarded inappropriately.  Typically the lifetime of bundles 
+will be set in the range of several tens of seconds to several days. This means that there is no need for precision synchronisation of system clocks, but 
+communication between nodes will be unlikely to work if system clocks are set
+to widely differing values.  However if very short lifetimes are used the 
+required synchronisation will be correspondingly precise.
+
 <h2>Communication: dtnsend and dtnrecv</h2>
 
 Now you're ready to send bundles to and from daemons! Load both daemons up.
 Open a terminal up and go into the dtn2/apps/dtnsend folder or find the dtnsend
 executable.
-<a href="man_dtnsend.html">dtnsend</a> is a DTN2 application that creates bundles and passes
+Dtnsend is a function of DTN2 that creates bundles and passes
 them to a daemon on the local machine. It also allows you to set options for
 each bundle you wish to create. The dtnsend program communicates with a DTN
 daemon through port 5010 on the local machine. Note that this port number may
@@ -116,7 +130,7 @@ be changed in the configuration of the DTN daemon.
 The -t argument can have three values (m, f, or d) for message, file, or date.
 
 <p>
-Use <a href="man_dtnsend.html">dtnsend</a> to send to one of the daemons. In this example, we'll
+Use dtnsend to send to one of the daemons. In this example, we'll
 make bob send to george:
 
 <blockquote><pre>./dtnsend -s dtn://bob.dtn/b -d dtn://george.dtn/g -t m -p "Hello george"</pre></blockquote>
@@ -132,7 +146,7 @@ into bob's daemon. We should see no bundles there! Then type bundle list into
 george's daemon. A bundle should be waiting there to be retrieved. 
 
 <p>
-To retrieve the bundle, use <a href="man_dtnrecv.html">dtnrecv</a>.  It collects the bundles and delivers the
+To retrieve the bundle, use dtnrecv.  It collects the bundles and delivers the
 message/file/date.  The dtnrecv program will wait indefinitely for new bundles
 to arrive from the DTN daemon. To get out of dtnrecv hit Control-C.
 

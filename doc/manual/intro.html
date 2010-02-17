@@ -14,13 +14,14 @@ software, you'll soon be sending bundles to Mars and beyond.
 <h2> What is Disruption Tolerant Networking? </h2>
 
 <p> The protocols that govern the way computers talk on the Internet
-largely assume that there are reliable low latentcy connections
+largely assume that there are reliable low latency connections
 between any two points on the net. But several applications where we'd
 like to get the benefits of computer networking do not conform to that
 assumption. For instance, when NASA sends an instruction to a Mars
-Rover, there are both latentcy (speed of light delay) and disruption
+Rover, there are both latency (speed of light delay) and disruption
 problems (no line of sight from Earth to Mars because the rover is on
-the back side of Mars right now). Another example is the challenge of
+the back side of Mars right now, or it is the weather is bad at the
+receiving station). Another example is the challenge of
 getting the benefits of the Internet to a villiage in a developing
 nation. Traditional
 telecommunications technology cannot reach it cost-effectively, but a guy
@@ -56,6 +57,24 @@ Project</a>, to Swedish Lapland  as part of the
 <a href="http://www.n4c.eu/">N4C</a> project, and we
 hope to see it deployed to many other environments that need to
 benefits of a DTN.
+
+<h2> What protocols does DTN2 implement? </h2>
+
+<p>
+DTN2 primarily implements The DTN Bundle Protocol defined in the experimental 
+specification <a href="http://www.rfc-editor.org/rfc/rfc5050.txt">RFC 5050</a>. 
+An RFC 5050-based DTN transmits data in the form of <i>bundles</i> that may be 
+much larger 
+than typical packets transmitted on IP networks.  DTN2 also optionally supports 
+the Bundle Security Protocol to provide authentication and/or integrity 
+protection for transmitted bundles if required by the application.  Bundles 
+can be transmitted over either over (IP) transport layers or various link layers
+including Ethernet and Bluetooth.  DTN2 implements a number of <i>convergence
+layers</i> that interface between the Bundle Protocol and the transports.  DTN2
+also provides a number of routing mechanisms to direct the forwarding of 
+bundles to their intended destinations including a <i>static</i> routing
+scheme based on pre-configured routes and <i>epidemic</i> routing which 
+floods bundles to any node it encounters.
 
 <h2> What happened to DTN1? </h2>
 
