@@ -458,15 +458,16 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         size_t segment_len = ack_len - incoming->acked_length_;
         (void)segment_len;
 
+    	if (ack_len > rcvd_bytes) {
+	    log_debug("send_pending_acks: "
+	      	  "waiting to send ack length %zu for %zu byte segment "
+	      	  "since only received %zu",
+	          ack_len, segment_len, rcvd_bytes);
+	    break;
+        }
+
 	if(params->segment_ack_enabled_)
-        {        
-            if (ack_len > rcvd_bytes) {
-                log_debug("send_pending_acks: "
-                      "waiting to send ack length %zu for %zu byte segment "
-                      "since only received %zu",
-                      ack_len, segment_len, rcvd_bytes);
-                break;
-            }
+        {       
 
             // make sure we have space in the send buffer
             size_t encoding_len = 1 + SDNV::encoding_len(ack_len);
