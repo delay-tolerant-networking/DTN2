@@ -2884,7 +2884,7 @@ AC_DEFUN(AC_CONFIG_TCLREADLINE, [
     dnl
     dnl Now check for an installation of libreadline (except on Cygwin)
     dnl
-    if test $BUILD_SYSTEM = 'CYGWIN' ; then
+    if test "$BUILD_SYSTEM" = 'CYGWIN' ; then
         TCLREADLINE_ENABLED=0
     else 
     dnl	

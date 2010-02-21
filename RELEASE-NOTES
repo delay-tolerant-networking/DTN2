@@ -1,6 +1,48 @@
 Release Notes for DTN2
 ----------------------
 
+2.7.0 (February 2010)
+-----------------
+
+- Additions and updates to the DTN2 documentation (Please
+  see DTN2/doc/manual/index.html). Documentation and examples provided
+  for configuration file and command line options, arguments and syntax
+  for routing protocols and algorithms, storage back ends, CLAs, link,
+  interface, discovery, logging and debug parameters.
+
+- Additions and updates to the tcl commands for link, storage, bundle, route,
+  discovery, and interface to provide detail on available options
+  and arguments and syntax when help is requested.
+
+- Various other minor updates and bugfixes including Ubuntu 9.10
+  (karmic) compatibility and compensate for lack of "hyper" type in xdr.
+
+- Change of build to stop creation of oasys-->../oasys symlinks which
+  lead to recursion within oasys (i.e. /oasys/include/oasys/include/oasy..n 
+  & oasys/share/oasys/share/oa..n).
+
+- Provide more searches and feedback during build. 
+
+- Support for 64-bit creation time, sequence number, and expiration time.
+
+- Addition of dtnsource and dtnsink stress-test programs. 
+
+- A NORM convergence layer (experimental) requires the NORM protocol 
+  implementation from NRL see the installation doc 
+
+- A LTP convergence layer requires the LTPlib protocol implementation 
+  from Trinity College Dublin see the installation doc 
+
+- Added code to check if TCP Convergence Layer needs to send/receive ACKS.
+  Fix of issue related to sending bundles that are larger than the link 
+  MTU from ION to DTN2
+
+- servlib/bundling/BundleDaemon.cc::event_handlers_completed: Correct sanity checking.
+
+- Fix PrOPHET problems: dtnping does not reply & dtnd segfaults after a while
+
+- DTNPerf 2.6 release.
+
 2.6.0 (July 2008)
 -----------------
 
