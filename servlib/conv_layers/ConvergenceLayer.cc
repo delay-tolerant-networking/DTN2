@@ -28,6 +28,7 @@
 #include "UDPConvergenceLayer.h"
 #include "NORMConvergenceLayer.h"
 #include "LTPConvergenceLayer.h"
+#include "AX25CMConvergenceLayer.h"
 
 #include "bundling/BundleDaemon.h"
 
@@ -67,6 +68,9 @@ ConvergenceLayer::init_clayers()
 #endif
 #ifdef LTP_ENABLED
     add_clayer(new LTPConvergenceLayer());
+#endif
+#ifdef OASYS_AX25_ENABLED
+	add_clayer(new AX25CMConvergenceLayer());
 #endif
     // XXX/demmer fixme
     //add_clayer("file", new FileConvergenceLayer());

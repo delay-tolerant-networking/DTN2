@@ -69,6 +69,7 @@ CONTACT_SRCS :=					\
 	contacts/ScheduledLink.cc		\
 
 CONV_LAYER_SRCS :=				\
+	conv_layers/AX25CMConvergenceLayer.cc \
 	conv_layers/BluetoothConvergenceLayer.cc  \
 	conv_layers/ConnectionConvergenceLayer.cc \
 	conv_layers/CLConnection.cc 		\
@@ -78,6 +79,7 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/IPConvergenceLayer.cc	\
 	conv_layers/IPConvergenceLayerUtils.cc	\
 	conv_layers/NullConvergenceLayer.cc	\
+	conv_layers/SeqpacketConvergenceLayer.cc \
 	conv_layers/SerialConvergenceLayer.cc   \
 	conv_layers/StreamConvergenceLayer.cc   \
 	conv_layers/TCPConvergenceLayer.cc	\
