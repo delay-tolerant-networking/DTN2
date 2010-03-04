@@ -124,12 +124,23 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
         return false;
     }
 
+#ifdef LTP_ENABLED
+	// XXXSF: The MTU check makes no sense for LTP where MTU relates to 
+	// segment size and not bundle size. However, the UDP CL does need 
+	// this and perhaps others, so I shouldn't move it just yet. But
+	// properly speaking I think this should be a CL specific check to
+	// make or not make -- Stephen Farrell
+	if(link->clayer()->name()=="ltp") {
+#endif
     if ((link->params().mtu_ != 0) && (total_len > link->params().mtu_)) {
         log_err("queue bundle *%p on %s link %s (%s): length %zu > mtu %u",
                 bundle, link->type_str(), link->name(), link->nexthop(),
                 total_len, link->params().mtu_);
         return false;
     }
+#ifdef LTP_ENABLED
+	}
+#endif
 
     // Make sure that the bundle isn't unexpectedly already on the
     // queue or in flight on the link
