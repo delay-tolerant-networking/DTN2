@@ -1,5 +1,15 @@
-#!/bin/bash
-#
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          dtnd
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Delay-Tolerant Network server
+### END INIT INFO
+#/etc/init.d/dtnd
+# Modified by: Francesco Vollero <raven@lilik.it>
+
 # dtnd		Start the DTN daemon
 #
 # The variables below are NOT to be changed.  They are there to make the
@@ -31,35 +41,35 @@ should_start() {
 
 case "$1" in
   start)
-    echo -n "Starting DTN daemon..."
+    echo "Starting DTN daemon..."
     should_start
     $SSD $SSDARGS --start -- $ARGS
     ;;
 
   start_tidy)
     should_start
-    echo -n "Starting DTN daemon (tidy mode)..."
+    echo "Starting DTN daemon (tidy mode)..."
     $SSD $SSDARGS --start -- $ARGS -t
     ;;
 
   stop)
-    echo -n "Stopping DTN daemon..."
+    echo "Stopping DTN daemon..."
     $CONTROL stop || true
-    echo -n "Making sure DTN daemon stops..."
+    echo "Making sure DTN daemon stops..."
     $SSD $SSDARGS --stop || true
     ;;
 
   restart)
-    echo -n "Stopping DTN daemon..."
+    echo "Stopping DTN daemon..."
     $CONTROL stop || true
-    echo -n "Making sure DTN daemon stops..."
+    echo "Making sure DTN daemon stops..."
     $SSD $SSDARGS --stop || true
-    echo -n "Restarting DTN daemon..."
+    echo "Restarting DTN daemon..."
     $SSD $SSDARGS --start -- $ARGS
     ;;
 
   logrotate)
-    echo -n "Rotating logs for DTN daemon..."
+    echo "Rotating logs for DTN daemon..."
     $CONTROL logrotate
     ;;
 
