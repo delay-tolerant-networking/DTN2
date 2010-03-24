@@ -30,6 +30,7 @@
 #endif
 
 #include <sys/poll.h>
+#include <time.h>
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/thread/Timer.h>
@@ -650,7 +651,13 @@ void LTPConvergenceLayer::Receiver::run() {
 		ltpaddr from;
 		ltpaddr_len fromlen;
 		ret=ltp_recvfrom(s_sock,buf,rxbufsize,flags,(ltpaddr*)&from,(ltpaddr_len*)&fromlen);
-        if (ret < 0) {
+		if (ret==0) {
+			struct timespec	ts,ts1;
+			memset(&ts,0,sizeof(ts));
+			memset(&ts1,0,sizeof(ts));
+			ts.tv_nsec=1000*1000*20;  // 20ms
+			nanosleep(&ts,&ts1);
+		} else if (ret < 0) {
             if (errno == EINTR) {
                 continue;
           	}
