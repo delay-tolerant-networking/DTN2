@@ -92,6 +92,9 @@ typedef u_int dtn_timeval_t;
 #elif defined(HAVE_XDR_U_INT64_T)
  #define u_hyper u_int64_t
  #define xdr_u_hyper_t xdr_u_int64_t
+#else
+ #define u_hyper u_quad_t
+ #define xdr_u_hyper_t xdr_u_quad_t
 #endif
 
 struct dtn_timestamp_t {
