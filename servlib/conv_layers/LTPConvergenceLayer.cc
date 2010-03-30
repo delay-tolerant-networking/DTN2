@@ -659,9 +659,41 @@ void LTPConvergenceLayer::Receiver::run() {
 			nanosleep(&ts,&ts1);
 		} else if (ret < 0) {
             if (errno == EINTR) {
+				struct timespec	ts,ts1;
+				memset(&ts,0,sizeof(ts));
+				memset(&ts1,0,sizeof(ts));
+				ts.tv_nsec=1000*1000*20;  // 20ms
+				nanosleep(&ts,&ts1);
                 continue;
           	}
-			if (ret == -1 ) { // special case
+			if (ret == -1 ) { // special case - close the socket and get another
+				struct timespec	ts,ts1;
+				memset(&ts,0,sizeof(ts));
+				memset(&ts1,0,sizeof(ts));
+				ts.tv_nsec=1000*1000*20;  // 20ms
+				nanosleep(&ts,&ts1);
+				log_info("LTP Rx: closing/opening socket - returned from ltp_recvfrom()");
+				ltp_close(s_sock);
+				s_sock=ltp_socket(AF_LTP,SOCK_LTP_SESSION,0);
+				if (!s_sock) {
+					return;
+				}
+				// if the params mtu is set to other than zero then pass it on
+				if (lmtu > 0 ) {
+					log_debug("LTP Rx: setting LTP mtu to %d",lmtu);
+					rv=ltp_setsockopt(s_sock,SOL_SOCKET,LTP_SO_L2MTU,&lmtu,sizeof(lmtu));
+					if (rv) {
+						log_err("LTP ltp_setsockopt for SO_L2MTU failed.\n");
+						return;
+					}
+				} else {
+					log_debug("LTP Rx: not setting LTP mtu 'cause its %d",lmtu);
+				}
+				rv=ltp_bind(s_sock,&listener,sizeof(ltpaddr));
+				if (rv) { 
+					ltp_close(s_sock); 
+					return;
+				} 
 				continue;
 			}
 			size_t nbsz=(-1*ret);
