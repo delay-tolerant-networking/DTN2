@@ -23,10 +23,10 @@
 #include "Ciphersuite.h"
 #include "BA_BlockProcessor.h"
 #include "Ciphersuite_BA1.h"
-#include "PS_BlockProcessor.h"
-#include "Ciphersuite_PS2.h"
-#include "C_BlockProcessor.h"
-#include "Ciphersuite_C3.h"
+#include "PI_BlockProcessor.h"
+#include "Ciphersuite_PI2.h"
+#include "PC_BlockProcessor.h"
+#include "Ciphersuite_PC3.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
@@ -90,13 +90,13 @@ Ciphersuite::init_default_ciphersuites()
     if ( ! inited ) {
         // register default block processor handlers
         BundleProtocol::register_processor(new BA_BlockProcessor());
-        BundleProtocol::register_processor(new PS_BlockProcessor());
-        BundleProtocol::register_processor(new C_BlockProcessor());
+        BundleProtocol::register_processor(new PI_BlockProcessor());
+        BundleProtocol::register_processor(new PC_BlockProcessor());
         
         // register mandatory ciphersuites
         register_ciphersuite(new Ciphersuite_BA1());
-        register_ciphersuite(new Ciphersuite_PS2());
-        register_ciphersuite(new Ciphersuite_C3());
+        register_ciphersuite(new Ciphersuite_PI2());
+        register_ciphersuite(new Ciphersuite_PC3());
         
         inited = true;
     }

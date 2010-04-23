@@ -20,7 +20,7 @@
 
 #ifdef BSP_ENABLED
 
-#include "C_BlockProcessor.h"
+#include "PC_BlockProcessor.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
@@ -32,14 +32,14 @@ namespace dtn {
 static const char * log = "/dtn/bundle/ciphersuite";
 
 //----------------------------------------------------------------------
-C_BlockProcessor::C_BlockProcessor()
+PC_BlockProcessor::PC_BlockProcessor()
     : BlockProcessor(BundleProtocol::CONFIDENTIALITY_BLOCK)
 {
 }
 
 //----------------------------------------------------------------------
 int
-C_BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
+PC_BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
                           u_char* buf, size_t len)
 {
     int cc = BlockProcessor::consume(bundle, block, buf, len);
@@ -65,7 +65,7 @@ C_BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
 
 //----------------------------------------------------------------------
 int
-C_BlockProcessor::reload_post_process(Bundle*       bundle,
+PC_BlockProcessor::reload_post_process(Bundle*       bundle,
                                       BlockInfoVec* block_list,
                                       BlockInfo*    block)
 {
@@ -84,7 +84,7 @@ C_BlockProcessor::reload_post_process(Bundle*       bundle,
         return 0;
         
     type = block->type();
-    log_debug_p(log, "C_BlockProcessor::reload block type %d", type);
+    log_debug_p(log, "PC_BlockProcessor::reload block type %d", type);
     
     Ciphersuite::parse(block);
     locals = dynamic_cast<BP_Local_CS*>(block->locals());
@@ -105,7 +105,7 @@ C_BlockProcessor::reload_post_process(Bundle*       bundle,
 
 //----------------------------------------------------------------------
 bool
-C_BlockProcessor::validate(const Bundle*           bundle,
+PC_BlockProcessor::validate(const Bundle*           bundle,
                            BlockInfoVec*           block_list,
                            BlockInfo*              block,
                            status_report_reason_t* reception_reason,
@@ -126,7 +126,7 @@ C_BlockProcessor::validate(const Bundle*           bundle,
     CS_FAIL_IF_NULL(locals);
 
 
-    log_debug_p(log, "C_BlockProcessor::validate() %p ciphersuite %d",
+    log_debug_p(log, "PC_BlockProcessor::validate() %p ciphersuite %d",
                 block, locals->owner_cs_num());
     cs_flags = locals->cs_flags();
     
@@ -139,7 +139,7 @@ C_BlockProcessor::validate(const Bundle*           bundle,
                                  reception_reason, deletion_reason);
             return result;
         } else {
-            log_err_p(log, "block failed security validation C_BlockProcessor");
+            log_err_p(log, "block failed security validation PC_BlockProcessor");
             *deletion_reason = BundleProtocol::REASON_SECURITY_FAILED;
             return false;
         }
@@ -160,7 +160,7 @@ C_BlockProcessor::validate(const Bundle*           bundle,
 
 //----------------------------------------------------------------------
 int
-C_BlockProcessor::prepare(const Bundle*    bundle,
+PC_BlockProcessor::prepare(const Bundle*    bundle,
                           BlockInfoVec*    xmit_blocks,
                           const BlockInfo* source,
                           const LinkRef&   link,
@@ -190,7 +190,7 @@ C_BlockProcessor::prepare(const Bundle*    bundle,
         xmit_blocks->push_back(BlockInfo(this, source));
         BlockInfo* bp = &(xmit_blocks->back());
         bp->set_eid_list(source->eid_list());
-        log_debug_p(log, "C_BlockProcessor::prepare() - forward received block len %u",
+        log_debug_p(log, "PC_BlockProcessor::prepare() - forward received block len %u",
                     source->full_length());
         
 
@@ -211,7 +211,7 @@ C_BlockProcessor::prepare(const Bundle*    bundle,
             ASSERT(source_locals->security_src().length() > 0 );
             cs_flags |= Ciphersuite::CS_BLOCK_HAS_SOURCE;
             locals->set_security_src(source_locals->security_src());
-            log_debug_p(log, "C_BlockProcessor::prepare() add security_src EID %s", 
+            log_debug_p(log, "PC_BlockProcessor::prepare() add security_src EID %s", 
                         source_locals->security_src().c_str());
         }
         
@@ -219,11 +219,11 @@ C_BlockProcessor::prepare(const Bundle*    bundle,
             ASSERT(source_locals->security_dest().length() > 0 );
             cs_flags |= Ciphersuite::CS_BLOCK_HAS_DEST;
             locals->set_security_dest(source_locals->security_dest());
-            log_debug_p(log, "C_BlockProcessor::prepare() add security_dest EID %s",
+            log_debug_p(log, "PC_BlockProcessor::prepare() add security_dest EID %s",
                         source_locals->security_dest().c_str());
         }
         locals->set_cs_flags(cs_flags);
-        log_debug_p(log, "C_BlockProcessor::prepare() - inserted block eid_list_count %zu",
+        log_debug_p(log, "PC_BlockProcessor::prepare() - inserted block eid_list_count %zu",
                     bp->eid_list().size());
         result = BP_SUCCESS;
     } else {
@@ -234,7 +234,7 @@ C_BlockProcessor::prepare(const Bundle*    bundle,
             if ( p != NULL ) {
                 result = p->prepare(bundle, xmit_blocks, source, link, list);
             } else {
-                log_err_p(log, "C_BlockProcessor::prepare() - ciphersuite %d is missing",
+                log_err_p(log, "PC_BlockProcessor::prepare() - ciphersuite %d is missing",
                           source_locals->owner_cs_num());
             }
         }  // no msg if "source" is NULL, as BundleProtocol calls all BPs that way once
@@ -249,7 +249,7 @@ C_BlockProcessor::prepare(const Bundle*    bundle,
 
 //----------------------------------------------------------------------
 int
-C_BlockProcessor::generate(const Bundle*  bundle,
+PC_BlockProcessor::generate(const Bundle*  bundle,
                            BlockInfoVec*  xmit_blocks,
                            BlockInfo*     block,
                            const LinkRef& link,
@@ -261,7 +261,7 @@ C_BlockProcessor::generate(const Bundle*  bundle,
 
     Ciphersuite*    p = NULL;
     int             result = BP_FAIL;
-    log_debug_p(log, "C_BlockProcessor::generate()");
+    log_debug_p(log, "PC_BlockProcessor::generate()");
     
     BP_Local_CS*    locals = dynamic_cast<BP_Local_CS*>(block->locals());
     CS_FAIL_IF_NULL(locals);
@@ -297,7 +297,7 @@ C_BlockProcessor::generate(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 int
-C_BlockProcessor::finalize(const Bundle*  bundle, 
+PC_BlockProcessor::finalize(const Bundle*  bundle, 
                            BlockInfoVec*  xmit_blocks,
                            BlockInfo*     block, 
                            const LinkRef& link)
@@ -309,7 +309,7 @@ C_BlockProcessor::finalize(const Bundle*  bundle,
     
     Ciphersuite*    p = NULL;
     int             result = BP_FAIL;
-    log_debug_p(log, "C_BlockProcessor::finalize()");
+    log_debug_p(log, "PC_BlockProcessor::finalize()");
     
     BP_Local_CS*    locals = dynamic_cast<BP_Local_CS*>(block->locals());
     CS_FAIL_IF_NULL(locals);

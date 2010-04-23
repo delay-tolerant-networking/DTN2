@@ -20,7 +20,7 @@
 
 #ifdef BSP_ENABLED
 
-#include "Ciphersuite_C3.h"
+#include "Ciphersuite_PC3.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
@@ -35,23 +35,23 @@ namespace dtn {
 static const char * log = "/dtn/bundle/ciphersuite";
 
 //----------------------------------------------------------------------
-Ciphersuite_C3::Ciphersuite_C3()
+Ciphersuite_PC3::Ciphersuite_PC3()
 {
 }
 
 //----------------------------------------------------------------------
 u_int16_t
-Ciphersuite_C3::cs_num(void)
+Ciphersuite_PC3::cs_num(void)
 {
-    return CSNUM_C3;
+    return CSNUM_PC3;
 }
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_C3::consume(Bundle* bundle, BlockInfo* block,
+Ciphersuite_PC3::consume(Bundle* bundle, BlockInfo* block,
                         u_char* buf, size_t len)
 {
-    log_debug_p(log, "Ciphersuite_C3::consume()");
+    log_debug_p(log, "Ciphersuite_PC3::consume()");
     int cc = block->owner()->consume(bundle, block, buf, len);
 
     if (cc == -1) {
@@ -75,7 +75,7 @@ Ciphersuite_C3::consume(Bundle* bundle, BlockInfo* block,
 
 //----------------------------------------------------------------------
 bool
-Ciphersuite_C3::validate(const Bundle*           bundle,
+Ciphersuite_PC3::validate(const Bundle*           bundle,
                          BlockInfoVec*           block_list,
                          BlockInfo*              block,
                          status_report_reason_t* reception_reason,
@@ -119,7 +119,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
     ret_type        ret = 0;
     DataBuffer      db;
      
-    log_debug_p(log, "Ciphersuite_C3::validate() %p", block);
+    log_debug_p(log, "Ciphersuite_PC3::validate() %p", block);
     CS_FAIL_IF_NULL(locals);
     cs_flags = locals->cs_flags();
     
@@ -138,8 +138,8 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
         buf = locals->security_params().buf();
         len = locals->security_params().len();
         
-        log_debug_p(log, "Ciphersuite_C3::validate() locals->correlator() 0x%llx", U64FMT(locals->correlator()));
-        log_debug_p(log, "Ciphersuite_C3::validate() security params, len = %zu", len);
+        log_debug_p(log, "Ciphersuite_PC3::validate() locals->correlator() 0x%llx", U64FMT(locals->correlator()));
+        log_debug_p(log, "Ciphersuite_PC3::validate() security params, len = %zu", len);
         while ( len > 0 ) {
             item_type = *buf++;
             --len;
@@ -150,7 +150,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
             switch ( item_type ) {
             case CS_IV_field: 
             {
-                log_debug_p(log, "Ciphersuite_C3::validate() iv item, len = %llu", U64FMT(field_length));
+                log_debug_p(log, "Ciphersuite_PC3::validate() iv item, len = %llu", U64FMT(field_length));
                 memcpy(iv, buf, iv_len);
                 buf += field_length;
                 len -= field_length;
@@ -159,7 +159,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     
             case CS_C_block_salt:
             {
-                log_debug_p(log, "Ciphersuite_C3::validate() salt item, len = %llu", U64FMT(field_length));
+                log_debug_p(log, "Ciphersuite_PC3::validate() salt item, len = %llu", U64FMT(field_length));
                 memcpy(salt, buf, nonce_len - iv_len);
                 buf += field_length;
                 len -= field_length;
@@ -168,7 +168,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     
             case CS_fragment_offset_and_length_field:
             {
-                log_debug_p(log, "Ciphersuite_C3::validate() frag info item, len = %llu", U64FMT(field_length));
+                log_debug_p(log, "Ciphersuite_PC3::validate() frag info item, len = %llu", U64FMT(field_length));
                 sdnv_len = SDNV::decode(buf, len, &frag_offset_);
                 buf += sdnv_len;
                 len -= sdnv_len;
@@ -179,7 +179,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
             break;
                     
             default:    // deal with improper items
-                log_err_p(log, "Ciphersuite_C3::validate: unexpected item type %d in security_params",
+                log_err_p(log, "Ciphersuite_PC3::validate: unexpected item type %d in security_params",
                           item_type);
                 goto fail;
             }
@@ -189,7 +189,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
         buf = locals->security_result().buf();
         len = locals->security_result().len();
         
-        log_debug_p(log, "Ciphersuite_C3::validate() security result, len = %zu", len);
+        log_debug_p(log, "Ciphersuite_PC3::validate() security result, len = %zu", len);
         while ( len > 0 ) {
             item_type = *buf++;
             --len;
@@ -200,7 +200,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
             switch ( item_type ) {
             case CS_key_ID_field: 
             {
-                log_debug_p(log, "Ciphersuite_C3::validate() key ID item");
+                log_debug_p(log, "Ciphersuite_PC3::validate() key ID item");
                 // not sure what this looks like
                 buf += field_length;
                 len -= field_length;
@@ -209,10 +209,10 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     
             case CS_encoded_key_field:
             {
-                log_debug_p(log, "Ciphersuite_C3::validate() encoded key item");
+                log_debug_p(log, "Ciphersuite_PC3::validate() encoded key item");
                 KeySteward::decrypt(bundle, locals->security_src(), buf, field_length, db);
                 memcpy(key, db.buf(), key_len);
-                log_debug_p(log, "Ciphersuite_C3::validate() key      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+                log_debug_p(log, "Ciphersuite_PC3::validate() key      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                             key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7], 
                             key[8], key[9], key[10], key[11], key[12], key[13], key[14], key[15]);
                 buf += field_length;
@@ -222,7 +222,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     
             case CS_C_block_ICV_field:
             {
-                log_debug_p(log, "Ciphersuite_C3::validate() icv item");
+                log_debug_p(log, "Ciphersuite_PC3::validate() icv item");
                 memcpy(tag, buf, tag_len);
                 buf += field_length;
                 len -= field_length;
@@ -233,13 +233,13 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
             {
                 // don't think we should have one of these here,
                 // only in the correlated blocks
-                log_err_p(log, "Ciphersuite_C3::validate: unexpected encap block in security_result");
+                log_err_p(log, "Ciphersuite_PC3::validate: unexpected encap block in security_result");
                 goto fail;
             }
             break;
                     
             default:    // deal with improper items
-                log_err_p(log, "Ciphersuite_C3::validate: unexpected item type %d in security_result",
+                log_err_p(log, "Ciphersuite_PC3::validate: unexpected item type %d in security_result",
                           item_type);
                 goto fail;
             }
@@ -254,7 +254,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
         // First is to get the iterator to where we are (see note in "generate()"
         // for why we do this)
         
-        log_debug_p(log, "Ciphersuite_C3::validate() walk block list");
+        log_debug_p(log, "Ciphersuite_PC3::validate() walk block list");
         for (BlockInfoVec::iterator iter = block_list->begin();
              iter != block_list->end();
              ++iter)
@@ -270,14 +270,14 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 
             case BundleProtocol::CONFIDENTIALITY_BLOCK:
             {
-                log_debug_p(log, "Ciphersuite_C3::validate() C block %p", &*iter);
+                log_debug_p(log, "Ciphersuite_PC3::validate() C block %p", &*iter);
                 BlockInfo::DataBuffer    encap_block;
                 CS_FAIL_IF_NULL(target_locals);
                 // even though this isn't our block, the value will have
                 // been set when the block was finished being received
                 // (in Ciphersuite::parse)
-                log_debug_p(log, "Ciphersuite_C3::validate() C block owner_cs_num %d", target_locals->owner_cs_num());
-                if ( target_locals->owner_cs_num() != CSNUM_C3 )  
+                log_debug_p(log, "Ciphersuite_PC3::validate() C block owner_cs_num %d", target_locals->owner_cs_num());
+                if ( target_locals->owner_cs_num() != CSNUM_PC3 )  
                     continue;        // only decapsulate C3
                       
                 // it's a C3 block but make sure we own it -- does the
@@ -290,7 +290,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 buf = target_locals->security_params().buf();
                 len = target_locals->security_params().len();
                     
-                log_debug_p(log, "Ciphersuite_C3::validate() target security params, len = %zu", len);
+                log_debug_p(log, "Ciphersuite_PC3::validate() target security params, len = %zu", len);
                 while ( len > 0 ) {
                     item_type = *buf++;
                     --len;
@@ -301,7 +301,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     switch ( item_type ) {
                     case CS_IV_field: 
                     {
-                        log_debug_p(log, "Ciphersuite_C3::validate() target iv item, len = %llu", U64FMT(field_length));
+                        log_debug_p(log, "Ciphersuite_PC3::validate() target iv item, len = %llu", U64FMT(field_length));
                         memcpy(target_iv, buf, iv_len);
                         buf += field_length;
                         len -= field_length;
@@ -309,7 +309,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     break;
                                 
                     default:    // deal with improper items
-                        log_err_p(log, "Ciphersuite_C3::validate: unexpected item type %d in target security_params",
+                        log_err_p(log, "Ciphersuite_PC3::validate: unexpected item type %d in target security_params",
                                   item_type);
                         goto fail;
                     }
@@ -318,7 +318,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 buf = target_locals->security_result().buf();
                 len = target_locals->security_result().len();
                     
-                log_debug_p(log, "Ciphersuite_C3::validate() target security result, len = %zu", len);
+                log_debug_p(log, "Ciphersuite_PC3::validate() target security result, len = %zu", len);
                 while ( len > 0 ) {
                     item_type = *buf++;
                     --len;
@@ -331,7 +331,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     switch ( item_type ) {
                     case CS_C_block_ICV_field: 
                     {
-                        log_debug_p(log, "Ciphersuite_C3::validate() target icv item, len = %llu", U64FMT(field_length));
+                        log_debug_p(log, "Ciphersuite_PC3::validate() target icv item, len = %llu", U64FMT(field_length));
                         memcpy(tag_encap, buf, tag_len);
                         buf += field_length;
                         len -= field_length;
@@ -340,7 +340,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                                 
                     case CS_encap_block_field: 
                     {
-                        log_debug_p(log, "Ciphersuite_C3::validate() encap block item, len = %llu", U64FMT(field_length));
+                        log_debug_p(log, "Ciphersuite_PC3::validate() encap block item, len = %llu", U64FMT(field_length));
                         encap_block.reserve(field_length);
                         encap_block.set_len(field_length);
                         memcpy(encap_block.buf(), buf, field_length);
@@ -350,7 +350,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     break;
                                 
                     default:    // deal with improper items
-                        log_err_p(log, "Ciphersuite_C3::validate: unexpected item type %d in target security_result",
+                        log_err_p(log, "Ciphersuite_PC3::validate: unexpected item type %d in target security_result",
                                   item_type);
                         goto fail;
                     }
@@ -382,7 +382,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     
                 // check return value that the block was OK
                 if ( ret != 0 ) {
-                    log_err_p(log, "Ciphersuite_C3::validate: gcm_decrypt_message failed, ret = %d", ret);
+                    log_err_p(log, "Ciphersuite_PC3::validate: gcm_decrypt_message failed, ret = %d", ret);
                     goto fail;
                 }
                     
@@ -425,7 +425,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 sdnv_len = SDNV::decode(data, len, &flags);        // block processing flags (SDNV)
                 data += sdnv_len;
                 len -= sdnv_len;
-                log_debug_p(log, "Ciphersuite_C3::validate() target block type %hhu flags 0x%llx", *(preamble.buf()), U64FMT(flags));
+                log_debug_p(log, "Ciphersuite_PC3::validate() target block type %hhu flags 0x%llx", *(preamble.buf()), U64FMT(flags));
                 // Also see if there are EID refs, and if there will be any in 
                 // the resultant block
                     
@@ -438,7 +438,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     current_eid_count = iter->eid_list().size();
                         
                     if ( eid_ref_count != current_eid_count ) {
-                        log_err_p(log, "Ciphersuite_C3::validate: eid_ref_count %lld  != current_eid_count %lld", 
+                        log_err_p(log, "Ciphersuite_PC3::validate: eid_ref_count %lld  != current_eid_count %lld", 
                                   U64FMT(eid_ref_count), U64FMT(current_eid_count));
                         goto fail;        // block is broken somehow
                     }
@@ -455,7 +455,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 sdnv_len = SDNV::decode(data, len, &content_length);
                 data += sdnv_len;
                 len -= sdnv_len;
-                log_debug_p(log, "Ciphersuite_C3::validate() target data content size %llu", U64FMT(content_length));
+                log_debug_p(log, "Ciphersuite_PC3::validate() target data content size %llu", U64FMT(content_length));
 
                 // fix up last-block flag
                 // this probably isn't the last block, but who knows ? :)
@@ -485,7 +485,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     cur_len -= sdnv_len;
                         
                     // put eid_count into the adjusted block
-                    log_debug_p(log, "Ciphersuite_C3::validate() eid_ref_count %lld", U64FMT(eid_ref_count));
+                    log_debug_p(log, "Ciphersuite_PC3::validate() eid_ref_count %lld", U64FMT(eid_ref_count));
                     sdnv_len = SDNV::encode(eid_ref_count, ptr, rem);
                     ptr += sdnv_len;
                     rem -= sdnv_len;
@@ -509,7 +509,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 // we now have a preamble in "preamble" and the rest of the data at *data
                 size_t    preamble_size = ptr - preamble.buf();
                 preamble.set_len(preamble_size);
-                log_debug_p(log, "Ciphersuite_C3::validate() target preamble_size %zu", preamble_size);
+                log_debug_p(log, "Ciphersuite_PC3::validate() target preamble_size %zu", preamble_size);
                     
                      
                 {
@@ -521,36 +521,36 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                      * in a more devious fashion using placement-new. 
                      */
                         
-                    log_debug_p(log, "Ciphersuite_C3::validate() re-init target");
+                    log_debug_p(log, "Ciphersuite_PC3::validate() re-init target");
                     BlockInfo* bp = &*iter;
                     bp = new (bp) BlockInfo(BundleProtocol::find_processor(*(preamble.buf())));
                     CS_FAIL_IF_NULL(bp);
                 }
                     
                 // process preamble
-                log_debug_p(log, "Ciphersuite_C3::validate() process target preamble");
+                log_debug_p(log, "Ciphersuite_PC3::validate() process target preamble");
                 int cc = iter->owner()->consume(deliberate_const_cast_bundle, &*iter, preamble.buf(), preamble_size);
                 if (cc < 0) {
-                    log_err_p(log, "Ciphersuite_C3::validate: consume failed handling encapsulated preamble 0x%x, cc = %d",
+                    log_err_p(log, "Ciphersuite_PC3::validate: consume failed handling encapsulated preamble 0x%x, cc = %d",
                               info.type(), cc);
                     goto fail;
                 }
                     
                 // process the main part of the encapsulated block
-                log_debug_p(log, "Ciphersuite_C3::validate() process target content");
+                log_debug_p(log, "Ciphersuite_PC3::validate() process target content");
                 cc = iter->owner()->consume(deliberate_const_cast_bundle, &*iter, data, len);
                 if (cc < 0) {
-                    log_err_p(log, "Ciphersuite_C3::validate: consume failed handling encapsulated block 0x%x, cc = %d",
+                    log_err_p(log, "Ciphersuite_PC3::validate: consume failed handling encapsulated block 0x%x, cc = %d",
                               info.type(), cc);
                     goto fail;
                 }
-                log_debug_p(log, "Ciphersuite_C3::validate() decapsulation done");
+                log_debug_p(log, "Ciphersuite_PC3::validate() decapsulation done");
             }
             break;
                     
             case BundleProtocol::PAYLOAD_BLOCK: 
             {
-                log_debug_p(log, "Ciphersuite_C3::validate() PAYLOAD_BLOCK");
+                log_debug_p(log, "Ciphersuite_PC3::validate() PAYLOAD_BLOCK");
                 u_char          tag_calc[tag_len];
                 // nonce is 12 bytes, first 4 are salt (same for all blocks)
                 // and last 8 bytes are per-block IV. The final 4 bytes in
@@ -561,7 +561,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 memcpy(ptr, salt, salt_len);
                 ptr += salt_len;
                 memcpy(ptr, iv, iv_len);
-                log_debug_p(log, "Ciphersuite_C3::validate() nonce    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+                log_debug_p(log, "Ciphersuite_PC3::validate() nonce    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                             nonce[0], nonce[1], nonce[2], nonce[3], nonce[4], nonce[5], nonce[6], nonce[7], nonce[8], nonce[9], nonce[10], nonce[11]);
                     
                 // prepare context
@@ -571,7 +571,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 len = iter->data_length();
 
                 changed =
-                    iter->owner()->mutate( Ciphersuite_C3::do_crypt,
+                    iter->owner()->mutate( Ciphersuite_PC3::do_crypt,
                                            deliberate_const_cast_bundle,
                                            block,
                                            &*iter,
@@ -581,13 +581,13 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                 
                 // collect the tag (icv) from the context
                 gcm_compute_tag( tag_calc, tag_len, &(ctx_ex.c) );
-                log_debug_p(log, "Ciphersuite_C3::validate() tag      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+                log_debug_p(log, "Ciphersuite_PC3::validate() tag      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                             tag[0], tag[1], tag[2], tag[3], tag[4], tag[5], tag[6], tag[7], tag[8], tag[9], tag[10], tag[11], tag[12], tag[13], tag[14], tag[15]);
-                log_debug_p(log, "Ciphersuite_C3::validate() tag_calc 0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+                log_debug_p(log, "Ciphersuite_PC3::validate() tag_calc 0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                             tag_calc[0], tag_calc[1], tag_calc[2], tag_calc[3], tag_calc[4], tag_calc[5], tag_calc[6], tag_calc[7], 
                             tag_calc[8], tag_calc[9], tag_calc[10], tag_calc[11], tag_calc[12], tag_calc[13], tag_calc[14], tag_calc[15]);
                 if (memcmp(tag, tag_calc, tag_len) != 0) {
-                    log_err_p(log, "Ciphersuite_C3::validate: tag comparison failed");
+                    log_err_p(log, "Ciphersuite_PC3::validate: tag comparison failed");
                     goto fail;
                 }
                     
@@ -599,13 +599,13 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
                     
             }    // end switch
         }        // end for
-        log_debug_p(log, "Ciphersuite_C3::validate() walk block list done");
+        log_debug_p(log, "Ciphersuite_PC3::validate() walk block list done");
         locals->set_proc_flag(CS_BLOCK_PASSED_VALIDATION |
                               CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
     } else
         locals->set_proc_flag(CS_BLOCK_DID_NOT_FAIL);   // not for here so we didn't check this block
 
-    log_debug_p(log, "Ciphersuite_C3::validate() %p done", block);
+    log_debug_p(log, "Ciphersuite_PC3::validate() %p done", block);
     return true;
 
  fail:
@@ -619,7 +619,7 @@ Ciphersuite_C3::validate(const Bundle*           bundle,
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_C3::prepare(const Bundle*    bundle,
+Ciphersuite_PC3::prepare(const Bundle*    bundle,
                         BlockInfoVec*    xmit_blocks,
                         const BlockInfo* source,
                         const LinkRef&   link,
@@ -638,7 +638,7 @@ Ciphersuite_C3::prepare(const Bundle*    bundle,
 //XXXpl - fix this test
     if ( (source != NULL)  &&
          (dynamic_cast<BP_Local_CS*>(source->locals())->security_dest() == bd->local_eid().data()) ) {
-        log_debug_p(log, "Ciphersuite_C3::prepare() - not being forwarded");
+        log_debug_p(log, "Ciphersuite_PC3::prepare() - not being forwarded");
         return BP_SUCCESS;     //it was for us so don't forward
     }
     
@@ -657,7 +657,7 @@ Ciphersuite_C3::prepare(const Bundle*    bundle,
         xmit_blocks->push_back(bi);
         BlockInfo* bp = &(xmit_blocks->back());
         bp->set_eid_list(source->eid_list());
-        log_debug_p(log, "Ciphersuite_C3::prepare() - forward received block len %u eid_list_count %zu new count %zu",
+        log_debug_p(log, "Ciphersuite_PC3::prepare() - forward received block len %u eid_list_count %zu new count %zu",
                     source->full_length(), source->eid_list().size(), bp->eid_list().size());
         
         CS_FAIL_IF_NULL( source->locals() )       // broken
@@ -667,7 +667,7 @@ Ciphersuite_C3::prepare(const Bundle*    bundle,
         bp->set_locals(new BP_Local_CS);
         locals = dynamic_cast<BP_Local_CS*>(bp->locals());
         CS_FAIL_IF_NULL(locals);
-        locals->set_owner_cs_num(CSNUM_C3);
+        locals->set_owner_cs_num(CSNUM_PC3);
         cs_flags = source_locals->cs_flags();
         locals->set_list_owner(BlockInfo::LIST_RECEIVED);
         locals->set_correlator(source_locals->correlator());
@@ -677,31 +677,31 @@ Ciphersuite_C3::prepare(const Bundle*    bundle,
         // copy security-src and -dest if they exist
         if ( source_locals->cs_flags() & CS_BLOCK_HAS_SOURCE ) {
             CS_FAIL_IF(source_locals->security_src().length() == 0 );
-            log_debug_p(log, "Ciphersuite_C3::prepare() add security_src EID");
+            log_debug_p(log, "Ciphersuite_PC3::prepare() add security_src EID");
             cs_flags |= CS_BLOCK_HAS_SOURCE;
             locals->set_security_src(source_locals->security_src());
         }
         
         if ( source_locals->cs_flags() & CS_BLOCK_HAS_DEST ) {
             CS_FAIL_IF(source_locals->security_dest().length() == 0 );
-            log_debug_p(log, "Ciphersuite_C3::prepare() add security_dest EID");
+            log_debug_p(log, "Ciphersuite_PC3::prepare() add security_dest EID");
             cs_flags |= CS_BLOCK_HAS_DEST;
             locals->set_security_dest(source_locals->security_dest());
         }
         locals->set_cs_flags(cs_flags);
-        log_debug_p(log, "Ciphersuite_C3::prepare() - inserted block eid_list_count %zu",
+        log_debug_p(log, "Ciphersuite_PC3::prepare() - inserted block eid_list_count %zu",
                     bp->eid_list().size());
         result = BP_SUCCESS;
         return result;
     } else {
 
         // initialize the block
-        log_debug_p(log, "Ciphersuite_C3::prepare() - add new block (or API block etc)");
+        log_debug_p(log, "Ciphersuite_PC3::prepare() - add new block (or API block etc)");
         bi.set_locals(new BP_Local_CS);
         CS_FAIL_IF_NULL(bi.locals());
         locals = dynamic_cast<BP_Local_CS*>(bi.locals());
         CS_FAIL_IF_NULL(locals);
-        locals->set_owner_cs_num(CSNUM_C3);
+        locals->set_owner_cs_num(CSNUM_PC3);
         locals->set_list_owner(list);
         
         // if there is a security-src and/or -dest, use it -- might be specified by API
@@ -710,20 +710,20 @@ Ciphersuite_C3::prepare(const Bundle*    bundle,
             locals->set_security_dest(dynamic_cast<BP_Local_CS*>(source->locals())->security_dest());
         }
         
-        log_debug_p(log, "Ciphersuite_C3::prepare() local_eid %s bundle->source_ %s", local_eid.c_str(), bundle->source().c_str());
+        log_debug_p(log, "Ciphersuite_PC3::prepare() local_eid %s bundle->source_ %s", local_eid.c_str(), bundle->source().c_str());
         // if not, and we didn't create the bundle, specify ourselves as sec-src
         if ( (locals->security_src().length() == 0) && (local_eid != bundle->source()))
             locals->set_security_src(local_eid.str());
         
         // if we now have one, add it to list, etc
         if ( locals->security_src().length() > 0 ) {
-            log_debug_p(log, "Ciphersuite_C3::prepare() add security_src EID %s", locals->security_src().c_str());
+            log_debug_p(log, "Ciphersuite_PC3::prepare() add security_src EID %s", locals->security_src().c_str());
             cs_flags |= CS_BLOCK_HAS_SOURCE;
             bi.add_eid(locals->security_src());
         }
         
         if ( locals->security_dest().length() > 0 ) {
-            log_debug_p(log, "Ciphersuite_C3::prepare() add security_dest EID %s", locals->security_dest().c_str());
+            log_debug_p(log, "Ciphersuite_PC3::prepare() add security_dest EID %s", locals->security_dest().c_str());
             cs_flags |= CS_BLOCK_HAS_DEST;
             bi.add_eid(locals->security_dest());
         }
@@ -767,7 +767,7 @@ Ciphersuite_C3::prepare(const Bundle*    bundle,
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_C3::generate(const Bundle*  bundle,
+Ciphersuite_PC3::generate(const Bundle*  bundle,
                          BlockInfoVec*  xmit_blocks,
                          BlockInfo*     block,
                          const LinkRef& link,
@@ -803,7 +803,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
     LocalBuffer* digest_result = NULL;
     LocalBuffer* params = NULL;
     
-    log_debug_p(log, "Ciphersuite_C3::generate() %p", block);
+    log_debug_p(log, "Ciphersuite_PC3::generate() %p", block);
     
     CS_FAIL_IF_NULL(locals);
     cs_flags = locals->cs_flags();        // get flags from prepare()
@@ -826,7 +826,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
         contents->set_len(block->data_offset() + length);
         memcpy(contents->buf() + block->data_offset(),
                block->source()->data(), length);
-        log_debug_p(log, "Ciphersuite_C3::generate() %p done", block);
+        log_debug_p(log, "Ciphersuite_PC3::generate() %p done", block);
         return BP_SUCCESS;
     }
     
@@ -854,7 +854,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
         if (  iter->type() == BundleProtocol::CONFIDENTIALITY_BLOCK ) {
             target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
             CS_FAIL_IF_NULL(target_locals);    
-            if ( target_locals->owner_cs_num() == CSNUM_C3 ) {
+            if ( target_locals->owner_cs_num() == CSNUM_PC3 ) {
                 need_correlator = true;     // yes - we need a correlator
                 break;
             }
@@ -864,9 +864,9 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
     
     if ( need_correlator ) {
         correlator = create_correlator(bundle, xmit_blocks);
-        correlator |= (int)CSNUM_C3 << 16;      // add our ciphersuite number
+        correlator |= (int)CSNUM_PC3 << 16;      // add our ciphersuite number
         locals->set_correlator( correlator );
-        log_debug_p(log, "Ciphersuite_C3::generate() correlator %llu", U64FMT(correlator));
+        log_debug_p(log, "Ciphersuite_PC3::generate() correlator %llu", U64FMT(correlator));
     }
         
     /* params field will contain
@@ -890,7 +890,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
     param_len += 1 + 1 + sizeof(iv);            // IV
     
     if ( bundle->is_fragment() ) {
-        log_debug_p(log, "Ciphersuite_C3::generate() bundle is fragment");
+        log_debug_p(log, "Ciphersuite_PC3::generate() bundle is fragment");
         ptr = &fragment_item[2];
         rem = sizeof(fragment_item) - 2;
         temp = SDNV::encode(bundle->frag_offset(), ptr, rem);
@@ -905,7 +905,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
     
     params->reserve(param_len);    //will need more if there is a key identifier - TBD
     params->set_len(param_len);
-    log_debug_p(log, "Ciphersuite_C3::generate() security params, len = %zu", param_len);
+    log_debug_p(log, "Ciphersuite_PC3::generate() security params, len = %zu", param_len);
     
     ptr = params->buf();
     *ptr++ = CS_C_block_salt;
@@ -939,12 +939,12 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
     // save for finalize()
     locals->set_key(key, sizeof(key));
 
-    log_debug_p(log, "Ciphersuite_C3::generate() key      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+    log_debug_p(log, "Ciphersuite_PC3::generate() key      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                 key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7], 
                 key[8], key[9], key[10], key[11], key[12], key[13], key[14], key[15]);
     err = KeySteward::encrypt(bundle, NULL, link, locals->security_dest(), key, sizeof(key), encrypted_key);
     CS_FAIL_IF(err != 0);
-    log_debug_p(log, "Ciphersuite_C3::generate() encrypted_key len = %zu", encrypted_key.len());
+    log_debug_p(log, "Ciphersuite_PC3::generate() encrypted_key len = %zu", encrypted_key.len());
     
     res_len = 1 + SDNV::encoding_len(encrypted_key.len()) + encrypted_key.len();
     res_len += 1 + 1 + tag_len;
@@ -967,7 +967,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
     // First we need to work out the lengths and create the preamble
     length = 0;       
     if ( need_correlator ) {
-        log_debug_p(log, "Ciphersuite_C3::generate() correlator %llu", U64FMT(correlator));
+        log_debug_p(log, "Ciphersuite_PC3::generate() correlator %llu", U64FMT(correlator));
         locals->set_correlator(correlator);
         length += SDNV::encoding_len(locals->correlator());
         cs_flags |= CS_BLOCK_HAS_CORRELATOR;
@@ -977,7 +977,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
     cs_flags |= CS_BLOCK_HAS_PARAMS;
     cs_flags |= CS_BLOCK_HAS_RESULT;
     locals->set_cs_flags(cs_flags);
-    length += SDNV::encoding_len(CSNUM_C3);
+    length += SDNV::encoding_len(CSNUM_PC3);
     length += SDNV::encoding_len(locals->cs_flags());
     
     param_len = locals->security_params().len();
@@ -995,7 +995,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
                       length);
     
 
-    log_debug_p(log, "Ciphersuite_C3::generate() preamble len %u block len %zu", block->data_offset(), length);
+    log_debug_p(log, "Ciphersuite_PC3::generate() preamble len %u block len %zu", block->data_offset(), length);
     contents->reserve(block->data_offset() + length);
     contents->set_len(block->data_offset() + length);
     buf = block->writable_contents()->buf() + block->data_offset();
@@ -1041,7 +1041,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
     
     //  no, no ! Not yet !!    
     //  ASSERT( len == 0 );
-    log_debug_p(log, "Ciphersuite_C3::generate() done");
+    log_debug_p(log, "Ciphersuite_PC3::generate() done");
         
 
     result = BP_SUCCESS;
@@ -1055,7 +1055,7 @@ Ciphersuite_C3::generate(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_C3::finalize(const Bundle*  bundle, 
+Ciphersuite_PC3::finalize(const Bundle*  bundle, 
                          BlockInfoVec*  xmit_blocks,
                          BlockInfo*     block, 
                          const LinkRef& link)
@@ -1086,7 +1086,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
     int             sdnv_len = 0;       // use an int to handle -1 return values
     EndpointID      local_eid = BundleDaemon::instance()->local_eid();
         
-    log_debug_p(log, "Ciphersuite_C3::finalize()");
+    log_debug_p(log, "Ciphersuite_PC3::finalize()");
     locals = dynamic_cast<BP_Local_CS*>(block->locals());
     CS_FAIL_IF_NULL(locals);
         
@@ -1117,7 +1117,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
     // That has its own drawbacks unfortunately
     
     
-    log_debug_p(log, "Ciphersuite_C3::finalize() walk block list");
+    log_debug_p(log, "Ciphersuite_PC3::finalize() walk block list");
     for (BlockInfoVec::iterator iter = xmit_blocks->begin();
          iter != xmit_blocks->end();
          ++iter)
@@ -1137,7 +1137,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
             } else if (iter->type() == BundleProtocol::CONFIDENTIALITY_BLOCK ) {
                 target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
                 CS_FAIL_IF_NULL(target_locals);
-                if ( target_locals->owner_cs_num() == CSNUM_C3 ) {
+                if ( target_locals->owner_cs_num() == CSNUM_PC3 ) {
                     correlator_list.push_back(target_locals->correlator());
                 }
             }
@@ -1153,10 +1153,10 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
                     
             target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
             CS_FAIL_IF_NULL(target_locals);
-            log_debug_p(log, "Ciphersuite_C3::finalize() PS or C block type %d cs_num %d",
+            log_debug_p(log, "Ciphersuite_PC3::finalize() PS or C block type %d cs_num %d",
                         iter->type(), target_locals->owner_cs_num());
             if (  iter->type() == BundleProtocol::CONFIDENTIALITY_BLOCK  &&
-                  target_locals->owner_cs_num() != CSNUM_C3                )  
+                  target_locals->owner_cs_num() != CSNUM_PC3                )  
                 continue;        // only encapsulate C3
                     
                     
@@ -1165,8 +1165,8 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
             // if we also did the primary
             bool    skip_psb = false;
             target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
-            log_debug_p(log, "Ciphersuite_C3::finalize() target_locals->cs_flags 0x%hx", target_locals->cs_flags());
-            log_debug_p(log, "Ciphersuite_C3::finalize() target_locals->correlator() 0x%llx", U64FMT(target_locals->correlator()));
+            log_debug_p(log, "Ciphersuite_PC3::finalize() target_locals->cs_flags 0x%hx", target_locals->cs_flags());
+            log_debug_p(log, "Ciphersuite_PC3::finalize() target_locals->correlator() 0x%llx", U64FMT(target_locals->correlator()));
             if ( target_locals->cs_flags() & CS_BLOCK_HAS_CORRELATOR) {
                 correlator = target_locals->correlator();
                 for ( cl_iter = correlator_list.begin();
@@ -1182,7 +1182,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
                         
             }
                     
-            log_debug_p(log, "Ciphersuite_C3::finalize() encapsulate this block, len %u eid_ref_count %zu", 
+            log_debug_p(log, "Ciphersuite_PC3::finalize() encapsulate this block, len %u eid_ref_count %zu", 
                         iter->full_length(), iter->eid_list().size());
             // Either it has no correlator, or it wasn't in the list.
             // So we will encapsulate it into a C block. 
@@ -1251,7 +1251,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
             // First we need to work out the lengths and create the preamble
             //length = sizeof(num);         // ciphersuite number and flags
             length = 0;         // ciphersuite number and flags
-            length += SDNV::encoding_len(CSNUM_C3);
+            length += SDNV::encoding_len(CSNUM_PC3);
             length += SDNV::encoding_len(locals->cs_flags());
             length +=  correlator_size;
             param_len = 1 + 1 + iv_len;        // 8-byte iv, sdnv fits in 1 byte
@@ -1269,8 +1269,8 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
                               length);
                     
                     
-            log_debug_p(log, "Ciphersuite_C3::finalize() preamble len %u block len %zu", iter->data_offset(), length);
-            log_debug_p(log, "Ciphersuite_C3::finalize() owner()->block_type() %u buf()[0] %hhu", 
+            log_debug_p(log, "Ciphersuite_PC3::finalize() preamble len %u block len %zu", iter->data_offset(), length);
+            log_debug_p(log, "Ciphersuite_PC3::finalize() owner()->block_type() %u buf()[0] %hhu", 
                         iter->owner()->block_type(), iter->contents().buf()[0]);
             iter->writable_contents()->reserve(iter->data_offset() + length);
             iter->writable_contents()->set_len(iter->data_offset() + length);
@@ -1281,7 +1281,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
                         
             // ciphersuite number and flags
             new_target_locals->set_cs_flags(cs_flags);
-            sdnv_len = SDNV::encode(CSNUM_C3, buf, len);
+            sdnv_len = SDNV::encode(CSNUM_PC3, buf, len);
             CS_FAIL_IF(sdnv_len <= 0); 
             buf += sdnv_len;
             len -= sdnv_len;
@@ -1339,7 +1339,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
                     
             iter->set_locals(new_target_locals);    //will also decrement ref for old one
             target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
-            log_debug_p(log, "Ciphersuite_C3::finalize() encapsulation done");
+            log_debug_p(log, "Ciphersuite_PC3::finalize() encapsulation done");
 
         }
         break;
@@ -1357,20 +1357,20 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
             u_int64_t        field_len;
             ptr = nonce;
                     
-            log_debug_p(log, "Ciphersuite_C3::finalize() PAYLOAD_BLOCK");
+            log_debug_p(log, "Ciphersuite_PC3::finalize() PAYLOAD_BLOCK");
             memcpy(ptr, locals->salt().buf(), salt_len);
             ptr += salt_len;
             memcpy(ptr, locals->iv().buf(), iv_len);
                     
             // prepare context
-            log_debug_p(log, "Ciphersuite_C3::finalize() nonce    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+            log_debug_p(log, "Ciphersuite_PC3::finalize() nonce    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                         nonce[0], nonce[1], nonce[2], nonce[3], nonce[4], nonce[5], nonce[6], nonce[7], nonce[8], nonce[9], nonce[10], nonce[11]);
             gcm_init_message(nonce, nonce_len, &(ctx_ex.c));
                 
             offset = iter->data_offset();
             len = iter->data_length();
             changed = 
-                iter->owner()->mutate( Ciphersuite_C3::do_crypt,
+                iter->owner()->mutate( Ciphersuite_PC3::do_crypt,
                                        deliberate_const_cast_bundle,
                                        block,
                                        &*iter,
@@ -1380,7 +1380,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
                     
             // collect the tag (icv) from the context
             gcm_compute_tag( tag, tag_len, &(ctx_ex.c) );
-            log_debug_p(log, "Ciphersuite_C3::finalize() tag      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+            log_debug_p(log, "Ciphersuite_PC3::finalize() tag      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                         tag[0], tag[1], tag[2], tag[3], tag[4], tag[5], tag[6], tag[7], tag[8], tag[9], tag[10], tag[11], tag[12], tag[13], tag[14], tag[15]);
                     
             // get the result item, and step over the encrypted key item
@@ -1415,7 +1415,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
             buf += sdnv_len;            // step over that length field
             rem -= sdnv_len;
             memcpy(buf, result->buf(), result->len());
-            log_debug_p(log, "Ciphersuite_C3::finalize() PAYLOAD_BLOCK done");
+            log_debug_p(log, "Ciphersuite_PC3::finalize() PAYLOAD_BLOCK done");
                     
                     
                     
@@ -1429,7 +1429,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
         
         
     }
-    log_debug_p(log, "Ciphersuite_C3::finalize() done");
+    log_debug_p(log, "Ciphersuite_PC3::finalize() done");
     
     result = BP_SUCCESS;
     return result;
@@ -1442,7 +1442,7 @@ Ciphersuite_C3::finalize(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 bool
-Ciphersuite_C3::do_crypt(const Bundle*    bundle,
+Ciphersuite_PC3::do_crypt(const Bundle*    bundle,
                          const BlockInfo* caller_block,
                          BlockInfo*       target_block,
                          void*            buf,
@@ -1454,7 +1454,7 @@ Ciphersuite_C3::do_crypt(const Bundle*    bundle,
     (void) target_block;
     gcm_ctx_ex* pctx = reinterpret_cast<gcm_ctx_ex*>(r);
     
-    log_debug_p(log, "Ciphersuite_C3::do_crypt() operation %hhu len %zu", pctx->operation, len);
+    log_debug_p(log, "Ciphersuite_PC3::do_crypt() operation %hhu len %zu", pctx->operation, len);
     if (pctx->operation == op_encrypt)
         gcm_encrypt( reinterpret_cast<u_char*>(buf), len, &(pctx->c) );
     else    

@@ -14,8 +14,8 @@
  *    limitations under the License.
  */
 
-#ifndef _PS_BLOCK_PROCESSOR_H_
-#define _PS_BLOCK_PROCESSOR_H_
+#ifndef _PC_BLOCK_PROCESSOR_H_
+#define _PC_BLOCK_PROCESSOR_H_
 
 #ifdef BSP_ENABLED
 
@@ -27,10 +27,10 @@ namespace dtn {
 /**
  * Block processor implementation for the bundle authentication block.
  */
-class PS_BlockProcessor : public BlockProcessor {
+class PC_BlockProcessor : public BlockProcessor {
 public:
     /// Constructor
-    PS_BlockProcessor();
+    PC_BlockProcessor();
     
     /// @{ Virtual from BlockProcessor
     /**
@@ -113,6 +113,7 @@ public:
                          BlockInfoVec*  xmit_blocks, 
                          BlockInfo*     block, 
                          const LinkRef& link);
+
     /// @}
 };
 
@@ -120,4 +121,4 @@ public:
 
 #endif /* BSP_ENABLED */
 
-#endif /* _PS_BLOCK_PROCESSOR_H_ */
+#endif /* _C_BLOCK_PROCESSOR_H_ */

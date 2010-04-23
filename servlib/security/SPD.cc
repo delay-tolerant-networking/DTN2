@@ -26,8 +26,8 @@
 #include "SPD.h"
 #include "Ciphersuite.h"
 #include "Ciphersuite_BA1.h"
-#include "Ciphersuite_PS2.h"
-#include "Ciphersuite_C3.h"
+#include "Ciphersuite_PI2.h"
+#include "Ciphersuite_PC3.h"
 
 namespace dtn {
 
@@ -78,7 +78,7 @@ SPD::prepare_out_blocks(const Bundle* bundle, const LinkRef& link,
     
     if (policy & SPD_USE_PSB) {
         Ciphersuite* bp =
-            Ciphersuite::find_suite(Ciphersuite_PS2::CSNUM_PS2);
+            Ciphersuite::find_suite(Ciphersuite_PI2::CSNUM_PI2);
         ASSERT(bp != NULL);
         bp->prepare(bundle, xmit_blocks, NULL, link,
                     BlockInfo::LIST_NONE);
@@ -86,7 +86,7 @@ SPD::prepare_out_blocks(const Bundle* bundle, const LinkRef& link,
 
     if (policy & SPD_USE_CB) {
         Ciphersuite* bp =
-            Ciphersuite::find_suite(Ciphersuite_C3::CSNUM_C3);
+            Ciphersuite::find_suite(Ciphersuite_PC3::CSNUM_PC3);
         ASSERT(bp != NULL);
         bp->prepare(bundle, xmit_blocks, NULL, link,
                     BlockInfo::LIST_NONE);
@@ -118,15 +118,15 @@ SPD::verify_in_policy(const Bundle* bundle)
     }
     
     if (policy & SPD_USE_CB) {
-        if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_C3::CSNUM_C3 )) {
-        	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_CB_IN_DONE");
+        if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_PC3::CSNUM_PC3 )) {
+        	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_PCB_IN_DONE");
             return false;
         }
     }
     
     if (policy & SPD_USE_PSB) {
-        if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_PS2::CSNUM_PS2 )) {
-        	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_PSB_IN_DONE");
+        if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_PI2::CSNUM_PI2 )) {
+        	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_PIB_IN_DONE");
             return false;
         }
     }

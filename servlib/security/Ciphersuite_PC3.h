@@ -14,22 +14,22 @@
  *    limitations under the License.
  */
 
-#ifndef _CIPHERSUITE_C3_H_
-#define _CIPHERSUITE_C3_H_
+#ifndef _CIPHERSUITE_PC3_H_
+#define _CIPHERSUITE_PC3_H_
 
 #ifdef BSP_ENABLED
 
 #include "gcm/gcm_aes.h"
 #include "gcm/gcm.h"
 #include "bundling/BlockProcessor.h"
-#include "C_BlockProcessor.h"
+#include "PC_BlockProcessor.h"
 
 namespace dtn {
 
 /**
  * Block processor implementation for the bundle authentication block.
  */
-class Ciphersuite_C3 : public Ciphersuite {
+class Ciphersuite_PC3 : public Ciphersuite {
 public:
     enum {
         op_invalid = 0,
@@ -43,7 +43,7 @@ public:
     } gcm_ctx_ex;
 
     /// Constructor
-    Ciphersuite_C3();
+    Ciphersuite_PC3();
     
     virtual u_int16_t cs_num();
     
@@ -131,7 +131,7 @@ public:
      * Ciphersuite number
      *   iv_len is only 8 for GCM, which also uses 4-byte nonce
      */
-    enum { CSNUM_C3  = 3, 
+    enum { CSNUM_PC3  = 3, 
            key_len   = 128/8, 
            nonce_len = 12,
            salt_len  = 4, 
@@ -146,4 +146,4 @@ public:
 
 #endif /* BSP_ENABLED */
 
-#endif /* _CIPHERSUITE_C3_H_ */
+#endif /* _CIPHERSUITE_PC3_H_ */

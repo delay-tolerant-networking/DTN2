@@ -22,8 +22,8 @@
 
 #define OPENSSL_FIPS    1       /* required for sha256 */
 
-#include "Ciphersuite_PS2.h"
-#include "Ciphersuite_C3.h"
+#include "Ciphersuite_PI2.h"
+#include "Ciphersuite_PC3.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
@@ -94,20 +94,20 @@ inline u_int64_t ntohq( u_int64_t x )
 
 
 //----------------------------------------------------------------------
-Ciphersuite_PS2::Ciphersuite_PS2()
+Ciphersuite_PI2::Ciphersuite_PI2()
 {
 }
 
 //----------------------------------------------------------------------
 u_int16_t
-Ciphersuite_PS2::cs_num(void)
+Ciphersuite_PI2::cs_num(void)
 {
-    return CSNUM_PS2;
+    return CSNUM_PI2;
 }
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::consume(Bundle*    bundle,
+Ciphersuite_PI2::consume(Bundle*    bundle,
                          BlockInfo* block,
                          u_char*    buf,
                          size_t     len)
@@ -135,7 +135,7 @@ Ciphersuite_PS2::consume(Bundle*    bundle,
 
 //----------------------------------------------------------------------
 bool
-Ciphersuite_PS2::validate(const Bundle*           bundle,
+Ciphersuite_PI2::validate(const Bundle*           bundle,
                           BlockInfoVec*           block_list,
                           BlockInfo*              block,
                           status_report_reason_t* reception_reason,
@@ -159,7 +159,7 @@ Ciphersuite_PS2::validate(const Bundle*           bundle,
     int             err = 0;
     DataBuffer      db;
         
-    log_debug_p(log, "Ciphersuite_PS2::validate()");
+    log_debug_p(log, "Ciphersuite_PI2::validate()");
     locals = dynamic_cast<BP_Local_CS*>(block->locals());
     CS_FAIL_IF_NULL(locals);
     cs_flags = locals->cs_flags();
@@ -168,7 +168,7 @@ Ciphersuite_PS2::validate(const Bundle*           bundle,
     {  //yes - this is ours so go to work
             
         if ( !(cs_flags & CS_BLOCK_HAS_RESULT) ) {
-            log_err_p(log, "Ciphersuite_PS2::validate: block has no security_result");
+            log_err_p(log, "Ciphersuite_PI2::validate: block has no security_result");
             goto fail;
         }
         
@@ -176,7 +176,7 @@ Ciphersuite_PS2::validate(const Bundle*           bundle,
         digest_len = db.len();
         memcpy(ps_digest, db.buf(), digest_len);     
 
-        log_debug_p(log, "Ciphersuite_PS2::validate() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+        log_debug_p(log, "Ciphersuite_PI2::validate() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                     ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
                     ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
 
@@ -184,7 +184,7 @@ Ciphersuite_PS2::validate(const Bundle*           bundle,
         buf = locals->security_result().buf();
         len = locals->security_result().len();
         
-        log_debug_p(log, "Ciphersuite_PS2::validate() security result, len = %zu", len);
+        log_debug_p(log, "Ciphersuite_PI2::validate() security result, len = %zu", len);
         while ( len > 0 ) {
             u_char item_type = *buf++;
             --len;
@@ -195,13 +195,13 @@ Ciphersuite_PS2::validate(const Bundle*           bundle,
             switch ( item_type ) {
             case CS_signature_field:
             {
-                log_debug_p(log, "Ciphersuite_PS2::validate() CS_signature_field item, len %llu", U64FMT(field_length));
+                log_debug_p(log, "Ciphersuite_PI2::validate() CS_signature_field item, len %llu", U64FMT(field_length));
                         
                 err = KeySteward::verify(bundle, buf, field_length, ps_digest, rlen);
                 if ( err == 0 ) {
                     locals->set_proc_flag(CS_BLOCK_PASSED_VALIDATION | CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
                 } else {
-                    log_err_p(log, "Ciphersuite_PS2::validate: CS_signature_field validation failed");                      
+                    log_err_p(log, "Ciphersuite_PI2::validate: CS_signature_field validation failed");                      
                     goto fail;
                 }
                         
@@ -209,7 +209,7 @@ Ciphersuite_PS2::validate(const Bundle*           bundle,
             break;
                     
             default:    // deal with improper items
-                log_err_p(log, "Ciphersuite_PS2::validate: unexpected item type %d in security_result", item_type);
+                log_err_p(log, "Ciphersuite_PI2::validate: unexpected item type %d in security_result", item_type);
                 goto fail;
             }
             buf += field_length;
@@ -218,7 +218,7 @@ Ciphersuite_PS2::validate(const Bundle*           bundle,
     } else
         locals->set_proc_flag(CS_BLOCK_DID_NOT_FAIL);   // not for here so we didn't check this block
         
-    log_debug_p(log, "Ciphersuite_PS2::validate() done");
+    log_debug_p(log, "Ciphersuite_PI2::validate() done");
     
     return true;
     
@@ -232,7 +232,7 @@ Ciphersuite_PS2::validate(const Bundle*           bundle,
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::prepare(const Bundle*    bundle,
+Ciphersuite_PI2::prepare(const Bundle*    bundle,
                          BlockInfoVec*    xmit_blocks,
                          const BlockInfo* source,
                          const LinkRef&   link,
@@ -251,7 +251,7 @@ Ciphersuite_PS2::prepare(const Bundle*    bundle,
 //XXXpl - fix this test
     if ( (source != NULL)  &&
          (dynamic_cast<BP_Local_CS*>(source->locals())->security_dest() == bd->local_eid().data()) ) {
-        log_debug_p(log, "Ciphersuite_PS2::prepare() - not being forwarded");
+        log_debug_p(log, "Ciphersuite_PI2::prepare() - not being forwarded");
         return BP_SUCCESS;     //it was for us so don't forward
     }
     
@@ -271,7 +271,7 @@ Ciphersuite_PS2::prepare(const Bundle*    bundle,
         BlockInfo* bp = &(xmit_blocks->back());
         CS_FAIL_IF_NULL(bp);
         bp->set_eid_list(source->eid_list());
-        log_debug_p(log, "Ciphersuite_PS2::prepare() - forward received block len %u eid_list_count %zu new count %zu",
+        log_debug_p(log, "Ciphersuite_PI2::prepare() - forward received block len %u eid_list_count %zu new count %zu",
                     source->full_length(), source->eid_list().size(), bp->eid_list().size());
         
         CS_FAIL_IF_NULL( source->locals() );      // broken
@@ -281,7 +281,7 @@ Ciphersuite_PS2::prepare(const Bundle*    bundle,
         bp->set_locals(new BP_Local_CS);
         locals = dynamic_cast<BP_Local_CS*>(bp->locals());
         CS_FAIL_IF_NULL(locals);
-        locals->set_owner_cs_num(CSNUM_PS2);
+        locals->set_owner_cs_num(CSNUM_PI2);
         cs_flags = source_locals->cs_flags();
         locals->set_list_owner(BlockInfo::LIST_RECEIVED);
         locals->set_correlator(source_locals->correlator());
@@ -291,31 +291,31 @@ Ciphersuite_PS2::prepare(const Bundle*    bundle,
         // copy security-src and -dest if they exist
         if ( source_locals->cs_flags() & CS_BLOCK_HAS_SOURCE ) {
             CS_FAIL_IF(source_locals->security_src().length() == 0 );
-            log_debug_p(log, "Ciphersuite_PS2::prepare() add security_src EID");
+            log_debug_p(log, "Ciphersuite_PI2::prepare() add security_src EID");
             cs_flags |= CS_BLOCK_HAS_SOURCE;
             locals->set_security_src(source_locals->security_src());
         }
         
         if ( source_locals->cs_flags() & CS_BLOCK_HAS_DEST ) {
             CS_FAIL_IF(source_locals->security_dest().length() == 0 );
-            log_debug_p(log, "Ciphersuite_PS2::prepare() add security_dest EID");
+            log_debug_p(log, "Ciphersuite_PI2::prepare() add security_dest EID");
             cs_flags |= CS_BLOCK_HAS_DEST;
             locals->set_security_dest(source_locals->security_dest());
         }
         locals->set_cs_flags(cs_flags);
-        log_debug_p(log, "Ciphersuite_PS2::prepare() - inserted block eid_list_count %zu",
+        log_debug_p(log, "Ciphersuite_PI2::prepare() - inserted block eid_list_count %zu",
                     bp->eid_list().size());
         result = BP_SUCCESS;
         return result;
     } else {
 
         // initialize the block
-        log_debug_p(log, "Ciphersuite_PS2::prepare() - add new block (or API block etc)");
+        log_debug_p(log, "Ciphersuite_PI2::prepare() - add new block (or API block etc)");
         bi.set_locals(new BP_Local_CS);
         CS_FAIL_IF_NULL(bi.locals());
         locals = dynamic_cast<BP_Local_CS*>(bi.locals());
         CS_FAIL_IF_NULL(locals);
-        locals->set_owner_cs_num(CSNUM_PS2);
+        locals->set_owner_cs_num(CSNUM_PI2);
         locals->set_list_owner(list);
         
         // if there is a security-src and/or -dest, use it -- might be specified by API
@@ -324,20 +324,20 @@ Ciphersuite_PS2::prepare(const Bundle*    bundle,
             locals->set_security_dest(dynamic_cast<BP_Local_CS*>(source->locals())->security_dest());
         }
         
-        log_debug_p(log, "Ciphersuite_PS2::prepare() local_eid %s bundle->source_ %s", local_eid.c_str(), bundle->source().c_str());
+        log_debug_p(log, "Ciphersuite_PI2::prepare() local_eid %s bundle->source_ %s", local_eid.c_str(), bundle->source().c_str());
         // if not, and we didn't create the bundle, specify ourselves as sec-src
         if ( (locals->security_src().length() == 0) && (local_eid != bundle->source()))
             locals->set_security_src(local_eid.str());
         
         // if we now have one, add it to list, etc
         if ( locals->security_src().length() > 0 ) {
-            log_debug_p(log, "Ciphersuite_PS2::prepare() add security_src EID %s", locals->security_src().c_str());
+            log_debug_p(log, "Ciphersuite_PI2::prepare() add security_src EID %s", locals->security_src().c_str());
             cs_flags |= CS_BLOCK_HAS_SOURCE;
             bi.add_eid(locals->security_src());
         }
         
         if ( locals->security_dest().length() > 0 ) {
-            log_debug_p(log, "Ciphersuite_PS2::prepare() add security_dest EID %s", locals->security_dest().c_str());
+            log_debug_p(log, "Ciphersuite_PI2::prepare() add security_dest EID %s", locals->security_dest().c_str());
             cs_flags |= CS_BLOCK_HAS_DEST;
             bi.add_eid(locals->security_dest());
         }
@@ -380,7 +380,7 @@ Ciphersuite_PS2::prepare(const Bundle*    bundle,
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::generate(const Bundle*  bundle,
+Ciphersuite_PI2::generate(const Bundle*  bundle,
                           BlockInfoVec*  xmit_blocks,
                           BlockInfo*     block,
                           const LinkRef& link,
@@ -412,7 +412,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
     BlockInfo::DataBuffer* contents = NULL;
     LocalBuffer*    params = NULL;
         
-    log_debug_p(log, "Ciphersuite_PS2::generate() %p", block);
+    log_debug_p(log, "Ciphersuite_PI2::generate() %p", block);
     CS_FAIL_IF_NULL(locals);
     cs_flags = locals->cs_flags();      // get flags from prepare()
     // if this is a received block then it's easy
@@ -433,7 +433,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
         contents->set_len(block->data_offset() + length);
         memcpy(contents->buf() + block->data_offset(),
                block->source()->data(), length);
-        log_debug_p(log, "Ciphersuite_PS2::generate() %p done", block);
+        log_debug_p(log, "Ciphersuite_PI2::generate() %p done", block);
         return BP_SUCCESS;
     }    /**************  forwarding done  **************/
     
@@ -447,7 +447,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
     param_len = 0;
     
     if ( bundle->is_fragment() ) {
-        log_debug_p(log, "Ciphersuite_PS2::generate() bundle is fragment");
+        log_debug_p(log, "Ciphersuite_PI2::generate() bundle is fragment");
         ptr = &fragment_item[2];
         rem = sizeof(fragment_item) - 2;
         temp = SDNV::encode(bundle->frag_offset(), ptr, rem);
@@ -464,7 +464,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
         cs_flags |= CS_BLOCK_HAS_PARAMS;
         params->reserve(param_len); 
         params->set_len(param_len);
-        log_debug_p(log, "Ciphersuite_PS2::generate() security params, len = %zu", param_len);
+        log_debug_p(log, "Ciphersuite_PI2::generate() security params, len = %zu", param_len);
         
         ptr = params->buf();
         
@@ -492,7 +492,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
     cs_flags |= CS_BLOCK_HAS_RESULT;
     locals->set_cs_flags(cs_flags);
     length = 0; 
-    length += SDNV::encoding_len(CSNUM_PS2);
+    length += SDNV::encoding_len(CSNUM_PI2);
     length += SDNV::encoding_len(locals->cs_flags());
     
     param_len = locals->security_params().len();
@@ -510,7 +510,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
                       length);
     
 
-    log_debug_p(log, "Ciphersuite_PS2::generate() preamble len %u block len %zu", block->data_offset(), length);
+    log_debug_p(log, "Ciphersuite_PI2::generate() preamble len %u block len %zu", block->data_offset(), length);
     contents->reserve(block->data_offset() + length);
     contents->set_len(block->data_offset() + length);
     buf = block->writable_contents()->buf() + block->data_offset();
@@ -548,7 +548,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
     
     //  no, no ! Not yet !!    
     //  ASSERT( len == 0 );
-    log_debug_p(log, "Ciphersuite_PS2::generate() done");
+    log_debug_p(log, "Ciphersuite_PI2::generate() done");
         
 
     result = BP_SUCCESS;
@@ -562,7 +562,7 @@ Ciphersuite_PS2::generate(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::finalize(const Bundle*  bundle, 
+Ciphersuite_PI2::finalize(const Bundle*  bundle, 
                           BlockInfoVec*  xmit_blocks,
                           BlockInfo*     block, 
                           const LinkRef& link)
@@ -586,7 +586,7 @@ Ciphersuite_PS2::finalize(const Bundle*  bundle,
     LocalBuffer*    digest_result = NULL;
     size_t          sig_len = 0;
         
-    log_debug_p(log, "Ciphersuite_PS2::finalize()");
+    log_debug_p(log, "Ciphersuite_PI2::finalize()");
     locals = dynamic_cast<BP_Local_CS*>(block->locals());
     CS_FAIL_IF_NULL(locals);
         
@@ -632,7 +632,7 @@ Ciphersuite_PS2::finalize(const Bundle*  bundle,
     buf += sdnv_len;            // step over that length field
     len -= sdnv_len;
     memcpy(buf, digest_result->buf(), digest_result->len());
-    log_debug_p(log, "Ciphersuite_PS2::finalize() done");
+    log_debug_p(log, "Ciphersuite_PI2::finalize() done");
     
     result = BP_SUCCESS;
     return result;
@@ -645,7 +645,7 @@ Ciphersuite_PS2::finalize(const Bundle*  bundle,
 
 //----------------------------------------------------------------------
 void
-Ciphersuite_PS2::digest(const Bundle*    bundle,
+Ciphersuite_PI2::digest(const Bundle*    bundle,
                         const BlockInfo* caller_block,
                         const BlockInfo* target_block,
                         const void*      buf,
@@ -655,7 +655,7 @@ Ciphersuite_PS2::digest(const Bundle*    bundle,
     (void)bundle;
     (void)caller_block;
     (void)target_block;
-    log_debug_p(log, "Ciphersuite_PS2::digest() %zu bytes", len);
+    log_debug_p(log, "Ciphersuite_PI2::digest() %zu bytes", len);
     
     EVP_MD_CTX*       pctx = reinterpret_cast<EVP_MD_CTX*>(r);
     
@@ -664,7 +664,7 @@ Ciphersuite_PS2::digest(const Bundle*    bundle,
 
 //----------------------------------------------------------------------
 void
-Ciphersuite_PS2::create_digest(const Bundle*  bundle, 
+Ciphersuite_PI2::create_digest(const Bundle*  bundle, 
                                BlockInfoVec*  block_list,
                                BlockInfo*     block,
                                DataBuffer&    db)
@@ -701,7 +701,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     int             err = 0;
     PrimaryBlock_ex primary;
         
-    log_debug_p(log, "Ciphersuite_PS2::create_digest()");
+    log_debug_p(log, "Ciphersuite_PI2::create_digest()");
     locals = dynamic_cast<BP_Local_CS*>(block->locals());
         
     // prepare context 
@@ -749,7 +749,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     header_len += strlen(dict + primary.source_ssp_offset);
     header_len += strlen(dict + primary.replyto_scheme_offset);
     header_len += strlen(dict + primary.replyto_ssp_offset);
-    log_debug_p(log, "Ciphersuite_PS2::create_digest() header_len %u", header_len);     
+    log_debug_p(log, "Ciphersuite_PI2::create_digest() header_len %u", header_len);     
 
 
     // Now start the actual digest process
@@ -798,7 +798,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     
     ++iter;     //primary is done now
     
-    log_debug_p(log, "Ciphersuite_PS2::create_digest() walk block list");
+    log_debug_p(log, "Ciphersuite_PI2::create_digest() walk block list");
     for ( ;
           iter != block_list->end();
           ++iter)
@@ -813,7 +813,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
         if ( (&*iter) <= block ) {
             if (  iter->type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK ||
                   (iter->type() == BundleProtocol::CONFIDENTIALITY_BLOCK  &&
-                   target_locals->owner_cs_num() == Ciphersuite_C3::CSNUM_C3  )  ) {
+                   target_locals->owner_cs_num() == Ciphersuite_PC3::CSNUM_PC3  )  ) {
                 if ( target_locals->cs_flags() & CS_BLOCK_HAS_CORRELATOR) {
                     //add correlator to exclude-list
                     correlator_list.push_back(target_locals->correlator());
@@ -828,10 +828,10 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
         case BundleProtocol::CONFIDENTIALITY_BLOCK:
         {
                     
-            log_debug_p(log, "Ciphersuite_PS2::create_digest() PS or C block type %d cs_num %d",
+            log_debug_p(log, "Ciphersuite_PI2::create_digest() PS or C block type %d cs_num %d",
                         iter->type(), target_locals->owner_cs_num());
             if (  iter->type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK  &&
-                  target_locals->owner_cs_num() != Ciphersuite_C3::CSNUM_C3 )  
+                  target_locals->owner_cs_num() != Ciphersuite_PC3::CSNUM_PC3 )  
                 continue;       // only digest C3
                     
                     
@@ -840,8 +840,8 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
             // if we also did its primary
             bool    skip_target = false;
             target_locals = dynamic_cast<BP_Local_CS*>(iter->locals());
-            log_debug_p(log, "Ciphersuite_PS2::create_digest() target_locals->cs_flags 0x%hx", target_locals->cs_flags());
-            log_debug_p(log, "Ciphersuite_PS2::create_digest() target_locals->correlator() 0x%llx", U64FMT(target_locals->correlator()));
+            log_debug_p(log, "Ciphersuite_PI2::create_digest() target_locals->cs_flags 0x%hx", target_locals->cs_flags());
+            log_debug_p(log, "Ciphersuite_PI2::create_digest() target_locals->correlator() 0x%llx", U64FMT(target_locals->correlator()));
             if ( target_locals->cs_flags() & CS_BLOCK_HAS_CORRELATOR) {
                 correlator = target_locals->correlator();
                 for ( cl_iter = correlator_list.begin();
@@ -857,7 +857,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
                         
             }
                     
-            log_debug_p(log, "Ciphersuite_PS2::create_digest() digest this block, len %u eid_list().size() %zu", 
+            log_debug_p(log, "Ciphersuite_PI2::create_digest() digest this block, len %u eid_list().size() %zu", 
                         iter->full_length(), iter->eid_list().size());
             // Either it has no correlator, or it wasn't in the list.
             // So we will process it in the digest
@@ -887,7 +887,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
                 sdnv_len = SDNV::decode(buf, len, &eid_ref_count);
                 buf += sdnv_len;
                 len -= sdnv_len;
-                log_debug_p(log, "Ciphersuite_PS2::create_digest() eid_ref_count %llu", U64FMT(eid_ref_count));
+                log_debug_p(log, "Ciphersuite_PI2::create_digest() eid_ref_count %llu", U64FMT(eid_ref_count));
                                                 
                 // each ref is a pair of SDNVs, so process 2 * eid_ref_count text pieces
                 if ( eid_ref_count > 0 ) {
@@ -957,7 +957,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
                 buf = iter->contents().buf();
             }
                     
-            iter->owner()->process( Ciphersuite_PS2::digest,
+            iter->owner()->process( Ciphersuite_PI2::digest,
                                     bundle,
                                     block,
                                     &*iter,
@@ -965,7 +965,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
                                     len,
                                     r);
             /**********  end of content processing  **********/
-            log_debug_p(log, "Ciphersuite_PS2::create_digest() digest done %p", &*iter);
+            log_debug_p(log, "Ciphersuite_PI2::create_digest() digest done %p", &*iter);
 
         }
         break;  //break from switch, continue for "for" loop
@@ -1028,7 +1028,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
                     
             /**********  start content processing  **********/
                                         
-            iter->owner()->process( Ciphersuite_PS2::digest,
+            iter->owner()->process( Ciphersuite_PI2::digest,
                                     bundle,
                                     block,
                                     &*iter,
@@ -1036,7 +1036,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
                                     len,
                                     r);
             /**********  end of content processing  **********/
-            log_debug_p(log, "Ciphersuite_PS2::create_digest() PAYLOAD_BLOCK done");
+            log_debug_p(log, "Ciphersuite_PI2::create_digest() PAYLOAD_BLOCK done");
         }
         break;  //break from switch, continue for "for" loop
                 
@@ -1050,7 +1050,7 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     err = EVP_DigestFinal_ex(&ctx, ps_digest, &rlen);
     // XXX-pl  check error -- zero is failure
     
-    log_debug_p(log, "Ciphersuite_PS2::create_digest() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+    log_debug_p(log, "Ciphersuite_PI2::create_digest() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                 ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
                 ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
 
@@ -1060,14 +1060,14 @@ Ciphersuite_PS2::create_digest(const Bundle*  bundle,
     db.set_len(digest_len);
     memcpy(db.buf(), ps_digest, digest_len);
     
-    log_debug_p(log, "Ciphersuite_PS2::create_digest() done");
+    log_debug_p(log, "Ciphersuite_PI2::create_digest() done");
     
 }
 
 
 //----------------------------------------------------------------------
 int
-Ciphersuite_PS2::read_primary(const Bundle*    bundle, 
+Ciphersuite_PI2::read_primary(const Bundle*    bundle, 
                               BlockInfo*       block,
                               PrimaryBlock_ex& primary,
                               char**           dict)

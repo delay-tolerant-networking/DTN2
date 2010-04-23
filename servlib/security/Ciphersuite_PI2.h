@@ -14,14 +14,14 @@
  *    limitations under the License.
  */
 
-#ifndef _CIPHERSUITE_PS2_H_
-#define _CIPHERSUITE_PS2_H_
+#ifndef _CIPHERSUITE_PI2_H_
+#define _CIPHERSUITE_PI2_H_
 
 #ifdef BSP_ENABLED
 
 #include <oasys/util/ScratchBuffer.h>
 #include "bundling/BlockProcessor.h"
-#include "PS_BlockProcessor.h"
+#include "PI_BlockProcessor.h"
 
 namespace dtn {
 
@@ -30,12 +30,12 @@ struct PrimaryBlock_ex;
 /**
  * Block processor implementation for the bundle authentication block.
  */
-class Ciphersuite_PS2 : public Ciphersuite {
+class Ciphersuite_PI2 : public Ciphersuite {
 public:
     typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
 
     /// Constructor
-    Ciphersuite_PS2();
+    Ciphersuite_PI2();
     
     virtual u_int16_t cs_num();
     
@@ -139,7 +139,7 @@ public:
     /**
      * Ciphersuite number
      */
-    enum { CSNUM_PS2 = 2 };      
+    enum { CSNUM_PI2 = 2 };      
     
     /// @}
 };
@@ -148,4 +148,4 @@ public:
 
 #endif /* BSP_ENABLED */
 
-#endif /* _CIPHERSUITE_PS2_H_ */
+#endif /* _CIPHERSUITE_PI2_H_ */

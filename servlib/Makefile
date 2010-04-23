@@ -209,11 +209,11 @@ STORAGE_SRCS :=					\
 SECURITY_SRCS :=				\
 	security/Ciphersuite.cc			\
 	security/BA_BlockProcessor.cc		\
-	security/PS_BlockProcessor.cc		\
-	security/C_BlockProcessor.cc		\
+	security/PI_BlockProcessor.cc		\
+	security/PC_BlockProcessor.cc		\
 	security/Ciphersuite_BA1.cc		\
-	security/Ciphersuite_PS2.cc		\
-	security/Ciphersuite_C3.cc		\
+	security/Ciphersuite_PI2.cc		\
+	security/Ciphersuite_PC3.cc		\
 	security/BP_Tag.cc			\
 	security/KeyDB.cc			\
 	security/SPD.cc				\
