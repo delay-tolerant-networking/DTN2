@@ -578,7 +578,7 @@ int main(int argc, char** argv)
 
 				if (pl_type == DTN_PAYLOAD_FILE)
 				{
-					while (total_written < len)
+					while (total_written < (long)len)
 					{
 						reads = read(receiving_file, temp, 1024);
 						written = write(destination_file, temp, reads);
@@ -589,7 +589,7 @@ int main(int argc, char** argv)
 				}
 				else
 				{
-					while (total_written < len)
+					while (total_written < (long)len)
 					{
 						written = write(destination_file, payload.buf.buf_val, payload.buf.buf_len );
 						total_written += written;
@@ -835,7 +835,7 @@ long GetFileLen(char* string, int position)
 	int i;
 	char temp[1024];
 	strcpy(temp, string);
-	for (i = (position + 1); i <= (strlen(temp) + 1); i++)
+	for (i = (position + 1); i <= (int)(strlen(temp) + 1); i++)
 	{
 		temp[i - (position + 1)] = temp[i];
 	}

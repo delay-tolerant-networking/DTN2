@@ -189,7 +189,7 @@ SeqpacketConvergenceLayer::Connection::initiate_contact()
     sendbuf_.fill(local_eid_len);
     
     sendbuf_sequence_delimiters_.push(sizeof(ContactHeader) + sdnv_len + local_eid_len); 
-	log_info("adding pending sequence: %u to sequence delimiters queue, queue depth: %u",
+	log_info("adding pending sequence: %zu to sequence delimiters queue, queue depth: %zu",
 				sizeof(ContactHeader) + sdnv_len + local_eid_len, 
 				sendbuf_sequence_delimiters_.size());      
 
@@ -496,7 +496,7 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
                
         if (totol_ack_len + encoding_len > params->segment_length_ ) {
             log_debug("send_pending_acks: "
-                      "no space for additional ack in segment sized %zu, sending %zu bytes)",
+                      "no space for additional ack in segment sized %u, sending %zu bytes)",
                       params->segment_length_ , totol_ack_len);
             break;
         }        
@@ -531,7 +531,7 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
     
     if (generated_ack) {
 	    sendbuf_sequence_delimiters_.push(totol_ack_len); // may hold many segments 
-		log_info("adding pending sequence: %u to sequence delimiters queue, queue depth: %u",
+		log_info("adding pending sequence: %zu to sequence delimiters queue, queue depth: %zu",
 					totol_ack_len, sendbuf_sequence_delimiters_.size());      
 
         send_data();
@@ -667,7 +667,7 @@ SeqpacketConvergenceLayer::Connection::send_next_segment(InFlightBundle* infligh
 	sendbuf_.reserve(1 + sdnv_len + segment_len);    
     sendbuf_.fill(1 + sdnv_len);
     sendbuf_sequence_delimiters_.push(1 + sdnv_len + segment_len); // may hold many segments 
-	log_info("adding pending sequence: %u to sequence delimiters queue, queue depth: %u",
+	log_info("adding pending sequence: %lu to sequence delimiters queue, queue depth: %zu",
 				1 + sdnv_len + segment_len, sendbuf_sequence_delimiters_.size());  
 
     send_segment_todo_ = segment_len;
@@ -809,7 +809,7 @@ SeqpacketConvergenceLayer::Connection::send_keepalive()
     // don't note_data_sent() here since keepalive messages shouldn't
     // be counted for keeping an idle link open
     sendbuf_sequence_delimiters_.push(1); // may hold many segments 
-	log_info("adding pending sequence: %u to sequence delimiters queue, queue depth: %u",
+	log_info("adding pending sequence: %u to sequence delimiters queue, queue depth: %zu",
 				1, sendbuf_sequence_delimiters_.size());     
     send_data();
 }

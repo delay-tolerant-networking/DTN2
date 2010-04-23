@@ -209,7 +209,7 @@ char* get_filename(char* s)
     else
         return temp;
 
-    while (k != strlen(temp))
+    while (k != (int)strlen(temp))
     {
         temp[i] = temp[k];
         i++;

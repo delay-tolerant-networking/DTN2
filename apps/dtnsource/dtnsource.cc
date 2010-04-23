@@ -148,7 +148,8 @@ main(int argc, char** argv)
     // allocate the payload buffer
     payload_buf = (char *)malloc(sizeof(uint32_t) + arg_bundlesize);
     if (payload_buf == NULL) {
-	fprintf(stderr, "can't allocate %d bytes for payload\n", 
+    
+	fprintf(stderr, "can't allocate %lu bytes for payload\n", 
 		sizeof(uint32_t) + arg_bundlesize);
 	exit(1);
     }
@@ -543,7 +544,7 @@ void fill_payload(dtn_bundle_payload_t* payload)
 	if ((unsigned int) amt != arg_bundlesize) {
 	    fprintf(stderr, "warning: tried to write %d, wrote %d, "
 		    "bundle will be short\n", 
-		    arg_bundlesize, amt);
+		    arg_bundlesize, (unsigned int)amt);
 	}
 	close(fd);
         dtn_set_payload(payload, DTN_PAYLOAD_FILE, tmpname, strlen(tmpname));
