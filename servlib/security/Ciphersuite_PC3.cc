@@ -157,7 +157,7 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
             }
             break;
                     
-            case CS_C_block_salt:
+            case CS_PC_block_salt:
             {
                 log_debug_p(log, "Ciphersuite_PC3::validate() salt item, len = %llu", U64FMT(field_length));
                 memcpy(salt, buf, nonce_len - iv_len);
@@ -198,15 +198,16 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
             len -= sdnv_len;
             
             switch ( item_type ) {
-            case CS_key_ID_field: 
+            case CS_key_info_field: 
             {
-                log_debug_p(log, "Ciphersuite_PC3::validate() key ID item");
+                log_debug_p(log, "Ciphersuite_PC3::validate() key-info item");
                 // not sure what this looks like
                 buf += field_length;
                 len -= field_length;
             }
             break;
                     
+/*
             case CS_encoded_key_field:
             {
                 log_debug_p(log, "Ciphersuite_PC3::validate() encoded key item");
@@ -219,8 +220,9 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
                 len -= field_length;
             }
             break;
-                    
-            case CS_C_block_ICV_field:
+*/
+
+            case CS_PC_block_ICV_field:
             {
                 log_debug_p(log, "Ciphersuite_PC3::validate() icv item");
                 memcpy(tag, buf, tag_len);
@@ -329,7 +331,7 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
                     // we don't necessarily know what order these two fields
                     // will be in, so collect both and decrypt afterwards
                     switch ( item_type ) {
-                    case CS_C_block_ICV_field: 
+                    case CS_PC_block_ICV_field: 
                     {
                         log_debug_p(log, "Ciphersuite_PC3::validate() target icv item, len = %llu", U64FMT(field_length));
                         memcpy(tag_encap, buf, tag_len);
@@ -908,7 +910,7 @@ Ciphersuite_PC3::generate(const Bundle*  bundle,
     log_debug_p(log, "Ciphersuite_PC3::generate() security params, len = %zu", param_len);
     
     ptr = params->buf();
-    *ptr++ = CS_C_block_salt;
+    *ptr++ = CS_PC_block_salt;
     *ptr++ = sizeof(salt);                // less than 127
     memcpy(ptr, salt, sizeof(salt));
     ptr += sizeof(salt);
@@ -955,7 +957,7 @@ Ciphersuite_PC3::generate(const Bundle*  bundle,
     rem = res_len;
     
     ptr = digest_result->buf();
-    *ptr++ = Ciphersuite::CS_encoded_key_field;
+    *ptr++ = Ciphersuite::CS_key_info_field;
     rem--;
     temp = SDNV::encode(encrypted_key.len(), ptr, rem);
     ptr += temp;
@@ -1319,7 +1321,7 @@ Ciphersuite_PC3::finalize(const Bundle*  bundle,
             len -= sdnv_len;
                     
             // security result data - tag and the encapsulated block
-            *buf++ = CS_C_block_ICV_field;
+            *buf++ = CS_PC_block_ICV_field;
             --len;
             *buf++ = tag_len;
             --len;
@@ -1388,7 +1390,7 @@ Ciphersuite_PC3::finalize(const Bundle*  bundle,
             ptr = result->buf();
             rem = result->len();
             type = *ptr++;
-            CS_FAIL_IF(type != Ciphersuite::CS_encoded_key_field);
+            CS_FAIL_IF(type != Ciphersuite::CS_key_info_field);
             rem--;
             sdnv_len = SDNV::decode( ptr, rem, &field_len);
             ptr += sdnv_len;
@@ -1396,7 +1398,7 @@ Ciphersuite_PC3::finalize(const Bundle*  bundle,
             ptr += field_len;
             rem -= field_len;
             CS_FAIL_IF( rem != 1 + 1 + tag_len);
-            *ptr++ = CS_C_block_ICV_field;
+            *ptr++ = CS_PC_block_ICV_field;
             rem--;
             *ptr++ = tag_len;
             rem--;

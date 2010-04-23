@@ -69,18 +69,18 @@ public:
     
     /**
      * Values for security types that appear in the 
-     * ciphersuite paremeters and results fields.
+     * ciphersuite parameters and results fields.
      */
     typedef enum {
         CS_reserved0                        =  0,
         CS_IV_field                         =  1,
-        CS_key_ID_field                     =  2,
-        CS_encoded_key_field                =  3,
+        CS_reserved2_field                  =  2,
+        CS_key_info_field                   =  3,
         CS_fragment_offset_and_length_field =  4,
         CS_signature_field                  =  5,
         CS_reserved6                        =  6,
-        CS_C_block_salt                     =  7,
-        CS_C_block_ICV_field                =  8,
+        CS_PC_block_salt                    =  7,
+        CS_PC_block_ICV_field               =  8,
         CS_reserved9                        =  9,
         CS_encap_block_field                = 10,
         CS_reserved11                       = 11

@@ -62,7 +62,7 @@ void
 SPD::set_global_policy(spd_direction_t direction, spd_policy_t policy)
 {
     ASSERT(direction == SPD_DIR_IN || direction == SPD_DIR_OUT);
-    ASSERT((policy & ~(SPD_USE_BAB | SPD_USE_CB | SPD_USE_PSB)) == 0);
+    ASSERT((policy & ~(SPD_USE_BAB | SPD_USE_PCB | SPD_USE_PIB)) == 0);
     if (direction == SPD_DIR_IN)
         instance()->global_policy_inbound_ = policy;
     else
@@ -76,7 +76,7 @@ SPD::prepare_out_blocks(const Bundle* bundle, const LinkRef& link,
 {
     spd_policy_t policy = find_policy(SPD_DIR_OUT, bundle);
     
-    if (policy & SPD_USE_PSB) {
+    if (policy & SPD_USE_PIB) {
         Ciphersuite* bp =
             Ciphersuite::find_suite(Ciphersuite_PI2::CSNUM_PI2);
         ASSERT(bp != NULL);
@@ -84,7 +84,7 @@ SPD::prepare_out_blocks(const Bundle* bundle, const LinkRef& link,
                     BlockInfo::LIST_NONE);
     }
 
-    if (policy & SPD_USE_CB) {
+    if (policy & SPD_USE_PCB) {
         Ciphersuite* bp =
             Ciphersuite::find_suite(Ciphersuite_PC3::CSNUM_PC3);
         ASSERT(bp != NULL);
@@ -117,14 +117,14 @@ SPD::verify_in_policy(const Bundle* bundle)
         }
     }
     
-    if (policy & SPD_USE_CB) {
+    if (policy & SPD_USE_PCB) {
         if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_PC3::CSNUM_PC3 )) {
         	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_PCB_IN_DONE");
             return false;
         }
     }
     
-    if (policy & SPD_USE_PSB) {
+    if (policy & SPD_USE_PIB) {
         if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_PI2::CSNUM_PI2 )) {
         	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_PIB_IN_DONE");
             return false;

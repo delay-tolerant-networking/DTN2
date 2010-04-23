@@ -53,8 +53,8 @@ public:
         BP_TAG_NONE             = 0xffff,
         BP_TAG_E2E_SEC_OUT_DONE = 0xff01,
         BP_TAG_BAB_IN_DONE      = 0x0201,
-        BP_TAG_PSB_IN_DONE      = 0x0301,
-        BP_TAG_CB_IN_DONE       = 0x0401,
+        BP_TAG_PIB_IN_DONE      = 0x0301,
+        BP_TAG_PCB_IN_DONE       = 0x0401,
     };
 
 private:

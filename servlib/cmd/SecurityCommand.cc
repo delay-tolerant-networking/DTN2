@@ -37,9 +37,9 @@ namespace dtn {
 SecurityCommand::SecurityCommand()
     : TclCommand("security")
 {
-    add_to_help("setpolicy [in | out] [psb] [cb] [bab]",
+    add_to_help("setpolicy [in | out] [pib] [pcb] [bab]",
                 "Set inbound or outbound policy to require the specified\n"
-                "combination of PSB, CB, and/or BAB.");
+                "combination of PIB, PCB, and/or BAB.");
     add_to_help("setkey <host> <cs_num> <key>",
                 "Set the key to use for the specified host and ciphersuite\n"
                 "number.  <host> may also be the wildcard symbol \"*\".");
@@ -81,10 +81,10 @@ SecurityCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         
         int policy = SPD::SPD_USE_NONE;
         for (int i = 3; i < argc; i++) {
-            if (strcmp(argv[i], "psb") == 0)
-                policy |= SPD::SPD_USE_PSB;
-            else if (strcmp(argv[i], "cb") == 0)
-                policy |= SPD::SPD_USE_CB;
+            if (strcmp(argv[i], "pib") == 0)
+                policy |= SPD::SPD_USE_PIB;
+            else if (strcmp(argv[i], "pcb") == 0)
+                policy |= SPD::SPD_USE_PCB;
             else if (strcmp(argv[i], "bab") == 0)
                 policy |= SPD::SPD_USE_BAB;
             else {

@@ -32,10 +32,10 @@ namespace dtn {
 /**
  * Not a real (IPsec-like) SPD, just a placeholder that contains:
  *   - global BAB on/off setting
- *   - global PSB on/off setting
- *   - global CB on/off setting
+ *   - global PIB on/off setting
+ *   - global PCB on/off setting
  *   - preshared secret for BAB
- *   - public keys for PSB and CB
+ *   - public keys for PIB and PCB
  */
 class SPD : public oasys::Singleton<SPD, false> {
 public:
@@ -48,8 +48,8 @@ public:
     typedef enum {
         SPD_USE_NONE  = 0,
         SPD_USE_BAB   = 1 << 0,
-        SPD_USE_CB    = 1 << 1,
-        SPD_USE_PSB   = 1 << 2,
+        SPD_USE_PCB    = 1 << 1,
+        SPD_USE_PIB   = 1 << 2,
     } spd_policy_t;
 
     /**
