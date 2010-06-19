@@ -193,7 +193,7 @@ PI_BlockProcessor::prepare(const Bundle*    bundle,
         CS_FAIL_IF_NULL( source->locals() );      // then the block is broken
 
         source_locals = dynamic_cast<BP_Local_CS*>(source->locals());
-        CS_FAIL_IF_NULL(locals);
+        CS_FAIL_IF_NULL(source_locals);
         bp->set_locals(new BP_Local_CS);
         locals = dynamic_cast<BP_Local_CS*>(bp->locals());
         CS_FAIL_IF_NULL(locals);
