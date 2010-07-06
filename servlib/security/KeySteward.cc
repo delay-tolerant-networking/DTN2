@@ -43,6 +43,8 @@
 
 namespace dtn {
 
+static const char * log = "/dtn/bundle/ciphersuite";
+
 
 //----------------------------------------------------------------------
 int
@@ -115,20 +117,17 @@ int
 KeySteward::sign(const Bundle*     b,
                  KeyParameterInfo* kpi,
                  const LinkRef&    link,
-                 u_char*           data,
-                 size_t            data_len,
-                 DataBuffer&       db)
+                 DataBuffer&       db_digest,
+                 DataBuffer&       db_signed)
 {
     (void) b;
     (void) kpi;
     (void) link;
-    (void) data;
-    (void) data_len;
-    (void) db;
     
     u_char*   buf;
     u_int16_t len;
     size_t    size;
+    size_t    data_len = db_digest.len();
     
     if ( data_len > USHRT_MAX )
         return -1;
@@ -136,12 +135,12 @@ KeySteward::sign(const Bundle*     b,
     len = data_len;
     len = htons(len);
     size = std::max( static_cast<unsigned long>(data_len + sizeof(len)), 512UL );
-    db.reserve(size);
-    db.set_len(size);
-    buf = db.buf();
+    db_signed.reserve(size);
+    db_signed.set_len(size);
+    buf = db_signed.buf();
     memcpy(buf, &len, sizeof(len));
     buf += sizeof(len);
-    memcpy(buf, data, data_len);
+    memcpy(buf, db_digest.buf(), data_len);
     
     return 0;
 }
@@ -192,6 +191,8 @@ KeySteward::verify(const Bundle* b,
     if ( len != data_len )
         return -1;
     
+log_warn_p(log, "KeySteward::verify() original digest    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+           buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7],buf[8],buf[9],buf[10],buf[11],buf[12],buf[13],buf[14],buf[15],buf[16],buf[17],buf[18],buf[19]);
     if ( memcmp( buf, data, len ) != 0 )
         return -1;
 

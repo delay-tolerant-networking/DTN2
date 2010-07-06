@@ -159,7 +159,7 @@ Ciphersuite_PI2::validate(const Bundle*           bundle,
     int             err = 0;
     DataBuffer      db;
         
-    log_debug_p(log, "Ciphersuite_PI2::validate()");
+    log_warn_p(log, "Ciphersuite_PI2::validate()");
     locals = dynamic_cast<BP_Local_CS*>(block->locals());
     CS_FAIL_IF_NULL(locals);
     cs_flags = locals->cs_flags();
@@ -176,7 +176,7 @@ Ciphersuite_PI2::validate(const Bundle*           bundle,
         digest_len = db.len();
         memcpy(ps_digest, db.buf(), digest_len);     
 
-        log_debug_p(log, "Ciphersuite_PI2::validate() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+        log_warn_p(log, "Ciphersuite_PI2::validate() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                     ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
                     ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
 
@@ -184,7 +184,7 @@ Ciphersuite_PI2::validate(const Bundle*           bundle,
         buf = locals->security_result().buf();
         len = locals->security_result().len();
         
-        log_debug_p(log, "Ciphersuite_PI2::validate() security result, len = %zu", len);
+        log_warn_p(log, "Ciphersuite_PI2::validate() security result, len = %zu", len);
         while ( len > 0 ) {
             u_char item_type = *buf++;
             --len;
@@ -195,10 +195,11 @@ Ciphersuite_PI2::validate(const Bundle*           bundle,
             switch ( item_type ) {
             case CS_signature_field:
             {
-                log_debug_p(log, "Ciphersuite_PI2::validate() CS_signature_field item, len %llu", U64FMT(field_length));
+                log_warn_p(log, "Ciphersuite_PI2::validate() CS_signature_field item, len %llu", U64FMT(field_length));
                         
                 err = KeySteward::verify(bundle, buf, field_length, ps_digest, rlen);
                 if ( err == 0 ) {
+                    log_warn_p(log, "Ciphersuite_PI2::validate() -- KeySteward::verify() returned %d", err);
                     locals->set_proc_flag(CS_BLOCK_PASSED_VALIDATION | CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
                 } else {
                     log_err_p(log, "Ciphersuite_PI2::validate: CS_signature_field validation failed");                      
@@ -218,7 +219,7 @@ Ciphersuite_PI2::validate(const Bundle*           bundle,
     } else
         locals->set_proc_flag(CS_BLOCK_DID_NOT_FAIL);   // not for here so we didn't check this block
         
-    log_debug_p(log, "Ciphersuite_PI2::validate() done");
+    log_warn_p(log, "Ciphersuite_PI2::validate() done");
     
     return true;
     
@@ -573,14 +574,13 @@ Ciphersuite_PI2::finalize(const Bundle*  bundle,
     size_t          sdnv_len;
     size_t          res_len;
     u_char*         buf;
-    u_char          ps_digest[EVP_MAX_MD_SIZE];
-    u_int32_t       rlen = 0;
     BP_Local_CS*    locals = NULL;
     std::vector<u_int64_t>              correlator_list;
     std::vector<u_int64_t>::iterator    cl_iter;
     EndpointID      local_eid = BundleDaemon::instance()->local_eid();
     BlockInfoVec::iterator iter;
-    DataBuffer      db;
+    DataBuffer      db_digest;
+    DataBuffer      db_signed;
     int             err = 0;
     BlockInfo::DataBuffer* contents = NULL;
     LocalBuffer*    digest_result = NULL;
@@ -594,11 +594,11 @@ Ciphersuite_PI2::finalize(const Bundle*  bundle,
     if ( locals->list_owner() == BlockInfo::LIST_RECEIVED ) 
         return BP_SUCCESS;
     
-    create_digest(bundle, xmit_blocks, block, db);        
+    create_digest(bundle, xmit_blocks, block, db_digest);        
     
-    err = KeySteward::sign(bundle, NULL, link, ps_digest, rlen, db);
+    err = KeySteward::sign(bundle, NULL, link, db_digest, db_signed);
     CS_FAIL_IF(err != 0);
-    sig_len = db.len();
+    sig_len = db_signed.len();
     res_len = 1 + SDNV::encoding_len(sig_len) + sig_len;
     
     // build the result item
@@ -616,7 +616,7 @@ Ciphersuite_PI2::finalize(const Bundle*  bundle,
     buf += sdnv_len;
     len -= sdnv_len;
     
-    memcpy(buf, db.buf(), sig_len);
+    memcpy(buf, db_signed.buf(), sig_len);
     
     
     // now put the result item into the block contents

@@ -53,9 +53,8 @@ public:
     static int sign(const Bundle*    b,
                     KeyParameterInfo*kpi,
                     const LinkRef&   link,
-                    u_char*          data,
-                    size_t           data_len,
-                    DataBuffer&      db);
+                    DataBuffer&      db_digest,
+                    DataBuffer&      db_signed);
     
     static int signature_length(const Bundle*     b,
                                 KeyParameterInfo* kpi,

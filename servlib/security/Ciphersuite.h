@@ -30,7 +30,7 @@ class BP_Local_CS;
  * This level handles suite registration and
  * similar activities but no specific work
  */
-class Ciphersuite {
+    class Ciphersuite {
 public:
     /// For local binary (non-string) stuff we use
     /// a scratch buffer but with minimal initial allocation
