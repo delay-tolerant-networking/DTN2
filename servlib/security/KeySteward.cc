@@ -178,6 +178,7 @@ KeySteward::verify(const Bundle* b,
     u_int16_t len;
     u_char*   buf = enc_data;
     
+    log_debug_p(log, "KeySteward::verify() enc_data_len %lu\n", enc_data_len);
     if (enc_data_len < 2)
         return -1;
     
@@ -185,13 +186,14 @@ KeySteward::verify(const Bundle* b,
     buf += sizeof(len);
     
     len = ntohs(len);
+    log_debug_p(log, "KeySteward::verify() len %u\n", len);
     if ( enc_data_len < len + sizeof(len) )
         return -1;
     
     if ( len != data_len )
         return -1;
     
-log_warn_p(log, "KeySteward::verify() original digest    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+    log_debug_p(log, "KeySteward::verify() original digest    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
            buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7],buf[8],buf[9],buf[10],buf[11],buf[12],buf[13],buf[14],buf[15],buf[16],buf[17],buf[18],buf[19]);
     if ( memcmp( buf, data, len ) != 0 )
         return -1;
