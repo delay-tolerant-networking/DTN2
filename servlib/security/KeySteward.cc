@@ -68,6 +68,9 @@ KeySteward::encrypt(const Bundle*     b,
     if ( data_len > USHRT_MAX )
         return -1;
     
+    if ( data_len < 8 )     //sanity check for minimum key size
+        return -1;
+    
     len = data_len;
     len = htons(len);
     size = std::max( static_cast<unsigned long>(data_len + sizeof(len)), 512UL );
@@ -103,6 +106,9 @@ KeySteward::decrypt(const Bundle* b,
     
     len = ntohs(len);
     if ( enc_data_len < len + sizeof(len) )
+        return -1;
+    
+    if ( len < 8 )     //sanity check for minimum key size
         return -1;
     
     db.reserve(len);
@@ -191,6 +197,9 @@ KeySteward::verify(const Bundle* b,
         return -1;
     
     if ( len != data_len )
+        return -1;
+    
+    if ( len < 16 )     //sanity check for minimum hash size
         return -1;
     
     log_debug_p(log, "KeySteward::verify() original digest    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
