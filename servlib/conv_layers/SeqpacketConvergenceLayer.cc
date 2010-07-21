@@ -33,7 +33,8 @@ SeqpacketConvergenceLayer::SeqpacketLinkParams::SeqpacketLinkParams(bool init_de
       segment_ack_enabled_(true),
       negative_ack_enabled_(true),
       keepalive_interval_(10),
-      segment_length_(4096)
+      segment_length_(4096),
+      ack_window_(8)
 {
 }
 
@@ -70,6 +71,9 @@ SeqpacketConvergenceLayer::parse_link_params(LinkParams* lparams,
     
     p.addopt(new oasys::UIntOpt("segment_length",
                                 &params->segment_length_));
+                                
+    p.addopt(new oasys::UIntOpt("ack_window",
+                                &params->ack_window_)); 
     
     p.addopt(new oasys::UInt8Opt("cl_version",
                                  &cl_version_));
@@ -118,6 +122,7 @@ SeqpacketConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* b
     buf->appendf("negative_ack_enabled: %u\n", params->negative_ack_enabled_);
     buf->appendf("keepalive_interval: %u\n", params->keepalive_interval_);
     buf->appendf("segment_length: %u\n", params->segment_length_);
+    buf->appendf("ack_window: %u\n", params->ack_window_);
 }
 
 //----------------------------------------------------------------------
@@ -131,7 +136,8 @@ SeqpacketConvergenceLayer::Connection::Connection(const char* classname,
       send_segment_todo_(0),
       recv_segment_todo_(0),
       breaking_contact_(false),
-      contact_initiated_(false)
+      contact_initiated_(false),
+      ack_window_todo_(0)
 {
 }
 
@@ -462,7 +468,7 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
     if (iter == incoming->ack_data_.end() || incoming->rcvd_data_.empty()) {
         goto check_done;
     }
-    
+      
 
     // however, we have to be careful to check the recv_data as well
     // to make sure we've actually gotten the segment, since the bit
@@ -470,16 +476,32 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
     // completed
     while (1) {
         size_t rcvd_bytes  = incoming->rcvd_data_.num_contiguous();
-        size_t ack_len     = *iter + 1; 
-        size_t segment_len = ack_len - incoming->acked_length_;
-        (void)segment_len;
+        size_t ack_len     = rcvd_bytes; // DML hack // *iter + 1; 
+        //size_t segment_len = ack_len - incoming->acked_length_;
+        //(void)segment_len;
+
+        SeqpacketLinkParams* params = seqpacket_lparams();
         
-        if (ack_len > rcvd_bytes) {
+        // DML - If we have a whole bundle's worth of data we want to ack now
+        // otherwise, we want to see if we have a whole window's worth to ack,
+        // and if we have, ack that.  If not, we'll deal with it later.
+        
+        // so, if we don't have a full bundle or we have haven't reached the
+        // ack window yet, bail        
+        if(0 != ack_window_todo_) {
             log_debug("send_pending_acks: "
-                      "waiting to send ack length %zu for %zu byte segment "
-                      "since only received %zu",
-                      ack_len, segment_len, rcvd_bytes);
+                      "waiting to send ack for window %zu segments "
+                      "since need %zu more segments",
+                      params->ack_window_, ack_window_todo_);
             break;
+        }
+        else {
+            // we might have a full bundle, or we might have reached an ack window
+            // but either way, ack all we have.
+            
+            
+            // we may need to set the ack_window_todo_
+            ack_window_todo_ = params->ack_window_;
         }
 
         // make sure we have space in the send buffer
@@ -491,8 +513,7 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
             break;
         }
         
-        // make sure we have space in the segment_length
-        SeqpacketLinkParams* params = seqpacket_lparams();
+
                
         if (totol_ack_len + encoding_len > params->segment_length_ ) {
             log_debug("send_pending_acks: "
@@ -502,9 +523,9 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
         }        
         
         log_debug("send_pending_acks: "
-                  "sending ack length %zu for %zu byte segment "
+                  "sending ack length %zu "
                   "[range %u..%u] ack_data *%p",
-                  ack_len, segment_len, incoming->acked_length_, *iter,
+                  ack_len, incoming->acked_length_, *iter,
                   &incoming->ack_data_);
         
         *sendbuf_.end() = ACK_SEGMENT;
@@ -1103,6 +1124,9 @@ SeqpacketConvergenceLayer::Connection::note_data_sent()
 bool
 SeqpacketConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
 {
+    SeqpacketLinkParams* params = dynamic_cast<SeqpacketLinkParams*>(params_);
+    ASSERT(params != NULL);
+
     IncomingBundle* incoming = NULL;
     if (flags & BUNDLE_START)
     {
@@ -1133,7 +1157,10 @@ SeqpacketConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
             log_debug("got BUNDLE_START segment, creating new IncomingBundle");
             IncomingBundle* incoming = new IncomingBundle(new Bundle());
             incoming_.push_back(incoming);
+            ack_window_todo_ = params->ack_window_; // start counting towards the ack window now
         }
+        ack_window_todo_ = params->ack_window_; // start counting towards the ack window now
+
     }
     else if (incoming_.empty())
     {
@@ -1191,6 +1218,12 @@ SeqpacketConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
         
         log_debug("got BUNDLE_END: total length %u",
                   incoming->total_length_);
+                  
+        ack_window_todo_ = 0; // trigger an ack now
+    }
+    else {
+            ASSERT(0 != ack_window_todo_);        
+            ack_window_todo_--; // count this towards the window
     }
     
     recv_segment_todo_ = segment_len;

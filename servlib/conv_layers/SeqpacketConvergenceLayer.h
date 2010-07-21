@@ -163,7 +163,7 @@ protected:
     }
     
     /**
-     * Link parameters shared among all stream based convergence layers.
+     * Link parameters shared among all Seqpacket based convergence layers.
      */
     class SeqpacketLinkParams : public ConnectionConvergenceLayer::LinkParams {
     public:
@@ -171,6 +171,7 @@ protected:
         bool  negative_ack_enabled_;	///< Enable negative acks
         u_int keepalive_interval_;	///< Seconds between keepalive packets
         u_int segment_length_;		///< Maximum size of transmitted segments
+        u_int ack_window_;          ///< Number of segments before acking
 
     protected:
         // See comment in LinkParams for why this should be protected
@@ -262,6 +263,7 @@ protected:
                                         ///< break_contact 
         bool contact_initiated_; //< bit to prevent certain actions before
     	                             //< contact is initiated
+    	u_int ack_window_todo_; //< number of segments heard so far in window
     };
 
     /// For some gcc variants, this typedef seems to be needed
