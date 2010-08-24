@@ -2082,6 +2082,10 @@ AC_DEFUN(AC_OASYS_CONFIG, [
 	    ln -s ../../$ac_oasysdir $OASYS_INCDIR
 	    ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
 	    ln -s ../$ac_oasysdir $OASYS_ETCDIR
+    else
+	    OASYS_INCDIR="$ac_oasysdir/include"
+	    OASYS_LIBDIR="$ac_oasysdir/lib"
+	    OASYS_ETCDIR="$ac_oasysdir/share/oasys"
     fi
 
     #
