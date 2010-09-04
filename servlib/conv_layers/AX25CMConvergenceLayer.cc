@@ -776,7 +776,7 @@ AX25CMConvergenceLayer::Connection::recv_data()
     oasys::CRC32 crc;
     if(static_cast<uint>(cc) <= sizeof(oasys::CRC32::CRC_t)) {
         // DML: I had an assert here to see if we ever get 'packets' that are smaller than
-        // the CRC size.  Well, we do, and I can't for the life of me figure out why.
+        // the CRC size.  Well, we did, and I can't for the life of me figure out why.
         // So, we have to protect ourselves from this kind of thing happening, and for
         // now I think the thing to do is to disconnect the other end, because obviously
         // their AX.25 CL implementation sucks ;-) or there's a problem somewhere else
@@ -884,11 +884,7 @@ AX25ConvergenceLayerUtils::parse_nexthop(const char* logpath, const char* nextho
 		}
 	}
 	
-	
-
-
     return true;
-
 }
 
 

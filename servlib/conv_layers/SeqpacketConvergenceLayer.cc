@@ -1,4 +1,5 @@
 /*
+ *    Copyright 2009-2010 Darren Long, darren.long@mac.com
  *    Copyright 2006 Intel Corporation
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -461,19 +462,24 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
 
     size_t encoding_len, totol_ack_len=0;
     
-    
+    // DML TODO: the bitmask stuff incoming->ack_data_
+    // seems nugatory, so perhaps it can go.  I've definitely broken it, but
+    // it doesn't stop the this working anyway.
+    // If it does go, then perhaps the while loop can go too, as data segments
+    // should always be received in order and without scope gaps.
+ 
     // when data segment headers are received, the last bit of the
     // segment is marked in ack_data, thus if there's nothing in
     // there, we don't need to send out an ack.
     if (iter == incoming->ack_data_.end() || incoming->rcvd_data_.empty()) {
         goto check_done;
     }
-      
-
+    
     // however, we have to be careful to check the recv_data as well
     // to make sure we've actually gotten the segment, since the bit
     // in ack_data is marked when the segment is begun, not when it's
     // completed
+    
     while (1) {
         size_t rcvd_bytes  = incoming->rcvd_data_.num_contiguous();
         size_t ack_len     = rcvd_bytes; // DML hack // *iter + 1; 
@@ -486,8 +492,9 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
         // otherwise, we want to see if we have a whole window's worth to ack,
         // and if we have, ack that.  If not, we'll deal with it later.
         
-        // so, if we don't have a full bundle or we have haven't reached the
-        // ack window yet, bail        
+        // DML -If we don't have a full bundle or we have haven't reached the
+        // ack window yet, bail. The ack_window_todo attribute is decremented 
+        // or set to zero in handle_data_segment().
         if(0 != ack_window_todo_) {
             log_debug("send_pending_acks: "
                       "waiting to send ack for window %zu segments "
@@ -496,11 +503,8 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
             break;
         }
         else {
-            // we might have a full bundle, or we might have reached an ack window
-            // but either way, ack all we have.
-            
-            
-            // we may need to set the ack_window_todo_
+                        
+            // we need to reinitialise the ack_window_todo_
             ack_window_todo_ = params->ack_window_;
         }
 

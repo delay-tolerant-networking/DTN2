@@ -153,7 +153,7 @@ protected:
         virtual void handle_poll_activity();
         /// @}
 
-        /// @{ virtual from StreamConvergenceLayer::Connection
+        /// @{ virtual from SeqpacketConvergenceLayer::Connection
         void send_data();
         void process_data();
         
