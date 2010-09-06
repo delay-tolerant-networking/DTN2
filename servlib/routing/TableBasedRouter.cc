@@ -583,6 +583,7 @@ TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
     link->set_router_info(new DeferredList(logpath(), link));
                           
     add_nexthop_route(link);
+    handle_changed_routes();
 }
 
 //----------------------------------------------------------------------
@@ -763,7 +764,12 @@ TableBasedRouter::route_bundle(Bundle* bundle)
             continue;
         }
 
-        if (deferred_list(route->link())->list()->contains(bundle)) {
+        DeferredList* dl = deferred_list(route->link());
+
+        if (dl == 0)
+          continue;
+
+        if (dl->list()->contains(bundle)) {
             log_debug("route_bundle bundle %d: "
                       "ignoring link *%p since already deferred",
                       bundle->bundleid(), route->link().object());
@@ -990,7 +996,9 @@ TableBasedRouter::DeferredList*
 TableBasedRouter::deferred_list(const LinkRef& link)
 {
     DeferredList* dq = dynamic_cast<DeferredList*>(link->router_info());
+#if 0
     ASSERT(dq != NULL);
+#endif
     return dq;
 }
 
