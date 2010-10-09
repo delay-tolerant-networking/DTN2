@@ -1,0 +1,3 @@
+ax25.txt
+
+Please see the wiki page at: http://www.dtnrg.org/wiki/AX25ConnectedModeConvergenceLayer
