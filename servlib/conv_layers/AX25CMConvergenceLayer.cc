@@ -1,5 +1,5 @@
 /*
- *    Copyright 2007-2008 Darren Long, darren.long@mac.com
+ *    Copyright 2007-2010 Darren Long, darren.long@mac.com
  *    Copyright 2004-2006 Intel Corporation
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
