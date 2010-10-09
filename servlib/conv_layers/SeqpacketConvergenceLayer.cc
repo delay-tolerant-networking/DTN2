@@ -196,9 +196,9 @@ SeqpacketConvergenceLayer::Connection::initiate_contact()
     sendbuf_.fill(local_eid_len);
     
     sendbuf_sequence_delimiters_.push(sizeof(ContactHeader) + sdnv_len + local_eid_len); 
-	log_info("adding pending sequence: %zu to sequence delimiters queue, queue depth: %zu",
-				sizeof(ContactHeader) + sdnv_len + local_eid_len, 
-				sendbuf_sequence_delimiters_.size());      
+    log_info("adding pending sequence: %zu to sequence delimiters queue, queue depth: %zu",
+                sizeof(ContactHeader) + sdnv_len + local_eid_len, 
+                sendbuf_sequence_delimiters_.size());      
 
     // drain the send buffer
     note_data_sent();
@@ -433,7 +433,7 @@ SeqpacketConvergenceLayer::Connection::send_pending_data()
     // if the connection failed during ack transmission, stop
     if (contact_broken_)
     {
-    	return sent_ack;
+        return sent_ack;
     }
 
     // check if we need to start a new bundle. if we do, then
@@ -555,9 +555,9 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
     }
     
     if (generated_ack) {
-	    sendbuf_sequence_delimiters_.push(totol_ack_len); // may hold many segments 
-		log_info("adding pending sequence: %zu to sequence delimiters queue, queue depth: %zu",
-					totol_ack_len, sendbuf_sequence_delimiters_.size());      
+        sendbuf_sequence_delimiters_.push(totol_ack_len); // may hold many segments 
+        log_info("adding pending sequence: %zu to sequence delimiters queue, queue depth: %zu",
+                    totol_ack_len, sendbuf_sequence_delimiters_.size());      
 
         send_data();
         note_data_sent();
@@ -689,11 +689,11 @@ SeqpacketConvergenceLayer::Connection::send_next_segment(InFlightBundle* infligh
     ASSERT(cc == (int)sdnv_len);
     bp += sdnv_len;
 
-	sendbuf_.reserve(1 + sdnv_len + segment_len);    
+    sendbuf_.reserve(1 + sdnv_len + segment_len);    
     sendbuf_.fill(1 + sdnv_len);
     sendbuf_sequence_delimiters_.push(1 + sdnv_len + segment_len); // may hold many segments 
-	log_info("adding pending sequence: %lu to sequence delimiters queue, queue depth: %zu",
-				1 + sdnv_len + segment_len, sendbuf_sequence_delimiters_.size());  
+    log_info("adding pending sequence: %lu to sequence delimiters queue, queue depth: %zu",
+                static_cast<unsigned long>(1 + sdnv_len + segment_len), sendbuf_sequence_delimiters_.size());  
 
     send_segment_todo_ = segment_len;
 
@@ -834,8 +834,8 @@ SeqpacketConvergenceLayer::Connection::send_keepalive()
     // don't note_data_sent() here since keepalive messages shouldn't
     // be counted for keeping an idle link open
     sendbuf_sequence_delimiters_.push(1); // may hold many segments 
-	log_info("adding pending sequence: %u to sequence delimiters queue, queue depth: %zu",
-				1, sendbuf_sequence_delimiters_.size());     
+    log_info("adding pending sequence: %u to sequence delimiters queue, queue depth: %zu",
+                1, sendbuf_sequence_delimiters_.size());     
     send_data();
 }
 //----------------------------------------------------------------------
@@ -910,7 +910,7 @@ SeqpacketConvergenceLayer::Connection::handle_poll_timeout()
     // connections which have not been initiated yet
     if (!contact_initiated_)
     {
-    	return;
+        return;
     }
 
     struct timeval now;
@@ -1522,7 +1522,7 @@ SeqpacketConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reas
             sendbuf_.fill(1);
             seqsize=2;
         }
-	    sendbuf_sequence_delimiters_.push(seqsize); // may hold many segments 
+        sendbuf_sequence_delimiters_.push(seqsize); // may hold many segments 
 
         send_data();
     }

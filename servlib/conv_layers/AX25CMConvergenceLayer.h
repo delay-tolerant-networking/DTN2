@@ -1,5 +1,5 @@
 /*
- *    Copyright 2007-2008 Darren Long, darren.long@mac.com
+ *    Copyright 2007-2010 Darren Long, darren.long@mac.com
  *    Copyright 2004-2006 Intel Corporation
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,7 +61,7 @@ public:
         bool        hexdump_;           ///< Log a hexdump of all traffic
         std::string local_call_;        ///< Local callsign to bind to
         std::string remote_call_;       ///< Peer callsign
-        std::string	digipeater_;
+        std::string digipeater_;
         std::string axport_;            ///< Local axport to bind or connect
 
 

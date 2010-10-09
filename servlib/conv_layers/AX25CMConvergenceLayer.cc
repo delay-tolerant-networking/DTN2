@@ -316,7 +316,7 @@ AX25CMConvergenceLayer::Connection::Connection(AX25CMConvergenceLayer* cl,
     ss<<params->local_call_<<":"<<params->remote_call_;
     if(params->digipeater_ != "NO_CALL")
     {
-    	ss<<","<<params->digipeater_;
+        ss<<","<<params->digipeater_;
     }
     ss<<":"<<params->axport_<<std::ends;
     oasys::StringBuffer nexthop("%s", ss.str().c_str());
@@ -376,7 +376,7 @@ AX25CMConvergenceLayer::Connection::Connection(AX25CMConvergenceLayer* cl,
 //----------------------------------------------------------------------
 AX25CMConvergenceLayer::Connection::~Connection()
 {
-	sock_->shutdown(SHUT_RDWR);
+    sock_->shutdown(SHUT_RDWR);
     delete sock_;
 }
 
@@ -459,9 +459,9 @@ AX25CMConvergenceLayer::Connection::connect()
     std::string rc = sock_->remote_call();
     if(params->digipeater_ != "NO_CALL")
     {
-    	rr.push_back(params->digipeater_);
-	}
-	
+        rr.push_back(params->digipeater_);
+    }
+    
     int ret = sock_->oasys::AX25Socket::connect(rp, rc, rr);
 
     if (ret == 0) {
@@ -647,12 +647,12 @@ AX25CMConvergenceLayer::Connection::send_data()
     memcpy(temp.end(), reinterpret_cast<char*>(&crc_generated), sizeof(crc_generated));
     temp.fill(sizeof(crc_generated));
 
-	if (ax25cm_lparams()->hexdump_) {
-		log_always("send_data sending %i bytes as below...",towrite);
-		oasys::HexDumpBuffer hex;
-		hex.append((u_char*)temp.start(), towrite);
-		log_multiline(oasys::LOG_ALWAYS, hex.hexify().c_str());
-	}
+    if (ax25cm_lparams()->hexdump_) {
+        log_always("send_data sending %i bytes as below...",towrite);
+        oasys::HexDumpBuffer hex;
+        hex.append((u_char*)temp.start(), towrite);
+        log_multiline(oasys::LOG_ALWAYS, hex.hexify().c_str());
+    }
 
     int cc = sock_->write(temp.start(), towrite);
 
@@ -667,39 +667,39 @@ AX25CMConvergenceLayer::Connection::send_data()
             ASSERT(sendbuf_sequence_delimiters_.front() + sizeof(crc_generated) == static_cast<u_int>(cc));
             // well, the assert kicked in too often.   so I'm just gonna
             // declare a protocl error and ditch the link
-			if(sendbuf_sequence_delimiters_.front() + sizeof(crc_generated) != static_cast<u_int>(cc))
-			{
-				std::stringstream ss;
-				ss<<"CL attempted to send a "<<sendbuf_sequence_delimiters_.front()+ sizeof(crc_generated);
-				ss<<" byte packet, but only "<<cc<<" bytes were sent"<<std::ends;
-				log_err(ss.str().c_str());            
-				log_err("CL Protocol error: send_buf underrun breaks SOCK_SEQPACKET SEMANTICS");
-				break_contact(ContactEvent::CL_ERROR);
-				return;
-			}
-			else
-			{
+            if(sendbuf_sequence_delimiters_.front() + sizeof(crc_generated) != static_cast<u_int>(cc))
+            {
+                std::stringstream ss;
+                ss<<"CL attempted to send a "<<sendbuf_sequence_delimiters_.front()+ sizeof(crc_generated);
+                ss<<" byte packet, but only "<<cc<<" bytes were sent"<<std::ends;
+                log_err(ss.str().c_str());            
+                log_err("CL Protocol error: send_buf underrun breaks SOCK_SEQPACKET SEMANTICS");
+                break_contact(ContactEvent::CL_ERROR);
+                return;
+            }
+            else
+            {
 
-	            log_info("removing pending sequence: %u from sequence delimiters queue, queue depth now: %u",
-					sendbuf_sequence_delimiters_.front(),	sendbuf_sequence_delimiters_.size()-1); 
-	            sendbuf_sequence_delimiters_.pop();					
-	        }
+                log_info("removing pending sequence: %u from sequence delimiters queue, queue depth now: %u",
+                    sendbuf_sequence_delimiters_.front(),   sendbuf_sequence_delimiters_.size()-1); 
+                sendbuf_sequence_delimiters_.pop();                 
+            }
 
         }
 
-        if (sendbuf_.fullbytes() != 0) {    		
+        if (sendbuf_.fullbytes() != 0) {            
             log_info("send_data: incomplete write (%u bytes remain in %u segments), setting POLLOUT bit",
-            			sendbuf_.fullbytes(), sendbuf_sequence_delimiters_.size());
+                        sendbuf_.fullbytes(), sendbuf_sequence_delimiters_.size());
             sock_pollfd_->events |= POLLOUT;
 
-    		ASSERT(!sendbuf_sequence_delimiters_.empty() );        
-    		ASSERT(sendbuf_sequence_delimiters_.front() <= sendbuf_.fullbytes());        
+            ASSERT(!sendbuf_sequence_delimiters_.empty() );        
+            ASSERT(sendbuf_sequence_delimiters_.front() <= sendbuf_.fullbytes());        
 
         } 
         else 
         {
             if (sock_pollfd_->events & POLLOUT) {
-          		ASSERT(!sendbuf_sequence_delimiters_.empty() );        
+                ASSERT(!sendbuf_sequence_delimiters_.empty() );        
                 log_debug("send_data: drained buffer, clearing POLLOUT bit");
                 sock_pollfd_->events &= ~POLLOUT;
                 // if we get here, the queue of delimiters should be empty ...
@@ -708,11 +708,11 @@ AX25CMConvergenceLayer::Connection::send_data()
         }
     } 
     else if (errno == EWOULDBLOCK) {
-		ASSERT(cc < 0 );
+        ASSERT(cc < 0 );
 
-   		ASSERT(!sendbuf_sequence_delimiters_.empty() );            
+        ASSERT(!sendbuf_sequence_delimiters_.empty() );            
         log_info("send_data: write returned EWOULDBLOCK with %u bytes queued, in %u segments - setting POLLOUT bit",
-        			sendbuf_.fullbytes(), sendbuf_sequence_delimiters_.size());
+                    sendbuf_.fullbytes(), sendbuf_sequence_delimiters_.size());
         sock_pollfd_->events |= POLLOUT;
         // so, we're gong to record the length of the send_buf contents
         // so we can extract the right ammount of data next time round to maintain SEQ_PACKET
@@ -721,9 +721,9 @@ AX25CMConvergenceLayer::Connection::send_data()
     } 
     else {
         log_info("send_data: whilst sending %i bytes of data, with %i bytes buffered, remote connection unexpectedly closed: %s",
-        			towrite,
-        			sendbuf_.fullbytes(),
-                 	strerror(errno));
+                    towrite,
+                    sendbuf_.fullbytes(),
+                    strerror(errno));
         break_contact(ContactEvent::BROKEN);
     }
 }
@@ -815,7 +815,7 @@ AX25ConvergenceLayerUtils::parse_nexthop(const char* logpath, const char* nextho
 {
     *local_call = "NO_CALL";
     *remote_call = "NO_CALL";
-    *digipeater	= "NO_CALL";
+    *digipeater = "NO_CALL";
     *axport = "None";
     std::string temp = nexthop, temp2;
     //std::cout<<"Nexthop:"<<temp<<std::endl;
@@ -827,63 +827,63 @@ AX25ConvergenceLayerUtils::parse_nexthop(const char* logpath, const char* nextho
     
     if(comma != NULL)
     {
-    	// we have a digi to deal with, so we must be the link initiator
-    	// we need to parse out the remote_call, digipeater and axport
+        // we have a digi to deal with, so we must be the link initiator
+        // we need to parse out the remote_call, digipeater and axport
         remote_call->assign(nexthop, comma - nexthop);       
         temp2.assign(comma+1, ( temp.size()-remote_call->size() ) -1);
 
-		colon1 = strchr(temp2.c_str(),':');
+        colon1 = strchr(temp2.c_str(),':');
 
-		if(colon1 != NULL)
-		{
-			digipeater->assign(temp2.c_str(),colon1-temp2.c_str());			
-			axport->assign(colon1+1, ( temp2.size() -  digipeater->size() ) -1 );
-		}
-		
-		if ("None" == *axport  || "NO_CALL" == *remote_call || "NO_CALL" == *digipeater) {
-			log_warn_p(logpath, "invalid remote_call,digipeater:axport in next hop '%s'",
-					   nexthop);
-			return false;
-		}
+        if(colon1 != NULL)
+        {
+            digipeater->assign(temp2.c_str(),colon1-temp2.c_str());         
+            axport->assign(colon1+1, ( temp2.size() -  digipeater->size() ) -1 );
+        }
+        
+        if ("None" == *axport  || "NO_CALL" == *remote_call || "NO_CALL" == *digipeater) {
+            log_warn_p(logpath, "invalid remote_call,digipeater:axport in next hop '%s'",
+                       nexthop);
+            return false;
+        }
 
     }
-	else
-	{
-		//we don't have a digipeater, but we may be the link initiator meaning
-		// that we need remote_call and axport, or we're the listener, in which case
-		// we need the local_call, remote_call and axport.  if we have two colons,
-		// then we are the listener ...
-		
-		if( colon2 == NULL)
-		{
-			// we're the initiator	
-			//so look for the remote call and axport
-			remote_call->assign(nexthop,colon1-nexthop);
-       		axport->assign(colon1+1,temp.size()-remote_call->size() - 1);
-       		
-			if ("None" == *axport  || "NO_CALL" == *remote_call) {
-				log_warn_p(logpath, "invalid remote_call:axport in next hop '%s'",
-						   nexthop);
-				return false;
-			}
-       		
-		}
-		else if(colon1 != NULL)
-		{
-			// we're the listener
-			local_call->assign(nexthop,colon1-nexthop);			
-        	remote_call->assign(colon1+1,colon2-colon1);
-   	        axport->assign(colon2+1,temp.size()-remote_call->size() - local_call->size() -2);
-   	        
-			if ("None" == *axport  || "NO_CALL" == *remote_call || "NO_CALL" == *local_call) {
-				log_warn_p(logpath, "invalid local_call:remote_call:axport in next hop '%s'",
-						   nexthop);
-				return false;
-			}
- 			
-		}
-	}
-	
+    else
+    {
+        //we don't have a digipeater, but we may be the link initiator meaning
+        // that we need remote_call and axport, or we're the listener, in which case
+        // we need the local_call, remote_call and axport.  if we have two colons,
+        // then we are the listener ...
+        
+        if( colon2 == NULL)
+        {
+            // we're the initiator  
+            //so look for the remote call and axport
+            remote_call->assign(nexthop,colon1-nexthop);
+            axport->assign(colon1+1,temp.size()-remote_call->size() - 1);
+            
+            if ("None" == *axport  || "NO_CALL" == *remote_call) {
+                log_warn_p(logpath, "invalid remote_call:axport in next hop '%s'",
+                           nexthop);
+                return false;
+            }
+            
+        }
+        else if(colon1 != NULL)
+        {
+            // we're the listener
+            local_call->assign(nexthop,colon1-nexthop);         
+            remote_call->assign(colon1+1,colon2-colon1);
+            axport->assign(colon2+1,temp.size()-remote_call->size() - local_call->size() -2);
+            
+            if ("None" == *axport  || "NO_CALL" == *remote_call || "NO_CALL" == *local_call) {
+                log_warn_p(logpath, "invalid local_call:remote_call:axport in next hop '%s'",
+                           nexthop);
+                return false;
+            }
+            
+        }
+    }
+    
     return true;
 }
 
