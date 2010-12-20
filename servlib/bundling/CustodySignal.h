@@ -17,6 +17,9 @@
 #ifndef _CUSTODYSIGNAL_H_
 #define _CUSTODYSIGNAL_H_
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include "Bundle.h"
 #include "BundleProtocol.h"
 

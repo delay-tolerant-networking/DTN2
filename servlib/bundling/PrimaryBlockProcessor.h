@@ -17,6 +17,9 @@
 #ifndef _PRIMARY_BLOCK_PROCESSOR_H_
 #define _PRIMARY_BLOCK_PROCESSOR_H_
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include "BlockProcessor.h"
 
 namespace dtn {
@@ -59,6 +62,10 @@ public:
     void generate_primary(const Bundle* bundle,
                           BlockInfoVec* xmit_blocks,
                           BlockInfo*    block);
+
+    static bool get_ipn(const EndpointID& eid, u_int64_t* iied, u_int64_t* itag);
+    static void make_ipn(char *, u_int64_t, u_int64_t);
+
     /// @}
 
 protected:
@@ -102,6 +109,7 @@ protected:
     /// @{
     /// Helper functions to parse/format the primary block
     friend class BundleProtocol;
+    friend class Comm;
     
     static size_t get_primary_len(const Bundle* bundle,
                                   Dictionary* dict,

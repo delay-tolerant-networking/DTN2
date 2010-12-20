@@ -129,6 +129,7 @@ NAMING_SRCS :=					\
 	naming/SessionScheme.cc			\
 	naming/DTNScheme.cc			\
 	naming/EthernetScheme.cc		\
+        naming/IPNScheme.cc                     \
 	naming/SessionScheme.cc			\
 	naming/StringScheme.cc			\
 	naming/WildcardScheme.cc		\

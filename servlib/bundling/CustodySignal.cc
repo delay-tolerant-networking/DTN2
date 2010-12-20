@@ -87,8 +87,11 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     signal_len += BundleProtocol::ts_encoding_len(orig_bundle->creation_ts());
 
     // the Source Endpoint ID length and value
-    signal_len += SDNV::encoding_len(orig_bundle->source().length()) +
-                  orig_bundle->source().length();
+int ipn = 0;
+if(strncmp((const char*)orig_bundle->source().c_str(), "ipn", 3) == 0)
+ ipn = 2;
+    signal_len += SDNV::encoding_len(orig_bundle->source().length() - ipn) +
+                  orig_bundle->source().length() - ipn;
 
     //
     // now format the buffer
@@ -134,14 +137,34 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     len -= sdnv_encoding_len;
 
     // The Endpoint ID length and data
+char buf[80];
+u_int64_t a, b;
+size_t eidlen;
+
+if(sscanf((const char*)orig_bundle->source().c_str(), "ipn://%" PRIu64 "/%" PRIu64, &a, &b) == 2)
+{
+        sprintf(buf, "ipn:%" PRIu64 ".%" PRIu64, a, b);
+        eidlen = strlen(buf);
+	sdnv_encoding_len = SDNV::encode(eidlen, bp, len);
+	ASSERT(sdnv_encoding_len > 0);
+	len -= sdnv_encoding_len;
+	bp += sdnv_encoding_len;
+
+        memcpy(bp, buf, len);
+}
+else
+{
+
     sdnv_encoding_len = SDNV::encode(orig_bundle->source().length(), bp, len);
     ASSERT(sdnv_encoding_len > 0);
     len -= sdnv_encoding_len;
     bp  += sdnv_encoding_len;
     
     ASSERT((u_int)len == orig_bundle->source().length());
+
     memcpy(bp, orig_bundle->source().c_str(), orig_bundle->source().length());
-    
+}
+//printf("WTF %s\n", orig_bundle->source().c_str()); 
     // 
     // Finished generating the payload
     //
@@ -208,7 +231,21 @@ CustodySignal::parse_custody_signal(data_t* data,
     len -= num_bytes;
 
     if (len != EID_len) { return false; }
-    bool ok = data->orig_source_eid_.assign(std::string((const char*)bp, len));
+
+    bool ok;
+    u_int64_t a, b;
+    if(sscanf((const char*)bp, "ipn:%" PRIu64 ".%" PRIu64, &a, &b) == 2)
+    {
+       char buf[80];
+       sscanf((const char*)bp, "ipn:%" PRIu64 ".%" PRIu64, &a, &b);
+       sprintf(buf, "ipn://%" PRIu64 "/%" PRIu64, a, b);
+       len = strlen(buf);
+       ok = data->orig_source_eid_.assign(std::string((const char*)buf, len));
+    }
+    else
+    {
+       ok = data->orig_source_eid_.assign(std::string((const char*)bp, len));
+    }
     if (!ok) {
         return false;
     }

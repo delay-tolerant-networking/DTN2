@@ -193,6 +193,28 @@ PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
      * remembering their offsets and summing up their lengths
      * (including the null terminator for each).
      */
+        if (strncmp(bundle->dest().c_str(),"ipn", 3) == 0)
+        {
+        if(!get_ipn(bundle->dest(), &primary->dest_scheme_offset, &primary->dest_ssp_offset))
+         return 0;
+        get_ipn(bundle->source(), &primary->source_scheme_offset, &primary->source_ssp_offset);
+
+        get_ipn(bundle->replyto(), &primary->replyto_scheme_offset, &primary->replyto_ssp_offset);
+        get_ipn(bundle->custodian(), &primary->custodian_scheme_offset, &primary->custodian_ssp_offset);
+        primary->block_length += SDNV::encoding_len(primary->dest_scheme_offset);
+        primary->block_length += SDNV::encoding_len(primary->dest_ssp_offset);
+        primary->block_length += SDNV::encoding_len(primary->source_scheme_offset);
+        primary->block_length += SDNV::encoding_len(primary->source_ssp_offset);
+        primary->block_length += SDNV::encoding_len(primary->replyto_scheme_offset);
+        primary->block_length += SDNV::encoding_len(primary->replyto_ssp_offset);
+        primary->block_length += SDNV::encoding_len(primary->custodian_scheme_offset);
+        primary->block_length += SDNV::encoding_len(primary->custodian_ssp_offset);
+
+        primary->dictionary_length = 0;
+        }
+        else
+        {
+
     dict->get_offsets(bundle->dest(), 
                       &primary->dest_scheme_offset,
                       &primary->dest_ssp_offset);
@@ -218,7 +240,7 @@ PrimaryBlockProcessor::get_primary_len(const Bundle*  bundle,
     primary->block_length += SDNV::encoding_len(primary->custodian_ssp_offset);
 
     primary->dictionary_length = dict->length();
-
+}
     (void)log; // in case NDEBUG is defined
     log_debug_p(log, "generated dictionary length %llu",
                 U64FMT(primary->dictionary_length));
@@ -283,7 +305,6 @@ PrimaryBlockProcessor::prepare(const Bundle*    bundle,
 
     // There shouldn't already be anything in the xmit_blocks
     ASSERT(xmit_blocks->size() == 0);
-        
     // Add EIDs to start off the dictionary
     xmit_blocks->dict()->add_eid(bundle->dest());
     xmit_blocks->dict()->add_eid(bundle->source());
@@ -297,6 +318,46 @@ PrimaryBlockProcessor::prepare(const Bundle*    bundle,
 }
 
 //----------------------------------------------------------------------
+
+void PrimaryBlockProcessor::make_ipn(char *eidbuf, u_int64_t eid, u_int64_t path)
+{
+        if(!eid)
+        {
+                sprintf(eidbuf, "dtn:none");
+        }
+        else
+        {
+	 	if(path>0)
+		{
+                	sprintf(eidbuf, "ipn://%" PRIu64 "/%" PRIu64, eid, path);
+		}
+		else
+		{
+			sprintf(eidbuf, "ipn://%" PRIu64, eid);
+		}
+	}
+}
+
+//----------------------------------------------------------------------
+
+bool
+PrimaryBlockProcessor::get_ipn(const EndpointID& eid, u_int64_t* ieid, u_int64_t* itag)
+    {
+        const char* temp = eid.c_str();
+        if(!strcmp(temp, "dtn:none"))
+        {
+                *ieid = 0;
+                *itag = 0;
+                return true;
+        }
+        if(sscanf(temp, "ipn://%" PRIu64 "/%" PRIu64, ieid, itag) < 1)
+                return false;
+        return true;
+
+    }
+
+//----------------------------------------------------------------------
+
 int
 PrimaryBlockProcessor::consume(Bundle*    bundle,
                                BlockInfo* block,
@@ -420,6 +481,24 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
     buf += primary.dictionary_length;
     len -= primary.dictionary_length;
 
+        if(primary.dictionary_length == 0)
+        {
+        char eid[52] = {0};
+        make_ipn(eid, primary.source_scheme_offset, primary.source_ssp_offset);
+        bundle->mutable_source()->assign(eid);
+
+        make_ipn(eid, primary.dest_scheme_offset, primary.dest_ssp_offset);
+        bundle->mutable_dest()->assign(eid);
+
+        make_ipn(eid, primary.replyto_scheme_offset, primary.replyto_ssp_offset);
+        bundle->mutable_replyto()->assign(eid);
+
+        make_ipn(eid, primary.custodian_scheme_offset, primary.custodian_ssp_offset);
+        bundle->mutable_custodian()->assign(eid);
+        }
+        else
+        {
+
     dict->set_dict(dictionary, primary.dictionary_length);
     dict->extract_eid(bundle->mutable_source(),
                       primary.source_scheme_offset,
@@ -436,7 +515,7 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
     dict->extract_eid(bundle->mutable_custodian(),
                       primary.custodian_scheme_offset,
                       primary.custodian_ssp_offset);
-    
+}    
     // If the bundle is a fragment, grab the fragment offset and original
     // bundle size (and make sure they fit in a 32 bit integer).
     if (bundle->is_fragment()) {
@@ -484,7 +563,7 @@ PrimaryBlockProcessor::validate(const Bundle*           bundle,
     
     // Make sure all four EIDs are valid.
     bool eids_valid = true;
-    eids_valid &= bundle->source().valid();
+	eids_valid &= bundle->source().valid();
     eids_valid &= bundle->dest().valid();
     eids_valid &= bundle->custodian().valid();
     eids_valid &= bundle->replyto().valid();
@@ -630,10 +709,13 @@ PrimaryBlockProcessor::generate_primary(const Bundle* bundle,
     PBP_WRITE_SDNV(primary.dictionary_length);
     
     // Add the dictionary.
-    memcpy(buf, dict->dict(), dict->length());
-    buf += dict->length();
-    len -= dict->length();
-    
+//    memcpy(buf, dict->dict(), dict->length());
+	memcpy(buf, dict->dict(), primary.dictionary_length);
+   //    buf += dict->length();
+//    len -= dict->length();
+        buf += primary.dictionary_length;
+        len -= primary.dictionary_length;
+ 
     /*
      * If the bundle is a fragment, stuff in SDNVs for the fragment
      * offset and original length.

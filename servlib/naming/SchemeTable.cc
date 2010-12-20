@@ -21,6 +21,7 @@
 #include "SchemeTable.h"
 #include "DTNScheme.h"
 #include "EthernetScheme.h"
+#include "IPNScheme.h"
 #include "SessionScheme.h"
 #include "StringScheme.h"
 #include "WildcardScheme.h"
@@ -35,6 +36,7 @@ SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
 SchemeTable::SchemeTable()
 {
     table_["dtn"] = DTNScheme::instance();
+    table_["ipn"] = IPNScheme::instance();
     table_["str"] = StringScheme::instance();
     table_["*"]   = WildcardScheme::instance();
 #ifdef __linux__
