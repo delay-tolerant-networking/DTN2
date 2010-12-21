@@ -37,6 +37,8 @@
 #include "storage/DTNStorageConfig.h"
 #include "bundling/BundleDaemon.h"
 
+#include "bundling/S10Logger.h"
+
 extern const char* dtn_version;
 
 /**
@@ -155,6 +157,7 @@ DTND::main(int argc, char* argv[])
 
     log_notice_p("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
 
+
     if (oasys::TclCommandInterp::init(argv[0], "/dtn/tclcmd") != 0)
     {
         log_crit_p("/dtnd", "Can't init TCL");
@@ -200,6 +203,8 @@ DTND::main(int argc, char* argv[])
         log_err_p("/dtnd", "no local eid specified; use the 'route local_eid' command");
         notify_and_exit(1);
     }
+	s10_setlocal(BundleDaemon::instance()->local_eid().c_str());
+	s10_daemon(S10_STARTING);
 
     // if we've daemonized, now is the time to notify our parent
     // process that we've successfully initialized

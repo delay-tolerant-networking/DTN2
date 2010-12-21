@@ -45,6 +45,7 @@
 #include "session/Session.h"
 #include "storage/BundleStore.h"
 #include "storage/RegistrationStore.h"
+#include "bundling/S10Logger.h"
 
 #ifdef BSP_ENABLED
 #  include "security/Ciphersuite.h"
@@ -253,6 +254,7 @@ BundleDaemon::generate_status_report(Bundle* orig_bundle,
     
     BundleReceivedEvent e(report, EVENTSRC_ADMIN);
     handle_event(&e);
+	s10_bundle(S10_TXADMIN,report,NULL,0,0,orig_bundle,"status report");
 }
 
 //----------------------------------------------------------------------
@@ -278,6 +280,8 @@ BundleDaemon::generate_custody_signal(Bundle* bundle, bool succeeded,
     
     BundleReceivedEvent e(signal, EVENTSRC_ADMIN);
     handle_event(&e);
+	s10_bundle(S10_TXADMIN,signal,NULL,0,0,bundle,"custody signal");
+
 }
 
 //----------------------------------------------------------------------
@@ -328,6 +332,8 @@ BundleDaemon::accept_custody(Bundle* bundle)
     if (! bundle->custodian().equals(EndpointID::NULL_EID())) {
         generate_custody_signal(bundle, true, BundleProtocol::CUSTODY_NO_ADDTL_INFO);
     }
+	// next line is  for S10
+	EndpointID prev_custodian=bundle->custodian();
 
     // now we mark the bundle to indicate that we have custody and add
     // it to the custody bundles list
@@ -343,6 +349,7 @@ BundleDaemon::accept_custody(Bundle* bundle)
         generate_status_report(bundle, 
                                BundleStatusReport::STATUS_CUSTODY_ACCEPTED);
     }
+	s10_bundle(S10_TAKECUST,bundle,prev_custodian.c_str(),0,0,NULL,NULL);
 }
 
 //----------------------------------------------------------------------
@@ -494,15 +501,26 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     switch (event->source_) {
     case EVENTSRC_PEER:
         stats_.received_bundles_++;
+		if (event->link_.object()) {
+			s10_bundle(S10_RX,bundle,event->link_.object()->nexthop(),0,0,NULL,"link");
+		} else {
+			s10_bundle(S10_RX,bundle,event->prevhop_.c_str(),0,0,NULL,"nolink");
+		}
         break;
         
     case EVENTSRC_APP:
         stats_.received_bundles_++;
         source_str = " (from app)";
+		if (event->registration_ != NULL) {
+			s10_bundle(S10_FROMAPP,bundle,event->registration_->endpoint().c_str(),0,0,NULL,NULL);
+		} else {
+			s10_bundle(S10_FROMAPP,bundle,"dunno",0,0,NULL,NULL);
+		}
         break;
         
     case EVENTSRC_STORE:
         source_str = " (from data store)";
+		s10_bundle(S10_FROMDB,bundle,NULL,0,0,NULL,NULL);
         break;
         
     case EVENTSRC_ADMIN:
@@ -513,14 +531,17 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     case EVENTSRC_FRAGMENTATION:
         stats_.generated_bundles_++;
         source_str = " (from fragmentation)";
+		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
         break;
 
     case EVENTSRC_ROUTER:
         stats_.generated_bundles_++;
         source_str = " (from router)";
+		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
         break;
 
     default:
+		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
         NOTREACHED;
     }
 
@@ -665,6 +686,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                    bundle->dest().c_str(),
                    bundle->creation_ts().seconds_,
                    bundle->creation_ts().seqno_);
+		s10_bundle(S10_DUP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
 
         stats_.duplicate_bundles_++;
         
@@ -847,6 +869,8 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
              event->reliably_sent_,
              link->name(),
              link->nexthop());
+	s10_bundle(S10_TX,bundle,link->nexthop(),0,0,NULL,NULL);
+
 
     /*
      * If we're configured to wait for reliable transmission, then
@@ -971,6 +995,7 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
              bundle->bundleid(), bundle->payload().length(),
              event->registration_->regid(),
              event->registration_->endpoint().c_str());
+	s10_bundle(S10_DELIVERED,bundle,event->registration_->endpoint().c_str(),0,0,NULL,NULL);
 
     /*
      * Generate the delivery status report if requested.
@@ -1828,6 +1853,7 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     log_info("CONTACT_UP *%p (contact %p)", link.object(), contact.object());
     link->set_state(Link::OPEN);
     link->stats_.contacts_++;
+	s10_contact(S10_CONTUP,contact.object(),NULL);
 }
 
 //----------------------------------------------------------------------
@@ -1845,6 +1871,7 @@ BundleDaemon::handle_contact_down(ContactDownEvent* event)
 
     // update the link stats
     link->stats_.uptime_ += (contact->start_time().elapsed_ms() / 1000);
+	s10_contact(S10_CONTDOWN,contact.object(),NULL);
 }
 
 //----------------------------------------------------------------------
@@ -1953,6 +1980,8 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
         
         release = true;
     }
+
+	s10_bundle(S10_RELCUST,orig_bundle.object(),event->data_.orig_source_eid_.c_str(),0,0,NULL,NULL);
     
     if (release) {
         release_custody(orig_bundle.object());

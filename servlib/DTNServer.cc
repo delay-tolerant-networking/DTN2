@@ -62,6 +62,7 @@
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
 #include "storage/DTNStorageConfig.h"
+#include "bundling/S10Logger.h"
 
 //#include <oasys/storage/MySQLStore.h>
 //#include <oasys/storage/PostgresqlStore.h>
@@ -79,6 +80,7 @@ DTNServer::DTNServer(const char* logpath,
 
 DTNServer::~DTNServer()
 {
+	s10_daemon(S10_EXITING);
     log_notice("daemon exiting...");
 }
 

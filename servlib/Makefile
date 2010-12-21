@@ -56,6 +56,7 @@ BUNDLING_SRCS := 				\
 	bundling/SequenceID.cc			\
 	bundling/SequenceIDBlockProcessor.cc	\
 	bundling/UnknownBlockProcessor.cc	\
+	bundling/S10Logger.cc	\
 
 CONTACT_SRCS :=					\
 	contacts/AlwaysOnLink.cc		\

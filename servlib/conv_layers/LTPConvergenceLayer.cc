@@ -17,9 +17,6 @@
 
 /// TODO:
 /// - send/receipt of >1 bundle in one LTP block
-/// - green/red handling of some sort (now allred)
-/// - add mtu configuration & sockopt() call to dtn.conf
-/// - handle any size bundle for sending
 /// - add LTP configuration file support with good defaults
 /// - figure out if anything leaks between LTPlib and DTN2
 /// - maybe try speed up UDP packet sending in LTPlib, probably a bit slow now 
@@ -520,7 +517,8 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 }
 
 
-void LTPConvergenceLayer::Receiver::run() {
+void LTPConvergenceLayer::Receiver::run() 
+{
 
     int ret;
 	int rv;
@@ -594,7 +592,7 @@ void LTPConvergenceLayer::Receiver::run() {
 		oasys::ScopeLock cmlock(cm->lock(), "LTPCL::whoslistening");
 		const LinkSet* links=cm->links();
 		for (LinkSet::const_iterator i=links->begin();
-							i != links->end(); i++) {
+							i != links->end(); ++i) {
 
 			// other states (e.g. OPENING) exist that we ignore
 			bool linkopen=(*i)->state()==Link::OPEN;

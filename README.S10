@@ -1,0 +1,51 @@
+
+This file describes logging changes made to the DTN2
+code for the N4C summer 2010.
+
+When analysing the logs from our 2009 trial we hit on
+a number of cases where the 'info' logs didn't have 
+enough information for us; the main one being that those
+logs don't allow you to trace a bundle across multiple
+nodes since the bundle creation time isn't logged except
+in debug mode which is far too verbose.
+
+We also had to do a good bit of work to munge log file
+content into a form from which we could generate plots
+and do statistics.
+
+So the changes here are to fix those issues.
+
+The files touched all have the "S10" string in them
+and include:
+
+servlib/bundling/S10Logger.cc
+servlib/bundling/S10Logger.h
+daemon/dtnd.cc
+servlib/bundling/DTNServer.cc
+servlib/bundling/BundleDaemon.cc
+servlib/contacts/ContactManager.cc
+
+CSV columns:
+
+col#,name,FROMAPP,FROMDB,DELIVERED,TAKECUST,RELCUST,EXPIRY,TX,RX,TXADMIN,RXADMIN,DUP,CONTUP,CONTDOWN,STARTING,EXITING
+1,rfc3339date,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+2,time_t.usec,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+3,Logging-node,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+4,Event,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+5,Size,x,x,x,x,x,x,x,x,x,x,x,,,,
+6,Src-EID,x,x,x,x,x,x,x,x,x,x,x,,,,
+7,Bundle-ID,x,x,x,x,x,x,x,x,x,x,x,,,,
+8,Dest-EID,x,x,x,x,x,x,x,x,x,x,x,,,,
+9,Expiry,x,x,x,x,x,x,x,x,x,x,x,,,,
+16,Blfags,x,x,x,x,x,x,x,x,x,x,x,,,,
+10,Peer,,,,,,,x,x,x,x,x,x,x,,
+11,Other-bund-Src,,,,,,,,,x,x,,,,,
+12,Other-bundle-ID,,,,,,,,,x,x,,,,,
+13,Other-time,,,,,?,?,,,,,?,,x,,
+14,Cont-type,,,,,,,,,,,,x,x,,
+15,Duration,,,,,?,?,,,,,?,,x,,
+
+
+
+
+
