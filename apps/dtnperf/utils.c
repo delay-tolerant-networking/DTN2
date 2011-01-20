@@ -69,19 +69,21 @@ void add_time(struct timeval *tot_time, struct timeval part_time)
  * -------------------------------------------------- */
 void csv_time_report(int b_sent, int payload, struct timeval start, struct timeval end, FILE* csv_log)
 {
-    const char* time_report_hdr = "BUNDLE_SENT,PAYLOAD,TIME,DATA_SENT,GOODPUT";
+    const char* time_report_hdr = "BUNDLE_SENT,PAYLOAD (byte),TIME (s),DATA_SENT (Mbyte),GOODPUT (Mbit/s)";
 
 
     double g_put, data;
 
-    data = b_sent * payload;
+    data = (b_sent * payload)/1000000.0;
 
     fprintf(csv_log, "\n\n%s\n", time_report_hdr);
 
-    g_put = (data * 8) / ((double)(end.tv_sec - start.tv_sec) * 1000.0 +
+    g_put = (data * 8 * 1000) / ((double)(end.tv_sec - start.tv_sec) * 1000.0 +
                           (double)(end.tv_usec - start.tv_usec) / 1000.0);
-
-    fprintf(csv_log, "%d,%d,%.1f,%d,%.2f\n", b_sent, payload, ((double)(end.tv_sec - start.tv_sec) * 1000.0 + (double)(end.tv_usec - start.tv_usec) / 1000.0), (b_sent * payload), g_put);
+    
+    double time_s =  ((double)(end.tv_sec - start.tv_sec) * 1000.0 + (double)(end.tv_usec - start.tv_usec) / 1000.0) / 1000;
+    
+    fprintf(csv_log, "%d,%d,%.1f,%E,%.3f\n", b_sent, payload, time_s, data, g_put);
 
 } // end csv_time_report
 
@@ -93,16 +95,18 @@ void csv_time_report(int b_sent, int payload, struct timeval start, struct timev
  * -------------------------------------------------- */
 void csv_data_report(int b_id, int payload, struct timeval start, struct timeval end, FILE* csv_log)
 {
-    const char* data_report_hdr = "BUNDLE_ID,PAYLOAD,TIME,GOODPUT";
+    const char* data_report_hdr = "BUNDLE_ID,PAYLOAD (byte),TIME (s),GOODPUT (Mbit/s)";
     // const char* time_hdr = "BUNDLES_SENT,PAYLOAD,TIME,GOODPUT";
     double g_put;
 
     fprintf(csv_log, "\n\n%s\n", data_report_hdr);
 
     g_put = (payload * 8) / ((double)(end.tv_sec - start.tv_sec) * 1000.0 +
-                             (double)(end.tv_usec - start.tv_usec) / 1000.0);
+                             (double)(end.tv_usec - start.tv_usec) / 1000.0) / 1000.0;
+                             
+    double time_s =  ((double)(end.tv_sec - start.tv_sec) * 1000.0 + (double)(end.tv_usec - start.tv_usec) / 1000.0) / 1000;
 
-    fprintf(csv_log, "%d,%d,%.1f,%.2f\n", b_id, payload, ((double)(end.tv_sec - start.tv_sec) * 1000.0 + (double)(end.tv_usec - start.tv_usec) / 1000.0), g_put);
+    fprintf(csv_log, "%d,%d,%.1f,%.3f\n", b_id, payload, time_s, g_put);
 
 } // end csv_data_report
 
@@ -163,22 +167,25 @@ struct timeval add( double sec )
 /* --------------------------------------------------
  * show_report
  * -------------------------------------------------- */
-void show_report (u_int buf_len, char* eid, struct timeval start, struct timeval end, int data, FILE* output)
+void show_report (u_int buf_len, char* eid, struct timeval start, struct timeval end, long data, FILE* output)
 {
     double g_put;
 
-    if (output == NULL)
-        printf("got %d byte report from [%s]: time=%.1f ms - %d bytes sent", buf_len, eid, ((double)(end.tv_sec - start.tv_sec) * 1000.0 + (double)(end.tv_usec - start.tv_usec) / 1000.0) , data);
-    else
-        fprintf(output, "\n total time=%.1f ms - %d bytes sent", ((double)(end.tv_sec - start.tv_sec) * 1000.0 + (double)(end.tv_usec - start.tv_usec) / 1000.0), data);
+    double time_s = ((double)(end.tv_sec - start.tv_sec) * 1000.0 + (double)(end.tv_usec - start.tv_usec) / 1000.0) / 1000.0;
 
-    // report goodput (bits transmitted / time)
-    g_put = (data * 8) / ((double)(end.tv_sec - start.tv_sec) * 1000.0 +
-                          (double)(end.tv_usec - start.tv_usec) / 1000.0);
+    double data_MB = data / 1000000.0;
+    
     if (output == NULL)
-        printf(" (goodput = %.2f Kbit/s)\n", g_put);
+        printf("got %d byte report from [%s]: time=%.1f s - %E Mbytes sent", buf_len, eid, time_s, data_MB);
     else
-        fprintf(output, " (goodput = %.2f Kbit/s)\n", g_put);
+        fprintf(output, "\n total time=%.1f s - %E Mbytes sent", time_s, data_MB);
+  
+    // report goodput (bits transmitted / time)
+    g_put = (data_MB * 8) / time_s;
+    if (output == NULL)
+        printf(" (goodput = %.3f Mbit/s)\n", g_put);
+    else
+        fprintf(output, " (goodput = %.3f Mbit/s)\n", g_put);
 
     // report start - end time
     if (output == NULL)

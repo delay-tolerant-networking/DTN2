@@ -33,7 +33,7 @@
 
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include <dtn-config.h>
 #endif
 
 #include <stdio.h>
@@ -54,7 +54,7 @@
 #define BUFSIZE 16
 #define BUNDLE_DIR_DEFAULT "/var/dtn/dtnperf"
 #define OUTFILE "dtnbuffer.rcv"
-
+#define MAXSIZE 256
 
 
 /* ------------------------------
@@ -81,6 +81,7 @@ dtn_endpoint_id_t* parse_eid(dtn_handle_t, dtn_endpoint_id_t*, char*);
 int ContainsChar(char* string, char c);
 char* GetFileName(char* string, int position);
 long GetFileLen(char* string, int position);
+int move_file (char *fileIn, char *fileOut);
 
 
 /* -------------------------------------------------
@@ -378,7 +379,7 @@ int main(int argc, char** argv)
 				printf("[debug] renaming file %s -> %s...",
 				       payload.filename.filename_val, filepath);
 
-			if (rename(payload.filename.filename_val, filepath) != 0)
+			if (move_file(payload.filename.filename_val, filepath) != 0)
 			{
 				printf("[ERROR] Couldn't rename %s -> %s: %s\n",
 				       payload.filename.filename_val, filepath, strerror(errno));
@@ -606,7 +607,7 @@ int main(int argc, char** argv)
 				{ // if bundle was saved into file
 					if ((debug) && (debug_level > 0))
 						printf("[debug] renaming file %s -> %s...", payload.filename.filename_val, filepath);
-					if (rename(payload.filename.filename_val, filepath) != 0)
+					if (move_file(payload.filename.filename_val, filepath) != 0)
 					{
 						printf("[ERROR] Couldn't rename %s -> %s: %s\n", payload.filename.filename_val, filepath, strerror(errno));
 					}
@@ -841,3 +842,46 @@ long GetFileLen(char* string, int position)
 	}
 	return atol(temp);
 }
+
+
+
+/* --------------------------------------------------
+ * move_file
+ * -------------------------------------------------- */
+ 
+int move_file (char *fileIn, char *fileOut) {
+    int rd, result, fdIn, fdOut;
+    char buffer[MAXSIZE];
+    
+    result = rename(fileIn, fileOut);
+    
+    if (result < 0 && errno == EXDEV) {
+   		
+      if ((fdIn = open(fileIn, O_RDONLY)) < 0) {
+			  fprintf(stderr, "fatal error opening file %s\n", fileIn);
+			  exit(1);
+		  }
+		
+		  if ((fdOut = open(fileOut, O_CREAT | O_TRUNC | O_WRONLY | O_APPEND, 0666)) < 0) {
+			  fprintf(stderr, "fatal error opening file %s\n", fileOut);
+			  exit(1);
+		  }
+		  
+		  rd = 0;
+		  
+		  while ((rd = read(fdIn, buffer, MAXSIZE)) > 0) {
+		    write(fdOut, buffer, rd);
+		  }
+		
+		  close(fdIn);
+		  close(fdOut);
+		  
+		  if (remove(fileIn) < 0)
+        fprintf(stderr, "fatal error deleting file %s\n", fileIn);
+		  
+		  return 0;
+    }
+    
+    return result;
+    
+} // end move_file
