@@ -23,6 +23,7 @@
 #
 
 BUNDLING_SRCS := 				\
+        bundling/AgeBlockProcessor.cc           \
         bundling/APIBlockProcessor.cc           \
 	bundling/BlockInfo.cc			\
 	bundling/BlockProcessor.cc		\
