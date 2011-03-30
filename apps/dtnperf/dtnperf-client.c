@@ -17,12 +17,13 @@
 
 
 /* ----------------------------------------
- *         DTNperf 2.7 - CLIENT
+ *         DTNperf 2.8 - CLIENT
  *
  *             developed by
  * 
  * Piero Cornice - piero.cornice(at)gmail.com
  * Marco Livini - marco.livini(at)gmail.com
+ * Leo Iannacone - liannacone(at)arces.unibo.it
  *
  * DEIS - Dipartimento di Elettronica, Informatica e Sistemistica
  * Universita' di Bologna
@@ -90,6 +91,7 @@ typedef struct
 	int receive_receipts;		// request per hop arrival receipt [0]
 	int wait_for_report;		// wait for bundle status reports [1]
 	int disable_fragmentation;	// disable bundle fragmentation [0]
+	dtn_bundle_priority_t priority; // bundle priority [COS_NORMAL]
 }
 dtn_options_t;
 
@@ -843,8 +845,8 @@ void print_usage(char* progname)
  -t, --time <sec>    Time-mode: seconds of transmission.\n\
  -n, --data <num[BKM]>||<file_name> Data-mode: bytes to transmit, data unit default 'M' (Mbytes).\n\
 Options common to both Time and Data Mode:\n\
--w, --window <size>  Size of transmission window, i.e. max number of bundles “in flight” (not still ACKed by a “delivered” status reports); default =1.\n\
--C, --custody [SONC||Slide_on_Custody] Enable both custody transfer and “custody accepted” status reports; if SONC||Slide_on_Custody is set, a bundle in the transmission window can be ACKed also by the “custody accepted” status report sent by the first custodian but the source.\n\
+-w, --window <size>  Size of transmission window, i.e. max number of bundles \"in flight\" (not still ACKed by a \"delivered\" status reports); default =1.\n\
+-C, --custody [SONC||Slide_on_Custody] Enable both custody transfer and \"custody accepted\" status reports; if SONC||Slide_on_Custody is set, a bundle in the transmission window can be ACKed also by the \"custody accepted\" status report sent by the first custodian but the source.\n\
  -i, --intervalbeforeexit <time> Additional interval before exit.\n\
  -p, --payload <size[BKM]> Size in bytes of bundle payload; data unit default= 'K' (Kbytes).\n\
  -u, --nofragment       Disable bundle fragmentation.\n\
@@ -854,9 +856,11 @@ Other options:\n\
  -c, --csvout <csv_log_filename> Log all status reports received by the client in a csv (Comma Separated Values) file.\n\
  -D, --debug <level>    Debug messages [0-1-2], if the level is not indicated assume level=0.\n\
  -L, --log <log_filename>       Create a log file.\n\
- -F, --freceipts        Enable “forwarded” status reports.\n\
- -R, --rreceipts        Enable “received” status reports.\n\
- -h, --help     Help.\n");
+ -F, --freceipts        Enable \"forwarded\" status reports.\n\
+ -R, --rreceipts        Enable \"received\" status reports.\n\
+ -h, --help     Help.\n\
+ -e, --expiration <time> expiration time in seconds (default: one hour).\n\
+ -P, --priority <priority> one of bulk, normal, expedited, or reserved (default normal).\n");
 	exit(1);
 } // end print_usage
 
@@ -892,6 +896,7 @@ void init_dtn_options(dtn_options_t* opt)
 	opt->receive_receipts = 0;    // request per hop arrival receipt [0]
 	opt->wait_for_report = 1;    // wait for bundle status reports [1]
 	opt->disable_fragmentation = 0; //disable bundle fragmentation[0]
+	opt->priority = COS_NORMAL; // bundle priority [COS_NORMAL]
 }
 
 
@@ -899,7 +904,9 @@ void set_dtn_options(dtn_bundle_spec_t *bundle_spec, dtn_options_t *opt)
 {
 	// Bundle expiration
 	bundle_spec->expiration = opt->expiration;
-
+	
+	// Bundle priority
+	bundle_spec->priority = opt->priority;
 
 	// Delivery receipt option
 	if (opt->delivery_receipts)
@@ -962,7 +969,7 @@ void set_dtn_options(dtn_bundle_spec_t *bundle_spec, dtn_options_t *opt)
 			fprintf(log_file, "RECEIVE_RCPT ");
 	}
 
-	//Disable bunle fragmentation
+	//Disable bundle fragmentation
 
 	if (opt->disable_fragmentation)
 	{
@@ -1006,11 +1013,13 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 			    {"freceipts", no_argument, 0, 'F'},
 			    {"rreceipts", no_argument, 0, 'R'},
 			    {"creceipts", no_argument, 0, 'T'},
-			    {"nofragment", no_argument, 0, 'u'}
+			    {"nofragment", no_argument, 0, 'u'},
+			    {"expiration", no_argument, 0, 'e'},
+			    {"priority", no_argument, 0, 'P'}
 		    };
 
 		int option_index = 0;
-		c = getopt_long(argc, argv, "hvD::c:mC::w:d:i:t:p:n:FRTuf:L:", long_options, &option_index);
+		c = getopt_long(argc, argv, "hvD::c:mC::w:d:i:t:p:n:FRTuf:L::e:P:", long_options, &option_index);
 
 		switch (c)
 		{
@@ -1135,6 +1144,25 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 		case 'L':
 			create_log = 1;
 			log_filename = strdup(optarg);
+			break;
+
+		case 'e':
+			dtn_opt->expiration = atoi(optarg);
+			break;
+
+		case 'P':
+			if (!strcasecmp(optarg, "bulk"))   {
+			    dtn_opt->priority = COS_BULK;
+			} else if (!strcasecmp(optarg, "normal")) {
+			    dtn_opt->priority = COS_NORMAL;
+			} else if (!strcasecmp(optarg, "expedited")) {
+			    dtn_opt->priority = COS_EXPEDITED;
+			} else if (!strcasecmp(optarg, "reserved")) {
+			    dtn_opt->priority = COS_RESERVED;
+			} else {
+			    fprintf(stderr, "Invalid priority value %s\n", optarg);
+			    exit(1);
+			}
 			break;
 
 		case '?':
