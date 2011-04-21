@@ -493,8 +493,6 @@ BundleDaemon::handle_bundle_accept(BundleAcceptRequest* request)
 void
 BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 {
-    log_err_p("/dtn/bundle/protocol", "handle_bundle_received: begin");
-
     const BundleRef& bundleref = event->bundleref_;
     Bundle* bundle = bundleref.object();
 
@@ -592,14 +590,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  "(%llu > %u)",
                  bundle->bundleid(), bundle->creation_ts().seconds_, now);
     }
-   
-    // log a warning if the bundle's creation timestamp is 0, indicating 
-    // that an AEB should exist 
-    if (bundle->creation_ts().seconds_ == 0) {
-        log_err_p("/dtn/bundle/protocol", "creation time is 0, AEB should exist");
-        log_warn("AEB: bundle id %d arrived with creation time of 0", 
-                 bundle->bundleid());
-    }
 
     /*
      * If a previous hop block wasn't included, but we know the remote
@@ -644,8 +634,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
             reception_reason = BundleProtocol::REASON_NO_ADDTL_INFO,
             deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
 
-        
-        log_err_p("/dtn/bundle/protocol", "handle_bundle_received: validating bundle: calling BlockProcessors?");
         bool valid = BundleProtocol::validate(bundle,
                                               &reception_reason,
                                               &deletion_reason);
@@ -813,7 +801,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * Finally, bounce out so the router(s) can do something further
      * with the bundle in response to the event.
      */
-    log_err_p("/dtn/bundle/protocol", "handle_bundle_received: end");
 }
 
 //----------------------------------------------------------------------
