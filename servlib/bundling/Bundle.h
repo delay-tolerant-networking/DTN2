@@ -24,6 +24,7 @@
 #include <oasys/serialize/Serialize.h>
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/util/Time.h>
 
 #include "BlockInfo.h"
 #include "BundleMappings.h"
@@ -236,6 +237,10 @@ public:
     const BlockInfoVec& recv_blocks()     const { return recv_blocks_; }
     const MetadataVec& recv_metadata()    const { return recv_metadata_; }
     const LinkMetadataSet& generated_metadata() const { return generated_metadata_; }
+
+    u_int64_t         age()               const { return age_; } ///< [AEB] return age
+    oasys::Time       time_aeb()          const { return time_aeb_; } ///< [AEB]
+    const BlockInfoVec*    api_blocks_c()   const { return &api_blocks_; }
     /// @}
 
     /// @{ Setters and mutable accessors
@@ -283,6 +288,9 @@ public:
     void set_expiration_timer(ExpirationTimer* e) {
         expiration_timer_ = e;
     }
+
+    void set_age(u_int64_t a)          { age_ = a; } ///< [AEB] set age
+    void set_time_aeb(oasys::Time time){ time_aeb_ = time; } ///< [AEB]
     /// @}
     
 private:
@@ -317,6 +325,8 @@ private:
     u_int8_t session_flags_;	///< Session flags
     BundlePayload payload_;	///< Reference to the payload
     
+    u_int64_t age_;             ///< Age of our bundle [AEB]
+
     /*
      * Internal fields and structures for managing the bundle that are
      * not transmitted over the network.
@@ -335,6 +345,9 @@ private:
     CustodyTimerVec custody_timers_; ///< Live custody timers for the bundle
     bool fragmented_incoming_;     ///< Is the bundle an incoming reactive
                                    ///  fragment
+
+    //ExpirationTimer* expiration_timer_aeb_; ///< new timer for debugging [AEB] stuff
+    oasys::Time time_aeb_;         ///< keep track of time for [AEB] stuff 
 
     BlockInfoVec recv_blocks_;	   ///< BP blocks as arrived off the wire
     BlockInfoVec api_blocks_;	   ///< BP blocks given from local API

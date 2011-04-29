@@ -45,6 +45,7 @@
 #include "cmd/StorageCommand.h"
 #include "cmd/ECLACommand.h"
 #include "cmd/SecurityCommand.h"
+#include "cmd/BlockCommand.h"
 
 #include "conv_layers/ConvergenceLayer.h"
 #include "discovery/DiscoveryTable.h"
@@ -222,6 +223,7 @@ DTNServer::init_commands()
     interp->reg(new ShutdownCommand(this, "shutdown"));
     interp->reg(new ShutdownCommand(this, "quit"));
     interp->reg(new StorageCommand(storage_config_));
+    interp->reg(new BlockCommand());
 
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
     interp->reg(new ECLACommand());

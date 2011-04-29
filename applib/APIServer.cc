@@ -806,6 +806,13 @@ APIClient::handle_send()
     b->mutable_source()->assign(&spec.source);
     b->mutable_dest()->assign(&spec.dest);
 
+    // magic values for zeroing out creation timestamp time
+    log_info("spec: %llu %llu", spec.creation_ts.secs, spec.creation_ts.seqno);
+    if(spec.creation_ts.secs == 42 && 
+       spec.creation_ts.seqno == 1337) {
+        b->set_creation_ts(BundleTimestamp(0, b->creation_ts().seqno_));
+    }
+
     // replyto defaults to null
     if (spec.replyto.uri[0] == '\0') {
         b->mutable_replyto()->assign(EndpointID::NULL_EID());

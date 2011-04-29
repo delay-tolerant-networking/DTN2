@@ -41,6 +41,8 @@
 #include <vector>
 
 #include "dtn_api.h"
+#include "sdnv-c.h"
+#include <sys/types.h>
 
 char *progname;
 
@@ -49,6 +51,9 @@ int copies              = 1;    // the number of copies to send
 int verbose             = 0;
 int sleep_time          = 0;
 int wait_for_report     = 0;    // wait for bundle status reports
+int use_reltime         = 0;    // age extension block
+int age                 = 0;
+int zero_creation_ts    = 0;    
 
 // bundle options
 int expiration                 = 3600; // expiration timer (default one hour)
@@ -207,7 +212,52 @@ main(int argc, char** argv)
     bundle_spec.expiration = expiration;
     bundle_spec.dopts      = delivery_options;
     bundle_spec.priority   = priority;
-   
+
+    // this seems to get overwritten...
+    /* from dtn_types.h dtn_bundle_id_t :
+     *
+     * "Type definition for a unique bundle identifier. Returned from dtn_send
+     * after the daemon has assigned the creation_secs and
+     * creation_subsecs,..."
+     * 
+     * TODO: check, and if necessary, fix on the daemon side
+     *
+     * creation_ts.secs and seqno are set to 0 by default on the API side as
+     * it's creating a new bundle, so we need a way to signal to the API to
+     * zero out the creation timestamp time. We'll set a special value for the
+     * seqno, since it will get overwritten anyhow. (i.e., setting the
+     * creation_ts.secs to 0 doesn't signal anything since by default it is 0
+     * before being replaced with the actual value.
+     *
+     * Another way is to provide "raw" manipulation of the creation_ts field...
+     * consequences unknown
+     */
+    if(zero_creation_ts) {
+        if(verbose) printf("setting creation timestamp time to zero\n");
+        bundle_spec.creation_ts.secs = 42;
+        bundle_spec.creation_ts.seqno = 1337;
+    }
+  
+    if(use_reltime) {
+        if(verbose) printf("adding age block with age %d\n", age);
+        int ageblock_len = sdnv_encoding_len(age);
+        char * ageblock_buf = (char *) malloc(ageblock_len * sizeof(char));
+
+        // might have to look into the issues of char* and u_char*
+        int len = sdnv_encode(age, (u_char*)ageblock_buf, ageblock_len);
+
+        if(len < 0) {
+            fprintf(stderr, "error encoding age block sdnv\n");
+            exit(1);
+        }
+
+        ext_blocks.push_back(ExtBlock(10));
+        ext_blocks.back().set_block_buf(ageblock_buf, strlen(ageblock_buf));
+
+        // see dtn_types::dtn_extension_block_flags_t
+        ext_blocks.back().block().flags = BLOCK_FLAG_REPLICATE;
+    }
+ 
     // set extension block information
     unsigned int num_ext_blocks = ext_blocks.size() - ExtBlock::num_meta_blocks_;
     unsigned int num_meta_blocks = ExtBlock::num_meta_blocks_;
@@ -261,7 +311,13 @@ main(int argc, char** argv)
         fill_payload(&send_payload);
         
         memset(&bundle_id, 0, sizeof(bundle_id));
-        
+       
+        //XXX remove 
+        if (verbose) fprintf(stdout, "bundle going to be sent: id %s,%llu.%llu\n",
+                             bundle_spec.source.uri,
+                             bundle_spec.creation_ts.secs,
+                             bundle_spec.creation_ts.seqno);
+
         if ((ret = dtn_send(handle, regid, &bundle_spec, &send_payload,
                             &bundle_id)) != 0)
         {
@@ -354,6 +410,8 @@ void print_usage()
     fprintf(stderr, " -M <int> include metadata block and specify type\n");
     fprintf(stderr, " -O <int> flags to include in extension/metadata block\n");
     fprintf(stderr, " -S <string> extension/metadata block content\n");
+    fprintf(stderr, " -A <int> include age extension block and specify age\n");
+    fprintf(stderr, " -Z set creation timestamp time to zero\n");
     exit(1);
 }
 
@@ -366,7 +424,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHr:s:d:e:P:n:woDXFRcC1NWt:p:i:z:E:M:O:S:");
+        c = getopt(argc, argv, "vhHr:s:d:e:P:n:woDXFRcC1NWt:p:i:z:E:M:O:S:A:Z");
         switch (c)
         {
         case 'v':
@@ -466,6 +524,13 @@ void parse_options(int argc, char**argv)
                 char * block_buf = strdup(optarg);
                 ext_blocks.back().set_block_buf(block_buf, strlen(block_buf));
             }
+            break;
+        case 'A':
+            use_reltime = 1;
+            age = atoi(optarg); 
+            break;
+        case 'Z':
+            zero_creation_ts = 1;
             break;
         case -1:
             done = 1;

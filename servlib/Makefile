@@ -23,6 +23,7 @@
 #
 
 BUNDLING_SRCS := 				\
+        bundling/AgeBlockProcessor.cc           \
         bundling/APIBlockProcessor.cc           \
 	bundling/BlockInfo.cc			\
 	bundling/BlockProcessor.cc		\
@@ -107,6 +108,7 @@ DISCOVERY_SRCS :=				\
 
 CMD_SRCS :=					\
 	cmd/APICommand.cc			\
+	cmd/BlockCommand.cc			\
 	cmd/BundleCommand.cc			\
 	cmd/CompletionNotifier.cc		\
 	cmd/InterfaceCommand.cc			\

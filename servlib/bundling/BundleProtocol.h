@@ -182,6 +182,7 @@ public:
         PREVIOUS_HOP_BLOCK          = 0x005,
         METADATA_BLOCK              = 0x008, ///< NOT IN SPEC YET
         SESSION_BLOCK               = 0x009, ///< NOT IN SPEC YET
+	AGE_BLOCK                   = 0x00a, ///< draft-irtf-dtnrg-bundle-age-block-01
         SEQUENCE_ID_BLOCK           = 0x010, ///< NOT IN SPEC YET
         OBSOLETES_ID_BLOCK          = 0x011, ///< NOT IN SPEC YET
         API_EXTENSION_BLOCK         = 0x100, ///< INTERNAL ONLY -- NOT IN SPEC
@@ -262,6 +263,15 @@ public:
      */
     static bool get_admin_type(const Bundle* bundle,
                                admin_record_type_t* type);
+
+    struct Params {
+        Params();
+        bool age_outbound_enabled_;
+        bool age_inbound_processing_;
+        bool age_zero_creation_ts_time_;
+    };
+
+    static Params params_;
 
 private:
     /**

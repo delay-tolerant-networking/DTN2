@@ -18,6 +18,7 @@
 #  include <dtn-config.h>
 #endif
 
+#include <oasys/util/Time.h>
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/thread/SpinLock.h>
 
@@ -59,8 +60,14 @@ Bundle::init(u_int32_t id)
     // as per the spec, the creation timestamp should be calculated as
     // seconds since 1/1/2000, and since the bundle id should be
     // monotonically increasing, it's safe to use that for the seqno
+
+    // XXX/ modify this depending on whether a flag is set to use AEB or not.
+    // XXX/ of course, we could just zero this out with our age block processor
     creation_ts_.seconds_ = BundleTimestamp::get_current_time();
     creation_ts_.seqno_   = bundleid_;
+
+    age_                = 0; // [AEB]
+    time_aeb_           = oasys::Time::now(); // [AEB]
 
     // This identifier provides information about when a local Bundle
     // object was created so that bundles with the same GBOF-ID can be
@@ -68,6 +75,9 @@ Bundle::init(u_int32_t id)
     // because that will be set to the actual BP creation time if this
     // bundle was received from a peer, or is the result of
     // fragmentation, etc.
+
+    // XXX/ hence, let's not break functionality by setting the internal
+    // timestamp to 0. 
     extended_id_ = creation_ts_;
 
     log_debug_p("/dtn/bundle", "Bundle::init bundle id %d", id);
@@ -169,6 +179,8 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("      obsoletes_id: %s\n", obsoletes_id_.to_str().c_str());
     buf->appendf("       session_eid: %s\n", session_eid_.c_str());
     buf->appendf("     session_flags: 0x%x\n", session_flags_);
+    buf->appendf("               age: %llu\n", age_);
+    //buf->appendf("          time_aeb: %llu\n", time_aeb_);
     buf->append("\n");
 
     buf->appendf("forwarding log:\n");
@@ -246,6 +258,9 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("recv_blocks", &recv_blocks_);
     a->process("api_blocks", &api_blocks_);
 
+    a->process("age", &age_); // [AEB]
+    //a->process("time_aeb", &time_aeb_); // [AEB]
+
     // XXX/TODO serialize the forwarding log and make sure it's
     // updated on disk as it changes in memory
     //a->process("forwarding_log", &fwdlog_);
@@ -279,6 +294,8 @@ Bundle::copy_metadata(Bundle* new_bundle) const
     new_bundle->app_acked_rcpt_	 	= app_acked_rcpt_;
     new_bundle->creation_ts_ 		= creation_ts_;
     new_bundle->expiration_ 		= expiration_;
+    new_bundle->age_	   	 	= age_; // [AEB]
+    new_bundle->time_aeb_       = time_aeb_; // [AEB]
 }
 
 //----------------------------------------------------------------------

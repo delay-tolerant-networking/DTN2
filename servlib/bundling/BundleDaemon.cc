@@ -493,6 +493,8 @@ BundleDaemon::handle_bundle_accept(BundleAcceptRequest* request)
 void
 BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 {
+    log_info_p("/dtn/bundle/protocol", "handle_bundle_received: begin");
+
     const BundleRef& bundleref = event->bundleref_;
     Bundle* bundle = bundleref.object();
 
@@ -590,6 +592,14 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  "(%llu > %u)",
                  bundle->bundleid(), bundle->creation_ts().seconds_, now);
     }
+   
+    // log a warning if the bundle's creation timestamp is 0, indicating 
+    // that an AEB should exist 
+    if (bundle->creation_ts().seconds_ == 0) {
+        log_info_p("/dtn/bundle/protocol", "creation time is 0, AEB should exist");
+        log_warn_p("dtn/bundle/extblock/aeb", "AEB: bundle id %d arrived with creation time of 0", 
+                 bundle->bundleid());
+    }
 
     /*
      * If a previous hop block wasn't included, but we know the remote
@@ -634,6 +644,9 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
             reception_reason = BundleProtocol::REASON_NO_ADDTL_INFO,
             deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
 
+        
+	log_info("/dtn/bundle/protocol", "handle_bundle_received: validating "
+                 "bundle: calling BlockProcessors?");
         bool valid = BundleProtocol::validate(bundle,
                                               &reception_reason,
                                               &deletion_reason);
@@ -801,6 +814,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * Finally, bounce out so the router(s) can do something further
      * with the bundle in response to the event.
      */
+    log_info_p("/dtn/bundle/protocol", "BundleDaemon::handle_bundle_received: end");
 }
 
 //----------------------------------------------------------------------
@@ -2157,7 +2171,9 @@ bool
 BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 {
     log_debug("adding bundle *%p to pending list", bundle);
-    
+   
+    log_info_p("/dtn/bundle/expiration","adding bundle to pending list");
+ 
     pending_bundles_->push_back(bundle);
     
     if (add_to_store) {
@@ -2180,7 +2196,37 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     long int when = expiration_time.tv_sec - now.tv_sec;
 
     bool ok_to_route = true;
+  
+    //+[AEB] handling
+    bool age_block_exists = false;
     
+    if ((bundle->recv_blocks()).find_block(BundleProtocol::AGE_BLOCK) != false) {
+        age_block_exists = true;
+    }
+
+    if(bundle->creation_ts().seconds_ == 0 || age_block_exists == true) {
+	if(bundle->creation_ts().seconds_ == 0) {
+            log_info_p("/dtn/bundle/expiration", "[AEB]: creation ts is 0");
+	} 
+        if(age_block_exists) {
+            log_info_p("/dtn/bundle/expiration", "[AEB]: AgeBlock exists.");
+        }
+
+        expiration_time.tv_sec = 
+            BundleTimestamp::TIMEVAL_CONVERSION +
+            BundleTimestamp::get_current_time() +
+            bundle->expiration() -
+            bundle->age() - 
+            (bundle->time_aeb().elapsed_ms() / 1000); // this might not be necessary
+
+        expiration_time.tv_usec = now.tv_usec;
+
+        when = expiration_time.tv_sec - now.tv_sec;
+
+        log_info_p("/dtn/bundle/expiration", "[AEB]: expiring in %lu seconds", when);
+    }
+    //+[AEB] end handling
+  
     if (when > 0) {
         log_debug_p("/dtn/bundle/expiration",
                     "scheduling expiration for bundle id %d at %u.%u "
