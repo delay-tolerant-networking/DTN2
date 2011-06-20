@@ -162,11 +162,11 @@ int s10_daemon(int event) {
 
 int s10_bundle(
 		int event, 
-		dtn::Bundle::Bundle* bp, 
+		dtn::Bundle* bp, 
 		const char *peer, 
 		time_t ot,
 		int ousec,
-		dtn::Bundle::Bundle* otherBundle,
+		dtn::Bundle* otherBundle,
 		const char *cmt)
 {
 	logrep_t lr;
@@ -194,7 +194,7 @@ int s10_bundle(
 
 int s10_contact(
 		int event,
-		dtn::Contact::Contact *ct,
+		dtn::Contact *ct,
 		const char *cmt)
 {
 	logrep_t lr;
