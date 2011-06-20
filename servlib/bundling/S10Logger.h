@@ -67,16 +67,16 @@ int s10_daemon(int event);
 // zero/null if irrelevant)
 int s10_bundle(
 		int event, 
-		dtn::Bundle::Bundle* bp,
+		dtn::Bundle* bp,
 		const char *peer,
 		time_t	ot,
 		int 	ousec,
-		dtn::Bundle::Bundle* otherbundle,
+		dtn::Bundle* otherbundle,
 		const char *cmt);
 
 int s10_contact(
 		int event,
-		dtn::Contact::Contact *ct,
+		dtn::Contact *ct,
 		const char *cmt);
 
 int s10_setlocal(const char *eid);
