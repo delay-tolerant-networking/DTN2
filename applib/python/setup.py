@@ -1,7 +1,7 @@
 from distutils.core import setup, Extension
 from os import getenv
 
-INCDIR  = getenv('INCDIR')
+INCDIR  = getenv('INCDIR').split(':')
 LIBDIR  = getenv('LIBDIR')
 VERSION = getenv('VERSION')
 
@@ -17,7 +17,7 @@ setup(name="dtnapi",
       url="http://www.dtnrg.org",
       py_modules=["dtnapi"],
       ext_modules=[Extension("_dtnapi", ["dtn_api_wrap_python.cc"],
-                             include_dirs=[INCDIR],
+                             include_dirs=INCDIR,
 			     library_dirs=[LIBDIR],
                              libraries=["".join(['dtnapi-', VERSION])])]
       )
