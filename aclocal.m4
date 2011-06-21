@@ -760,7 +760,7 @@ dnl
 dnl Main macro for finding a usable db installation 
 dnl
 AC_DEFUN(AC_CONFIG_DB, [
-    ac_dbvers='4.8 4.7 4.6 4.5 4.4 4.3 4.2 4.1'
+    ac_dbvers='5.1 4.8 4.7 4.6 4.5 4.4 4.3 4.2 4.1'
     ac_dbdir='yes'
 
     AC_ARG_WITH(db,
@@ -770,7 +770,7 @@ AC_DEFUN(AC_CONFIG_DB, [
 
     AC_ARG_WITH(dbver,
         AC_HELP_STRING([--with-dbver=VERSION],
-    		   Berkeley DB versions to try (default 4.7-4.2)),
+    		   Berkeley DB versions to try (default 5.1-4.2)),
         ac_dbvers=$withval)
 
     dnl
@@ -1483,7 +1483,7 @@ AC_DEFUN(AC_OASYS_CONFIG_GCC_OPTS, [
 
        if [[ $pic = yes ]] ; then
            
-           for shopt in -shared "-dynamiclib -single_module" ; do
+           for shopt in -shared "-shared -fPIC" "-dynamiclib -single_module" ; do
              AC_MSG_CHECKING([whether the compiler can link a dynamic library with $shopt])
 	     LDFLAGS="$shopt $ac_save_LDFLAGS"
              AC_LINK_IFELSE([void myfunc() {}], [shlink=yes], [shlink=no])
@@ -1498,6 +1498,8 @@ AC_DEFUN(AC_OASYS_CONFIG_GCC_OPTS, [
 		 dnl XXX/demmer this could be done in some better way but I don't know how
 		 if [[ "$shopt" = "-dynamiclib -single_module" ]] ; then
                      SHLIB_EXT=dylib
+		 elif [[ "$shopt" = "-shared -fPIC" ]] ; then
+                     SHLIB_EXT=so
                  elif [[ $shopt = -shared ]] ; then
                      SHLIB_EXT=so
                  else
@@ -1956,39 +1958,6 @@ AC_DEFUN(AC_OASYS_FIND_MYSQL, [
         AC_MSG_ERROR([can't find usable mysql library])
     fi
 ])
-
-dnl
-dnl Check if oasys has support for the given feature. Returns result
-dnl in ac_oasys_supports_result.
-dnl
-AC_DEFUN(AC_OASYS_SUPPORTS, [
-    AC_MSG_CHECKING(whether oasys is configured with $1)
-
-    if test x$cv_oasys_supports_$1 != x ; then
-        ac_oasys_supports_result=$cv_oasys_supports_$1
-        AC_MSG_RESULT($ac_oasys_supports_result (cached))
-    else
-
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
-    AC_LINK_IFELSE(
-      AC_LANG_PROGRAM(
-        [
-            #include <oasys/oasys-config.h>
-            #ifndef $1
-            #error $1 not configured
-            #endif
-        ], [] ),
-      ac_oasys_supports_result=yes,
-      ac_oasys_supports_result=no)
-
-    cv_oasys_supports_$1=$ac_oasys_supports_result
-    
-    AC_MSG_RESULT([$ac_oasys_supports_result])
-    CPPFLAGS=$ac_save_CPPFLAGS
-
-    fi
-])
 dnl
 dnl    Copyright 2007 Intel Corporation
 dnl 
@@ -2187,6 +2156,39 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
 
     AC_SUBST(SYS_EXTLIB_CFLAGS)
     AC_SUBST(SYS_EXTLIB_LDFLAGS)
+])
+
+dnl
+dnl Check if oasys has support for the given feature. Returns result
+dnl in ac_oasys_supports_result.
+dnl
+AC_DEFUN(AC_OASYS_SUPPORTS, [
+    AC_MSG_CHECKING(whether oasys is configured with $1)
+
+    if test x$cv_oasys_supports_$1 != x ; then
+        ac_oasys_supports_result=$cv_oasys_supports_$1
+        AC_MSG_RESULT($ac_oasys_supports_result (cached))
+    else
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
+    AC_LINK_IFELSE(
+      AC_LANG_PROGRAM(
+        [
+            #include <oasys/oasys-config.h>
+            #ifndef $1
+            #error $1 not configured
+            #endif
+        ], [] ),
+      ac_oasys_supports_result=yes,
+      ac_oasys_supports_result=no)
+
+    cv_oasys_supports_$1=$ac_oasys_supports_result
+    
+    AC_MSG_RESULT([$ac_oasys_supports_result])
+    CPPFLAGS=$ac_save_CPPFLAGS
+
+    fi
 ])
 dnl
 dnl    Copyright 2005-2006 Intel Corporation
