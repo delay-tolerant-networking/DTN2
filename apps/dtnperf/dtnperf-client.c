@@ -1400,15 +1400,15 @@ void* send_bundle(void *opt)
 			if (debug)
 				printf(" bundle sent\n");
 			if ((debug) && (debug_level > 0))
-				printf("\t[debug] bundle sent: %llu.%llu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+				printf("\t[debug] bundle sent: %llu.%llu\n", (unsigned long long) bundle_id.creation_ts.secs, (unsigned long long) bundle_id.creation_ts.seqno);
 			if (create_log)
-				fprintf(log_file, "\t bundle sent %llu.%llu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+				fprintf(log_file, "\t bundle sent %llu.%llu\n", (unsigned long long) bundle_id.creation_ts.secs, (unsigned long long) bundle_id.creation_ts.seqno);
 			if (csv_out)
 			{
 				fprintf(csv_log_file, "%Lf,%.0Lf,%llu,STATUS_SENT,%s", 
 				        calc_exec_time(p_start.tv_sec, p_start.tv_usec),
 				        calc_timestamp(calc_epoch_time(bundle_id.creation_ts.secs)),
-				        bundle_id.creation_ts.seqno,
+				        (unsigned long long) bundle_id.creation_ts.seqno,
 				        bundle_spec.source.uri);
 				fprintf(csv_log_file, ",%u,No,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
@@ -1530,9 +1530,9 @@ void* send_bundle(void *opt)
 			relative_bundleId = add_info(send_info, bundle_id, p_start, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window);
 
 			if ((debug) && (debug_level > 0))
-				printf(" bundle sent %llu.%llu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+				printf(" bundle sent %llu.%llu\n", (unsigned long long) bundle_id.creation_ts.secs, (unsigned long long) bundle_id.creation_ts.seqno);
 			if (create_log)
-				fprintf(log_file, " bundle sent %llu.%llu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+				fprintf(log_file, " bundle sent %llu.%llu\n", (unsigned long long) bundle_id.creation_ts.secs, (unsigned long long) bundle_id.creation_ts.seqno);
 
 
 			// Increment sent_bundles
@@ -1547,7 +1547,7 @@ void* send_bundle(void *opt)
 				fprintf(csv_log_file, "%Lf,%.0Lf,%llu,STATUS_SENT,%s",
 				        calc_exec_time(p_start.tv_sec, p_start.tv_usec),
 				        calc_timestamp(calc_epoch_time(bundle_id.creation_ts.secs)),
-				        bundle_id.creation_ts.seqno,
+				        (unsigned long long) bundle_id.creation_ts.seqno,
 				        bundle_spec.source.uri);
 				fprintf(csv_log_file, ",%u,No,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
@@ -1660,9 +1660,9 @@ void* send_bundle(void *opt)
 			relative_bundleId = add_info(send_info, bundle_id, p_start, perf_opt->slide_on_custody==1 ? ((perf_opt->window)+1000) : perf_opt->window);
 
 			if ((debug) && (debug_level > 0))
-				printf(" bundle sent %llu.%llu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+				printf(" bundle sent %llu.%llu\n", (unsigned long long) bundle_id.creation_ts.secs, (unsigned long long) bundle_id.creation_ts.seqno);
 			if (create_log)
-				fprintf(log_file, " bundle sent %llu.%llu\n", bundle_id.creation_ts.secs, bundle_id.creation_ts.seqno);
+				fprintf(log_file, " bundle sent %llu.%llu\n", (unsigned long long) bundle_id.creation_ts.secs, (unsigned long long) bundle_id.creation_ts.seqno);
 
 
 			// Increment sent_bundles
@@ -1676,7 +1676,7 @@ void* send_bundle(void *opt)
 				fprintf(csv_log_file, "%Lf,%.0Lf,%llu,STATUS_SENT,%s", 
 				        calc_exec_time(p_start.tv_sec, p_start.tv_usec),
 				        calc_timestamp(calc_epoch_time(bundle_id.creation_ts.secs)),
-				        bundle_id.creation_ts.seqno,
+				        (unsigned long long) bundle_id.creation_ts.seqno,
 				        bundle_spec.source.uri);
 				fprintf(csv_log_file, ",%u,No,0,%s\n", relative_bundleId, bundle_spec.dest.uri);
 			}
@@ -1771,7 +1771,7 @@ void* receive_ack(void *opt)
 					fprintf(csv_log_file, "%Lf,%.0Lf,%llu,", 
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
  					    calc_timestamp( calc_epoch_time(reply_spec.creation_ts.secs)),
- 					    reply_spec.creation_ts.seqno
+ 					    (unsigned long long) reply_spec.creation_ts.seqno
  					    );
 			
 			if (reply_payload.status_report->flags == STATUS_DELIVERED)
@@ -1793,13 +1793,13 @@ void* receive_ack(void *opt)
 			else if (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED)
 			{
 				if ((debug) && (debug_level > 1))
-					printf("\t[debug] signalling of STATUS_CUSTODY_ACCEPTED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					printf("\t[debug] signalling of STATUS_CUSTODY_ACCEPTED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 				if (csv_out)
 					fprintf(csv_log_file, "STATUS_CUSTODY_ACCEPTED");
 				if (create_log)
 					fprintf(log_file, "\t %Lf\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %llu.%llu created by %s\n",
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
-                 reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+                 reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 			}
 			
 			if (csv_out)
@@ -1816,7 +1816,7 @@ void* receive_ack(void *opt)
 					fprintf(csv_log_file, "%Lf,%.0Lf,%llu,",
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
               calc_timestamp(calc_epoch_time(reply_spec.creation_ts.secs)),
- 					    reply_spec.creation_ts.seqno
+ 					   (unsigned long long) reply_spec.creation_ts.seqno
               );
 					
 			if (reply_payload.status_report->flags == STATUS_DELIVERED)
@@ -1837,57 +1837,57 @@ void* receive_ack(void *opt)
 			else if (reply_payload.status_report->flags == STATUS_RECEIVED)
 			{
 				if ((debug) && (debug_level > 1))
-					printf("\t[debug] signalling of STATUS_RECEIVED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					printf("\t[debug] signalling of STATUS_RECEIVED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 				if (csv_out)
 					fprintf(csv_log_file, "STATUS_RECEIVED");
 				if (create_log)
 					fprintf(log_file, "\t %Lf\t signalling of STATUS_RECEIVED from %s for: %llu.%llu created by %s\n",
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
-                 reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+                 reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 			}
 			else if (reply_payload.status_report->flags == STATUS_CUSTODY_ACCEPTED)
 			{
 				if ((debug) && (debug_level > 1))
-					printf("\t[debug] signalling of STATUS_CUSTODY_ACCEPTED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					printf("\t[debug] signalling of STATUS_CUSTODY_ACCEPTED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 				if (csv_out)
 					fprintf(csv_log_file, "STATUS_CUSTODY_ACCEPTED");
 				if (create_log)
 					fprintf(log_file, "\t %Lf\t signalling of STATUS_CUSTODY_ACCEPTED from %s for: %llu.%llu created by %s\n",
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
-                 reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+                 reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 			}
 			else if (reply_payload.status_report->flags == STATUS_FORWARDED)
 			{
 				if ((debug) && (debug_level > 1))
-					printf("\t[debug] signalling of STATUS_FORWARDED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					printf("\t[debug] signalling of STATUS_FORWARDED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 				if (csv_out)
 					fprintf(csv_log_file, "STATUS_FORWARDED");
 				if (create_log)
 					fprintf(log_file, "\t %Lf\t signalling of STATUS_FORWARDED from %s for: %llu.%llu created by %s\n",
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
-                 reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+                 reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 			}
 			else if (reply_payload.status_report->flags == STATUS_DELETED)
 			{
 				if ((debug) && (debug_level > 1))
-					printf("\t[debug] signalling of STATUS_DELETED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					printf("\t[debug] signalling of STATUS_DELETED from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 				if (csv_out)
 					fprintf(csv_log_file, "STATUS_DELETED");
 				if (create_log)
 					fprintf(log_file, "\t %Lf\t signalling of STATUS_DELETED from %s for: %llu.%llu created by %s\n",
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
-                 reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+                 reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 			}
 			else if (reply_payload.status_report->flags == STATUS_ACKED_BY_APP)
 			{
 				if ((debug) && (debug_level > 1))
-					printf("\t[debug] signalling of STATUS_ACKED_BY_APP from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+					printf("\t[debug] signalling of STATUS_ACKED_BY_APP from %s for: %llu.%llu created by %s\n", reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 				if (csv_out)
 					fprintf(csv_log_file, "STATUS_ACKED_BY_APP");
 				if (create_log)
 					fprintf(log_file, "\t %Lf\t signalling of STATUS_ACKED_BY_APP from %s for: %llu.%llu created by %s\n",
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
-                 reply_spec.source.uri, reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
+                 reply_spec.source.uri, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno, reply_payload.status_report->bundle_id.source.uri);
 			}
 			
   		if (csv_out)
@@ -1900,11 +1900,11 @@ void* receive_ack(void *opt)
 		else
 		{
 			if ((debug) && (debug_level > 1))
-				printf("\t[debug] received bundle outside sequence: %llu.%llu\n", reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno);
+				printf("\t[debug] received bundle outside sequence: %llu.%llu\n", (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno);
 			if (create_log)
 				fprintf(log_file, "\t %Lf\t received bundle outside sequence: %llu.%llu\n",
 					    calc_exec_time(p_end.tv_sec, p_end.tv_usec),
-                 reply_payload.status_report->bundle_id.creation_ts.secs, reply_payload.status_report->bundle_id.creation_ts.seqno);
+                 (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.secs, (unsigned long long) reply_payload.status_report->bundle_id.creation_ts.seqno);
 		}
 
 		dtn_free_payload(&reply_payload);
