@@ -16,7 +16,7 @@
 #
 
 package require http
-load libdtntcl[info sharedlibextension] dtn
+load libdtntcl[info sharedlibextension] dtnapi
 
 #----------------------------------------------------------------------
 proc shift { l } {
