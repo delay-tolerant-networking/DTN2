@@ -523,4 +523,14 @@ BlockProcessor::init_block(BlockInfo*    block,
            bp, len);
 }
 
+//----------------------------------------------------------------------
+int
+BlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *b)
+{
+	(void) b;
+
+	buf->append("Generic Block Processor (Base Class)");
+	return 0;
+}
+
 } // namespace dtn

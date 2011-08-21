@@ -143,4 +143,10 @@ UnknownBlockProcessor::validate(const Bundle*           bundle,
     return true;
 }
 
+//----------------------------------------------------------------------
+int
+UnknownBlockProcessor::format(oasys::StringBuffer* buf)
+{
+	buf->append("Unknown");
+}
 } // namespace dtn

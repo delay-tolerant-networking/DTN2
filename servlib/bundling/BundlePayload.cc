@@ -100,6 +100,22 @@ BundlePayload::init(int bundleid, location_t location)
     if (fd != file_.fd()) {
         PANIC("duplicate entry in open fd cache");
     }
+
+    sync_payload();
+
+    unpin_file();
+}
+
+//----------------------------------------------------------------------
+void
+BundlePayload::sync_payload()
+{
+    if (location_==MEMORY || location_==NODATA) {
+        return;
+    }
+
+    pin_file();
+    fsync(file_.fd());
     unpin_file();
 }
 

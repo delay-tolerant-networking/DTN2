@@ -20,6 +20,7 @@
 #include <list>
 #include <oasys/compat/inttypes.h>
 #include <oasys/thread/Notifier.h>
+#include <oasys/serialize/Serialize.h>
 
 #include "BundleRef.h"
 #include "naming/EndpointID.h"
@@ -64,7 +65,7 @@ class BundleTimestamp;
  * order to properly maintain the reference counts.
  *
  */
-class BundleList : public oasys::Logger {
+class BundleList : public oasys::Logger,  public oasys::SerializableObject {
 private:
     /**
      * Type for the list itself (private since it's irrelevant to the
@@ -96,6 +97,13 @@ public:
      * @return the bundle or NULL if the list is empty
      */
     BundleRef front() const;
+
+    /*
+     * Serializes the list of (internal) bundleIDs; on deserialization,
+     * tries to hunt down those bundles in the all_bundles list and add
+     * them to the list.
+     */
+    void serialize(oasys::SerializeAction *a);
 
     /**
      * Peek at the last bundle on the list.
@@ -291,9 +299,15 @@ public:
 
     /**
      * Set the name (useful for classes that are unserialized).
+     * Also sets the logpath
      */
     void set_name(const std::string& name);
     
+    /**
+     * As above, but sets ONLY the name, not the logpath.
+     */
+    void set_name_only(const std::string& name);
+
 private:
     /**
      * Helper routine to add a bundle at the indicated position.

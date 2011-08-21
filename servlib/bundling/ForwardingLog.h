@@ -49,7 +49,8 @@ class Registration;
  * transmission. Thus the accessors below always return / update the
  * last entry in the log for a given link.
  */
-class ForwardingLog : public oasys::SerializableVector<ForwardingInfo> {
+class ForwardingLog : public oasys::SerializableObject,
+                      public oasys::Logger {
 public:
     typedef ForwardingInfo::state_t state_t;
 
@@ -57,7 +58,7 @@ public:
      * Constructor that takes a pointer to the relevant Bundle's lock,
      * used when querying or updating the log.
      */
-    ForwardingLog(oasys::SpinLock* lock);
+    ForwardingLog(oasys::SpinLock* lock, Bundle *b);
 
     /**
      * Get the most recent entry for the given link from the log.
@@ -147,6 +148,14 @@ public:
     bool update(const LinkRef& link, state_t state);
 
     /**
+     * Update the state for the latest forwarding info entry for the
+     * given link.
+     *
+     * @return true if the next hop entry was found
+     */
+    bool update(Registration* reg, state_t state);
+
+    /**
      * Update all entries in the given state to the new state.
      */
     void update_all(state_t old_state, state_t new_state);
@@ -161,14 +170,25 @@ public:
      */
     void clear();
 
+    void serialize(oasys::SerializeAction* a);
+
     /**
      * Typedef for the log itself.
      */
-    typedef std::vector<ForwardingInfo> Log;
+    // typedef std::vector<ForwardingInfo> Log;
+    typedef oasys::SerializableVector<ForwardingInfo> Log;
+
+    /*
+     * Accessor for the log
+     */
+    Log log() { return log_; }
+
+    oasys::SpinLock* lock() { return lock_; }
 
 protected:
-    Log log_;			///< The actual log
     oasys::SpinLock* lock_;	///< Copy of the bundle's lock
+    Bundle* bundle_;
+    Log log_;			///< The actual log
 };
 
 } // namespace dtn

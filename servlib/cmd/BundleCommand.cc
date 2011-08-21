@@ -275,6 +275,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         BundleList::iterator iter;
         oasys::StringBuffer buf;
         BundleList* pending = BundleDaemon::instance()->pending_bundles();
+        BundleList* custody = BundleDaemon::instance()->custody_bundles();
         BundleList* all_bundles = BundleDaemon::instance()->all_bundles();
         
         oasys::ScopeLock l(all_bundles->lock(), "BundleCommand::exec");
@@ -282,12 +283,13 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
     
         for (iter = all_bundles->begin(); iter != all_bundles->end(); ++iter) {
             b = *iter;
-            buf.appendf("\t%-3d: %s -> %s length %zu%s\n",
+            buf.appendf("\t%-3d: %s -> %s length %zu%s%s\n",
                         b->bundleid(),
                         b->source().c_str(),
                         b->dest().c_str(),
                         b->payload().length(),
-                        pending->contains(b) ? "" : " (NOT PENDING)"
+                        pending->contains(b) ? "" : " (NOT PENDING)",
+                        custody->contains(b) ? " (Custodian)" : ""
                 );
         }
         

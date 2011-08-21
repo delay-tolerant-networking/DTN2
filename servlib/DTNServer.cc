@@ -105,6 +105,7 @@ DTNServer::start()
 bool
 DTNServer::init_datastore()
 {
+    log_debug("Initializing datastore.");
     if (storage_config_->tidy_) 
     {
         storage_config_->init_ = true; // init is implicit with tidy
@@ -145,6 +146,11 @@ DTNServer::init_datastore()
         log_crit("error initializing data store");
         return false;
     }
+
+    // Get the initialization info to disk.
+    log_debug("committing storage init commands");
+    store_->make_transaction_durable();
+    store_->endTransaction();
 
     // load in the global store here since that will check the
     // database version and exit if there's a mismatch

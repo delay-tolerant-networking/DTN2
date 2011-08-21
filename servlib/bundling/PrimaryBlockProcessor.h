@@ -63,6 +63,7 @@ public:
                           BlockInfoVec* xmit_blocks,
                           BlockInfo*    block);
 
+    int format(oasys::StringBuffer* buf, BlockInfo *b = NULL);
     static bool get_ipn(const EndpointID& eid, u_int64_t* iied, u_int64_t* itag);
     static void make_ipn(char *, u_int64_t, u_int64_t);
 

@@ -280,6 +280,12 @@ public:
      */
     void check_and_deliver_to_registrations(Bundle* bundle, const EndpointID&);
 
+    /**
+     * Main event handling function.
+     */
+    void handle_event(BundleEvent* event);
+    void handle_event(BundleEvent* event, bool closeTransaction);
+
 protected:
     friend class BundleActions;
 
@@ -288,6 +294,11 @@ protected:
      */
     void load_registrations();
         
+    /**
+     * Generate delivery events for newly-loaded bundles.
+     */
+    void generate_delivery_events(Bundle* bundle);
+
     /**
      * Initialize and load in stored bundles.
      */
@@ -298,11 +309,6 @@ protected:
      */
     void run();
 
-    /**
-     * Main event handling function.
-     */
-    void handle_event(BundleEvent* event);
-
     /// @{
     /**
      * Event type specific handlers.
@@ -310,6 +316,7 @@ protected:
     void handle_bundle_received(BundleReceivedEvent* event);
     void handle_bundle_transmitted(BundleTransmittedEvent* event);
     void handle_bundle_delivered(BundleDeliveredEvent* event);
+    void handle_bundle_acknowledged_by_app(BundleAckEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
     void handle_bundle_free(BundleFreeEvent* event);
     void handle_bundle_send(BundleSendRequest* event);
@@ -350,6 +357,7 @@ protected:
     void handle_shutdown_request(ShutdownRequest* event);
     void handle_status_request(StatusRequest* event);
     void handle_cla_set_params(CLASetParamsRequest* request);
+    void handle_deliver_bundle_to_reg(DeliverBundleToRegEvent* event);
     void handle_bundle_queued_query(BundleQueuedQueryRequest* request);
     void handle_bundle_queued_report(BundleQueuedReportEvent* event);
     void handle_eid_reachable_query(EIDReachableQueryRequest* request);

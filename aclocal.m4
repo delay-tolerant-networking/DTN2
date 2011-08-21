@@ -1958,6 +1958,39 @@ AC_DEFUN(AC_OASYS_FIND_MYSQL, [
         AC_MSG_ERROR([can't find usable mysql library])
     fi
 ])
+
+dnl
+dnl Check if oasys has support for the given feature. Returns result
+dnl in ac_oasys_supports_result.
+dnl
+AC_DEFUN(AC_OASYS_SUPPORTS, [
+    AC_MSG_CHECKING(whether oasys is configured with $1)
+
+    if test x$cv_oasys_supports_$1 != x ; then
+        ac_oasys_supports_result=$cv_oasys_supports_$1
+        AC_MSG_RESULT($ac_oasys_supports_result (cached))
+    else
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
+    AC_LINK_IFELSE(
+      AC_LANG_PROGRAM(
+        [
+            #include <oasys/oasys-config.h>
+            #ifndef $1
+            #error $1 not configured
+            #endif
+        ], [] ),
+      ac_oasys_supports_result=yes,
+      ac_oasys_supports_result=no)
+
+    cv_oasys_supports_$1=$ac_oasys_supports_result
+    
+    AC_MSG_RESULT([$ac_oasys_supports_result])
+    CPPFLAGS=$ac_save_CPPFLAGS
+
+    fi
+])
 dnl
 dnl    Copyright 2007 Intel Corporation
 dnl 
@@ -2157,39 +2190,52 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
     AC_SUBST(SYS_EXTLIB_CFLAGS)
     AC_SUBST(SYS_EXTLIB_LDFLAGS)
 ])
-
 dnl
-dnl Check if oasys has support for the given feature. Returns result
-dnl in ac_oasys_supports_result.
+dnl    Copyright 2011 Alex McMahon, alex.mcmahon@cs.tcd.ie
+dnl    Copyright 2011 Trinity Collage Dublin
+dnl 
+dnl    Licensed under the Apache License, Version 2.0 (the "License");
+dnl    you may not use this file except in compliance with the License.
+dnl    You may obtain a copy of the License at
+dnl 
+dnl        http://www.apache.org/licenses/LICENSE-2.0
+dnl 
+dnl    Unless required by applicable law or agreed to in writing, software
+dnl    distributed under the License is distributed on an "AS IS" BASIS,
+dnl    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+dnl    See the License for the specific language governing permissions and
+dnl    limitations under the License.
 dnl
-AC_DEFUN(AC_OASYS_SUPPORTS, [
-    AC_MSG_CHECKING(whether oasys is configured with $1)
 
-    if test x$cv_oasys_supports_$1 != x ; then
-        ac_oasys_supports_result=$cv_oasys_supports_$1
-        AC_MSG_RESULT($ac_oasys_supports_result (cached))
-    else
+dnl 
+dnl Autoconf support for configuring whether odbc stack is 
+dnl available on the system
+dnl
 
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
-    AC_LINK_IFELSE(
-      AC_LANG_PROGRAM(
-        [
-            #include <oasys/oasys-config.h>
-            #ifndef $1
-            #error $1 not configured
-            #endif
-        ], [] ),
-      ac_oasys_supports_result=yes,
-      ac_oasys_supports_result=no)
+AC_DEFUN(AC_CONFIG_ODBC, [
 
-    cv_oasys_supports_$1=$ac_oasys_supports_result
+    AC_ARG_WITH(odbc,
+      [AC_HELP_STRING([--with-odbc],
+                      [compile in odbc support (default try)])],
+      [ac_use_odbc=$withval],
+      [ac_use_odbc=try])
     
-    AC_MSG_RESULT([$ac_oasys_supports_result])
-    CPPFLAGS=$ac_save_CPPFLAGS
+    ac_has_odbc_h="no"
+
+    AC_MSG_CHECKING([whether odbc support should be enabled])
+
+    if test "$ac_use_odbc" = "no"; then
+        AC_MSG_RESULT(no)
+
+    else
+        AC_MSG_RESULT($ac_use_odbc)
+          AC_DEFINE(OASYS_ODBC_ENABLED, 1,
+              [whether odbc support is enabled])
+          AC_MSG_RESULT(yes)
 
     fi
 ])
+
 dnl
 dnl    Copyright 2005-2006 Intel Corporation
 dnl 

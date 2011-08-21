@@ -235,6 +235,10 @@ public:
                     const u_char* bp,
                     size_t        len);
     
+    /**
+     * Return a one-line representation of the block.
+     */
+    virtual int format(oasys::StringBuffer* buf, BlockInfo *b = NULL);
 
 protected:
     friend class BundleProtocol;

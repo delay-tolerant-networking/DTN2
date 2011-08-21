@@ -75,6 +75,8 @@ typedef u_int dtn_reg_id_t;
 
 /**
  * DTN timeouts are specified in seconds.
+ * typedef u_int dtn_timeval_t; // 32-bit systems
+ * typedef u_int32_t dtn_timeval_t; // 64-bit systems
  */
 
 typedef u_int dtn_timeval_t;
@@ -135,6 +137,11 @@ typedef struct dtn_service_tag_t dtn_service_tag_t;
  *     DTN_SESSION_CUSTODY   - app assumes custody for the session
  *     DTN_SESSION_PUBLISH   - creates a publication point
  *     DTN_SESSION_SUBSCRIBE - create subscription for the session
+ *
+ * Other flags:
+ *     DTN_DELIVERY_ACKS - application will acknowledge delivered
+ *                         bundles with dtn_ack()
+ *
  */
 
 enum dtn_reg_flags_t {
@@ -144,8 +151,26 @@ enum dtn_reg_flags_t {
 	DTN_SESSION_CUSTODY = 4,
 	DTN_SESSION_PUBLISH = 8,
 	DTN_SESSION_SUBSCRIBE = 16,
+	DTN_DELIVERY_ACKS = 32,
 };
 typedef enum dtn_reg_flags_t dtn_reg_flags_t;
+
+/**
+ * Replay flags - behavior when apps bind to an existing registration
+ *     DTN_REPLAY_NEW  - [default] deliver new bundles rcvd on reg while not bound
+ *     DTN_REPLAY_NONE - don't deliver new bundles rcvd on reg while not bound
+ *     DTN_REPLAY_ALL  - deliver _all_ bundles queued up on the reg
+ *                       (makes duplicate bundle deliveries possible)
+ */
+
+enum dtn_replay_flags_t {
+	DTN_REPLAY_NEW = 0,
+	DTN_REPLAY_NONE = 1,
+	DTN_REPLAY_ALL = 2,
+};
+typedef enum dtn_replay_flags_t dtn_replay_flags_t;
+
+typedef u_hyper dtn_reg_token_t;
 
 /**
  * Registration state.
@@ -155,8 +180,10 @@ struct dtn_reg_info_t {
 	dtn_endpoint_id_t endpoint;
 	dtn_reg_id_t regid;
 	u_int flags;
+	u_int replay_flags;
 	dtn_timeval_t expiration;
 	bool_t init_passive;
+	dtn_reg_token_t reg_token;
 	struct {
 		u_int script_len;
 		char *script_val;
@@ -404,6 +431,8 @@ extern  bool_t xdr_dtn_timeval_t (XDR *, dtn_timeval_t*);
 extern  bool_t xdr_dtn_timestamp_t (XDR *, dtn_timestamp_t*);
 extern  bool_t xdr_dtn_service_tag_t (XDR *, dtn_service_tag_t*);
 extern  bool_t xdr_dtn_reg_flags_t (XDR *, dtn_reg_flags_t*);
+extern  bool_t xdr_dtn_replay_flags_t (XDR *, dtn_replay_flags_t*);
+extern  bool_t xdr_dtn_reg_token_t (XDR *, dtn_reg_token_t*);
 extern  bool_t xdr_dtn_reg_info_t (XDR *, dtn_reg_info_t*);
 extern  bool_t xdr_dtn_bundle_priority_t (XDR *, dtn_bundle_priority_t*);
 extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t*);
@@ -425,6 +454,8 @@ extern bool_t xdr_dtn_timeval_t ();
 extern bool_t xdr_dtn_timestamp_t ();
 extern bool_t xdr_dtn_service_tag_t ();
 extern bool_t xdr_dtn_reg_flags_t ();
+extern bool_t xdr_dtn_replay_flags_t ();
+extern bool_t xdr_dtn_reg_token_t ();
 extern bool_t xdr_dtn_reg_info_t ();
 extern bool_t xdr_dtn_bundle_priority_t ();
 extern bool_t xdr_dtn_bundle_delivery_opts_t ();

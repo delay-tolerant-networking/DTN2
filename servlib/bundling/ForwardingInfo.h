@@ -20,6 +20,7 @@
 #include <string>
 #include <sys/time.h>
 #include <oasys/serialize/Serialize.h>
+#include <oasys/debug/Log.h>
 #include <oasys/util/Time.h>
 #include "CustodyTimer.h"
 
@@ -35,7 +36,8 @@ namespace dtn {
  * action, for instance if they don't want to retransmit to the same
  * next hop twice.
  */
-class ForwardingInfo : public oasys::SerializableObject {
+class ForwardingInfo : public oasys::SerializableObject,
+                       public oasys::Logger {
 public:
     /**
      * The forwarding action type codes.
@@ -73,8 +75,9 @@ public:
         TRANSMIT_FAILED  = 1 << 2,  ///< Transmission failed
         CANCELLED        = 1 << 3,  ///< Transmission cancelled
         CUSTODY_TIMEOUT  = 1 << 4,  ///< Custody transfer timeout
-        DELIVERED        = 1 << 5,  ///< Delivered to local registration
-        SUPPRESSED       = 1 << 6,  ///< Transmission suppressed
+        PENDING_DELIVERY = 1 << 5,  ///< Pending delivery to local registration
+        DELIVERED        = 1 << 6,  ///< Delivered to local registration
+        SUPPRESSED       = 1 << 7,  ///< Transmission suppressed
         RECEIVED         = 1 << 10, ///< Where the bundle came from
     } state_t;
 
@@ -93,6 +96,7 @@ public:
         case TRANSMIT_FAILED:  	return "TRANSMIT_FAILED";
         case CANCELLED: 	return "CANCELLED";
         case CUSTODY_TIMEOUT:	return "CUSTODY_TIMEOUT";
+        case PENDING_DELIVERY: 	return "PENDING_DELIVERY";
         case DELIVERED:      	return "DELIVERED";
         case SUPPRESSED:      	return "SUPPRESSED";
         case RECEIVED:      	return "RECEIVED";
@@ -106,7 +110,8 @@ public:
      * Default constructor.
      */
     ForwardingInfo()
-        : state_(NONE),
+        : Logger("ForwardingInfo", "/dtn/bundle/forwardingInfo"),
+          state_(NONE),
           action_(INVALID_ACTION),
           link_name_(""),
           regid_(0xffffffff),
@@ -117,7 +122,8 @@ public:
      * Constructor for serialization.
      */
     ForwardingInfo(const oasys::Builder& builder)
-        : state_(NONE),
+        : Logger("ForwardingInfo", "/dtn/bundle/forwardingInfo"),
+          state_(NONE),
           action_(INVALID_ACTION),
           link_name_(""),
           regid_(0xffffffff),
@@ -133,7 +139,8 @@ public:
                    u_int32_t               regid,
                    const EndpointID&       remote_eid,
                    const CustodyTimerSpec& custody_spec)
-        : state_(NONE),
+        : Logger("ForwardingInfo", "/dtn/bundle/forwardingInfo"),
+         state_(NONE),
           action_(action),
           link_name_(link_name),
           regid_(regid),
@@ -168,7 +175,7 @@ private:
     u_int32_t        state_;            ///< State of the transmission
     u_int32_t        action_;           ///< Forwarding action
     std::string      link_name_;        ///< The name of the link
-    u_int32_t        regid_;            ///< The regid (DELIVERED only)
+    u_int32_t        regid_;            ///< The regid (DELIVERED/PENDINGDELIVERY only)
     EndpointID       remote_eid_;       ///< The EID of the next hop node/reg
     oasys::Time      timestamp_;        ///< Timestamp of last state update
     CustodyTimerSpec custody_spec_;     ///< Custody timer information 

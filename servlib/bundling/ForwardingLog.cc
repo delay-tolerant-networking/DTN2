@@ -20,15 +20,18 @@
 
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/serialize/Serialize.h>
 #include "ForwardingLog.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "reg/Registration.h"
+#include "BundleDaemon.h"
 
 namespace dtn {
 
 //----------------------------------------------------------------------
-ForwardingLog::ForwardingLog(oasys::SpinLock* lock)
-    : lock_(lock)
+ForwardingLog::ForwardingLog(oasys::SpinLock* lock, Bundle* bundle)
+    : Logger("ForwardingLog", "/dtn/bundle/forwardingLog:"),
+      lock_(lock), bundle_(bundle)
 {
 }
 
@@ -206,10 +209,13 @@ ForwardingLog::add_entry(const LinkRef& link,
                          state_t state,
                          const CustodyTimerSpec& custody_timer)
 {
+    BundleDaemon* daemon = BundleDaemon::instance();
     oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
     
     log_.push_back(ForwardingInfo(state, action, link->name_str(), 0xffffffff,
                                   link->remote_eid(), custody_timer));
+
+    daemon->actions()->store_update(bundle_);
 }
 
 //----------------------------------------------------------------------
@@ -228,6 +234,8 @@ ForwardingLog::add_entry(const Registration* reg,
                          ForwardingInfo::action_t action,
                          state_t state)
 {
+    BundleDaemon* daemon = BundleDaemon::instance();
+
     oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
 
     oasys::StringBuffer name("registration-%d", reg->regid());
@@ -235,6 +243,7 @@ ForwardingLog::add_entry(const Registration* reg,
     
     log_.push_back(ForwardingInfo(state, action, name.c_str(), reg->regid(),
                                   reg->endpoint(), spec));
+    daemon->actions()->store_update(bundle_);
 }
 
 //----------------------------------------------------------------------
@@ -250,6 +259,8 @@ ForwardingLog::add_entry(const EndpointID&        eid,
     
     log_.push_back(ForwardingInfo(state, action, name.c_str(), 0xffffffff,
                                   eid, custody_timer));
+    BundleDaemon* daemon = BundleDaemon::instance();
+    daemon->actions()->store_update(bundle_);
 }
 
 //----------------------------------------------------------------------
@@ -269,6 +280,8 @@ ForwardingLog::update(const LinkRef& link, state_t state)
             ASSERT(iter->remote_eid() == EndpointID::NULL_EID() ||
                    iter->remote_eid() == link->remote_eid());
             iter->set_state(state);
+            BundleDaemon* daemon = BundleDaemon::instance();
+            daemon->actions()->store_update(bundle_);
             return true;
         }
     }
@@ -277,19 +290,55 @@ ForwardingLog::update(const LinkRef& link, state_t state)
 }
 
 //----------------------------------------------------------------------
+bool
+ForwardingLog::update(Registration* reg,
+                      state_t state)
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::update");
+    
+    Log::reverse_iterator iter;
+    for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
+    {
+        if (iter->regid() == reg->regid())
+        {
+            iter->set_state(state);
+            BundleDaemon* daemon = BundleDaemon::instance();
+            daemon->actions()->store_update(bundle_);
+            return true;
+        }
+    }
+    return false;
+}
+    
+//----------------------------------------------------------------------
 void
 ForwardingLog::update_all(state_t old_state, state_t new_state)
 {
     oasys::ScopeLock l(lock_, "ForwardingLog::update_all");
-    
+    bool found = false;
+
     Log::reverse_iterator iter;
     for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
     {
         if (iter->state() == old_state)
         {
             iter->set_state(new_state);
+            found = true;
         }
     }
+    if (found) {
+        BundleDaemon* daemon = BundleDaemon::instance();
+        daemon->actions()->store_update(bundle_);
+    }
+}
+
+//----------------------------------------------------------------------
+void
+ForwardingLog::serialize(oasys::SerializeAction *a)
+{
+    log_debug("Serializing the forwarding log");
+    //a->process(log_);
+    log_.serialize(a);
 }
 
 //----------------------------------------------------------------------
@@ -298,6 +347,9 @@ ForwardingLog::clear()
 {
     oasys::ScopeLock l(lock_, "ForwardingLog::clear");
     log_.clear();
+
+    BundleDaemon* daemon = BundleDaemon::instance();
+    daemon->actions()->store_update(bundle_);
 }
 
 } // namespace dtn

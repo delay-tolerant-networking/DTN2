@@ -165,6 +165,8 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
     
     bundle->fwdlog()->add_entry(link, action, ForwardingInfo::QUEUED,
                                 custody_timer);
+    BundleDaemon *daemon = BundleDaemon::instance();
+    daemon->actions()->store_update(bundle);
 
     log_debug("adding *%p to link %s's queue (length %u)",
               bundle, link->name(), link->bundles_queued());

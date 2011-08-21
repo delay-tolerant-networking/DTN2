@@ -35,6 +35,7 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
 				"(default is berkeleydb).\n"
 		"	valid options:\n"
 		"			berkeleydb\n"
+		"			odbc\n"
 		"			mysql\n"
 		"			postgres\n"
 		"			external\n"
@@ -79,6 +80,17 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
 				"using Filesysyem DB. If > zero then "
 				"this # of open fds will be cached "
 				"(default 0)\n"
+		"	valid options:	number"));
+
+    bind_var(new oasys::BoolOpt("auto_commit", &cfg->auto_commit_,
+				"whether auto-commit (if supported) is on or not "
+    		    "default is true (auto-commit on)\n"
+		"	valid options:	true or false"));
+
+    bind_var(new oasys::IntOpt("max_nondurable_transactions", &cfg->max_nondurable_transactions_,
+				"num", "max number of database "
+				"transactions before forcing a sync to"
+				"disk (default 0 (sync every trans))\n"
 		"	valid options:	number"));
 
     bind_var(new oasys::BoolOpt("db_mpool", &cfg->db_mpool_,

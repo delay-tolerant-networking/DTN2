@@ -46,6 +46,8 @@ public:
                 BlockInfo* block,
                 u_char*    buf,
                 size_t     len);
+
+    int format(oasys::StringBuffer* buf);
     /// @}
 };
 

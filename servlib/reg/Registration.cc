@@ -41,18 +41,35 @@ Registration::failure_action_toa(failure_action_t action)
 }
 
 //----------------------------------------------------------------------
+const char*
+Registration::replay_action_toa(replay_action_t action)
+{
+    switch(action) {
+    case NEW:  return "NEW";
+    case NONE:	return "NONE";
+    case ALL:  return "ALL";
+    }
+
+    return "__INVALID__";
+}
+
+//----------------------------------------------------------------------
 Registration::Registration(u_int32_t regid,
                            const EndpointIDPattern& endpoint,
                            u_int32_t failure_action,
+                           u_int32_t replay_action,
                            u_int32_t session_flags,
                            u_int32_t expiration,
+                           bool delivery_acking,
                            const std::string& script)
     
     : Logger("Registration", "/dtn/registration/%d", regid),
       regid_(regid),
       endpoint_(endpoint),
       failure_action_(failure_action),
+      replay_action_(replay_action),
       session_flags_(session_flags),
+      delivery_acking_(delivery_acking),
       script_(script),
       expiration_(expiration),
       expiration_timer_(NULL),
@@ -166,13 +183,15 @@ int
 Registration::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz,
-                    "id %u: %s %s (%s%s) [expiration %d%s%s%s%s]",
+                    "id %u: %s %s (%s%s %s %s) [expiration %d%s%s%s%s]",
                     regid(),
                     active() ? "active" : "passive",
                     endpoint().c_str(),
                     failure_action_toa(failure_action()),
                     failure_action() == Registration::EXEC ?
                       script().c_str() : "",
+                    replay_action_toa(replay_action()),
+                    delivery_acking_ ? "ACK_Bndl_Dlvry" : "Auto-ACK_Bndl_Dlvry",
                     expiration(),
                     session_flags() != 0 ? " session:" : "",
                     (session_flags() & Session::CUSTODY) ? " custody" : "",

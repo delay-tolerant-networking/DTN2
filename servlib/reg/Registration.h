@@ -66,9 +66,24 @@ public:
     } failure_action_t;
 
     /**
+     * On a reconnect, type enumerating the option requested by the registration
+     * for how to handle bundles delivered to the registration while disconnected.
+     */
+    typedef enum {
+        NEW,		///< replay new bundles rcvd while disconnected
+        NONE,		///< don't replay new bundles rcvd while disconnected
+        ALL		///< replay all bundles resident in the registration queue
+    } replay_action_t;
+
+    /**
      * Get a string representation of a failure action.
      */
     static const char* failure_action_toa(failure_action_t action);
+
+    /**
+     * Get a string representation of a replay action.
+     */
+    static const char* replay_action_toa(replay_action_t action);
 
     /**
      * Constructor for deserialization
@@ -83,6 +98,8 @@ public:
                  u_int32_t failure_action,
                  u_int32_t session_flags,
                  u_int32_t expiration,
+                 u_int32_t replay_action = ALL,
+                 bool delivery_acking = false,
                  const std::string& script = "");
 
     /**
@@ -94,6 +111,11 @@ public:
      * Abstract hook for subclasses to deliver a bundle to this registration.
      */
     virtual void deliver_bundle(Bundle* bundle) = 0;
+
+    /**
+     * Hook for subclasses to delete bundles from internal lists (if applicable)
+     */
+    virtual void delete_bundle(Bundle* bundle) { (void)bundle; }
     
     /**
      * Deliver the bundle if it isn't a duplicate.
@@ -107,6 +129,12 @@ public:
      * panics.
      */
     virtual void session_notify(Bundle* bundle);
+
+    /**
+     * Hook for subclasses to perform post processing after
+     * a change in "active" status
+     */
+    virtual void set_active_callback(bool a) { (void)a; }
     
     //@{
     /// Accessors
@@ -117,13 +145,18 @@ public:
     {
         return static_cast<failure_action_t>(failure_action_);
     }
+    replay_action_t         replay_action()      const
+    {
+        return static_cast<replay_action_t>(replay_action_);
+    }
     u_int32_t                session_flags()     const { return session_flags_; }
+    bool                     delivery_acking()   const { return delivery_acking_; }
     const std::string&       script()            const { return script_; }
     u_int32_t                expiration()        const { return expiration_; }
     bool                     active()            const { return active_; }
     bool                     expired()           const { return expired_; }
 
-    void set_active(bool a)  { active_ = a; }
+    void set_active(bool a)  { active_ = a; set_active_callback(a); }
     void set_expired(bool e) { expired_ = e; }
     //@}
 
@@ -165,7 +198,9 @@ protected:
     u_int32_t regid_;
     EndpointIDPattern endpoint_;
     u_int32_t failure_action_;	
+    u_int32_t replay_action_;	
     u_int32_t session_flags_;	
+    bool delivery_acking_;
     std::string script_;
     u_int32_t expiration_;
     u_int32_t creation_time_;

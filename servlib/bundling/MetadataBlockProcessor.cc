@@ -23,6 +23,8 @@
 #  include <dtn-config.h>
 #endif
 
+#include <ctype.h>
+
 #include "MetadataBlockProcessor.h"
 #include "MetadataBlock.h"
 #include "Bundle.h"
@@ -62,6 +64,19 @@ MetadataBlockProcessor::consume(Bundle*    bundle,
     return cc;
 }
 
+int
+MetadataBlockProcessor::reload_post_process(Bundle*       bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block)
+{
+    static const char* log = "/dtn/bundle/protocol/MetadataBlockProcessor";
+
+    log_debug_p(log, "MetadataBlockProcessor::reload_post_process");
+    BlockProcessor::reload_post_process(bundle, block_list, block);
+    parse_metadata(bundle, block);
+    return(0);
+}
+
 //----------------------------------------------------------------------
 bool
 MetadataBlockProcessor::validate(const Bundle*           bundle,
@@ -70,7 +85,7 @@ MetadataBlockProcessor::validate(const Bundle*           bundle,
                                  status_report_reason_t* reception_reason,
                                  status_report_reason_t* deletion_reason)
 {
-    static const char* log = "/dtn/bundle/protocol";
+    static const char* log = "/dtn/bundle/protocol/MetadataBlockProcessor";
     (void)log;
     
     ASSERT(bundle != NULL);
@@ -294,7 +309,8 @@ MetadataBlockProcessor::generate(const Bundle*  bundle,
     // Generate the generic block preamble and reserve
     // buffer space for the block-specific data.
     generate_preamble(xmit_blocks, block, block_type(), flags, block_data_len);
-    block->writable_contents()->reserve(block->data_offset() + block_data_len);
+    //block->writable_contents()->reserve(block->data_offset() + block_data_len);
+    block->writable_contents()->reserve(block->data_offset() + block_data_len+100);
     block->writable_contents()->set_len(block->data_offset() + block_data_len);
 
     // Simply copy the incoming metadata to the outgoing buffer
@@ -388,7 +404,8 @@ MetadataBlockProcessor::parse_metadata(Bundle* bundle, BlockInfo* block)
 
     if (len != length) {
         log_err_p(log, "MetadataBlockProcessor::parse_metadata_ontology: "
-                       "ontology length fails to match remaining block length");
+                       "ontology length(%d) fails to match remaining block length(%lld)",
+                       len, length);
         metadata->set_block_error();
         return false;
     }
@@ -432,6 +449,28 @@ MetadataBlockProcessor::delete_generated_metadata(Bundle*        bundle,
     {
         (*iter)->delete_outgoing_metadata(link);
     }
+}
+
+//----------------------------------------------------------------------
+int
+MetadataBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *block)
+{
+	int i;
+	u_char* content = NULL;
+	int len = 0;
+
+	if (block!=NULL) {
+		content = block->data();
+		len = block->data_length();
+	}
+
+	buf->append("Metadata");
+
+	buf->append(": ");
+	for ( i=0; i<10 && i<len; i++ ) {
+		buf->appendf("%c", toascii(content[i]));
+	}
+	return(0);
 }
 
 } // namespace dtn

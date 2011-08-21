@@ -45,6 +45,11 @@ public:
     bool add_entry(const Bundle* bundle, const EndpointID& prevhop);
 
     /**
+     * Remove an entry from the cache.
+     */
+    void remove_entry(const Bundle* bundle);
+
+    /**
      * Check if the given bundle is in the cache, returning the EID of
      * the node from which it arrived (if known).
      */

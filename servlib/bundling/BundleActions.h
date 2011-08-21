@@ -111,7 +111,9 @@ protected:
     // The protected functions (exposed only to the BundleDaemon) and
     // serve solely for the simulator abstraction
     friend class BundleDaemon;
-    
+    friend class BundleInfoCache; // Need to update bundle on disk
+    friend class ForwardingLog;   // Need to update bundle on disk
+
     /**
      * Add the given bundle to the data store.
      */

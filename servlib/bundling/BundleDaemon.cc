@@ -381,6 +381,27 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
     ASSERT(!bundle->is_fragment());
 
     ForwardingInfo::state_t state = bundle->fwdlog()->get_latest_entry(registration);
+    switch(state) {
+    case ForwardingInfo::PENDING_DELIVERY:
+        // Expected case
+        log_debug("delivering bundle to reg previously marked as PENDING_DELIVERY");
+        break;
+    case ForwardingInfo::DELIVERED:
+        log_debug("not delivering bundle *%p to registration %d (%s) "
+                  "since already delivered",
+                  bundle, registration->regid(),
+                  registration->endpoint().c_str());
+        return;
+    default:
+        log_warn("deliver_to_registration called with bundle not marked " \
+                 "as PENDING_DELIVERY.  Delivering anyway...");
+        bundle->fwdlog()->add_entry(registration,
+                                    ForwardingInfo::FORWARD_ACTION,
+                                    ForwardingInfo::DELIVERED);
+        break;
+    }
+
+#if 0
     if (state != ForwardingInfo::NONE)
     {
         ASSERT(state == ForwardingInfo::DELIVERED);
@@ -390,7 +411,7 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
                   registration->endpoint().c_str());
         return;
     }
-
+#endif
     
     // if this is a session registration and doesn't have either the
     // SUBSCRIBE or CUSTODY bits (i.e. it's publish-only), don't
@@ -412,9 +433,19 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
         // XXX/demmer this action could be taken from a registration
         // flag, i.e. does it want to take a copy or the actual
         // delivery of the bundle
-        bundle->fwdlog()->add_entry(registration,
-                                    ForwardingInfo::FORWARD_ACTION,
-                                    ForwardingInfo::DELIVERED);
+
+        APIRegistration* api_reg = dynamic_cast<APIRegistration*>(registration);
+        if (api_reg == NULL) {
+            log_debug("not updating registration %s",
+                      registration->endpoint().c_str());
+        } else {
+            log_debug("updating registration %s",
+                      api_reg->endpoint().c_str());
+            bundle->fwdlog()->update(registration,
+                                     ForwardingInfo::DELIVERED);
+            oasys::ScopeLock l(api_reg->lock(), "new bundle for reg");
+            api_reg->update();
+        }
     } else {
         log_notice("suppressing duplicate delivery of bundle *%p "
                    "to registration %d (%s)",
@@ -427,7 +458,8 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
 bool
 BundleDaemon::check_local_delivery(Bundle* bundle, bool deliver)
 {
-    log_debug("checking for matching registrations for bundle *%p", bundle);
+    log_debug("checking for matching registrations for bundle *%p and deliver(%d)",
+              bundle, deliver);
 
     RegistrationList matches;
     RegistrationList::iterator iter;
@@ -438,8 +470,29 @@ BundleDaemon::check_local_delivery(Bundle* bundle, bool deliver)
         ASSERT(!bundle->is_fragment());
         for (iter = matches.begin(); iter != matches.end(); ++iter) {
             Registration* registration = *iter;
-            deliver_to_registration(bundle, registration);
+            // deliver_to_registration(bundle, registration);
+
+            /*
+             * Mark the bundle as needing delivery to the registration.
+             * Marking is durable and should be transactionalized together
+             * with storing the bundle payload and metadata to disk if
+             * the storage mechanism supports it (i.e. if transactions are
+             * supported, we should be in one).
+             */
+            bundle->fwdlog()->add_entry(registration,
+                                        ForwardingInfo::FORWARD_ACTION,
+                                        ForwardingInfo::PENDING_DELIVERY);
+            BundleDaemon::post(new DeliverBundleToRegEvent(bundle, registration->regid()));
+            log_debug("Marking bundle as PENDING_DELIVERY to reg %d", registration->regid());
         }
+    }
+
+    // Durably store our decisions about the registrations to which the bundle
+    // should be delivered.  Actual delivery happens when the
+    // DeliverBundleToRegEvent we just posted is processed.
+    if (matches.size()>0) {
+        log_debug("XXX Need to update bundle if not came from store.");
+        actions_->store_update(bundle);
     }
 
     return (matches.size() > 0) || bundle->dest().subsume(local_eid_);
@@ -468,12 +521,44 @@ BundleDaemon::check_and_deliver_to_registrations(Bundle* bundle, const EndpointI
 void
 BundleDaemon::handle_bundle_delete(BundleDeleteRequest* request)
 {
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     if (request->bundle_.object()) {
         log_info("BUNDLE_DELETE: bundle *%p (reason %s)",
                  request->bundle_.object(),
                  BundleStatusReport::reason_to_str(request->reason_));
         delete_bundle(request->bundle_, request->reason_);
     }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_acknowledged_by_app(BundleAckEvent* ack)
+{
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
+    log_debug("ack from regid(%d): (%s: (%qu, %qu))",
+              ack->regid_,
+              ack->sourceEID_.c_str(),
+              ack->creation_ts_.seconds_, ack->creation_ts_.seqno_);
+
+    //const RegistrationTable* reg_table = BundleDaemon::instance()->reg_table();
+
+    // Make sure we're happy with the registration provided.
+    Registration* reg = reg_table_->get(ack->regid_);
+    if ( reg==NULL ) {
+        log_debug("BAD: can't get reg from regid(%d)", ack->regid_);
+        return;
+    }
+    APIRegistration* api_reg = dynamic_cast<APIRegistration*>(reg);
+    if (api_reg == NULL) {
+        log_debug("Acking registration is not an APIRegistration");
+        return;
+    }
+
+    api_reg->bundle_ack(ack->sourceEID_, ack->creation_ts_);
 }
 
 //----------------------------------------------------------------------
@@ -498,6 +583,9 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     const BundleRef& bundleref = event->bundleref_;
     Bundle* bundle = bundleref.object();
 
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     // update statistics and store an appropriate event descriptor
     const char* source_str = "";
     switch (event->source_) {
@@ -513,6 +601,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     case EVENTSRC_APP:
         stats_.received_bundles_++;
         source_str = " (from app)";
+	oasys::DurableStore::instance()->make_transaction_durable();
+
 		if (event->registration_ != NULL) {
 			s10_bundle(S10_FROMAPP,bundle,event->registration_->endpoint().c_str(),0,0,NULL,NULL);
 		} else {
@@ -550,7 +640,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     // if debug logging is enabled, dump out a verbose printing of the
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
-        oasys::StaticStringBuffer<1024> buf;
+        oasys::StaticStringBuffer<2048> buf;
         buf.appendf("BUNDLE_RECEIVED%s: prevhop %s (%u bytes recvd)\n",
                     source_str, event->prevhop_.c_str(), event->bytes_received_);
         bundle->format_verbose(&buf);
@@ -560,21 +650,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  source_str, bundle, event->prevhop_.c_str(), event->bytes_received_);
     }
     
-    // log the reception in the bundle's forwarding log
-    if (event->source_ == EVENTSRC_PEER && event->link_ != NULL)
-    {
-        bundle->fwdlog()->add_entry(event->link_,
-                                    ForwardingInfo::FORWARD_ACTION,
-                                    ForwardingInfo::RECEIVED);
-    }
-    else if (event->source_ == EVENTSRC_APP)
-    {
-        if (event->registration_ != NULL) {
-            bundle->fwdlog()->add_entry(event->registration_,
-                                        ForwardingInfo::FORWARD_ACTION,
-                                        ForwardingInfo::RECEIVED);
-        }
-    }
+    // XXX/kscott Logging bundle reception to forwarding log moved to below.
 
     // log a warning if the bundle doesn't have any expiration time or
     // has a creation time that's in the future. in either case, we
@@ -745,6 +821,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * already expired so we immediately return instead of trying to
      * deliver and/or forward the bundle. Otherwise there's a chance
      * that expired bundles will persist in the network.
+     *
+     * add_to_pending writes the bundle to the durable store
      */
     bool ok_to_route =
         add_to_pending(bundle, (event->source_ != EVENTSRC_STORE));
@@ -754,6 +832,22 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         return;
     }
     
+    // log the reception in the bundle's forwarding log
+    if (event->source_ == EVENTSRC_PEER && event->link_ != NULL)
+    {
+        bundle->fwdlog()->add_entry(event->link_,
+                                    ForwardingInfo::FORWARD_ACTION,
+                                    ForwardingInfo::RECEIVED);
+    }
+    else if (event->source_ == EVENTSRC_APP)
+    {
+        if (event->registration_ != NULL) {
+            bundle->fwdlog()->add_entry(event->registration_,
+                                        ForwardingInfo::FORWARD_ACTION,
+                                        ForwardingInfo::RECEIVED);
+        }
+    }
+
     /*
      * If the bundle is a custody bundle and we're configured to take
      * custody, then do so. In case the event was delivered due to a
@@ -796,26 +890,62 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * unless it's generated by the router or is a bundle fragment.
      * Delivery of bundle fragments is deferred until after re-assembly.
      */
-    bool is_local =
-        check_local_delivery(bundle,
-                             (event->source_       != EVENTSRC_ROUTER) &&
-                             (bundle->is_fragment() == false));
-    
-    /*
-     * Re-assemble bundle fragments that are destined to the local node.
-     */
-    if (bundle->is_fragment() && is_local) {
-        log_debug("deferring delivery of bundle *%p "
-                  "since bundle is a fragment", bundle);
-        fragmentmgr_->process_for_reassembly(bundle);
+    if ( event->source_==EVENTSRC_STORE ) {
+        generate_delivery_events(bundle);
+    } else {
+        bool is_local =
+            check_local_delivery(bundle,
+                                 (event->source_        != EVENTSRC_ROUTER) &&
+                                 (bundle->is_fragment() == false));
+        /*
+         * Re-assemble bundle fragments that are destined to the local node.
+         */
+        if (bundle->is_fragment() && is_local) {
+            log_debug("deferring delivery of bundle *%p "
+                      "since bundle is a fragment", bundle);
+            fragmentmgr_->process_for_reassembly(bundle);
+        }
+
     }
 
     /*
      * Finally, bounce out so the router(s) can do something further
-     * with the bundle in response to the event.
+     * with the bundle in response to the event before we check to 
+     * see if it needs to be delivered locally.
      */
     log_info_p("/dtn/bundle/protocol", "BundleDaemon::handle_bundle_received: end");
 }
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_deliver_bundle_to_reg(DeliverBundleToRegEvent* event)
+{
+    const RegistrationTable* reg_table = 
+            BundleDaemon::instance()->reg_table();
+
+    const BundleRef& bundleref = event->bundleref_;
+    u_int32_t regid = event->regid_;
+  
+    Registration* registration = NULL;
+
+    registration = reg_table->get(regid);
+
+    if (registration==NULL) {
+        log_warn("Can't find registration %d any more", regid);
+        return;
+    }
+
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
+    Bundle* bundle = bundleref.object();
+    log_debug("Delivering bundle id:%d to registration %d %s",
+              bundle->bundleid(),
+              registration->regid(),
+              registration->endpoint().c_str());
+
+    deliver_to_registration(bundle, registration);
+ }
 
 //----------------------------------------------------------------------
 void
@@ -826,6 +956,9 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     LinkRef link = event->link_;
     ASSERT(link != NULL);
     
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     log_debug("trying to find xmit blocks for bundle id:%d on link %s",
               bundle->bundleid(),link->name());
     BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(link);
@@ -1000,6 +1133,9 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
     // update statistics
     stats_.delivered_bundles_++;
     
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     /*
      * The bundle was delivered to a registration.
      */
@@ -1051,6 +1187,9 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     
     const BundleRef& bundle = event->bundleref_;
 
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     log_info("BUNDLE_EXPIRED *%p", bundle.object());
 
     // note that there may or may not still be a pending expiration
@@ -1096,6 +1235,9 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
         return;
     }
 
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     // If the request has a link name, we are just canceling the send on
     // that link.
     if (!event->link_.empty()) {
@@ -1125,6 +1267,9 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     Bundle* bundle = event->bundleref_.object();
     LinkRef link = event->link_;
     
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     log_info("BUNDLE_CANCELLED id:%d -> %s (%s)",
             bundle->bundleid(),
             link->name(),
@@ -1206,6 +1351,9 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
       LinkRef link = contactmgr_->find_link(event->link_.c_str());
       if (link == NULL) return;
     */
+
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
 
     EndpointID src(event->src_); 
     EndpointID dest(event->dest_); 
@@ -1332,6 +1480,9 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
     log_info("REGISTRATION_ADDED %d %s",
              registration->regid(), registration->endpoint().c_str());
 
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     if (!reg_table_->add(registration,
                          (event->source_ == EVENTSRC_APP) ? true : false))
     {
@@ -1365,6 +1516,9 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
              registration->regid(), registration->endpoint().c_str());
 
 
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     if (!reg_table_->del(registration->regid())) {
         log_err("error removing registration %d from table",
                 registration->regid());
@@ -1386,6 +1540,9 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
         return;
     }
     
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     registration->set_expired(true);
     
     if (registration->active()) {
@@ -1407,6 +1564,10 @@ void
 BundleDaemon::handle_registration_delete(RegistrationDeleteRequest* request)
 {
     log_info("REGISTRATION_DELETE %d", request->registration_->regid());
+
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     delete request->registration_;
 }
 
@@ -1908,6 +2069,9 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     log_info("REASSEMBLY_COMPLETED bundle id %d",
              event->bundle_->bundleid());
 
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
     while ((ref = event->fragments_.pop_front()) != NULL) {
@@ -1957,6 +2121,9 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
              event->data_.orig_creation_tv_.seqno_,
              event->data_.succeeded_ ? "succeeded" : "failed",
              CustodySignal::reason_to_str(event->data_.reason_));
+
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
 
     GbofId gbof_id;
     gbof_id.source_ = event->data_.orig_source_eid_;
@@ -2013,6 +2180,9 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
     
     log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link.object());
     
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->beginTransaction();
+
     // remove and delete the expired timer from the bundle
     oasys::ScopeLock l(bundle->lock(), "BundleDaemon::handle_custody_timeout");
 
@@ -2158,6 +2328,10 @@ BundleDaemon::event_handlers_completed(BundleEvent* event)
      */
     if (event->type_ == BUNDLE_EXPIRED) {
         bundle = ((BundleExpiredEvent*)event)->bundleref_.object();
+        if (bundle==NULL) {
+            log_warn("can't get bundle from event->bundleref_.object()");
+            return;
+        }
         size_t num_mappings = bundle->num_mappings();
         if (num_mappings != 1) {
             log_warn("expired bundle *%p still has %zu mappings (i.e. not just in ALL_BUNDLES)",
@@ -2170,8 +2344,11 @@ BundleDaemon::event_handlers_completed(BundleEvent* event)
 bool
 BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 {
-    log_debug("adding bundle *%p to pending list", bundle);
-   
+    bool ok_to_route = true;
+
+    log_debug("adding bundle *%p to pending list (%d)",
+              bundle, add_to_store);
+ 
     log_info_p("/dtn/bundle/expiration","adding bundle to pending list");
  
     pending_bundles_->push_back(bundle);
@@ -2181,22 +2358,30 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
         actions_->store_add(bundle);
     }
 
-    struct timeval now;
-    gettimeofday(&now, 0);
-    
-    // schedule the bundle expiration timer
-    struct timeval expiration_time;
-    expiration_time.tv_sec =
-        BundleTimestamp::TIMEVAL_CONVERSION +
-        bundle->creation_ts().seconds_ + 
-        bundle->expiration();
-    
-    expiration_time.tv_usec = now.tv_usec;
-    
-    long int when = expiration_time.tv_sec - now.tv_sec;
+       struct timeval now;
 
-    bool ok_to_route = true;
-  
+       gettimeofday(&now, 0);
+
+       // schedule the bundle expiration timer
+       struct timeval expiration_time;
+
+ 
+       u_int64_t temp = BundleTimestamp::TIMEVAL_CONVERSION +
+               bundle->creation_ts().seconds_ +
+               bundle->expiration();
+
+       // The expiration time has to be expressible in a
+       // time_t (signed long on Linux)
+       if (temp>INT_MAX) {
+               log_crit("Expiration time too large.");
+               ASSERT(false);
+       }
+       expiration_time.tv_sec = temp;
+
+       long int when = expiration_time.tv_sec - now.tv_sec;
+
+       expiration_time.tv_usec = now.tv_usec;
+ 
     //+[AEB] handling
     bool age_block_exists = false;
     
@@ -2227,28 +2412,28 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     }
     //+[AEB] end handling
   
-    if (when > 0) {
-        log_debug_p("/dtn/bundle/expiration",
-                    "scheduling expiration for bundle id %d at %u.%u "
-                    "(in %lu seconds)",
-                    bundle->bundleid(),
-                    (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec,
-                    when);
-    } else {
-        log_warn_p("/dtn/bundle/expiration",
-                   "scheduling IMMEDIATE expiration for bundle id %d: "
-                   "[expiration %llu, creation time %llu.%llu, offset %u, now %u.%u]",
-                   bundle->bundleid(), bundle->expiration(),
-                   bundle->creation_ts().seconds_,
-                   bundle->creation_ts().seqno_,
-                   BundleTimestamp::TIMEVAL_CONVERSION,
-                   (u_int)now.tv_sec, (u_int)now.tv_usec);
-        expiration_time = now;
-        ok_to_route = false;
-    }
+       if (when > 0) {
+               log_debug_p("/dtn/bundle/expiration",
+                                       "scheduling expiration for bundle id %d at %u.%u "
+                                       "(in %lu seconds)",
+                                       bundle->bundleid(),
+                                       (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec,
+                                       when);
+       } else {
+               log_warn_p("/dtn/bundle/expiration",
+                                  "scheduling IMMEDIATE expiration for bundle id %d: "
+                                  "[expiration %llu, creation time %llu.%llu, offset %u, now %u.%u]",
+                                  bundle->bundleid(), bundle->expiration(),
+                                  bundle->creation_ts().seconds_,
+                                  bundle->creation_ts().seqno_,
+                                  BundleTimestamp::TIMEVAL_CONVERSION,
+                                  (u_int)now.tv_sec, (u_int)now.tv_usec);
+               expiration_time = now;
+               ok_to_route = false;
+       }
 
-    bundle->set_expiration_timer(new ExpirationTimer(bundle));
-    bundle->expiration_timer()->schedule_at(&expiration_time);
+       bundle->set_expiration_timer(new ExpirationTimer(bundle));
+       bundle->expiration_timer()->schedule_at(&expiration_time);
 
     return ok_to_route;
 }
@@ -2398,6 +2583,17 @@ BundleDaemon::delete_bundle(const BundleRef& bundleref,
         }
     }
 
+    // cancel the bundle on all API registrations
+    RegistrationList matches;
+    RegistrationList::iterator reglist_iter;
+
+    reg_table_->get_matching(bundle->dest(), &matches);
+
+    for (reglist_iter = matches.begin(); reglist_iter != matches.end(); ++reglist_iter) {
+        Registration* registration = *reglist_iter;
+        registration->delete_bundle(bundle);
+    }
+
     // XXX/demmer there may be other lists where the bundle is still
     // referenced so the router needs to be told what to do...
     
@@ -2454,6 +2650,7 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 {
     Bundle* bundle = event->bundle_;
     event->bundle_ = NULL;
+
     ASSERT(bundle->refcount() == 1);
     ASSERT(all_bundles_->contains(bundle));
     all_bundles_->erase(bundle);
@@ -2461,7 +2658,7 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     bundle->lock()->lock("BundleDaemon::handle_bundle_free");
 
     if (bundle->in_datastore()) {
-        log_debug("removing freed bundle from data store");
+        log_debug("removing freed bundle (id %d) from data store", bundle->bundleid());
         actions_->store_del(bundle);
     }
     log_debug("deleting freed bundle");
@@ -2473,12 +2670,29 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 void
 BundleDaemon::handle_event(BundleEvent* event)
 {
+    handle_event(event, true);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_event(BundleEvent* event, bool closeTransaction)
+{
     dispatch_event(event);
     
     if (! event->daemon_only_) {
         // dispatch the event to the router(s) and the contact manager
         router_->handle_event(event);
         contactmgr_->handle_event(event);
+    }
+
+    if (closeTransaction) {
+        oasys::DurableStore* ds = oasys::DurableStore::instance();
+        if ( ds->isTransactionOpen() ) {
+            log_debug("handle_event closing transaction");
+            ds->endTransaction();
+        }
+    } else {
+        log_debug("handle_event NOT closing transaction");
     }
 
     event_handlers_completed(event);
@@ -2570,8 +2784,19 @@ BundleDaemon::load_bundles()
 
         BundleProtocol::reload_post_process(bundle);
 
-        BundleReceivedEvent e(bundle, EVENTSRC_STORE);
-        handle_event(&e);
+        //WAS
+        //BundleReceivedEvent e(bundle, EVENTSRC_STORE);
+        //handle_event(&e);
+
+        // We're going to post this to the event queue, since 
+        // the act of determining the registration(s) to which the
+        // bundle should be delivered will cause the bundle to be
+        // updated in the store (as the PENDING deliveries are
+        // marked).
+        // Note that since delivery is via the DELIVER_TO_REG
+        // event, delivery will happen one event queue loop after
+        // the receivedEvent is processed.
+        post(new BundleReceivedEvent(bundle, EVENTSRC_STORE));
 
         // in the constructor, we disabled notifiers on the event
         // queue, so in case loading triggers other events, we just
@@ -2587,6 +2812,28 @@ BundleDaemon::load_bundles()
     for (unsigned int i = 0; i < doa_bundles.size(); ++i) {
         actions_->store_del(doa_bundles[i]);
         delete doa_bundles[i];
+    }
+
+    log_debug("Done with load_bundles");
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::generate_delivery_events(Bundle* bundle)
+{
+    oasys::ScopeLock(bundle->fwdlog()->lock(), "generating delivery events");
+
+    ForwardingLog::Log flog = bundle->fwdlog()->log();
+    ForwardingLog::Log::const_iterator iter;
+    for (iter = flog.begin(); iter != flog.end(); ++iter)
+    {
+        const ForwardingInfo* info = &(*iter);
+
+        if ( info->regid()!=0 ) {
+            if ( info->state()==ForwardingInfo::PENDING_DELIVERY ) {
+                BundleDaemon::post(new DeliverBundleToRegEvent(bundle, info->regid()));
+            }
+        }
     }
 }
 
@@ -2635,8 +2882,8 @@ BundleDaemon::run()
     router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
     router_->initialize();
     
-    load_registrations();
     load_bundles();
+    load_registrations();
 
     BundleEvent* event;
 

@@ -66,6 +66,8 @@ typedef u_int dtn_reg_id_t;
 %
 %/**
 % * DTN timeouts are specified in seconds.
+% * typedef u_int dtn_timeval_t; // 32-bit systems
+% * typedef u_int32_t dtn_timeval_t; // 64-bit systems
 % */
 typedef u_int dtn_timeval_t;
 
@@ -131,6 +133,11 @@ const DTN_REGID_NONE = 0;
 % *     DTN_SESSION_CUSTODY   - app assumes custody for the session
 % *     DTN_SESSION_PUBLISH   - creates a publication point
 % *     DTN_SESSION_SUBSCRIBE - create subscription for the session
+% *
+% * Other flags:
+% *     DTN_DELIVERY_ACKS - application will acknowledge delivered
+% *                         bundles with dtn_ack()
+% *
 % */
 enum dtn_reg_flags_t {
     DTN_REG_DROP          = 1,
@@ -138,8 +145,25 @@ enum dtn_reg_flags_t {
     DTN_REG_EXEC          = 3,
     DTN_SESSION_CUSTODY   = 4,
     DTN_SESSION_PUBLISH   = 8,
-    DTN_SESSION_SUBSCRIBE = 16
+    DTN_SESSION_SUBSCRIBE = 16,
+    DTN_DELIVERY_ACKS     = 32 
 };
+
+%
+%/**
+% * Replay flags - behavior when apps bind to an existing registration
+% *     DTN_REPLAY_NEW  - [default] deliver new bundles rcvd on reg while not bound
+% *     DTN_REPLAY_NONE - don't deliver new bundles rcvd on reg while not bound
+% *     DTN_REPLAY_ALL  - deliver _all_ bundles queued up on the reg
+% *                       (makes duplicate bundle deliveries possible)
+% */
+enum dtn_replay_flags_t {
+	DTN_REPLAY_NEW = 0,
+	DTN_REPLAY_NONE = 1,
+	DTN_REPLAY_ALL = 2
+};
+
+typedef u_hyper dtn_reg_token_t;
 
 %
 %/**
@@ -149,8 +173,10 @@ struct dtn_reg_info_t {
     dtn_endpoint_id_t 	endpoint;
     dtn_reg_id_t	regid;
     unsigned int	flags;
+    unsigned int	replay_flags;
     dtn_timeval_t	expiration;
     bool		init_passive;
+    dtn_reg_token_t	reg_token;
     opaque		script<DTN_MAX_EXEC_LEN>;
 };
 

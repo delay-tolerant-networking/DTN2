@@ -45,8 +45,12 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_delivered((BundleDeliveredEvent*)e);
         break;
 
+    case BUNDLE_ACK:
+        handle_bundle_acknowledged_by_app((BundleAckEvent*) e);
+        break;
+
     case BUNDLE_EXPIRED:
-        handle_bundle_expired((BundleExpiredEvent*)e);
+    	handle_bundle_expired((BundleExpiredEvent*)e);
         break;
         
     case BUNDLE_FREE:
@@ -73,6 +77,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_injected((BundleInjectedEvent*)e);
         break;
 
+    case DELIVER_BUNDLE_TO_REG:
+        handle_deliver_bundle_to_reg((DeliverBundleToRegEvent*) e);
+        break;
+
     case BUNDLE_DELETE:
         handle_bundle_delete((BundleDeleteRequest*)e);
         break;
@@ -91,6 +99,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         
     case BUNDLE_ATTRIB_QUERY:
         handle_bundle_attributes_query((BundleAttributesQueryRequest*)e);
+        break;
+
+    case PRIVATE:
+        handle_private((PrivateEvent*)e);
         break;
 
     case BUNDLE_ATTRIB_REPORT:
@@ -299,6 +311,14 @@ BundleEventHandler::handle_bundle_delivered(BundleDeliveredEvent*)
 }
 
 /**
+ * Default event handler when bundles are acknowledged by apps.
+ */
+void
+BundleEventHandler::handle_bundle_acknowledged_by_app(BundleAckEvent*)
+{
+}
+
+/**
  * Default event handler when bundles expire.
  */
 void
@@ -356,6 +376,14 @@ BundleEventHandler::handle_bundle_injected(BundleInjectedEvent*)
 }
 
 /**
+ * Default event handler for delivery to registration events
+ */
+void
+BundleEventHandler::handle_deliver_bundle_to_reg(DeliverBundleToRegEvent*)
+{
+}
+
+/**
  * Default event handler for bundle delete requests.
  */
 void
@@ -402,6 +430,16 @@ void
 BundleEventHandler::handle_bundle_attributes_report(BundleAttributesReportEvent*)
 {
 }
+
+
+/**
+ * Default event handler for a private event.
+ */
+void 
+BundleEventHandler::handle_private(PrivateEvent*)
+{
+}
+
 
 /**
  * Default event handler when a new application registration

@@ -69,6 +69,7 @@ public:
                 size_t           len,
                 OpaqueContext*   context);
 
+    int format(oasys::StringBuffer* buf, BlockInfo *b = NULL);
     /// @}
 };
 

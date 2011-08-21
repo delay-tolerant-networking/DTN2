@@ -325,4 +325,11 @@ PayloadBlockProcessor::mutate(mutate_func*     func,
     return changed;
 }
 
+//----------------------------------------------------------------------
+int
+PayloadBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *b)
+{
+	buf->append("Payload");
+}
+
 } // namespace dtn

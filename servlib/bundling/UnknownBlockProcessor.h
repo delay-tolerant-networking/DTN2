@@ -50,6 +50,8 @@ public:
                   BlockInfo*              block,
                   status_report_reason_t* reception_reason,
                   status_report_reason_t* deletion_reason);
+
+    int format(oasys::StringBuffer* buf);
     /// @}
 };
 

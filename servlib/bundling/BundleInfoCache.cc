@@ -19,6 +19,7 @@
 #endif
 
 #include "BundleInfoCache.h"
+#include "BundleDaemon.h"
 
 namespace dtn {
 
@@ -46,7 +47,21 @@ BundleInfoCache::add_entry(const Bundle* bundle, const EndpointID& prevhop)
     }
     
     h.unpin();
+
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+BundleInfoCache::remove_entry(const Bundle* bundle)
+{
+    GbofId id(bundle->source(),
+              bundle->creation_ts(),
+              bundle->is_fragment(),
+              bundle->payload().length(),
+              bundle->frag_offset());
+
+    cache_.evict(id);
 }
 
 //----------------------------------------------------------------------

@@ -101,6 +101,16 @@ extern int dtn_find_registration(dtn_handle_t handle,
                                  dtn_reg_id_t* newregid);
 
 /**
+ * Check for an existing registration on the given endpoint id,
+ * returning DTN_SUCCSS and filling in the registration id if it
+ * exists, or returning ENOENT if it doesn't.
+ */
+extern int dtn_find_registration2(dtn_handle_t handle,
+                                 dtn_endpoint_id_t* eid,
+                                 dtn_reg_token_t* reg_token,
+                                 dtn_reg_id_t* newregid);
+
+/**
  * Modify an existing registration.
  */
 extern int dtn_change_registration(dtn_handle_t handle,
@@ -154,6 +164,15 @@ extern int dtn_recv(dtn_handle_t handle,
                     dtn_timeval_t timeout);
 
 /**
+ * Called by applications that want to explicitly acknowledge receipt
+ * of bundles.  This facilitates a 'deliver-at-most-once' service from
+ * the daemon.
+ */
+extern int dtn_ack(dtn_handle_t handle,
+                   dtn_bundle_spec_t* spec,
+                   dtn_bundle_id_t* id);
+
+/**
  * Blocking query for new subscribers on a session. One or more
  * registrations must have been bound to the handle with the
  * SESSION_CUSTODY flag set. Returns an indication that the
@@ -170,6 +189,11 @@ extern int dtn_session_update(dtn_handle_t handle,
  * poll() or select() in conjunction with a call to dtn_begin_poll().
  */
 extern int dtn_poll_fd(dtn_handle_t handle);
+
+/**
+ * Return the number of bundles currently queued for this registration
+ */
+extern int dtn_poll_count(dtn_handle_t handle, int *count);
 
 /**
  * Begin a polling period for incoming bundles. Returns a file

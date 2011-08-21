@@ -728,12 +728,18 @@ PrimaryBlockProcessor::generate_primary(const Bundle* bundle,
 #undef PBP_WRITE_SDNV
     
     /*
-     * Asuming that get_primary_len is written correctly, len should
+     * Assuming that get_primary_len is written correctly, len should
      * now be zero since we initialized it to primary_len at the
      * beginning of the function.
      */
     ASSERT(len == 0);
 }
 
+//----------------------------------------------------------------------
+int
+PrimaryBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *b)
+{
+	buf->append("Primary");
+}
 
 } // namespace dtn

@@ -19,6 +19,7 @@
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/serialize/TypeShims.h>
+#include <oasys/storage/DurableStore.h>
 #include <oasys/storage/InternalKeyDurableTable.h>
 #include <oasys/util/OpenFdCache.h>
 #include <oasys/util/Singleton.h>

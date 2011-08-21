@@ -62,6 +62,11 @@ public:
     void init_from_store(int bundleid);
   
     /**
+     * Sync the payload file to disk (if location = DISK)
+     */
+    void sync_payload();
+
+    /**
      * Set the payload length in preparation for filling in with data.
      */
     void set_length(size_t len);

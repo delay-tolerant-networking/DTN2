@@ -22,6 +22,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <limits.h>
+
 #include <oasys/compat/inet_aton.h>
 #include <oasys/compat/rpc.h>
 #include <oasys/io/FileIOClient.h>
@@ -372,11 +374,13 @@ APIClient::run()
             DISPATCH(DTN_REGISTER,          handle_register);
             DISPATCH(DTN_UNREGISTER,        handle_unregister);
             DISPATCH(DTN_FIND_REGISTRATION, handle_find_registration);
+            DISPATCH(DTN_FIND_REGISTRATION_WTOKEN, handle_find_registration2);
             DISPATCH(DTN_SEND,              handle_send);
             DISPATCH(DTN_CANCEL,            handle_cancel);
             DISPATCH(DTN_BIND,              handle_bind);
             DISPATCH(DTN_UNBIND,            handle_unbind);
             DISPATCH(DTN_RECV,              handle_recv);
+            DISPATCH(DTN_ACK,               handle_ack);
             DISPATCH(DTN_BEGIN_POLL,        handle_begin_poll);
             DISPATCH(DTN_CANCEL_POLL,       handle_cancel_poll);
             DISPATCH(DTN_CLOSE,             handle_close);
@@ -506,7 +510,8 @@ int
 APIClient::handle_register()
 {
     APIRegistration* reg;
-    Registration::failure_action_t action;
+    Registration::failure_action_t f_action;
+    Registration::replay_action_t r_action;
     EndpointIDPattern endpoint;
     std::string script;
     
@@ -533,23 +538,40 @@ APIClient::handle_register()
         return DTN_EINVAL;
     }
 
+    u_int64_t reg_token;
+    memcpy(&reg_token, &reginfo.reg_token, sizeof(u_int64_t));
+
     // registration flags are a bitmask currently containing:
     //
     // [unused] [3 bits session flags] [2 bits failure action]
 
     u_int failure_action = reginfo.flags & 0x3;
     switch (failure_action) {
-    case DTN_REG_DEFER: action = Registration::DEFER; break;
-    case DTN_REG_DROP:  action = Registration::DROP;  break;
-    case DTN_REG_EXEC:  action = Registration::EXEC;  break;
+    case DTN_REG_DEFER: f_action = Registration::DEFER; break;
+    case DTN_REG_DROP:  f_action = Registration::DROP;  break;
+    case DTN_REG_EXEC:  f_action = Registration::EXEC;  break;
     default: {
         log_err("invalid registration flags 0x%x", reginfo.flags);
         return DTN_EINVAL;
     }
     }
 
+    // replay flag processing
+
+    u_int replay_action = reginfo.replay_flags & 0x3;
+    switch (replay_action) {
+    case DTN_REPLAY_NEW:  r_action = Registration::NEW; break;
+    case DTN_REPLAY_NONE: r_action = Registration::NONE;  break;
+    case DTN_REPLAY_ALL:  r_action = Registration::ALL;  break;
+    default: {
+        log_err("invalid registration replay flags 0x%x", reginfo.replay_flags);
+        return DTN_EINVAL;
+    }
+    }
+
     
     u_int32_t session_flags = 0;
+    bool ack_delivery_flag = false;
     if (reginfo.flags & DTN_SESSION_CUSTODY) {
         session_flags |= Session::CUSTODY;
     }
@@ -559,20 +581,24 @@ APIClient::handle_register()
     if (reginfo.flags & DTN_SESSION_PUBLISH) {
         session_flags |= Session::PUBLISH;
     }
+    if (reginfo.flags & DTN_DELIVERY_ACKS) {
+        ack_delivery_flag = true;
+    }
 
-    u_int other_flags = reginfo.flags & ~0x1f;
+    u_int other_flags = reginfo.flags & ~0x3f;
     if (other_flags != 0) {
         log_err("invalid registration flags 0x%x", reginfo.flags);
         return DTN_EINVAL;
     }
 
-    if (action == Registration::EXEC) {
+    if (f_action == Registration::EXEC) {
         script.assign(reginfo.script.script_val, reginfo.script.script_len);
     }
 
     u_int32_t regid = GlobalStore::instance()->next_regid();
-    reg = new APIRegistration(regid, endpoint, action, session_flags,
-                              reginfo.expiration, script);
+    reg = new APIRegistration(regid, endpoint, f_action, r_action,
+                              session_flags, reginfo.expiration,
+                              ack_delivery_flag, reg_token, script);
 
     if (! reginfo.init_passive) {
         // store the registration in the list for this session
@@ -641,6 +667,55 @@ APIClient::handle_unregister()
     
     return DTN_SUCCESS;
 }
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_find_registration2()
+{
+    Registration* reg;
+    EndpointIDPattern endpoint;
+    dtn_endpoint_id_t app_eid;
+    dtn_reg_token_t reg_token;
+
+    // unpack and parse the request
+    if (!xdr_dtn_endpoint_id_t(&xdr_decode_, &app_eid))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+    if (!xdr_dtn_reg_token_t(&xdr_decode_, &reg_token))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    endpoint.assign(&app_eid);
+    if (!endpoint.valid()) {
+        log_err("invalid endpoint id in find_registration: '%s'",
+                app_eid.uri);
+        return DTN_EINVAL;
+    }
+
+ 
+    u_int64_t regtoken;
+    memcpy(&regtoken, &reg_token, sizeof(u_int64_t));
+
+    reg = BundleDaemon::instance()->reg_table()->get(endpoint, regtoken);
+    if (reg == NULL) {
+        return DTN_ENOTFOUND;
+    }
+
+    u_int32_t regid = reg->regid();
+    
+    // fill the response with the new registration id
+    if (!xdr_dtn_reg_id_t(&xdr_encode_, &regid)) {
+        log_err("internal error in xdr: xdr_dtn_reg_id_t");
+        return DTN_EXDR;
+    }
+    
+    return DTN_SUCCESS;
+}
+
 
 //----------------------------------------------------------------------
 int
@@ -802,8 +877,15 @@ APIClient::handle_send()
     
     // assign the addressing fields...
 
-    // source and destination are always specified
-    b->mutable_source()->assign(&spec.source);
+    // source  could be dtn:none; allow for a NULL URI to
+    // be treated as dtn:none
+    if (spec.source.uri[0] == '\0') {
+        b->mutable_source()->assign(EndpointID::NULL_EID());
+    } else {
+        b->mutable_source()->assign(&spec.source);
+    }
+
+    // destination has to be specified
     b->mutable_dest()->assign(&spec.dest);
 
     // magic values for zeroing out creation timestamp time
@@ -886,9 +968,12 @@ APIClient::handle_send()
     {
         // Bundles with a null source EID are not allowed to request reports or
         // custody transfer, and must not be fragmented.
-        if (spec.dopts) {
-            log_err("bundle with null source EID requested reports and/or "
-                    "custody transfer");
+        if ((spec.dopts & (DOPTS_CUSTODY | DOPTS_DELIVERY_RCPT |
+                           DOPTS_RECEIVE_RCPT | DOPTS_FORWARD_RCPT |
+                           DOPTS_CUSTODY_RCPT | DOPTS_DELETE_RCPT)) ||
+            ((spec.dopts & DOPTS_DO_NOT_FRAGMENT)==0) ){
+            log_err("bundle with null source EID requested report and/or "
+                    "custody transfer and/or allowed fragmentation");
             return DTN_EINVAL;
         }
 
@@ -938,7 +1023,24 @@ APIClient::handle_send()
     if (spec.dopts & DOPTS_DO_NOT_FRAGMENT)
         b->set_do_not_fragment(true);
 
+#if 0
     // expiration time
+    struct timeval now;
+    gettimeofday(&now, 0);
+    u_int64_t temp = BundleTimestamp::TIMEVAL_CONVERSION +
+        now.tv_sec +
+        spec.expiration;
+
+    if (temp>INT_MAX) {
+        log_err("Bundle lifetime '%08lX' too large (>%08X)", temp, INT_MAX);
+        log_err("BundleTimestamp::TIMEVAL_CONVERSTION is %08X",
+                BundleTimestamp::TIMEVAL_CONVERSION);
+        log_err("now.tv_sec is '%08X'", now.tv_sec);
+        log_err("spec.expiration is %d", spec.expiration);
+        return DTN_EINVAL;
+    }
+#endif
+
     b->set_expiration(spec.expiration);
 
     // sequence id and obsoletes id
@@ -1003,6 +1105,31 @@ APIClient::handle_send()
         // cleaned up...
         vec->push_back(meta_block);
         b->mutable_recv_metadata()->push_back(meta_block);
+
+        // XXX/kscott This has to get put somewhere where it will be serialized
+        // so that if it is delivered locally, it'll be available after a restart.
+        // Need to prepend the matadata type SDNV (block->type) to the actual
+        // content of the BlockInfo (difference between BlockInfo and MetadataBlock)
+        {
+        u_char temp[block->data.data_len+20];
+        int curPos = 0;
+
+        BlockProcessor *owner =
+            BundleProtocol::find_processor(BundleProtocol::METADATA_BLOCK);
+        BlockInfo* info =
+            b->api_blocks()->append_block(owner);
+        curPos += SDNV::encode(block->type, &(temp[curPos]), 1024);
+        curPos += SDNV::encode(block->data.data_len, &(temp[curPos]), 1024);
+        memcpy(&(temp[curPos]),
+               (u_char*)block->data.data_val, block->data.data_len);
+
+        APIBlockProcessor::instance()->
+            init_block(info, b->api_blocks(),
+            		   BundleProtocol::METADATA_BLOCK, block->flags,
+                       temp,
+                       curPos+block->data.data_len);
+        info->set_complete(true);
+        }
     }
 
     // validate the bundle metadata
@@ -1130,6 +1257,9 @@ APIClient::handle_send()
     
     log_info("DTN_SEND bundle *%p", b.object());
 
+    // Sync the bundle payload to disk
+    b->mutable_payload()->sync_payload();
+
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
     BundleDaemon::post_and_wait(
@@ -1191,6 +1321,36 @@ APIClient::handle_cancel()
 
 //----------------------------------------------------------------------
 int
+APIClient::handle_ack()
+{
+    dtn_bundle_spec_t             spec;
+
+    // unpack the arguments
+    memset(&spec, 0, sizeof(spec));
+    
+    /* Unpack the arguments */
+    if (!xdr_dtn_bundle_spec_t(&xdr_decode_, &spec))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    // make sure any xdr calls to malloc are cleaned up
+    oasys::ScopeXDRFree f1((xdrproc_t)xdr_dtn_bundle_spec_t,
+                           (char*)&spec);
+    
+    log_debug("APIClient::handle_ack");
+    
+    BundleDaemon::post(new BundleAckEvent(spec.delivery_regid,
+                                          std::string(spec.source.uri),
+                                          spec.creation_ts.secs,
+                                          spec.creation_ts.seqno));
+
+    return DTN_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+int
 APIClient::handle_recv()
 {
     dtn_bundle_spec_t             spec;
@@ -1226,9 +1386,22 @@ APIClient::handle_recv()
     ASSERT(reg != NULL);
 
     BundleRef bref("APIClient::handle_recv");
+#if 0
     bref = reg->bundle_list()->pop_front();
     Bundle* b = bref.object();
     ASSERT(b != NULL);
+
+    // Move the bundle to either the app unacked or acked list, depending
+    // on whether the app is actively acking or not.
+    reg->save(b);
+#else
+    // Pull the front bundle off the bundle_list and also move it to either
+    // the app unacked or acked list, depending on whether the app is
+    // actively acking or not.
+    bref = reg->deliver_front();
+    Bundle* b = bref.object();
+    ASSERT(b != NULL);
+#endif
     
     log_debug("handle_recv: popped *%p for registration %d (timeout %d)",
               b, reg->regid(), timeout);
@@ -1466,6 +1639,8 @@ APIClient::handle_begin_poll()
     APIRegistration* notify_reg = NULL;
     bool             sock_ready = false;
     
+    log_debug("handle_begin_poll: entering");
+    
     // unpack the arguments
     if ((!xdr_dtn_timeval_t(&xdr_decode_, &timeout)))
     {
@@ -1475,6 +1650,9 @@ APIClient::handle_begin_poll()
 
     int err = wait_for_notify("poll", timeout, &recv_reg, &notify_reg,
                              &sock_ready);
+    log_debug("handle_begin_poll: wait_for_notify returns sock_ready(%d)\n",
+              sock_ready);
+
     if (err != 0) {
         return err;
     }
@@ -1487,6 +1665,7 @@ APIClient::handle_begin_poll()
         char type;
         
         int ret = read(&type, 1);
+        log_debug("handle_begin_poll: read one byte: %d", ret);
         if (ret == 0) {
             log_info("IPC socket closed while blocked in read... "
                      "application must have exited");
@@ -1500,6 +1679,7 @@ APIClient::handle_begin_poll()
         }
 
         if (type != DTN_CANCEL_POLL) {
+            log_debug("handle_begin_poll: DTN_CANCEL_POLL");
             log_err("handle_poll: error got unexpected message '%s' "
                     "while blocked in poll", dtnipc_msgtoa(type));
             return DTN_ECOMM;
@@ -1754,16 +1934,20 @@ APIClient::wait_for_notify(const char*       operation,
     // if there's data on the socket, immediately exit without
     // checking the registrations
     if (sock_poll->revents != 0) {
+        log_debug("wait_for_notify(%s) sock_poll->revents!=0", operation);
         *sock_ready = true;
         return 0;
     }
 
     // otherwise, there should be data on one (or more) bundle lists, so
     // scan the list to find the first one.
+    log_debug("wait_for_notify: looking for data on bundle lists: recv_ready_reg(%p)\n",
+              recv_ready_reg);
     if (recv_ready_reg) {
         for (iter = bindings_->begin(); iter != bindings_->end(); ++iter) {
             reg = *iter;
             if (! reg->bundle_list()->empty()) {
+                log_debug("wait_for_notify: found one %p", reg);
                 *recv_ready_reg = reg;
                 break;
             }

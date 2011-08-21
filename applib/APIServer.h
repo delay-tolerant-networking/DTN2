@@ -94,11 +94,13 @@ protected:
     int handle_register();
     int handle_unregister();
     int handle_find_registration();
+    int handle_find_registration2();
     int handle_bind();
     int handle_unbind();
     int handle_send();
     int handle_cancel();
     int handle_recv();
+    int handle_ack();
     int handle_begin_poll();
     int handle_cancel_poll();
     int handle_close();

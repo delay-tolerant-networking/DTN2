@@ -21,6 +21,8 @@
 #include "BundleStore.h"
 #include "bundling/Bundle.h"
 
+#include <oasys/storage/DurableStore.h>
+
 namespace dtn {
 
 template <>
@@ -54,6 +56,7 @@ bool
 BundleStore::add(Bundle* bundle)
 {
     bool ret = bundles_.add(bundle);
+
     if (ret) {
         total_size_ += bundle->durable_size();
     }

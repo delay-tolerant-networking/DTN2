@@ -64,6 +64,12 @@ public:
     Registration* get(const EndpointIDPattern& eid) const;
 
     /**
+     * Look up the first matching registration for the exact endpoint
+     * id pattern given and with the given reg_token
+     */
+    Registration* get(const EndpointIDPattern& eid, u_int64_t reg_token) const;
+
+    /**
      * Remove the registration from the database, returns true if
      * successful, false if the registration didn't exist.
      */
@@ -73,7 +79,7 @@ public:
      * Update the registration in the database. Returns true on
      * success, false on error.
      */
-    bool update(Registration* reg);
+    bool update(Registration* reg) const;
     
     /**
      * Populate the given reglist with all registrations with an

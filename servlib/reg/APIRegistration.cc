@@ -18,7 +18,11 @@
 #  include <dtn-config.h>
 #endif
 
+#include <oasys/thread/SpinLock.h>
+#include <oasys/serialize/SerializableVector.h>
+
 #include "APIRegistration.h"
+#include "reg/RegistrationTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
@@ -32,17 +36,25 @@ APIRegistration::APIRegistration(const oasys::Builder& builder)
 {
     bundle_list_ = new BlockingBundleList(logpath_);
     session_notify_list_ = NULL;
+    unacked_bundle_list_ = new BundleList(logpath_);
+    acked_bundle_list_   = new BundleList(logpath_);
 }
     
 //----------------------------------------------------------------------
 APIRegistration::APIRegistration(u_int32_t regid,
                                  const EndpointIDPattern& endpoint,
-                                 failure_action_t action,
+                                 failure_action_t failure_action,
+                                 replay_action_t replay_action,
                                  u_int32_t session_flags,
                                  u_int32_t expiration,
+                                 bool delivery_acking,
+                                 u_int64_t reg_token,
                                  const std::string& script)
-    : Registration(regid, endpoint, action, session_flags, expiration, script)
+    : Registration(regid, endpoint, failure_action, replay_action,
+                   session_flags, expiration, delivery_acking, script)
 {
+    memcpy(&reg_token_, &reg_token, sizeof(u_int64_t));
+
     bundle_list_ = new BlockingBundleList(logpath_);
     if (session_flags & Session::CUSTODY) {
         session_notify_list_ = new BlockingBundleList(logpath_);
@@ -50,13 +62,33 @@ APIRegistration::APIRegistration(u_int32_t regid,
     } else {
         session_notify_list_ = NULL;
     }
+    unacked_bundle_list_ = new BundleList(logpath_);
+    acked_bundle_list_   = new BundleList(logpath_);
+}
+
+//----------------------------------------------------------------------
+int
+APIRegistration::format(char *buf, size_t sz) const {
+    Registration::format(buf, sz);
+    snprintf(&buf[strlen(buf)], sz-strlen(buf)-1,
+             " ready %zu unacked %zu acked %zu",
+             bundle_list_->size(),
+             unacked_bundle_list_->size(), 
+             acked_bundle_list_->size());
+    return strlen(buf);
 }
 
 //----------------------------------------------------------------------
 void
 APIRegistration::serialize(oasys::SerializeAction* a)
 {
+    oasys::ScopeLock l(&lock_, "serializing bundle");
+
     Registration::serialize(a);
+
+    bundle_list_->serialize(a);
+    unacked_bundle_list_->serialize(a);
+    acked_bundle_list_->serialize(a);
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL &&
         (session_flags_ & Session::CUSTODY))
@@ -64,6 +96,7 @@ APIRegistration::serialize(oasys::SerializeAction* a)
         session_notify_list_ = new BlockingBundleList(logpath_);
         session_notify_list_->logpath_appendf("/session_notify");
     }
+    log_debug("APIRegistration::serialze -- done.");
 }
 
 //----------------------------------------------------------------------
@@ -73,6 +106,8 @@ APIRegistration::~APIRegistration()
     if (session_notify_list_) {
         delete session_notify_list_;
     }
+    delete unacked_bundle_list_;
+    delete acked_bundle_list_;
 }
 
 //----------------------------------------------------------------------
@@ -105,19 +140,151 @@ APIRegistration::deliver_bundle(Bundle* bundle)
              active() ? "active" : "deferred",
              endpoint_.c_str());
 
-    if (BundleDaemon::instance()->params_.test_permuted_delivery_) {
-        bundle_list_->insert_random(bundle);
+    oasys::ScopeLock l(&lock_, "adding bundle to bundle_list");
+    if (active() || (replay_action() == Registration::NEW)) {
+        if (BundleDaemon::instance()->params_.test_permuted_delivery_) {
+            bundle_list_->insert_random(bundle);
+        } else {
+            bundle_list_->push_back(bundle);
+        }
     } else {
-        bundle_list_->push_back(bundle);
+        // application is not connected
+        // either the replay action is NONE, which is an implicit ack, or
+        // this bundle will be included in an ALL playback on reconnect
+        acked_bundle_list_->push_back(bundle);
     }
+    
+    update();
+}
+
+//----------------------------------------------------------------------
+void
+APIRegistration::delete_bundle(Bundle* bundle)
+{
+    oasys::ScopeLock l(&lock_, "deleting bundle");
+    if (bundle_list_->erase(bundle))
+        return;
+
+    if (unacked_bundle_list_->erase(bundle))
+        return;
+
+    if (acked_bundle_list_->erase(bundle))
+        return;
+
+    update();
 }
 
 //----------------------------------------------------------------------
 void
 APIRegistration::session_notify(Bundle* bundle)
 {
+    oasys::ScopeLock l(&lock_, "session_notify");
     log_debug("session_notify *%p", bundle);
     session_notify_list_->push_back(bundle);
+
+    update();
+}
+
+//----------------------------------------------------------------------
+void
+APIRegistration::set_active_callback(bool a)
+{
+    // If application has gone inactive, do nothing
+    if (! a) return;
+
+    // Application is active
+
+    oasys::ScopeLock l(&lock_, "set_active_callback");
+    // Regardless of replay configuration, if the unacked
+    // bundle list has bundles, we try again immediately
+    // (move after an ALL bundle playback to preserve ordering?)
+    if (! (unacked_bundle_list_->empty())) {
+        unacked_bundle_list_->move_contents(bundle_list_);
+        update();
+    }
+
+    if ((replay_action() == Registration::NONE) ||
+        (replay_action() == Registration::NEW))
+        return;
+
+    ASSERT(replay_action() == Registration::ALL);
+
+    if (! (acked_bundle_list_->empty())) {
+        acked_bundle_list_->move_contents(bundle_list_);
+        update();
+    }
+}
+
+//----------------------------------------------------------------------
+BundleRef
+APIRegistration::deliver_front()
+{
+    oasys::ScopeLock l(&lock_, "deliver_front");
+
+    BundleRef bref("APIRegistration::deliver_front");
+    bref = bundle_list_->pop_front();
+
+    Bundle* b = bref.object();
+    ASSERT(b != NULL);
+
+    if (delivery_acking()) {
+        // must wait for an explicit ack from the app
+        unacked_bundle_list_->push_back(b);
+    } else {
+        // auto-acking enabled
+        acked_bundle_list_->push_back(b);
+    }
+
+    // Update registration on disk
+    update();
+
+    return bref;
+}
+
+//----------------------------------------------------------------------
+void
+APIRegistration::save(Bundle *b)
+{
+    log_debug("YOU SHOULDN'T SEE THIS.");
+
+    if (delivery_acking()) {
+        // must wait for an explicit ack from the app
+        unacked_bundle_list_->push_back(b);
+    } else {
+        // auto-acking enabled
+        acked_bundle_list_->push_back(b);
+    }
+}
+
+//----------------------------------------------------------------------
+void
+APIRegistration::update()
+{
+    const RegistrationTable* reg_table = BundleDaemon::instance()->reg_table();
+    reg_table->update(this);
+}
+
+//----------------------------------------------------------------------
+void
+APIRegistration::bundle_ack(const EndpointID& source_eid,
+                            const BundleTimestamp& creation_ts)
+{
+    BundleRef b("APIRegistration::bundle_ack");
+    b = unacked_bundle_list_->find(source_eid, creation_ts);
+    if (b.object() == NULL) {
+        log_debug("acknowledgement of unknown bundle");
+        return;
+    }
+
+    oasys::ScopeLock l(&lock_, "bundle_ack");
+
+    acked_bundle_list_->push_back(b.object());
+    unacked_bundle_list_->erase(b.object());
+
+    log_info("registration %d (%s) acknowledged delivery of bundle %d",
+             regid_, endpoint_.c_str(), (b.object())->bundleid());
+
+    update();
 }
 
 } // namespace dtn

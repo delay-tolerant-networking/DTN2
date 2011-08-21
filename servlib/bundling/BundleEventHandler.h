@@ -73,6 +73,11 @@ protected:
     virtual void handle_bundle_delivered(BundleDeliveredEvent* event);
     
     /**
+     * Default event handler when bundles are acked by app.
+     */
+    virtual void handle_bundle_acknowledged_by_app(BundleAckEvent* event);
+    
+    /**
      * Default event handler when bundles expire.
      */
     virtual void handle_bundle_expired(BundleExpiredEvent* event);
@@ -97,6 +102,11 @@ protected:
      * Default event handler for bundle cancellations.
      */
     virtual void handle_bundle_cancelled(BundleSendCancelledEvent*);
+
+    /**
+     * Default event handler for bundle inject requests
+     */
+    virtual void handle_deliver_bundle_to_reg(DeliverBundleToRegEvent* event);
 
     /**
      * Default event handler for bundle inject requests
@@ -137,6 +147,11 @@ protected:
      * Default event handler for bundle attribute reports.
      */
     virtual void handle_bundle_attributes_report(BundleAttributesReportEvent*);
+
+     /**
+      * Default event handler for a private event
+      */
+     virtual void handle_private(PrivateEvent*);
 
     /**
      * Default event handler when a new application registration

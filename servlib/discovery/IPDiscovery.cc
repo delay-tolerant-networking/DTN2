@@ -167,12 +167,16 @@ IPDiscovery::run()
                 // need to bind to CL's local addr to send out on correct interface
                 // if disc already is, then use its socket
                 // else create a new socket that bind()s to the right interface
+                log_debug("socket_.local_addr(%s) -- announce->cl_addr(%s)",
+                          intoa(socket_.local_addr()), intoa(announce->cl_addr()));
                 if (socket_.local_addr() == announce->cl_addr())
                     sock = &socket_;
                 else
                 {
+                    log_debug("setting alt params.");
                     alt.params_ = socket_.params_;
-                    socket_.set_remote_addr(remote_addr_);
+                    alt.set_remote_addr(remote_addr_);
+                    log_debug("about to bind alt socket.");
                     if (alt.bind(announce->cl_addr(),port_) != 0)
                     {
                         log_err("failed to bind to %s:%u -- %s (%d)",

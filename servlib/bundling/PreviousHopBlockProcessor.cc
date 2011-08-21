@@ -115,5 +115,12 @@ PreviousHopBlockProcessor::consume(Bundle*    bundle,
     return cc;
 }
 
+//----------------------------------------------------------------------
+int
+PreviousHopBlockProcessor::format(oasys::StringBuffer* buf)
+{
+	buf->append("Previous Hop Block");
+}
+
 
 } // namespace dtn

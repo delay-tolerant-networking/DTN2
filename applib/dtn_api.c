@@ -232,6 +232,58 @@ dtn_unregister(dtn_handle_t h, dtn_reg_id_t regid)
 
 //----------------------------------------------------------------------
 int
+dtn_find_registration2(dtn_handle_t h,
+                       dtn_endpoint_id_t *eid,
+                       dtn_reg_token_t *reg_token,
+                       dtn_reg_id_t* regid)
+{
+    int status;
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+    
+    // pack the request
+    if (!xdr_dtn_endpoint_id_t(xdr_encode, eid)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+    if (!xdr_dtn_reg_token_t(xdr_encode, reg_token)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send(handle, DTN_FIND_REGISTRATION_WTOKEN) != 0) {
+        return -1;
+    }
+
+    // get the reply
+    if (dtnipc_recv(handle, &status) < 0) {
+        return -1;
+    }
+
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
+        return -1;
+    }
+
+    // unpack the response
+    if (!xdr_dtn_reg_id_t(xdr_decode, regid)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    return 0;
+}
+//----------------------------------------------------------------------
+int
 dtn_find_registration(dtn_handle_t h,
                       dtn_endpoint_id_t *eid,
                       dtn_reg_id_t* regid)
@@ -542,6 +594,43 @@ dtn_recv(dtn_handle_t h,
 
 //----------------------------------------------------------------------
 int
+dtn_ack(dtn_handle_t h, dtn_bundle_spec_t* spec, dtn_bundle_id_t* id)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+
+    // pack the arguments
+    if (!xdr_dtn_bundle_spec_t(xdr_encode, spec)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send_recv(handle, DTN_ACK) < 0) {
+        return -1;
+    }
+    
+    // unpack the return value
+    memset(id, 0, sizeof(id));
+    
+    if (!xdr_dtn_bundle_id_t(xdr_decode, id))
+    {
+        handle->err = DTN_EXDR;
+        return DTN_EXDR;
+    }
+
+    return 0;
+}
+
+//----------------------------------------------------------------------
+int
 dtn_session_update(dtn_handle_t       h,
                    unsigned int*      status,
                    dtn_endpoint_id_t* session,
@@ -597,6 +686,20 @@ dtn_poll_fd(dtn_handle_t h)
 {
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     return handle->sock;
+}
+
+//----------------------------------------------------------------------
+int
+dtn_poll_count(dtn_handle_t h, int *count)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+
+    // check if the handle is already in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+    return *count;
 }
 
 //----------------------------------------------------------------------

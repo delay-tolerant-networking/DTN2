@@ -64,7 +64,9 @@ class SQLBundleStore;
  * invariant that the entiries of this set correlate exactly with the
  * list pointers.
  */
-class Bundle : public oasys::Formatter, public oasys::SerializableObject
+class Bundle : public oasys::Formatter,
+               public oasys::Logger,
+               public oasys::SerializableObject
 {
 public:
     /**
@@ -241,6 +243,7 @@ public:
     u_int64_t         age()               const { return age_; } ///< [AEB] return age
     oasys::Time       time_aeb()          const { return time_aeb_; } ///< [AEB]
     const BlockInfoVec*    api_blocks_c()   const { return &api_blocks_; }
+    bool              is_freed() { return freed_; }
     /// @}
 
     /// @{ Setters and mutable accessors

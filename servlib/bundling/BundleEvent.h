@@ -63,6 +63,7 @@ typedef enum {
     BUNDLE_REPORT,              ///< Response to bundle query
     BUNDLE_ATTRIB_QUERY,        ///< Query for a bundle's attributes
     BUNDLE_ATTRIB_REPORT,       ///< Report with bundle attributes
+    BUNDLE_ACK,                 ///< Receipt acked by app
 
     CONTACT_UP,                 ///< Contact is up
     CONTACT_DOWN,               ///< Contact abnormally terminated
@@ -86,10 +87,14 @@ typedef enum {
 
     REASSEMBLY_COMPLETED,       ///< Reassembly completed
 
+    PRIVATE,                    ///< A private event occured
+
     REGISTRATION_ADDED,         ///< New registration arrived
     REGISTRATION_REMOVED,       ///< Registration removed
     REGISTRATION_EXPIRED,       ///< Registration expired
     REGISTRATION_DELETE,	///< Registration to be deleted
+
+    DELIVER_BUNDLE_TO_REG,      ///< Deliver bundle to registation
 
     ROUTE_ADD,                  ///< Add a new entry to the route table
     ROUTE_DEL,                  ///< Remove an entry from the route table
@@ -147,6 +152,7 @@ event_to_str(event_type_t event)
     case BUNDLE_REPORT:         return "BUNDLE_REPORT";
     case BUNDLE_ATTRIB_QUERY:   return "BUNDLE_ATTRIB_QUERY";
     case BUNDLE_ATTRIB_REPORT:  return "BUNDLE_ATTRIB_REPORT";
+    case BUNDLE_ACK:            return "BUNDLE_ACK_BY_APP";
 
     case CONTACT_UP:            return "CONTACT_UP";
     case CONTACT_DOWN:          return "CONTACT_DOWN";
@@ -170,10 +176,14 @@ event_to_str(event_type_t event)
 
     case REASSEMBLY_COMPLETED:  return "REASSEMBLY_COMPLETED";
 
+    case PRIVATE:               return "PRIVATE";
+
     case REGISTRATION_ADDED:    return "REGISTRATION_ADDED";
     case REGISTRATION_REMOVED:  return "REGISTRATION_REMOVED";
     case REGISTRATION_EXPIRED:  return "REGISTRATION_EXPIRED";
     case REGISTRATION_DELETE:   return "REGISTRATION_DELETE";
+
+    case DELIVER_BUNDLE_TO_REG: return "DELIVER_BUNDLE_TO_REG";
 
     case ROUTE_ADD:             return "ROUTE_ADD";
     case ROUTE_DEL:             return "ROUTE_DEL";
@@ -437,21 +447,46 @@ public:
 };
 
 /**
- * Event class for local bundle delivery.
+ * Event class for acknowledgement of bundle reciept by app.
  */
-class BundleDeliveryEvent : public BundleEvent {
+class BundleAckEvent : public BundleEvent {
 public:
-    BundleDeliveryEvent(Bundle* bundle,
-                         event_source_t source)
-        : BundleEvent(BUNDLE_DELIVERY),
-          bundleref_(bundle, "BundleDeliveryEvent"),
-          source_(source) {}
+    BundleAckEvent(u_int reg, std::string source, u_quad_t secs, u_quad_t seq)
+        : BundleEvent(BUNDLE_ACK),
+          regid_(reg),
+          sourceEID_(source),
+          creation_ts_(secs, seq) {}
 
-    /// The bundle we're delivering
+    u_int regid_;
+    EndpointID sourceEID_;
+    BundleTimestamp creation_ts_;
+};
+
+/**
+ * Event class for local bundle delivery.
+ * Processing of this event causes the bundle to be delivered
+ * to the particular registration (application).
+ */
+class DeliverBundleToRegEvent : public BundleEvent {
+public:
+    //DeliverBundleToRegEvent(Bundle* bundle,
+    //                        u_int32_t regid,
+    //                        Registration* registration)
+    //    : BundleEvent(DELIVER_BUNDLE_TO_REG),
+    //      bundleref_(bundle, "BundleToRegEvent"),
+    //      regid_(regid),
+    //      registration_(registration) { }
+
+    DeliverBundleToRegEvent(Bundle* bundle,
+                            u_int32_t regid)
+        : BundleEvent(DELIVER_BUNDLE_TO_REG),
+          bundleref_(bundle, "BundleToRegEvent"),
+          regid_(regid) { }
+
+    /// The bundle to be delivered
     BundleRef bundleref_;
 
-    /// The source of the bundle
-    int source_;
+    u_int32_t regid_;
 };
 
 /**
@@ -687,6 +722,21 @@ public:
     int old_state_;
 };
 
+
+/*
+ * Private Event used for components to post an event for themselves
+ * which will be processed synchronously in the BundleDaemon Event Queue
+ */
+class PrivateEvent : public BundleEvent {
+ public:
+  PrivateEvent(int sub_type, void* context) 
+    :  BundleEvent(PRIVATE), sub_type_(sub_type), context_(context) {}
+
+  int   sub_type_;
+  void* context_;
+};
+
+
 /**
  * Event class for new registration arrivals.
  */
@@ -844,7 +894,7 @@ class ShutdownRequest : public BundleEvent {
 public:
     ShutdownRequest() : BundleEvent(DAEMON_SHUTDOWN)
     {
-        daemon_only_ = true;
+        daemon_only_ = false;
     }
 };
 

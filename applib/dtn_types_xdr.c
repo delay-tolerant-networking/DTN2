@@ -80,6 +80,8 @@ xdr_dtn_reg_id_t (XDR *xdrs, dtn_reg_id_t *objp)
 
 /**
  * DTN timeouts are specified in seconds.
+ * typedef u_int dtn_timeval_t; // 32-bit systems
+ * typedef u_int32_t dtn_timeval_t; // 64-bit systems
  */
 
 bool_t
@@ -160,6 +162,11 @@ xdr_dtn_service_tag_t (XDR *xdrs, dtn_service_tag_t *objp)
  *     DTN_SESSION_CUSTODY   - app assumes custody for the session
  *     DTN_SESSION_PUBLISH   - creates a publication point
  *     DTN_SESSION_SUBSCRIBE - create subscription for the session
+ *
+ * Other flags:
+ *     DTN_DELIVERY_ACKS - application will acknowledge delivered
+ *                         bundles with dtn_ack()
+ *
  */
 
 bool_t
@@ -168,6 +175,34 @@ xdr_dtn_reg_flags_t (XDR *xdrs, dtn_reg_flags_t *objp)
 	register int32_t *buf;
 
 	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
+
+/**
+ * Replay flags - behavior when apps bind to an existing registration
+ *     DTN_REPLAY_NEW  - [default] deliver new bundles rcvd on reg while not bound
+ *     DTN_REPLAY_NONE - don't deliver new bundles rcvd on reg while not bound
+ *     DTN_REPLAY_ALL  - deliver _all_ bundles queued up on the reg
+ *                       (makes duplicate bundle deliveries possible)
+ */
+
+bool_t
+xdr_dtn_replay_flags_t (XDR *xdrs, dtn_replay_flags_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_dtn_reg_token_t (XDR *xdrs, dtn_reg_token_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_u_hyper (xdrs, objp))
 		 return FALSE;
 	return TRUE;
 }
@@ -187,9 +222,13 @@ xdr_dtn_reg_info_t (XDR *xdrs, dtn_reg_info_t *objp)
 		 return FALSE;
 	 if (!xdr_u_int (xdrs, &objp->flags))
 		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->replay_flags))
+		 return FALSE;
 	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
 		 return FALSE;
 	 if (!xdr_bool (xdrs, &objp->init_passive))
+		 return FALSE;
+	 if (!xdr_dtn_reg_token_t (xdrs, &objp->reg_token))
 		 return FALSE;
 	 if (!xdr_bytes (xdrs, (char **)&objp->script.script_val, (u_int *) &objp->script.script_len, DTN_MAX_EXEC_LEN))
 		 return FALSE;

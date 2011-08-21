@@ -107,7 +107,19 @@ BundleProtocol::init_default_processors()
 void
 BundleProtocol::reload_post_process(Bundle* bundle)
 {
+    BlockInfoVec* api_blocks = bundle->api_blocks();
     BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
+
+    log_debug_p(LOG, "BundleProtocol::reload_post_process");
+    for (BlockInfoVec::iterator iter = api_blocks->begin();
+         iter != api_blocks->end();
+         ++iter)
+    {
+        // allow BlockProcessors [and Ciphersuites] a chance to re-do
+        // things needed after a load-from-store
+        log_debug_p(LOG, "reload_post_process on bundle of type %d", iter->owner()->block_type());
+        iter->owner()->reload_post_process(bundle, api_blocks, &*iter);
+    }
 
     for (BlockInfoVec::iterator iter = recv_blocks->begin();
          iter != recv_blocks->end();
@@ -115,6 +127,7 @@ BundleProtocol::reload_post_process(Bundle* bundle)
     {
         // allow BlockProcessors [and Ciphersuites] a chance to re-do
         // things needed after a load-from-store
+        log_debug_p(LOG, "reload_post_process on bundle of type %d", iter->owner()->block_type());
         iter->owner()->reload_post_process(bundle, recv_blocks, &*iter);
     }
 }
@@ -416,7 +429,7 @@ BundleProtocol::produce(const Bundle* bundle, const BlockInfoVec* blocks,
         }
 
         // we completed the current block, so we're done if this
-        // is the lat block, even if there's space in the user buffer
+        // is the last block, even if there's space in the user buffer
         ASSERT(tocopy == remainder);
         if (iter->flags() & BLOCK_FLAG_LAST_BLOCK) {
             ASSERT(iter + 1 == blocks->end());

@@ -92,6 +92,30 @@ RegistrationTable::get(const EndpointIDPattern& eid) const
 }
 
 //----------------------------------------------------------------------
+Registration*
+RegistrationTable::get(const EndpointIDPattern& eid, u_int64_t reg_token) const
+{
+    Registration* reg;
+    RegistrationList::const_iterator iter;
+    
+
+    for (iter = reglist_.begin(); iter != reglist_.end(); ++iter) {
+        reg = *iter;
+        if (reg->endpoint().equals(eid)) {
+            APIRegistration* api_reg = dynamic_cast<APIRegistration*>(reg);
+            if (api_reg == NULL) {
+                continue;
+            }
+            if ( api_reg->reg_token()==reg_token ) {
+                return reg;
+            }
+        }
+    }
+    
+    return NULL;
+}
+
+//----------------------------------------------------------------------
 bool
 RegistrationTable::add(Registration* reg, bool add_to_store)
 {
@@ -154,11 +178,11 @@ RegistrationTable::del(u_int32_t regid)
 
 //----------------------------------------------------------------------
 bool
-RegistrationTable::update(Registration* reg)
+RegistrationTable::update(Registration* reg) const
 {
     oasys::ScopeLock l(&lock_, "RegistrationTable");
 
-    log_info("updating registration %d/%s",
+    log_debug("updating registration %d/%s",
              reg->regid(), reg->endpoint().c_str());
 
     APIRegistration* api_reg = dynamic_cast<APIRegistration*>(reg);

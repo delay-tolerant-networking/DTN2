@@ -47,6 +47,7 @@
 const char *progname;
 
 int   verbose           = 0;    	// verbose output
+int   doAppAcks         = 0;            // Application ack of received bundles
 int   quiet             = 0;    	// quiet output
 char* endpoint		= NULL; 	// endpoint for registration
 dtn_reg_id_t regid	= DTN_REGID_NONE;// registration id
@@ -54,6 +55,7 @@ int   expiration	= 30; 		// registration expiration time
 int   count             = 0;            // exit after count bundles received
 int   failure_action	= DTN_REG_DEFER;// registration delivery failure action
 char* failure_script	= "";	 	// script to exec
+int   replay_action	= DTN_REPLAY_NEW;// registration delivery replay semantics
 int   register_only	= 0;    	// register and quit
 int   change		= 0;    	// change existing registration 
 int   unregister	= 0;    	// remove existing registration 
@@ -67,6 +69,7 @@ usage()
 {
     fprintf(stderr, "usage: %s [opts] <endpoint> \n", progname);
     fprintf(stderr, "options:\n");
+    fprintf(stderr, " -a Application acknowledgement of received bundles (to daemon)\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -q quiet\n");
     fprintf(stderr, " -h help\n");
@@ -74,8 +77,9 @@ usage()
     fprintf(stderr, " -r <regid> use existing registration regid\n");
     fprintf(stderr, " -n <count> exit after count bundles received\n");
     fprintf(stderr, " -e <time> registration expiration time in seconds "
-            "(default: one hour)\n");
+            "(default: %d)\n", expiration);
     fprintf(stderr, " -f <defer|drop|exec> failure action\n");
+    fprintf(stderr, " -R <new|none|all> replay action\n");
     fprintf(stderr, " -F <script> failure script for exec action\n");
     fprintf(stderr, " -x call dtn_register and immediately exit\n");
     fprintf(stderr, " -c call dtn_change_registration and immediately exit\n");
@@ -97,9 +101,11 @@ parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vqhHd:r:e:f:F:xn:cuNt:o:");
+        c = getopt(argc, argv, "avqhHd:r:e:f:R:F:xn:cuNt:o:");
         switch (c)
         {
+        case 'a':
+            doAppAcks = 1;
         case 'v':
             verbose = 1;
             break;
@@ -129,6 +135,21 @@ parse_options(int argc, char**argv)
 
             } else {
                 fprintf(stderr, "invalid failure action '%s'\n", optarg);
+                usage();
+                exit(1);
+            }
+        case 'R':
+            if (!strcasecmp(optarg, "new")) {
+                replay_action = DTN_REPLAY_NEW;
+
+            } else if (!strcasecmp(optarg, "none")) {
+                replay_action = DTN_REPLAY_NONE;
+
+            } else if (!strcasecmp(optarg, "all")) {
+                replay_action = DTN_REPLAY_ALL;
+
+            } else {
+                fprintf(stderr, "invalid replay action '%s'\n", optarg);
                 usage();
                 exit(1);
             }
@@ -416,6 +437,7 @@ main(int argc, char** argv)
         reginfo.regid             = regid;
         reginfo.expiration        = expiration;
         reginfo.flags             = failure_action;
+        reginfo.replay_flags      = replay_action;
         reginfo.script.script_val = failure_script;
         reginfo.script.script_len = strlen(failure_script) + 1;
     }
@@ -467,6 +489,7 @@ main(int argc, char** argv)
         call_bind = 0;
     } else {
         call_bind = 1;
+        dtn_parse_eid_string(&local_eid, "dtn://??/?");
     }
     
     if (register_only) {
@@ -530,6 +553,8 @@ main(int argc, char** argv)
             continue;
         }
 
+        printf("bundle spec at 0x%08X\n", &spec);
+
         printf("\n%d extension blocks from [%s]: transit time=%d ms\n",
                spec.blocks.blocks_len, spec.source.uri, 0);
         dtn_extension_block_t *block = spec.blocks.blocks_val;
@@ -557,13 +582,31 @@ main(int argc, char** argv)
         print_data(payload.buf.buf_val, payload.buf.buf_len);
         printf("\n");
 
+        if (doAppAcks) {
+            dtn_bundle_id_t id;
+            printf("Acknowledging receipt of bundle to daemon.\n");
+            dtn_ack(handle, &spec, &id);
+        }
+
         dtn_free_payload(&payload);
         if (spec.blocks.blocks_len > 0) {
+        	int i=0;
+        	for ( i=0; i<spec.blocks.blocks_len; i++ ) {
+        		printf("Freeing extension block [%d].data at 0x%08X\n",
+        			   i, spec.blocks.blocks_val[i].data.data_val);
+        	    free(spec.blocks.blocks_val[i].data.data_val);
+        	}
             free(spec.blocks.blocks_val);
             spec.blocks.blocks_val = NULL;
             spec.blocks.blocks_len = 0;
         }
         if (spec.metadata.metadata_len > 0) {
+        	int i=0;
+        	for ( i=0; i<spec.metadata.metadata_len; i++ ) {
+        		printf("Freeing metadata block [%d].data at 0x%08X\n",
+        			   i, spec.metadata.metadata_val[i].data.data_val);
+        	    free(spec.metadata.metadata_val[i].data.data_val);
+        	}
             free(spec.metadata.metadata_val);
             spec.metadata.metadata_val = NULL;
             spec.metadata.metadata_len = 0;

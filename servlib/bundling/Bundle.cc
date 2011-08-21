@@ -28,6 +28,7 @@
 #include "ExpirationTimer.h"
 
 #include "storage/GlobalStore.h"
+#include "storage/BundleStore.h"
 
 namespace dtn {
 
@@ -56,6 +57,7 @@ Bundle::init(u_int32_t id)
     owner_              = "";
     fragmented_incoming_= false;
     session_flags_      = 0;
+    freed_          = false;
 
     // as per the spec, the creation timestamp should be calculated as
     // seconds since 1/1/2000, and since the bundle id should be
@@ -85,7 +87,8 @@ Bundle::init(u_int32_t id)
 
 //----------------------------------------------------------------------
 Bundle::Bundle(BundlePayload::location_t location)
-    : payload_(&lock_), fwdlog_(&lock_), xmit_blocks_(&lock_),
+    : Logger("Bundle", "/dtn/bundle/bundle"),
+      payload_(&lock_), fwdlog_(&lock_, this), xmit_blocks_(&lock_),
       recv_metadata_("recv_metadata")
 {
     u_int32_t id = GlobalStore::instance()->next_bundleid();
@@ -98,7 +101,8 @@ Bundle::Bundle(BundlePayload::location_t location)
 
 //----------------------------------------------------------------------
 Bundle::Bundle(const oasys::Builder&)
-    : payload_(&lock_), fwdlog_(&lock_), xmit_blocks_(&lock_),
+    : Logger("Bundle", "/dtn/bundle/bundle"),
+      payload_(&lock_), fwdlog_(&lock_, this), xmit_blocks_(&lock_),
       recv_metadata_("recv_metadata")
 {
     // don't do anything here except set the id to a bogus default
@@ -150,6 +154,8 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
 
 #define bool_to_str(x)   ((x) ? "true" : "false")
 
+    u_int32_t cur_time_sec = BundleTimestamp::get_current_time();
+
     buf->appendf("bundle id %d:\n", bundleid_);
     buf->appendf("            source: %s\n", source_.c_str());
     buf->appendf("              dest: %s\n", dest_.c_str());
@@ -169,7 +175,8 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("    app_acked_rcpt: %s\n", bool_to_str(app_acked_rcpt_));
     buf->appendf("       creation_ts: %llu.%llu\n",
                  creation_ts_.seconds_, creation_ts_.seqno_);
-    buf->appendf("        expiration: %llu\n", expiration_);
+    buf->appendf("        expiration: %llu (%lld left)\n", expiration_,
+                 creation_ts_.seconds_ + expiration_ - cur_time_sec);
     buf->appendf("       is_fragment: %s\n", bool_to_str(is_fragment_));
     buf->appendf("          is_admin: %s\n", bool_to_str(is_admin_));
     buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));
@@ -194,18 +201,24 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
         buf->appendf("\t%s\n", i->list()->name().c_str());
     }
 
-    buf->append("\nblocks:");
+    buf->append("\nrecv blocks:");
     for (BlockInfoVec::iterator iter = recv_blocks_.begin();
          iter != recv_blocks_.end();
          ++iter)
     {
         buf->appendf("\n type: 0x%02x ", iter->type());
+        BlockProcessor *owner = BundleProtocol::find_processor(iter->type());
+        if (iter->type()!=owner->block_type()){
+        	iter->set_owner(owner);
+        }
         if (iter->data_offset() == 0)
             buf->append("(runt)");
         else {
             if (!iter->complete())
                 buf->append("(incomplete) ");
             buf->appendf("data length: %d", iter->full_length());
+            buf->appendf(" -%d- ", owner->block_type());
+            iter->owner()->format(buf, &(*iter));
         }
     }
     if (api_blocks_.size() > 0) {
@@ -216,7 +229,11 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
         {
             buf->appendf("\n type: 0x%02x data length: %d",
                          iter->type(), iter->full_length());
-        }
+            buf->append(" -- ");
+            iter->owner()->format(buf, &(*iter));
+       }
+    } else {
+    	buf->append("\nno api_blocks");
     }
     buf->append("\n");
 }
@@ -261,14 +278,20 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("age", &age_); // [AEB]
     //a->process("time_aeb", &time_aeb_); // [AEB]
 
-    // XXX/TODO serialize the forwarding log and make sure it's
-    // updated on disk as it changes in memory
-    //a->process("forwarding_log", &fwdlog_);
+    // a->process("metadata", &recv_metadata_); // XXX/kscott
+
+    // serialize the forwarding log
+    // Changed to the forwarding log result in the bundle being
+    // updated on disk.
+    log_debug("XXX Now serializing forwarding log");
+    a->process("forwarding_log", &fwdlog_);
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         in_datastore_ = true;
         payload_.init_from_store(bundleid_);
     }
+
+    // Call consume() on each of the blocks?
 }
     
 //----------------------------------------------------------------------
@@ -309,7 +332,7 @@ Bundle::add_ref(const char* what1, const char* what2)
 
     ASSERTF(freed_ == false, "Bundle::add_ref on bundle %d (%p)"
             "called when bundle is already being freed!", bundleid_, this);
-    
+
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
     log_debug_p("/dtn/bundle/refs",
@@ -339,10 +362,18 @@ Bundle::del_ref(const char* what1, const char* what2)
     oasys::ScopeLock l(&lock_, "Bundle::del_ref");
 
     int ret = --refcount_;
-    log_debug_p("/dtn/bundle/refs",
-                "bundle id %d (%p): refcount %d -> %d (%zu mappings) del %s %s",
-                bundleid_, this, refcount_ + 1, refcount_,
+    log_debug_p("/dtn/bundle/refs2",
+                "bundle id %d (%p): freed_(%d) refcount %d -> %d (%zu mappings) del %s:%s",
+                bundleid_, this, freed_, refcount_ + 1, refcount_,
                 mappings_.size(), what1, what2);
+#if 1
+    log_debug_p("/dtn/bundle/refs2",
+    		    "queued on %zu lists:\n", mappings_.size());
+    for (BundleMappings::iterator i = mappings_.begin();
+         i != mappings_.end(); ++i) {
+        log_debug_p("/dtn/bundle/refs2", "\t%s\n", i->list()->name().c_str());
+    }
+#endif
     
     if (refcount_ > 1) {
         ASSERTF(freed_ == false,  "Bundle::del_ref on bundle %d (%p)"
@@ -371,6 +402,10 @@ Bundle::del_ref(const char* what1, const char* what2)
         ASSERTF(freed_ == true,
                 "Bundle %d (%p) refcount is zero but bundle wasn't properly freed",
                 bundleid_, this);
+   } else if (refcount_ < 0 ) {
+	   log_debug_p("/dtn/bundle",
+			       "bundle id %d (%p): refcount_(%d) < 0!",
+			       bundleid_, this, refcount_);
    }
     
     return 0;

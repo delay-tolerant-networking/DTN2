@@ -26,6 +26,7 @@
 #include "BundleList.h"
 #include "BundleMappings.h"
 #include "BundleTimestamp.h"
+#include "BundleDaemon.h"
 
 namespace dtn {
 
@@ -93,9 +94,16 @@ BundleList::back() const
 void
 BundleList::add_bundle(Bundle* b, const iterator& pos)
 {
+	int ret;
+
     ASSERT(lock_->is_locked_by_me());
     ASSERT(b->lock()->is_locked_by_me());
     
+    if (b->is_freed()) {
+    	log_info("add_bundle called with pre-freed bundle; ignoring");
+    	return;
+    }
+
     if (b->is_queued_on(this)) {
         log_err("ERROR in add bundle: "
                 "bundle id %d already on list [%s]",
@@ -108,9 +116,9 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
     b->mappings()->push_back(BundleMapping(this, new_pos));
     b->add_ref("bundle_list", name_.c_str());
     
-    if (notifier_ != 0) {
-        notifier_->notify();
-    }
+	if (notifier_ != 0) {
+		notifier_->notify();
+	}
 
     log_debug("bundle id %d add mapping [%s] to list %p",
               b->bundleid(), name_.c_str(), this);
@@ -350,9 +358,15 @@ BundleRef
 BundleList::find(u_int32_t bundle_id) const
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
-    BundleRef ret("BundleList::find() temporary");
+    BundleRef ret("BundleList::find() temporary (by bundle_id)");
+
     for (iterator iter = begin(); iter != end(); ++iter) {
-        if ((*iter)->bundleid() == bundle_id) {
+    	// We need to exclude freed bundles here, otherwise the refcounting
+    	// gets really hosed up, as a find after a bundle is freed can cause
+    	// an extra reference to it.  Trying to simply not add refs to freed
+    	// bundles causes other problems when those refs are deleted, leading
+    	// to too low a refcount in the bundle.
+        if ((*iter)->bundleid() == bundle_id && !((*iter)->is_freed())) {
             ret = *iter;
             return ret;
         }
@@ -372,7 +386,8 @@ BundleList::find(const EndpointID& source_eid,
     for (iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->creation_ts().seconds_ == creation_ts.seconds_ &&
             (*iter)->creation_ts().seqno_ == creation_ts.seqno_ &&
-            (*iter)->source().equals(source_eid))
+            (*iter)->source().equals(source_eid) &&
+            !((*iter)->is_freed()))
         {
             ret = *iter;
             return ret;
@@ -387,15 +402,16 @@ BundleRef
 BundleList::find(GbofId& gbof_id) const
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
-    BundleRef ret("BundleList::find() temporary");
+    BundleRef ret("BundleList::find() temporary (by gbof_id)");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
         if (gbof_id.equals((*iter)->source(),
                            (*iter)->creation_ts(),
                            (*iter)->is_fragment(),
                            (*iter)->payload().length(),
-                           (*iter)->frag_offset()))
-            {
+                           (*iter)->frag_offset()) &&
+            !((*iter)->is_freed()))
+        {
             ret = *iter;
             return ret;
         }
@@ -409,7 +425,7 @@ BundleRef
 BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id) const
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
-    BundleRef ret("BundleList::find() temporary");
+    BundleRef ret("BundleList::find() temporary (by gbof_id and timestamp)");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
         if (extended_id == (*iter)->extended_id() &&
@@ -417,7 +433,8 @@ BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id) cons
                            (*iter)->creation_ts(),
                            (*iter)->is_fragment(),
                            (*iter)->payload().length(),
-                           (*iter)->frag_offset()))
+                           (*iter)->frag_offset()) &&
+            !((*iter)->is_freed()))
         {
             ret = *iter;
             return ret;
@@ -550,5 +567,49 @@ BlockingBundleList::pop_blocking(int timeout)
     
     return ret;
 }
+//----------------------------------------------------------------------
+void
+BundleList::serialize(oasys::SerializeAction *a)
+{
+    u_int32_t bid;
+    u_int sz = size();
+
+    oasys::ScopeLock l2(lock_, "serialize");
+
+    a->process("size", &sz);
+
+    if (a->action_code() == oasys::Serialize::MARSHAL || \
+        a->action_code() == oasys::Serialize::INFO) {
+
+        BundleList::iterator i;
+
+        for (i=list_.begin();
+             i!=list_.end();
+             ++i) {
+            log_debug("List %s Marshaling bundle id %d",
+            		name().c_str(), (*i)->bundleid());
+            bid = (*i)->bundleid();
+            a->process("element", &bid);
+        }
+    }
+
+    if (a->action_code() == oasys::Serialize::UNMARSHAL) {
+        for ( size_t i=0; i<sz; i++ ) {
+            a->process("element", &bid);
+            log_debug("Unmarshaling bundle id %d", bid);
+            BundleRef b = BundleDaemon::instance()->all_bundles()->find(bid);
+            if ( b==NULL ) {
+                log_debug("b is NULL for id %d; not on all_bundles list", bid);
+            }
+            if ( b!=NULL && b->bundleid()==bid ) {
+                log_debug("Found bundle id %d on all_bundles; adding.", bid);
+                push_back(b);
+            }
+            log_debug("Done with UNMARSHAL %d", bid);
+        }
+        log_debug("Done with UNMARSHAL");
+    }
+}
+
 
 } // namespace dtn

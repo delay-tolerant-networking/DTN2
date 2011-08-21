@@ -40,9 +40,12 @@ public:
      */
     APIRegistration(u_int32_t regid,
                     const EndpointIDPattern& endpoint,
-                    failure_action_t action,
+                    failure_action_t failure_action,
+                    replay_action_t replay_action,
                     u_int32_t session_flags,
                     u_int32_t expiration,
+                    bool delivery_acking = false,
+                    u_int64_t reg_token = 0,
                     const std::string& script = "");
 
     ~APIRegistration();
@@ -51,8 +54,38 @@ public:
     void serialize(oasys::SerializeAction* a);
     
     /// Virtual from Registration
+    int format(char *buf, size_t sz) const;
     void deliver_bundle(Bundle* bundle);
+    void delete_bundle(Bundle* bundle);
     void session_notify(Bundle* bundle);
+    void set_active_callback(bool a);
+
+    /*
+     * Return front bundle and move from bundle_list to appropriate
+     * secondary list (unacked or acked)
+     */
+    BundleRef deliver_front();
+
+    /**
+     * Record delivery attempts to the appropriate history list
+     */
+    void save(Bundle *b);
+
+    /*
+     * Accessor for lock on bundle lists.
+     */
+    oasys::SpinLock* lock() { return &lock_; }
+
+    /**
+     * Update registration on disk.
+     */
+    void update();
+
+    /**
+     * Handle application bundle delivery acknowledgements
+     */
+    void bundle_ack(const EndpointID& source_eid,
+                    const BundleTimestamp& creation_ts);
     
     /**
      * Accessor for the queue of bundles for the registration.
@@ -65,12 +98,26 @@ public:
      */
     BlockingBundleList* session_notify_list() { return session_notify_list_; }
     
+    u_int64_t reg_token() { return reg_token_; }
+
 protected:
+    /// App-supplied token identifying the registration
+    u_int64_t reg_token_;
+
     /// Queue of bundles for the registration
     BlockingBundleList* bundle_list_;
 
     /// Queue of subscription notification bundles
     BlockingBundleList* session_notify_list_;
+
+    /// Queue of delivered bundles that haven't yet been acked
+    BundleList* unacked_bundle_list_;
+
+    /// Queue of bundles deliver to and acked by the application
+    BundleList* acked_bundle_list_;
+
+    /// Lock to be taken by those modifying or marshaling the registration.
+    oasys::SpinLock lock_;
 };
 
 /**

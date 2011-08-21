@@ -43,6 +43,10 @@ public:
                  u_char*    buf,
                  size_t     len);
 
+    int reload_post_process(Bundle*       bundle,
+                            BlockInfoVec* block_list,
+                            BlockInfo*    block);
+
     bool validate(const Bundle*           bundle,
                   BlockInfoVec*           block_list,
                   BlockInfo*              block,
@@ -60,6 +64,8 @@ public:
                   BlockInfo*     block,
                   const LinkRef& link,
                   bool           last);
+
+    int format(oasys::StringBuffer* buf, BlockInfo *b = NULL);
     /// @}
 
     /**
