@@ -252,7 +252,8 @@ main(int argc, char** argv)
         }
 
         ext_blocks.push_back(ExtBlock(10));
-        ext_blocks.back().set_block_buf(ageblock_buf, strlen(ageblock_buf));
+        ext_blocks.back().set_block_buf(ageblock_buf, len);
+
 
         // see dtn_types::dtn_extension_block_flags_t
         ext_blocks.back().block().flags = BLOCK_FLAG_REPLICATE;
