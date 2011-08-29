@@ -107,7 +107,7 @@ prefix=$oasys_save_prefix
 # -------------------------------------------------------------------------
 # Configure find oasys
 # -------------------------------------------------------------------------
-AC_OASYS_CONFIG(1,3)
+AC_OASYS_CONFIG(1,5)
 
 # -------------------------------------------------------------------------
 # Dump the autoconf cache now to try to avoid redundant checks

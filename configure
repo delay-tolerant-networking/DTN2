@@ -3228,7 +3228,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     rm -rf oasys
 
     ac_oasysver_major=1
-    ac_oasysver_minor=3
+    ac_oasysver_minor=5
     ac_oasysdir_ver_base="oasys-$ac_oasysver_major.$ac_oasysver_minor"
     ac_oasysdir=
 

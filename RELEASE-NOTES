@@ -1,6 +1,70 @@
 Release Notes for DTN2
 ----------------------
 
+2.8.0 (August 2011)
+-----------------
+
+- Added the ability for the DTN2 router component to modify locally-generated bundles before
+  they are delivered to local registrations (destination applications that use the same DTN2
+  daemon as the sender).
+
+- Added support for transactionalized access to the DTN2 database used to store metadata
+  (bundle headers and application registration information).
+
+- Added support for ODBC databases as a peer to the other database types provided with
+  the base open-source distribution (e.g. file-based, BerkeleyDB).
+
+- Added support for flexible and efficient synchronization to disk, allowing the
+  implementation to run in ACI (atomicity, consistency, isolation) mode with
+  synchronization to disk (ACID mode) with every Nth transaction.
+
+- For the ODBC database implementation, added support for loading external (non-DTN2)
+  schema for on database initialization.
+
+- Ensured that all required data structures are in fact synchronized to disk.
+
+- Added the ability for applications to acknowledge receipt of bundles to the DTN2 stack.
+
+- Added support for a class of DTN router-private (or any DTN component-private) event types.
+
+- Augmented the DTN2 application registration mechanism to allow applications to provide their
+  own unique token on registration (to support applications with no local storage).
+
+- Modified the oasys locking and debugging infrastructure to allow non-oasys threads to take
+  locks without hanging the debugging machinery.
+
+- Added support for nested event processing.
+
+- Changed DTN2's DAEMON_SHUTDOWN event to NOT be a daemon-only event.
+
+- Fixed a bug in the bundle find functions to prevent problems searching for bundles that are in
+  the process of being deleted.
+
+- Fixed a bug in the bundle metadata processing to ensure that metadata blocks for locally-
+  generated bundles are correctly restored when the DTN2 daemon is restarted.
+
+- Fixed a bug in the DTN2 IP Discovery module that was setting the socket options incorrectly 
+  (more specifically, setting the correct option for the wrong socket) and generating copious 
+  warnings in the log file.
+
+- miscellaneous bug fixes
+
+- dtnd-control augmentations for query of dtnd
+
+- Support for the age extension block draft-irtf-dtnrg-bundle-age-block-01
+
+- Logging changes from the N4C summer 2010 trials. Facilitates tracing a bundle across multiple 
+  nodes without debug logging by providing bundle creation time. 
+
+- IPN naming scheme support
+
+- Compressed Bundle Header Encoding (CBHE) support
+
+- Update file/class/internal names to BSP draft
+
+- Addition of AX.25 Connected Mode CL and the SeqpacketConvergenceLayer abstraction. 
+
+
 2.7.0 (February 2010)
 -----------------
 
