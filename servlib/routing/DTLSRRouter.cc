@@ -587,7 +587,7 @@ DTLSRRouter::recompute_routes()
 //----------------------------------------------------------------------
 DTLSRRouter::Reg::Reg(DTLSRRouter* router,
                       const EndpointIDPattern& eid)
-    : Registration(DTLSR_REGID, eid, Registration::DEFER,
+   : Registration(DTLSR_REGID, eid, Registration::DEFER, Registration::NONE, 
                    /* XXX/demmer session_flags */ 0, 0),
                    
       router_(router)
