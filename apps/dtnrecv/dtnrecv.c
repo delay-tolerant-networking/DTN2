@@ -46,6 +46,11 @@
 
 const char *progname;
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 int   verbose           = 0;    	// verbose output
 int   doAppAcks         = 0;            // Application ack of received bundles
 int   quiet             = 0;    	// quiet output
@@ -69,6 +74,8 @@ usage()
 {
     fprintf(stderr, "usage: %s [opts] <endpoint> \n", progname);
     fprintf(stderr, "options:\n");
+    fprintf(stderr, " -A daemon api IP address\n");
+    fprintf(stderr, " -B daemon api IP port\n");
     fprintf(stderr, " -a Application acknowledgement of received bundles (to daemon)\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -q quiet\n");
@@ -101,11 +108,18 @@ parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "avqhHd:r:e:f:R:F:xn:cuNt:o:");
+        c = getopt(argc, argv, "aA:B:vqhHd:r:e:f:R:F:xn:cuNt:o:");
         switch (c)
         {
         case 'a':
             doAppAcks = 1;
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg;
+            break;
+        case 'B':
+            api_port = atoi(optarg);
+            break;    
         case 'v':
             verbose = 1;
             break;
@@ -402,7 +416,11 @@ main(int argc, char** argv)
 
     // open the ipc handle
     if (verbose) printf("opening connection to dtn router...\n");
-    int err = dtn_open(&handle);
+
+    int err = 0;  
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);    
+
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));

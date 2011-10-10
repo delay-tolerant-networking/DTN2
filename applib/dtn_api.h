@@ -45,6 +45,15 @@ extern "C" {
 extern int dtn_open(dtn_handle_t* handle);
 
 /**
+ * Open a new connection to the router witha given IP addr and port
+ *
+ * On success, initializes the handle parameter as a new handle to the
+ * daemon and returns DTN_SUCCESS. On failure, sets handle to NULL and
+ * returns a dtn_errno error code.
+ */
+extern int dtn_open_with_IP(char *daemon_api_IP,int daemon_api_port,dtn_handle_t* handle);
+
+/**
  * Close an open dtn handle.  Returns DTN_SUCCESS on success.
  */
 extern int dtn_close(dtn_handle_t handle);
@@ -164,10 +173,32 @@ extern int dtn_recv(dtn_handle_t handle,
                     dtn_timeval_t timeout);
 
 /**
+ * Blocking receive for a bundle, filling in the spec and payload
+ * structures with the bundle data. The location parameter indicates
+ * the manner by which the caller wants to receive payload data (i.e.
+ * either in memory or in a file). The timeout parameter specifies an
+ * interval in milliseconds to block on the server-side (-1 means
+ * infinite wait).
+ *
+ * Note: this will not remove the bundle from the stack
+ *
+ * Note that it is advisable to call dtn_free_payload on the returned
+ * structure, otherwise the XDR routines will memory leak.
+ */
+extern int dtn_peek(dtn_handle_t handle,
+                    dtn_bundle_spec_t* spec,
+                    dtn_bundle_payload_location_t location,
+                    dtn_bundle_payload_t* payload,
+                    dtn_timeval_t timeout);
+
+
+
+/**
  * Called by applications that want to explicitly acknowledge receipt
  * of bundles.  This facilitates a 'deliver-at-most-once' service from
  * the daemon.
  */
+
 extern int dtn_ack(dtn_handle_t handle,
                    dtn_bundle_spec_t* spec,
                    dtn_bundle_id_t* id);

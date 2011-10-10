@@ -385,6 +385,7 @@ APIClient::run()
             DISPATCH(DTN_CANCEL_POLL,       handle_cancel_poll);
             DISPATCH(DTN_CLOSE,             handle_close);
             DISPATCH(DTN_SESSION_UPDATE,    handle_session_update);
+            DISPATCH(DTN_PEEK,              handle_peek);
 #undef DISPATCH
 
         default:
@@ -1629,6 +1630,274 @@ APIClient::handle_recv()
 
     return DTN_SUCCESS;
 }
+
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_peek()
+{
+    dtn_bundle_spec_t             spec;
+    dtn_bundle_payload_t          payload;
+    dtn_bundle_payload_location_t location;
+    dtn_bundle_status_report_t    status_report;
+    dtn_timeval_t                 timeout;
+    oasys::ScratchBuffer<u_char*> buf;
+    APIRegistration*              reg = NULL;
+    bool                          sock_ready = false;
+    oasys::FileIOClient           tmpfile;
+
+    // unpack the arguments
+    if ((!xdr_dtn_bundle_payload_location_t(&xdr_decode_, &location)) ||
+        (!xdr_dtn_timeval_t(&xdr_decode_, &timeout)))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+    
+    int err = wait_for_notify("recv", timeout, &reg, NULL, &sock_ready);
+    if (err != 0) {
+        return err;
+    }
+    
+    // if there's data on the socket, that either means the socket was
+    // closed by an exiting application or the app is violating the
+    // protocol...
+    if (sock_ready) {
+        return handle_unexpected_data("handle_recv");
+    }
+
+    ASSERT(reg != NULL);
+
+    BundleRef bref("APIClient::handle_recv");
+    bref = reg->bundle_list()->pop_front();
+    Bundle* b = bref.object();
+    ASSERT(b != NULL);
+    
+    log_debug("handle_recv: popped *%p for registration %d (timeout %d)",
+              b, reg->regid(), timeout);
+    
+    memset(&spec, 0, sizeof(spec));
+    memset(&payload, 0, sizeof(payload));
+    memset(&status_report, 0, sizeof(status_report));
+
+    // copyto will malloc string buffer space that needs to be freed
+    // at the end of the fn
+    b->source().copyto(&spec.source);
+    b->dest().copyto(&spec.dest);
+    b->replyto().copyto(&spec.replyto);
+
+    spec.dopts = 0;
+    if (b->custody_requested()) spec.dopts |= DOPTS_CUSTODY;
+    if (b->delivery_rcpt())     spec.dopts |= DOPTS_DELIVERY_RCPT;
+    if (b->receive_rcpt())      spec.dopts |= DOPTS_RECEIVE_RCPT;
+    if (b->forward_rcpt())      spec.dopts |= DOPTS_FORWARD_RCPT;
+    if (b->custody_rcpt())      spec.dopts |= DOPTS_CUSTODY_RCPT;
+    if (b->deletion_rcpt())     spec.dopts |= DOPTS_DELETE_RCPT;
+
+    spec.expiration = b->expiration();
+    spec.creation_ts.secs = b->creation_ts().seconds_;
+    spec.creation_ts.seqno = b->creation_ts().seqno_;
+    spec.delivery_regid = reg->regid();
+
+    // copy out the sequence id and obsoletes id
+    std::string sequence_id_str, obsoletes_id_str;
+    if (! b->sequence_id().empty()) {
+        sequence_id_str = b->sequence_id().to_str();
+        spec.sequence_id.data.data_val = const_cast<char*>(sequence_id_str.c_str());
+        spec.sequence_id.data.data_len = sequence_id_str.length();
+    }
+
+    if (! b->obsoletes_id().empty()) {
+        obsoletes_id_str = b->obsoletes_id().to_str();
+        spec.obsoletes_id.data.data_val = const_cast<char*>(obsoletes_id_str.c_str());
+        spec.obsoletes_id.data.data_len = obsoletes_id_str.length();
+    }
+
+    // copy extension blocks
+    unsigned int blocks_found = 0;
+    unsigned int data_len = 0;
+    for (unsigned int i = 0; i < b->recv_blocks().size(); ++i) {
+        if ((b->recv_blocks()[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
+            (b->recv_blocks()[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
+            (b->recv_blocks()[i].type() == BundleProtocol::METADATA_BLOCK)) {
+            continue;
+        }
+        blocks_found++;
+        data_len += b->recv_blocks()[i].data_length();
+    }
+
+    if (blocks_found > 0) {
+        unsigned int buf_len = (blocks_found * sizeof(dtn_extension_block_t)) +
+                               data_len;
+        void * buf = malloc(buf_len);
+        memset(buf, 0, buf_len);
+
+        dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
+        char * dp = (char*)buf + (blocks_found * sizeof(dtn_extension_block_t));
+        for (unsigned int i = 0; i < b->recv_blocks().size(); ++i) {
+            if ((b->recv_blocks()[i].type() == BundleProtocol::PRIMARY_BLOCK) ||
+                (b->recv_blocks()[i].type() == BundleProtocol::PAYLOAD_BLOCK) ||
+                (b->recv_blocks()[i].type() == BundleProtocol::METADATA_BLOCK)) {
+                continue;
+            }
+
+            bp->type          = b->recv_blocks()[i].type();
+            bp->flags         = b->recv_blocks()[i].flags();
+            bp->data.data_len = b->recv_blocks()[i].data_length();
+            bp->data.data_val = dp;
+            memcpy(dp, b->recv_blocks()[i].data(), bp->data.data_len);
+
+            bp++;
+            dp += bp->data.data_len;
+        }
+
+        spec.blocks.blocks_len = blocks_found;
+        spec.blocks.blocks_val = (dtn_extension_block_t *)buf;
+    }
+
+    // copy metadata extension blocks
+    blocks_found = 0;
+    data_len = 0;
+    for (unsigned int i = 0; i < b->recv_metadata().size(); ++i) {
+        blocks_found++;
+        data_len += b->recv_metadata()[i]->metadata_len();
+    }
+
+    if (blocks_found > 0) {
+        unsigned int buf_len = (blocks_found * sizeof(dtn_extension_block_t)) +
+                               data_len;
+        void * buf = (char *)malloc(buf_len);
+        memset(buf, 0, buf_len);
+
+        dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
+        char * dp = (char*)buf + (blocks_found * sizeof(dtn_extension_block_t));
+        for (unsigned int i = 0; i < b->recv_metadata().size(); ++i) {
+            bp->type          = b->recv_metadata()[i]->ontology();
+            bp->flags         = b->recv_metadata()[i]->flags();
+            bp->data.data_len = b->recv_metadata()[i]->metadata_len();
+            bp->data.data_val = dp;
+            memcpy(dp, b->recv_metadata()[i]->metadata(), bp->data.data_len);
+            dp += bp->data.data_len;
+            bp++;
+        }
+
+        spec.metadata.metadata_len = blocks_found;
+        spec.metadata.metadata_val = (dtn_extension_block_t *)buf;
+    }
+
+    size_t payload_len = b->payload().length();
+
+    if (location == DTN_PAYLOAD_MEM && payload_len > DTN_MAX_BUNDLE_MEM)
+    {
+        log_debug("app requested memory delivery but payload is too big (%zu bytes)... "
+                  "using files instead",
+                  payload_len);
+        location = DTN_PAYLOAD_FILE;
+    }
+
+    if (location == DTN_PAYLOAD_MEM) {
+        // the app wants the payload in memory
+        payload.buf.buf_len = payload_len;
+        if (payload_len != 0) {
+            buf.reserve(payload_len);
+            payload.buf.buf_val =
+                (char*)b->payload().read_data(0, payload_len, buf.buf());
+        } else {
+            payload.buf.buf_val = 0;
+        }
+        
+    } else if (location == DTN_PAYLOAD_FILE) {
+        const char *tdir;
+        char templ[64];
+        
+        tdir = getenv("TMP");
+        if (tdir == NULL) {
+            tdir = getenv("TEMP");
+        }
+        if (tdir == NULL) {
+            tdir = "/tmp";
+        }
+        
+        snprintf(templ, sizeof(templ), "%s/bundlePayload_XXXXXX", tdir);
+
+        if (tmpfile.mkstemp(templ) == -1) {
+            log_err("can't open temporary file to deliver bundle");
+            return DTN_EINTERNAL;
+        }
+        
+        if (chmod(tmpfile.path(), 0666) < 0) {
+            log_warn("can't set the permission of temp file to 0666: %s",
+                     strerror(errno));
+        }
+        
+        b->payload().copy_file(&tmpfile);
+
+        payload.filename.filename_val = (char*)tmpfile.path();
+        payload.filename.filename_len = tmpfile.path_len() + 1;
+        tmpfile.close();
+        
+    } else {
+        log_err("payload location %d not understood", location);
+        return DTN_EINVAL;
+    }
+
+    payload.location = location;
+    
+    /*
+     * If the bundle is a status report, parse it and copy out the
+     * data into the status report.
+     */
+    BundleStatusReport::data_t sr_data;
+    if (BundleStatusReport::parse_status_report(&sr_data, b))
+    {
+        payload.status_report = &status_report;
+        sr_data.orig_source_eid_.copyto(&status_report.bundle_id.source);
+        status_report.bundle_id.creation_ts.secs =
+            sr_data.orig_creation_tv_.seconds_;
+        status_report.bundle_id.creation_ts.seqno =
+            sr_data.orig_creation_tv_.seqno_;
+        status_report.bundle_id.frag_offset = sr_data.orig_frag_offset_;
+        status_report.bundle_id.orig_length = sr_data.orig_frag_length_;
+
+        status_report.reason = (dtn_status_report_reason_t)sr_data.reason_code_;
+        status_report.flags =  (dtn_status_report_flags_t)sr_data.status_flags_;
+
+        status_report.receipt_ts.secs     = sr_data.receipt_tv_.seconds_;
+        status_report.receipt_ts.seqno    = sr_data.receipt_tv_.seqno_;
+        status_report.custody_ts.secs     = sr_data.custody_tv_.seconds_;
+        status_report.custody_ts.seqno    = sr_data.custody_tv_.seqno_;
+        status_report.forwarding_ts.secs  = sr_data.forwarding_tv_.seconds_;
+        status_report.forwarding_ts.seqno = sr_data.forwarding_tv_.seqno_;
+        status_report.delivery_ts.secs    = sr_data.delivery_tv_.seconds_;
+        status_report.delivery_ts.seqno   = sr_data.delivery_tv_.seqno_;
+        status_report.deletion_ts.secs    = sr_data.deletion_tv_.seconds_;
+        status_report.deletion_ts.seqno   = sr_data.deletion_tv_.seqno_;
+        status_report.ack_by_app_ts.secs  = sr_data.ack_by_app_tv_.seconds_;
+        status_report.ack_by_app_ts.seqno = sr_data.ack_by_app_tv_.seqno_;
+    }
+    
+    if (!xdr_dtn_bundle_spec_t(&xdr_encode_, &spec))
+    {
+        log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
+        return DTN_EXDR;
+    }
+    
+    if (!xdr_dtn_bundle_payload_t(&xdr_encode_, &payload))
+    {
+        log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
+        return DTN_EXDR;
+    }
+
+    // prevent xdr_free of non-malloc'd pointer
+    payload.status_report = NULL;
+    
+    log_info("DTN_PEEK: "
+             "successfully delivered bundle %d to registration %d",
+             b->bundleid(), reg->regid());
+
+    return DTN_SUCCESS;
+}
+
 
 //----------------------------------------------------------------------
 int

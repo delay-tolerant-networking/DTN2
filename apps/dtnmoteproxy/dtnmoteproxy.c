@@ -54,6 +54,11 @@
 
 char *progname;
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 static char *msgs[] = {
   "unknown_packet_type",
   "ack_timeout"	,
@@ -185,7 +190,10 @@ reader_thread(void *p)
     // open the ipc handle
     if (debug > 0) fprintf(stdout, "Opening connection to local DTN daemon\n");
 
-    int err = dtn_open(&handle);
+    int err = 0;  
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle); 
+
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));
@@ -308,8 +316,15 @@ readCommandLineArgs(int argc, char **argv)
 {
     int c;
 
-    while ((c = getopt(argc, argv, "hr:d:b:D:t:")) != EOF) {
+    while ((c = getopt(argc, argv, "A:B:hr:d:b:D:t:")) != EOF) {
         switch (c) {
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg;
+            break;
+        case 'B':
+            api_port = atoi(optarg);
+            break;    
         case 'h':
             usage("moteproxy", "");
             exit(0);
@@ -343,6 +358,8 @@ usage(char *str1, char *str2)
     (void)str2;
     
     fprintf(stderr, "usage: %s\n", str1);
+    fprintf(stderr, " -A daemon api IP address\n");
+    fprintf(stderr, " -B daemon api IP port\n");
     fprintf(stderr, "  [-b baudrate]     - baud rate\n");
     fprintf(stderr, "  [-t devicename]      - name of mote network dev tty\n");
     fprintf(stderr, "  [-d debugValue]\n");

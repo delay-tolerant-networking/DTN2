@@ -32,6 +32,7 @@ SINGLE_SOURCE_APPS := 			\
 	dtnping/dtnreporter		\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\
+	dtnpeek/dtnpeek			\
 	dtnsink/dtnsink			\
 	num2sdnv/num2sdnv		\
 

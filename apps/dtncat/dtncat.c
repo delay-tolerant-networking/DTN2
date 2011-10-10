@@ -41,6 +41,11 @@
 
 char *progname;
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 // global options
 int copies              = 1;    // the number of copies to send
 int verbose             = 0;
@@ -117,7 +122,11 @@ main(int argc, char** argv)
     if (verbose)
 	fprintf(info, "Opening connection to local DTN daemon\n");
 
-    int err = dtn_open(&handle);
+    int err = 0;
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);
+
+
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "%s: fatal error opening dtn handle: %s\n",
                 progname, dtn_strerror(err));
@@ -399,6 +408,8 @@ void print_usage()
     fprintf(stderr, "common options:\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h/H help\n");
+    fprintf(stderr, " -A daemon api IP address\n");
+    fprintf(stderr, " -B daemon api IP port\n");   
     fprintf(stderr, " -i <regid> registration id for listening\n");
     fprintf(stderr, "receive only options (-l option required):\n");
     fprintf(stderr, " -l <eid> receive bundles destined for eid (instead of sending)\n");
@@ -429,12 +440,19 @@ parse_options(int argc, char**argv)
     progname = argv[0];
 
     while (!done) {
-        c = getopt(argc, argv, "l:vhHr:s:d:e:wDFRcCi:n:S:O:");
+        c = getopt(argc, argv, "A:B:l:vhHr:s:d:e:wDFRcCi:n:S:O:");
         switch (c) {
-	case 'l':
-	    from_bundles_flag = 1;
-	    arg_receive = optarg;
-	    break;
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg;
+            break;
+        case 'B':
+            api_port = atoi(optarg);
+            break;    	    
+        case 'l':
+	        from_bundles_flag = 1;
+	        arg_receive = optarg;
+	        break;
         case 'v':
             verbose = 1;
             break;

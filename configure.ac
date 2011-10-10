@@ -123,6 +123,7 @@ AC_CONFIG_EXTERNAL_CL
 AC_CONFIG_EXTERNAL_DP
 AC_CONFIG_NORM
 AC_CONFIG_LTP
+AC_CONFIG_SCRIPT_APIS
 
 #--------------------------------------------------------------------------
 # Check if BSP should be enabled, and if so, look for OpenSSL
@@ -144,7 +145,7 @@ INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
 AC_SUBST(INCFLAGS)
 
 AC_CONFIG_FILES([Rules.make:$OASYS_ETCDIR/Rules.make.in])
-AC_CONFIG_FILES([System.make:$OASYS_ETCDIR/System.make])
+AC_CONFIG_FILES([System.make:$OASYS_ETCDIR/System.make:System.make.in])
 
 if test ! $SRCDIR = `pwd` ; then
    AC_CONFIG_FILES([Makefile:Makefile-Builddir.in])

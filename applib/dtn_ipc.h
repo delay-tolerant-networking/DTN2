@@ -97,7 +97,8 @@ typedef enum {
     DTN_CANCEL_POLL		= 14,
     DTN_CANCEL          	= 15,
     DTN_SESSION_UPDATE         	= 16,
-    DTN_FIND_REGISTRATION_WTOKEN= 17
+    DTN_FIND_REGISTRATION_WTOKEN= 17,
+    DTN_PEEK                    = 18
 } dtnapi_message_type_t;
 
 /**
@@ -112,6 +113,14 @@ const char* dtnipc_msgtoa(u_int8_t type);
  * Returns 0 on success, -1 on error.
  */
 int dtnipc_open(dtnipc_handle_t* handle);
+
+/*
+ * Initialize the handle structure and a new ipc session with the
+ * daemon.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int dtnipc_open_with_IP(char *daemon_api_IP,short daemon_api_port,dtnipc_handle_t* handle);
 
 /*
  * Clean up the handle. dtnipc_open must have already been called on

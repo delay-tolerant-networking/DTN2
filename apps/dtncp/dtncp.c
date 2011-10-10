@@ -32,6 +32,12 @@
 #include "dtn_api.h"
 
 char *progname;
+
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 int verbose             = 1;
 
 char data_source[1024]; // filename or message, depending on type
@@ -78,7 +84,10 @@ main(int argc, char** argv)
     // open the ipc handle
     if (verbose) fprintf(stdout, "Opening connection to local DTN daemon\n");
 
-    int err = dtn_open(&handle);
+    int err = 0;
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);
+
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));
@@ -186,7 +195,7 @@ main(int argc, char** argv)
 void print_usage()
 {
     fprintf(stderr,
-            "usage: %s [-D] [--expiration sec] <filename> <destination_eid> <remote-name>\n", 
+            "usage: %s [-A api IP address] [-B api port] [-D] [--expiration sec] <filename> <destination_eid> <remote-name>\n", 
             progname);
     fprintf(stderr,
             "    Remote filename is optional; defaults to the "
@@ -205,6 +214,25 @@ void parse_options(int argc, char**argv)
     if (argc < 2)
         goto bail;
 
+    if (strcmp(argv[1], "-A") == 0)  
+    {      
+        argv++;
+        argc--;        
+        api_IP=argv[1];
+        api_IP_set = 1;
+        argv++;
+        argc--;        
+    }        
+    if (strcmp(argv[1], "-B") == 0)        
+    {   
+         argv++;
+        argc--;        
+        api_port=atoi(argv[1]);
+        argv++;
+        argc--;        
+    }        
+        
+    
     if (strcmp(argv[1], "--expiration") == 0)
     {
         argv++;
@@ -219,7 +247,7 @@ void parse_options(int argc, char**argv)
             fprintf(stderr, 
                     "Expiration time must be > 0\n");
 	    exit(1);
-	}
+	    }
 
         argv++;
         argc--;

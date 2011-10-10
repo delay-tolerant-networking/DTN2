@@ -57,7 +57,7 @@ dtnipc_msgtoa(u_int8_t type)
         CASE(DTN_CANCEL_POLL);
         CASE(DTN_CANCEL);
         CASE(DTN_SESSION_UPDATE);
-
+	    CASE(DTN_PEEK);
     default:
         return "(unknown type)";
     }
@@ -194,6 +194,143 @@ dtnipc_open(dtnipc_handle_t* handle)
     
     return 0;
 }
+
+/*
+ * Initialize the handle structure.
+ */
+int
+dtnipc_open_with_IP(char *daemon_api_IP,short daemon_api_port,dtnipc_handle_t* handle)
+{
+    int remote_version, ret;
+    //char *env;
+    struct sockaddr_in sa;
+    in_addr_t ipc_addr;
+    u_int16_t ipc_port;
+    u_int32_t handshake;
+    //u_int port;
+
+    // zero out the handle
+    memset(handle, 0, sizeof(dtnipc_handle_t));
+
+    // check for debugging
+    if (getenv("DTNAPI_DEBUG") != 0) {
+        handle->debug = 1;
+    }
+    
+    // note that we leave eight bytes free to be used for the framing
+    // -- the type code and length for send (which is only five
+    // bytes), and the return code and length for recv (which is
+    // actually eight bytes)
+    xdrmem_create(&handle->xdr_encode, handle->buf + 8,
+                  DTN_MAX_API_MSG - 8, XDR_ENCODE);
+    
+    xdrmem_create(&handle->xdr_decode, handle->buf + 8,
+                  DTN_MAX_API_MSG - 8, XDR_DECODE);
+
+    // open the socket
+    handle->sock = socket(PF_INET, SOCK_STREAM, 0);
+    if (handle->sock < 0)
+    {
+        handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
+        return -1;
+    }
+
+    // check for DTNAPI environment variables overriding the address /
+    // port defaults
+    ipc_addr = htonl(INADDR_LOOPBACK);
+    ipc_port = DTN_IPC_PORT;
+    
+    if (inet_aton(daemon_api_IP, (struct in_addr*)&ipc_addr) == 0)
+        {
+            fprintf(stderr, "DTNAPI_ADDR environment variable (%s) "
+                    "not a valid ip address\n", daemon_api_IP);
+            exit(1);
+        }
+    
+    if (daemon_api_port > 0xffff)
+        {
+            fprintf(stderr, "DTNAPI_PORT environment variable (%d) "
+                    "not a valid ip port\n", daemon_api_port);
+            exit(1);
+        }
+    
+    ipc_port = (u_int16_t)daemon_api_port;
+    
+
+    // connect to the server
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = ipc_addr;
+    sa.sin_port = htons(ipc_port);
+    
+    ret = connect(handle->sock, (const struct sockaddr*)&sa, sizeof(sa));
+    if (ret != 0) {
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: error connecting to server: %s\n",
+                    strerror(errno));
+        }
+
+        handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
+        return -1;
+    }
+
+    if (handle->debug) {
+        fprintf(stderr, "dtn_ipc: connected to server: fd %d\n", handle->sock);
+    }
+
+    // send the session initiation to the server on the handshake
+    // port. it consists of DTN_OPEN in the high 16 bits and IPC
+    // version in the low 16 bits
+    handshake = htonl(DTN_OPEN << 16 | dtnipc_version);
+    ret = write(handle->sock, &handshake, sizeof(handshake));
+    if (ret != sizeof(handshake)) {
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: handshake error\n");
+        }
+        handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
+        return -1;
+    }
+    handle->total_sent += ret;
+
+    // wait for the handshake response
+    handshake = 0;
+    ret = read(handle->sock, &handshake, sizeof(handshake));
+    if (ret != sizeof(handshake) || (ntohl(handshake) >> 16) != DTN_OPEN) {
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: handshake error\n");
+        }
+        dtnipc_close(handle);
+        handle->err = DTN_ECOMM;
+        return -1;
+    }
+
+    handle->total_rcvd += ret;
+
+    remote_version = (ntohl(handshake) & 0x0ffff);
+    if (remote_version != dtnipc_version) {
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: version mismatch\n");
+        }
+        dtnipc_close(handle);
+        handle->err = DTN_EVERSION;
+        return -1;
+    }
+    
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
 
 /*
  * Clean up the handle. dtnipc_open must have already been called on

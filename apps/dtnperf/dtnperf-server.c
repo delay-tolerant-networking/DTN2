@@ -61,6 +61,11 @@
  *  Global variables and options
  * ------------------------------ */
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 // values between [square brackets] are default
 const char *progname ;
 int use_file = 1;        // if set to 0, memorize received bundles into memory (max 50000 bytes)
@@ -166,7 +171,11 @@ int main(int argc, char** argv)
 	// open the ipc handle
 	if ((debug) && (debug_level > 0))
 		printf("[debug] opening connection to dtn router...");
-	int err = dtn_open(&handle);
+
+    int err = 0;
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);
+
 	if (err != DTN_SUCCESS)
 	{
 		fprintf(stderr, "fatal error opening dtn handle: %s\n",
@@ -727,13 +736,22 @@ void parse_options (int argc, char** argv)
 			    {"help", no_argument, 0, 'h'},
 			    {"debug", required_argument, 0, 'D'},
 			    {"aggregate", required_argument, 0, 'a'},
+                {"api_IP", optional_argument, 0, 'A'},    
+                {"api_port", optional_argument, 0, 'B'},
 		    };
 
 		int option_index = 0;
-		c = getopt_long(argc, argv, "hvD::fmd:e:a:", long_options, &option_index);
+		c = getopt_long(argc, argv, "A:B:hvD::fmd:e:a:", long_options, &option_index);
 
 		switch (c)
 		{
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg;
+            break;
+        case 'B':
+            api_port = atoi(optarg);
+            break;    
 		case 'h':            // show help
 			print_usage(argv[0]);
 			exit(1);

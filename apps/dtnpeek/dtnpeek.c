@@ -27,7 +27,6 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <time.h>
 #include "dtn_api.h"
 
 #define BUFSIZE 16
@@ -46,12 +45,14 @@
 #endif
 
 const char *progname;
+
 // Daemon connection
 int api_IP_set = 0;
 char * api_IP = "127.0.0.1";
 short api_port = 5010;
 
 int   verbose           = 0;    	// verbose output
+int   quiet             = 0;    	// quiet output
 char* endpoint		= NULL; 	// endpoint for registration
 dtn_reg_id_t regid	= DTN_REGID_NONE;// registration id
 int   expiration	= 30; 		// registration expiration time
@@ -61,27 +62,24 @@ char* failure_script	= "";	 	// script to exec
 int   register_only	= 0;    	// register and quit
 int   change		= 0;    	// change existing registration 
 int   unregister	= 0;    	// remove existing registration 
+int   recv_timeout	= -1;    	// timeout to dtn_recv call
 int   no_find_reg	= 0;    	// omit call to dtn_find_registration
 char filename[PATH_MAX];		// Destination filename for file xfers
 dtn_bundle_payload_location_t bundletype = DTN_PAYLOAD_MEM;
-int   promiscuous       = 0;	        // accept any bundles, ignore content
-
-
-#define RECV_TIMEOUT 10000    	/* timeout to dtn_recv call (10s) */
-#define MAX_STARTUP_TRIES 10	/* how many times to spin on first bundle */
 
 void
 usage()
 {
-    fprintf(stderr, "usage: %s [opts] -n <number of bundles to expect> "
-	    "<endpoint> \n", progname);
+    fprintf(stderr, "usage: %s [opts] <endpoint> \n", progname);
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -v verbose\n");
+    fprintf(stderr, " -q quiet\n");
     fprintf(stderr, " -h help\n");
     fprintf(stderr, " -A daemon api IP address\n");
     fprintf(stderr, " -B daemon api IP port\n");
     fprintf(stderr, " -d <eid|demux_string> endpoint id\n");
     fprintf(stderr, " -r <regid> use existing registration regid\n");
+    fprintf(stderr, " -n <count> exit after count bundles received\n");
     fprintf(stderr, " -e <time> registration expiration time in seconds "
             "(default: one hour)\n");
     fprintf(stderr, " -f <defer|drop|exec> failure action\n");
@@ -90,8 +88,9 @@ usage()
     fprintf(stderr, " -c call dtn_change_registration and immediately exit\n");
     fprintf(stderr, " -u call dtn_unregister and immediately exit\n");
     fprintf(stderr, " -N don't try to find an existing registration\n");
-    fprintf(stderr, " -p operate in promiscuous mode "
-	    "(accept n bundles, ignore contents\n");
+    fprintf(stderr, " -t <timeout> timeout value for call to dtn_recv\n");
+    fprintf(stderr, " -o <template> Write out transfers to files using this template (# chars are\n"
+            "replaced with a counter). Example: f##.bin goes to f00.bin, f01.bin, etc...\n");
 }
 
 void
@@ -105,7 +104,7 @@ parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "A:B:vhHd:r:e:f:F:xn:cuNp");
+        c = getopt(argc, argv, "A:B:vqhHd:r:e:f:F:xn:cuNt:o:");
         switch (c)
         {
         case 'A':
@@ -117,6 +116,9 @@ parse_options(int argc, char**argv)
             break;    
         case 'v':
             verbose = 1;
+            break;
+        case 'q':
+            quiet = 1;
             break;
         case 'h':
         case 'H':
@@ -162,12 +164,12 @@ parse_options(int argc, char**argv)
         case 'N':
             no_find_reg = 1;
             break;
+        case 't':
+            recv_timeout = atoi(optarg);
+            break;
         case 'o':
             strncpy(filename, optarg, PATH_MAX);
             break;
-	case 'p':
-	    promiscuous = 1;
-	    break;
         case -1:
             done = 1;
             break;
@@ -177,12 +179,6 @@ parse_options(int argc, char**argv)
             usage();
             exit(1);
         }
-    }
-
-    if (count < 1) {
-	fprintf(stderr, "must specify (positive) number of bundles expected\n");
-	usage();
-	exit(1);
     }
 
     endpoint = argv[optind];
@@ -213,43 +209,158 @@ parse_options(int argc, char**argv)
 }
 
 
+static void
+print_data(char* buffer, u_int length)
+{
+    u_int k;
+    char s_buffer[BUFSIZE];
+    for (k=0; k < length; k++)
+    {
+        if (buffer[k] >= ' ' && buffer[k] <= '~')
+            s_buffer[k%BUFSIZE] = buffer[k];
+        else
+            s_buffer[k%BUFSIZE] = '.';
+
+        if (k%BUFSIZE == 0) // new line every 16 bytes
+        {
+            printf("%07x ", k);
+        }
+        else if (k%2 == 0)
+        {
+            printf(" "); // space every 2 bytes
+        }
+                    
+        printf("%02x", buffer[k] & 0xff);
+                    
+            // print character summary (a la emacs hexl-mode)
+        if (k%BUFSIZE == BUFSIZE-1)
+        {
+            printf(" |  %.*s\n", BUFSIZE, s_buffer);
+        }
+    }
+    
+    // handle leftovers
+    if ((length % BUFSIZE) != 0) {
+        while (k%BUFSIZE != BUFSIZE-1) {
+            if (k%2 == 0) {
+                printf(" ");
+            }
+            printf("  ");
+            k++;
+        }
+        printf("   |  %.*s\n",
+               (int)length%BUFSIZE, 
+               s_buffer);
+    }
+    printf("\n");
+}
+
+/* ----------------------------------------------------------------------- */
+/* Builds the temporary file based on the template given and an integer
+ * counter value
+ */
+int buildfilename(char* template, char* newfilename, int counter )
+{
+    char counterasstring[COUNTER_MAX_DIGITS];
+    char formatstring[10];
+    char* startloc;
+    char* endloc;
+    int templatelen;
+
+    strcpy(newfilename, template);
+
+    endloc = rindex(newfilename, '#');
+    /* No template in the filename, just copy it as is */
+    if ( endloc == NULL )
+        return 0;
+        
+    /* Search backwards for the start of the template */
+    for ( startloc = endloc; *startloc == '#' && startloc != template; 
+          startloc -= 1 );
+
+    startloc += 1;
+
+    templatelen = endloc - startloc + 1;
+    if ( templatelen > COUNTER_MAX_DIGITS )
+        templatelen = COUNTER_MAX_DIGITS;
+
+    sprintf(formatstring, "%%0%dd", templatelen);
+    sprintf(counterasstring, formatstring, counter);
+
+    if ( strlen(counterasstring) > (unsigned int)templatelen )
+        fprintf(stderr, "Warning: Filename template not large enough "
+                "to support counter value %d\n", counter);
+
+    memcpy(startloc, counterasstring, sizeof(char) * templatelen);
+
+    return 0;
+}
+
 /* ----------------------------------------------------------------------- */
 /* File transfers suffer considerably from the inability to safely send 
  * metadata on the same channel as the file transfer in DTN.  Perhaps we 
  * should work around this?
  */
 int
-handle_file_transfer(dtn_bundle_payload_t payload, uint32_t *size, uint32_t *which)
+handle_file_transfer(dtn_bundle_spec_t spec, dtn_bundle_payload_t payload,
+                     int* total_bytes, int counter)
 {
     int tempdes;
+    int destdes;
+    char block[BLOCKSIZE];
+    ssize_t bytesread;
     struct stat fileinfo;
+    char currentfile[PATH_MAX];
 
-    // Copy the file into place
-    tempdes = open(payload.filename.filename_val, O_RDONLY);
-    if ( tempdes < 0 ) {
-	fprintf(stderr, "While opening the temporary file for reading '%s': %s\n",
-		payload.filename.filename_val, strerror(errno));
-	return 0;
+    // Create the filename by searching for ### characters in the given
+    // filename and replacing that with an incrementing counter.  
+    buildfilename(filename, currentfile, counter);
+
+    // Try to rename the old file to the new name to avoid unnecessary copying
+    if (rename(filename, currentfile) == 0) {
+        // success!
+
+    } else {
+        // Copy the file into place
+        tempdes = open(payload.filename.filename_val, O_RDONLY);
+        
+        if ( tempdes < 0 )
+        {
+            fprintf(stderr, "While opening the temporary file for reading '%s': %s\n",
+                    payload.filename.filename_val, strerror(errno));
+            exit(1);
+        }
+
+        destdes = creat(currentfile, 0644);
+        
+        if ( destdes < 0 )
+        {
+            fprintf(stderr, "While opening output file for writing '%s': %s\n",
+                    filename, strerror(errno));
+            exit(1);
+        }
+
+        // Duplicate the file
+        while ( (bytesread = read(tempdes, block, sizeof(block))) > 0 )
+            write(destdes, block, bytesread);
+
+        close(tempdes);
+        close(destdes);
+        
+        unlink(payload.filename.filename_val);
     }
 
-    if (fstat(tempdes, &fileinfo) != 0) {
-	fprintf(stderr, "While stat'ing the temp file '%s': %s\n",
-		payload.filename.filename_val, strerror(errno));
-	close(tempdes);
-	return -1;
+    if ( stat(currentfile, &fileinfo) == -1 )
+    {
+        fprintf(stderr, "Unable to stat destination file '%s': %s\n",
+                currentfile, strerror(errno));
+        return 1;
     }
 
-    if (read(tempdes, which, sizeof(*which)) != sizeof(*which)) {
-	fprintf(stderr, "While reading bundle number from temp file '%s': %s\n",
-		payload.filename.filename_val, strerror(errno));
-	close(tempdes);
-	return -1;
-    }
-    close(tempdes);
-    unlink(payload.filename.filename_val);
+    printf("%d byte file from [%s]: transit time=%d ms, written to '%s'\n",
+           (int)fileinfo.st_size, spec.source.uri, 0, currentfile);        
 
-    *size = fileinfo.st_size;
-    *which = (uint32_t) ntohl(*(uint32_t *)which);
+    *total_bytes += fileinfo.st_size;
 
     return 0;
 }
@@ -257,15 +368,16 @@ handle_file_transfer(dtn_bundle_payload_t payload, uint32_t *size, uint32_t *whi
 int
 main(int argc, char** argv)
 {
-    int i, errs;
+    int i;
+    u_int k;
     int ret;
+    int total_bytes = 0;
     dtn_handle_t handle;
     dtn_endpoint_id_t local_eid;
     dtn_reg_info_t reginfo;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
     int call_bind;
-    time_t now;
 
     // force stdout to always be line buffered, even if output is
     // redirected to a pipe or file
@@ -275,11 +387,15 @@ main(int argc, char** argv)
 
     parse_options(argc, argv);
 
-    printf("dtnsink starting up -- waiting for %u bundles\n", count);
+    if (count == 0) { 
+        printf("dtnpeek (pid %d) starting up\n", getpid());
+    } else {
+        printf("dtnpeek (pid %d) starting up -- count %u\n", getpid(), count);
+    }
 
     // open the ipc handle
     if (verbose) printf("opening connection to dtn router...\n");
-
+ 
     int err = 0;
     if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
     else err = dtn_open(&handle);
@@ -385,118 +501,95 @@ main(int argc, char** argv)
         }
     }
 
-    // keep track of what we've seen
-    char *received = (char *)malloc(count + 1);
-    memset(received, '\0', count);
-
     // loop waiting for bundles
-    fprintf(stderr, "waiting %d seconds for first bundle...\n",
-	    (MAX_STARTUP_TRIES)*RECV_TIMEOUT/1000);
-    for (i = 1; i <= count; ++i) {
-	int tries;
-	uint32_t which;
-	uint32_t size;
-
+    if (count == 0) {
+        printf("looping forever to receive bundles\n");
+    } else {
+        printf("looping to receive %d bundles\n", count);
+    }
+    for (i = 0; (count == 0) || (i < count); ++i) {
         memset(&spec, 0, sizeof(spec));
         memset(&payload, 0, sizeof(payload));
 
-	/* 
-	 * this is a little tricky. We want dtn_recv to time out after
-	 * RECV_TIMEOUT ms, so we don't wait a long time for a bundle
-	 * if something is broken and no bundle is coming.  But we
-	 * want to be friendly and wait patiently for the first
-	 * bundle, in case dtnsource is slow in getting off the mark.
-	 * 
-	 * So we loop at most MAX_STARTUP_TRIES times
-	 */
-	tries = 0;
-	while ((ret = dtn_recv(handle, &spec, bundletype, &payload, 
-			       RECV_TIMEOUT)) < 0) {
-	    /* if waiting for the first bundle and we timed out be patient */
-	    if (dtn_errno(handle) == DTN_ETIMEOUT) {
-		if (i == 1 && ++tries < MAX_STARTUP_TRIES) {
-		    fprintf(stderr, "waiting %d seconds for first bundle...\n",
-			    (MAX_STARTUP_TRIES-tries)*RECV_TIMEOUT/1000);
-		} else {
-		    /* timed out waiting, something got dropped */
-		    fprintf(stderr, "timeout waiting for bundle %d\n", i);
-		    goto bail;
-		}
-	    } else {
-	        /* a bad thing has happend in recv, or we've lost patience */
-		fprintf(stderr, "error in dtn_recv: %d (%d, %s)\n", ret, 
-			dtn_errno(handle), dtn_strerror(dtn_errno(handle)));
-		goto bail;
-	    }
-	}
+        if (!quiet) {
+            printf("dtn_recv [%s]...\n", local_eid.uri);
+        }
+    
+        if ((ret = dtn_peek(handle, &spec, bundletype, &payload, 
+                                                        recv_timeout)) < 0)
+        {
+            fprintf(stderr, "error getting recv reply: %d (%s)\n",
+                    ret, dtn_strerror(dtn_errno(handle)));
+            goto err;
+        }
 
-	if (i == 1) {
-	    now = time(0);
-	    printf("received first bundle at %s\n", ctime(&now));
-	}
-	if (verbose) {
-	    printf("bundle %d received successfully: id %s,%llu.%llu\n",
-		   i,
-		   spec.source.uri,
-		   spec.creation_ts.secs,
-		   spec.creation_ts.seqno);
-	}
+        // Files need to be handled differently than memory transfers
+        if ( bundletype == DTN_PAYLOAD_FILE )
+        {
+                handle_file_transfer(spec, payload, &total_bytes, i);
+                dtn_free_payload(&payload);
+                continue;
+        }
 
-	if (!promiscuous) {
-	    /* check to see which bundle this is */
-	    // Files need to be handled differently than memory transfers
-	    if (payload.location == DTN_PAYLOAD_FILE) {
-		if (handle_file_transfer(payload, &size, &which) < 0) {
-		    dtn_free_payload(&payload);
-		    continue;
-		}
-	    } else {
-		which = ntohl(*(uint32_t *)payload.buf.buf_val);
-		size = payload.buf.buf_len;
-	    }
-	    
-	    if (which > (uint32_t) count) {
-		// note that the above cast is safe as count always >= 0
-		fprintf(stderr, "-- expecting %d bundles, saw bundle %u\n", 
-			count, which);
-	    }
-	    else if (which <= 0) { /* because I am paranoid -DJE */
-		fprintf(stderr, "-- didn't expect bundle %u\n", which);
-	    }
-	    else {
-	      ++received[which];
-	    }
-	}
+        total_bytes += payload.buf.buf_len;
 
-	// XXX should verify size here...
+        if (quiet) {
+            dtn_free_payload(&payload);
+            if (spec.blocks.blocks_len > 0) {
+                free(spec.blocks.blocks_val);
+                spec.blocks.blocks_val = NULL;
+                spec.blocks.blocks_len = 0;
+            }
+            if (spec.metadata.metadata_len > 0) {
+                free(spec.metadata.metadata_val);
+                spec.metadata.metadata_val = NULL;
+                spec.metadata.metadata_len = 0;
+            }
+            continue;
+        }
 
-	/* all done, get next one */
-	dtn_free_payload(&payload);
+        printf("\n%d extension blocks from [%s]: transit time=%d ms\n",
+               spec.blocks.blocks_len, spec.source.uri, 0);
+        dtn_extension_block_t *block = spec.blocks.blocks_val;
+        for (k = 0; k < spec.blocks.blocks_len; k++) {
+            printf("Extension Block %i:\n", k);
+            printf("\ttype = %i\n\tflags = %i\n",
+                   block[k].type, block[k].flags);
+            print_data(block[k].data.data_val, block[k].data.data_len);
+        }
+
+        printf("\n%d metadata blocks from [%s]: transit time=%d ms\n",
+               spec.metadata.metadata_len, spec.source.uri, 0);
+        dtn_extension_block_t *meta = spec.metadata.metadata_val;
+        for (k = 0; k < spec.metadata.metadata_len; k++) {
+            printf("Metadata Extension Block %i:\n", k);
+            printf("\ttype = %i\n\tflags = %i\n",
+                   meta[k].type, meta[k].flags);
+            print_data(meta[k].data.data_val, meta[k].data.data_len);
+        }
+
+        printf("%d payload bytes from [%s]: transit time=%d ms\n",
+               payload.buf.buf_len,
+               spec.source.uri, 0);
+        
+        print_data(payload.buf.buf_val, payload.buf.buf_len);
+        printf("\n");
+
+        dtn_free_payload(&payload);
+        if (spec.blocks.blocks_len > 0) {
+            free(spec.blocks.blocks_val);
+            spec.blocks.blocks_val = NULL;
+            spec.blocks.blocks_len = 0;
+        }
+        if (spec.metadata.metadata_len > 0) {
+            free(spec.metadata.metadata_val);
+            spec.metadata.metadata_val = NULL;
+            spec.metadata.metadata_len = 0;
+        }
     }
 
-bail:
-    for (i = 1; i <= count; ++i) {
-	if (received[i] == 0) {
-	    int j = i + 1;
-	    while (j <= count && received[j] == 0)
-		++j;
-	    if (j == i + 1)
-		printf("bundle %d: dropped\n", i);
-	    else
-		printf("bundles %d-%d dropped\n", i, j - 1);
-	    errs += (j - i);
-	    i += (j - i - 1);
-	} else if (received[i] > 1) {
-	    printf("bundle %d: received %d copies\n", i, received[i]);
-	    ++errs;
-	}
-    }
-    if (errs == 0) {
-	printf("all %d bundles received correctly\n", count);
-    }
-    free(received);
-    now = time(0);
-    printf("terminating at %s\n", ctime(&now));
+    printf("dtnrecv (pid %d) exiting: %d bundles received, %d total bytes\n\n",
+           getpid(), i, total_bytes);
 
 done:
     dtn_close(handle);

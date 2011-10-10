@@ -110,6 +110,7 @@ installbin: installdirs
 		    apps/dtnping/dtnping \
 		    apps/dtnping/dtntraceroute \
 		    apps/dtnrecv/dtnrecv \
+		    apps/dtnpeek/dtnpeek \
 		    apps/dtnsend/dtnsend \
 		    apps/dtntunnel/dtntunnel \
 		    apps/num2sdnv/num2sdnv \
@@ -131,6 +132,12 @@ installlib: installdirs
 		(cd $(DESTDIR)$(libdir) && rm -f $$lib.$(SHLIB_EXT) && \
 		 ln -s $$lib-$(DTN_VERSION).$(SHLIB_EXT) $$lib.$(SHLIB_EXT)) \
 	done
+	if [ -z $(PYTHON_BUILD_EXT) ]; then \
+	cd applib && make perlapi_install; \
+	else \
+	cd applib && make pythonapi_install && make perlapi_install; \
+	fi
+
 
 installetc: installdirs
 	[ -d $(DESTDIR)$(sysconfdir) ] || mkdir -p $(DESTDIR)$(sysconfdir)

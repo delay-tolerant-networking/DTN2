@@ -46,6 +46,11 @@
 
 char *progname;
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 // global options
 int copies              = 1;    // the number of copies to send
 int verbose             = 0;
@@ -139,6 +144,7 @@ main(int argc, char** argv)
 {
     int i;
     int ret;
+    
     dtn_handle_t handle;
     dtn_reg_info_t reginfo;
     dtn_bundle_spec_t bundle_spec;
@@ -156,8 +162,11 @@ main(int argc, char** argv)
 
     // open the ipc handle
     if (verbose) fprintf(stdout, "Opening connection to local DTN daemon\n");
+    
+    int err = 0;
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);
 
-    int err = dtn_open(&handle);
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));
@@ -252,8 +261,7 @@ main(int argc, char** argv)
         }
 
         ext_blocks.push_back(ExtBlock(10));
-        ext_blocks.back().set_block_buf(ageblock_buf, len);
-
+        ext_blocks.back().set_block_buf(ageblock_buf, strlen(ageblock_buf));
 
         // see dtn_types::dtn_extension_block_flags_t
         ext_blocks.back().block().flags = BLOCK_FLAG_REPLICATE;
@@ -384,9 +392,11 @@ void print_usage()
     fprintf(stderr, "usage: %s [opts] "
             "-s <source_eid> -d <dest_eid> -t <type> -p <payload>\n",
             progname);
-    fprintf(stderr, "options:\n");
+    fprintf(stderr, "options:\n");   
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h help\n");
+    fprintf(stderr, " -A daemon api IP address\n");
+    fprintf(stderr, " -B daemon api IP port\n");
     fprintf(stderr, " -s <eid|demux_string> source eid)\n");
     fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
     fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
@@ -411,7 +421,7 @@ void print_usage()
     fprintf(stderr, " -M <int> include metadata block and specify type\n");
     fprintf(stderr, " -O <int> flags to include in extension/metadata block\n");
     fprintf(stderr, " -S <string> extension/metadata block content\n");
-    fprintf(stderr, " -A <int> include age extension block and specify age\n");
+    fprintf(stderr, " -a <int> include age extension block and specify age\n");
     fprintf(stderr, " -Z set creation timestamp time to zero\n");
     exit(1);
 }
@@ -425,9 +435,16 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHr:s:d:e:P:n:woDXFRcC1NWt:p:i:z:E:M:O:S:A:Z");
+        c = getopt(argc, argv, "A:B:vhHr:s:d:e:P:n:woDXFRcC1NWt:p:i:z:E:M:O:S:a:Z");
         switch (c)
         {
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg;
+            break;
+        case 'B':
+            api_port = atoi(optarg);
+            break;    
         case 'v':
             verbose = 1;
             break;
@@ -526,7 +543,7 @@ void parse_options(int argc, char**argv)
                 ext_blocks.back().set_block_buf(block_buf, strlen(block_buf));
             }
             break;
-        case 'A':
+        case 'a':
             use_reltime = 1;
             age = atoi(optarg); 
             break;

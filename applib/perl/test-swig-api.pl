@@ -42,7 +42,7 @@ if ($regid != -1) {
 }
 
 print "sending a bundle in memory...\n";
-my $id = dtnapi::dtn_send($h, $src, $dst, "dtn:none", $dtnapi::COS_NORMAL,
+my $id = dtnapi::dtn_send($h, $regid, $src,$dst, "dtn:none", $dtnapi::COS_NORMAL,
 		       0, 30, $dtnapi::DTN_PAYLOAD_MEM, "test payload");
 
 print "bundle id: $id\n";

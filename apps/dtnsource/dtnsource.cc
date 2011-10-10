@@ -41,6 +41,11 @@
 
 char *progname;
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 // global options
 int num_bundles         = 1;    // the number of bundles to send
 int verbose             = 0;
@@ -157,7 +162,10 @@ main(int argc, char** argv)
     // open the ipc handle
     if (verbose) fprintf(stdout, "Opening connection to local DTN daemon\n");
 
-    int err = dtn_open(&handle);
+    int err = 0;
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);
+
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));
@@ -346,6 +354,8 @@ void print_usage()
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h help\n");
+    fprintf(stderr, " -A daemon api IP address\n");
+    fprintf(stderr, " -B daemon api IP port\n");
     fprintf(stderr, " -s <eid|demux_string> source eid)\n");
     fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
     fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
@@ -380,9 +390,16 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhs:d:b:Hr:e:P:n:woDXFRcC1NWi:z:E:M:O:S:");
+        c = getopt(argc, argv, "A:B:vhs:d:b:Hr:e:P:n:woDXFRcC1NWi:z:E:M:O:S:");
         switch (c)
         {
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg;
+            break;
+        case 'B':
+            api_port = atoi(optarg);
+            break;    
         case 'v':
             verbose = 1;
             break;

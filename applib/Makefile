@@ -106,9 +106,9 @@ xdrs:
 # properly set up the include and lib paths.
 #
 ifeq ($(SRCDIR),..)
-SWIG_BUILD_ENV := INCDIR=../..:$(OASYS_INCDIR) LIBDIR=.. VERSION=$(DTN_VERSION)
+SWIG_BUILD_ENV := INCDIR=$(SRCDIR)/../ OASYSDIR=${OASYS_INCDIR} LIBDIR=.. VERSION=$(DTN_VERSION)
 else
-SWIG_BUILD_ENV := INCDIR=$(SRCDIR):$(OASYS_INCDIR) LIBDIR=.. VERSION=$(DTN_VERSION)
+SWIG_BUILD_ENV := INCDIR=$(SRCDIR) LIBDIR=.. VERSION=$(DTN_VERSION)
 endif
 
 #
@@ -229,6 +229,8 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 LIBFILES =  libdtnapi.a libdtnapi-$(VLIB) 
 LIBFILES += libdtnapi++.a libdtnapi++-$(VLIB) 
 LIBFILES += libdtnapisrv.a 
+LIBFILES += perlapi
+LIBFILES += tclapi
 ifeq ($(SHLIBS),yes)
 LIBFILES += libdtnapi.$(SHLIB_EXT) libdtnapi-$(VSHLIB) 
 LIBFILES += libdtnapi++.$(SHLIB_EXT) libdtnapi++-$(VSHLIB)

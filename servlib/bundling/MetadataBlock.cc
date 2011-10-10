@@ -108,7 +108,7 @@ MetadataBlock::set_flags(u_int64_t flags)
 void
 MetadataBlock::set_metadata(u_char *buf, u_int32_t len)
 {
-    ASSERT(!generated_);
+    //ASSERT(!generated_);
 
     if (len > 0) {
         ASSERT(buf != NULL);

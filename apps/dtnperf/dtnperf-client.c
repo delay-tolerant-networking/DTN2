@@ -67,6 +67,12 @@
  * Values inside [square brackets] are defaults
  * --------------------------------------------- */
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
+
 // global options
 
 int verbose = 0;    // if set to 1, execution becomes verbose (-v option) [0]
@@ -281,7 +287,10 @@ int main(int argc, char *argv[])
 	if ((debug) && (debug_level > 0))
 		printf("[debug] opening connection to local DTN daemon...");
 
-	int err = dtn_open(&handle);
+    int err = 0;
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);
+
 
 	if (err != DTN_SUCCESS)
 	{
@@ -1002,6 +1011,8 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 			    {"data", required_argument, 0, 'n'},
 			    {"file", required_argument, 0, 'f'},
 			    {"custody", optional_argument, 0, 'C'},
+                {"api_IP", optional_argument, 0, 'A'},
+                {"api_port", optional_argument, 0, 'B'},
 			    {"window", required_argument, 0, 'w'},
 			    {"intervalbeforeexit", required_argument, 0, 'i'},
 			    {"payload", required_argument, 0, 'p'},
@@ -1019,10 +1030,17 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
 		    };
 
 		int option_index = 0;
-		c = getopt_long(argc, argv, "hvD::c:mC::w:d:i:t:p:n:FRTuf:L::e:P:", long_options, &option_index);
+		c = getopt_long(argc, argv, "A:B:hvD::c:mC::w:d:i:t:p:n:FRTuf:L::e:P:", long_options, &option_index);
 
 		switch (c)
 		{
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg;
+            break;
+        case 'B':
+            api_port = atoi(optarg);
+            break;    
 		case 'h':
 			print_usage(argv[0]);
 			exit(0);

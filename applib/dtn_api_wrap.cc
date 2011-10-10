@@ -412,6 +412,83 @@ dtn_recv(int handle, unsigned int payload_location, int timeout)
 }
 
 //----------------------------------------------------------------------
+dtn_bundle*
+dtn_peek(int handle, unsigned int payload_location, int timeout)
+{
+    dtn_handle_t h = find_handle(handle);
+    if (!h) return NULL;
+    
+    dtn_bundle_spec_t spec;
+    memset(&spec, 0, sizeof(spec));
+    
+    dtn_bundle_payload_t payload;
+    memset(&payload, 0, sizeof(payload));
+
+    dtn_bundle_payload_location_t location =
+        (dtn_bundle_payload_location_t)payload_location;
+
+    int err = dtn_recv(h, &spec, location, &payload, timeout);
+    if (err != DTN_SUCCESS) {
+        return NULL;
+    }
+    
+    dtn_bundle* bundle     = new dtn_bundle();
+    bundle->source         = spec.source.uri;
+    bundle->dest           = spec.dest.uri;
+    bundle->replyto        = spec.replyto.uri;
+    bundle->priority       = spec.priority;
+    bundle->dopts          = spec.dopts;
+    bundle->expiration     = spec.expiration;
+    bundle->creation_secs  = spec.creation_ts.secs;
+    bundle->creation_seqno = spec.creation_ts.seqno;
+    bundle->delivery_regid = spec.delivery_regid;
+
+    switch(location) {
+    case DTN_PAYLOAD_MEM:
+        bundle->payload.assign(payload.buf.buf_val,
+                               payload.buf.buf_len);
+        break;
+    case DTN_PAYLOAD_FILE:
+    case DTN_PAYLOAD_TEMP_FILE:
+        bundle->payload.assign(payload.filename.filename_val,
+                               payload.filename.filename_len);
+        break;
+    default:
+        dtn_set_errno(h, DTN_EINVAL);
+        return NULL;
+    }
+
+    if (payload.status_report) {
+        dtn_status_report* sr_dst = new dtn_status_report();
+        dtn_bundle_status_report_t* sr_src = payload.status_report;
+
+        sr_dst->bundle_id.source         = sr_src->bundle_id.source.uri;
+        sr_dst->bundle_id.creation_secs  = sr_src->bundle_id.creation_ts.secs;
+        sr_dst->bundle_id.creation_seqno = sr_src->bundle_id.creation_ts.seqno;
+        sr_dst->reason                   = sr_src->reason;
+        sr_dst->flags                    = sr_src->flags;
+        sr_dst->receipt_ts_secs          = sr_src->receipt_ts.secs;
+        sr_dst->receipt_ts_seqno         = sr_src->receipt_ts.seqno;
+        sr_dst->custody_ts_secs          = sr_src->custody_ts.secs;
+        sr_dst->custody_ts_seqno         = sr_src->custody_ts.seqno;
+        sr_dst->forwarding_ts_secs       = sr_src->forwarding_ts.secs;
+        sr_dst->forwarding_ts_seqno      = sr_src->forwarding_ts.seqno;
+        sr_dst->delivery_ts_secs         = sr_src->delivery_ts.secs;
+        sr_dst->delivery_ts_seqno        = sr_src->delivery_ts.seqno;
+        sr_dst->deletion_ts_secs         = sr_src->deletion_ts.secs;
+        sr_dst->deletion_ts_seqno        = sr_src->deletion_ts.seqno;
+        sr_dst->ack_by_app_ts_secs       = sr_src->ack_by_app_ts.secs;
+        sr_dst->ack_by_app_ts_seqno      = sr_src->ack_by_app_ts.seqno;
+
+        bundle->status_report = sr_dst;
+    } else {
+        bundle->status_report = NULL;
+    }
+
+    return bundle;
+}
+
+//----------------------------------------------------------------------
 struct dtn_session_info {
     unsigned int status;
     string       session;

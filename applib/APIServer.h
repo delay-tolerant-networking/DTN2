@@ -105,6 +105,7 @@ protected:
     int handle_cancel_poll();
     int handle_close();
     int handle_session_update();
+    int handle_peek();
 
     // block the calling thread, waiting for bundle arrival on a bound
     // registration, notification that a subscriber has arrived for a

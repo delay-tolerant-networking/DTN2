@@ -32,10 +32,15 @@
 
 const char *progname;
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 void
 usage()
 {
-    fprintf(stderr, "usage: %s [-c count] [-i interval] [-e expiration] [-w waittime] eid\n",
+    fprintf(stderr, "usage: %s [-A api_IP] [-B api_port] [-c count] [-i interval] [-e expiration] [-w waittime] eid\n",
             progname);
     exit(1);
 }
@@ -88,7 +93,10 @@ main(int argc, const char** argv)
     nonce = rand();
     
     // open the ipc handle
-    int err = dtn_open(&handle);
+    int err = 0;
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);
+
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));
@@ -317,8 +325,15 @@ doOptions(int argc, const char **argv)
 
     progname = argv[0];
 
-    while ( (c=getopt(argc, (char **) argv, "he:d:s:r:w:")) !=EOF ) {
+    while ( (c=getopt(argc, (char **) argv, "A:B:he:d:s:r:w:")) !=EOF ) {
         switch (c) {
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg;
+            break;
+        case 'B':
+            api_port = atoi(optarg);
+            break;    
         case 'e':
             expiration = atoi(optarg);
             break;

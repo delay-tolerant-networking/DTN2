@@ -35,10 +35,15 @@
 
 static const char *progname;
 
+// Daemon connection
+int api_IP_set = 0;
+char * api_IP = "127.0.0.1";
+short api_port = 5010;
+
 void
 usage()
 {
-    fprintf(stderr, "usage: %s [ directory ]\n", progname);
+    fprintf(stderr, "usage: %s [-A api_IP_address] [-B api_port] [ directory ]\n", progname);
     fprintf(stderr, "    optional directory parameter is where incoming "
                     "files will get put\n");
     fprintf(stderr, "    (defaults to: %s)\n", BUNDLE_DIR_DEFAULT);
@@ -85,14 +90,27 @@ main(int argc, const char** argv)
 
     progname = argv[0];
     
-    if (argc > 2) {
+    if (argc > 4) {
         usage();
     }
-    else if (argc == 2)
-    {
-        if (argv[1][0] == '-') {
-            usage();
-        }
+    if (strcmp(argv[1], "-A") == 0)  
+    {      
+        argv++;
+        argc--;        
+        api_IP=argv[1];
+        api_IP_set = 1;
+        argv++;
+        argc--;        
+    }        
+    if (strcmp(argv[1], "-B") == 0)        
+    {   
+        argv++;
+        argc--;        
+        api_port=atoi(argv[1]);
+        argv++;
+        argc--;        
+    }  
+    if (argv[1][0] != NULL) {
         bundle_dir = (char *) argv[1];
     }
     else
@@ -120,7 +138,11 @@ main(int argc, const char** argv)
 
     // open the ipc handle
     if (debug) printf("opening connection to dtn router...\n");
-    int err = dtn_open(&handle);
+ 
+    int err = 0;
+    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else err = dtn_open(&handle);
+
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));

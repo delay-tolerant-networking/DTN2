@@ -197,7 +197,7 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
     
     // Finally, be careful to return only the amount of the buffer
     // that we needed to complete the preamble.
-    ASSERT(buf_offset > prev_consumed);
+//    ASSERT(buf_offset > prev_consumed);
     return buf_offset - prev_consumed;
 }
 
