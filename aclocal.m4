@@ -414,6 +414,26 @@ AC_DEFUN(AC_CONFIG_OPENSSL, [
     fi
 ])
 dnl
+dnl Autoconf support for building scripting apis
+dnl
+dnl
+
+AC_DEFUN(AC_CONFIG_SCRIPT_APIS, [
+	AC_MSG_CHECKING(for --enable-scriptapis)
+        AC_ARG_ENABLE(scriptapis,
+            AC_HELP_STRING([--enable-scriptapis],
+                [Enable PYTHON, PERL and TCL APIs]),
+                [ENABLE_SCRIPT_APIS=yes
+                AC_SUBST(ENABLE_SCRIPT_APIS)
+                AC_MSG_RESULT(yes)
+                ],
+	        [ENABLE_SCRIPT_APIS=
+		AC_SUBST(ENABLE_SCRIPT_APIS)
+                AC_MSG_RESULT(no)
+                ])
+])
+
+dnl
 dnl    Copyright 2006 Intel Corporation
 dnl 
 dnl    Licensed under the Apache License, Version 2.0 (the "License");
@@ -2041,7 +2061,9 @@ dnl
 dnl AC_OASYS_CONFIG [major] [minor]
 dnl
 AC_DEFUN(AC_OASYS_CONFIG, [
-    rm -rf oasys
+    if test -d oasys ; then
+    	rm -rf oasys
+    fi  
 
     ac_oasysver_major=$1
     ac_oasysver_minor=$2
@@ -2056,37 +2078,33 @@ AC_DEFUN(AC_OASYS_CONFIG, [
     AC_MSG_CHECKING([for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)])
 
     ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
-    if test "$ac_oasysdir" = "" ; then
-	if test -d "$ac_oasysdir_ver" ; then
-	    ac_oasysdir=$ac_oasysdir_ver
-	elif test -d ../oasys ; then
-	    ac_oasysdir=../oasys
 
-	else
-	    ac_oasysdir=/usr
-	    # Set the oasys paths properly. OASYS_INCDIR points to the parent
-	    # directory containing the oasys header files or the source
-	    # directory itself with a symlink (include/oasys -> .),
-	    # OASYS_LIBDIR points to the directory where the libraries are.
-	    # OASYS_ETCDIR points to where the various scripts are.
-	    #
-	    OASYS_INCDIR="$ac_oasysdir/include"
-	    OASYS_LIBDIR="$ac_oasysdir/lib"
-	    OASYS_ETCDIR="$ac_oasysdir/share/oasys"
-	fi
-    	if test -d oasys ; then
-	    	rm -rf oasys
-	fi
-	    mkdir oasys oasys/include
-	    OASYS_INCDIR="oasys/include"
-	    OASYS_LIBDIR="oasys/lib"
-	    OASYS_ETCDIR="oasys/share"
-	    ln -s ../../$ac_oasysdir $OASYS_INCDIR
-	    ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
-	    ln -s ../$ac_oasysdir $OASYS_ETCDIR
+    if test -d "$ac_oasysdir_ver" ; then
+      ac_oasysdir=$ac_oasysdir_ver
+   
+    elif test -d ../oasys ; then
+      ac_oasysdir=../oasys
+      ac_oasysdir_ver=$ac_oasysdir 
     fi
 
-    #
+    if test -d "$ac_oasysdir_ver" ; then
+      mkdir oasys oasys/include
+      OASYS_INCDIR="oasys/include"
+      OASYS_LIBDIR="oasys/lib"
+      OASYS_ETCDIR="oasys/share"
+      ln -s ../../$ac_oasysdir $OASYS_INCDIR
+      ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
+      ln -s ../$ac_oasysdir $OASYS_ETCDIR
+
+    else
+      if test "$ac_oasysdir" = "" ; then
+        ac_oasysdir=/usr
+      fi
+      OASYS_INCDIR="$ac_oasysdir/include"
+      OASYS_LIBDIR="$ac_oasysdir/lib"
+      OASYS_ETCDIR="$ac_oasysdir/share/oasys"
+    fi
+   
     if test ! -d $OASYS_INCDIR ; then echo ""
     AC_OASYS_CONFIG_HELP
     AC_MSG_ERROR(nonexistent oasys include directory $OASYS_INCDIR)
@@ -2123,7 +2141,7 @@ AC_DEFUN(AC_OASYS_CONFIG, [
     AC_LINK_IFELSE(
 	AC_LANG_PROGRAM(
     [
-	#include <oasys/oasys-version.h>
+	#include "oasys/oasys-version.h"
 	#if (OASYS_VERSION_MAJOR != ${ac_oasysver_major}) || \
             (OASYS_VERSION_MINOR <  ${ac_oasysver_minor})
 	#error incorrect oasys version (wanted ${ac_oasysver_major}.${ac_oasysver_minor})
