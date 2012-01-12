@@ -51,6 +51,9 @@
 /* directory for config files (default /etc) */
 #undef INSTALL_SYSCONFDIR
 
+/* whether odbc is enabled */
+#undef LIBODBC_ENABLED
+
 /* whether LTP support is enabled */
 #undef LTP_ENABLED
 

@@ -117,6 +117,13 @@ DTNServer::init_datastore()
         return false;
     }
 
+    if (storage_config_->odbc_use_aux_tables_ && !store_->aux_tables_available())
+    {
+    	// User requested use of auxiliary tables but not supported by storage mechanism
+    	log_warn("odbc_use_aux_tables set true but auxiliary tables not available with storage type %s - ignoring.",
+    			 store_->get_info().c_str());
+    }
+
     if (storage_config_->tidy_)
     {
         // remove bundle data directory (the db contents are cleaned
@@ -139,7 +146,7 @@ DTNServer::init_datastore()
 
     if ((GlobalStore::init(*storage_config_, store_)       != 0) || 
         (BundleStore::init(*storage_config_, store_)       != 0) ||
-        (ProphetStore::init(*storage_config_, store_)       != 0) ||
+        (ProphetStore::init(*storage_config_, store_)      != 0) ||
         (LinkStore::init(*storage_config_, store_)         != 0) ||
         (RegistrationStore::init(*storage_config_, store_) != 0))
     {
@@ -147,10 +154,11 @@ DTNServer::init_datastore()
         return false;
     }
 
-    // Get the initialization info to disk.
-    log_debug("committing storage init commands");
-    store_->make_transaction_durable();
-    store_->endTransaction();
+	if (store_->create_finalize(*storage_config_) != 0)
+	{
+		log_crit("error running post table creation database commands");
+		return false;
+	}
 
     // load in the global store here since that will check the
     // database version and exit if there's a mismatch

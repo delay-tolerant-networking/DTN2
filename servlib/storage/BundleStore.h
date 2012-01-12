@@ -24,6 +24,8 @@
 #include <oasys/util/OpenFdCache.h>
 #include <oasys/util/Singleton.h>
 #include "DTNStorageConfig.h"
+#include "bundling/BundleDetail.h"
+
 
 namespace dtn {
 
@@ -41,6 +43,10 @@ public:
     typedef oasys::InternalKeyDurableTable<
         oasys::UIntShim, u_int32_t, Bundle> BundleTable;
     typedef BundleTable::iterator iterator;
+#ifdef LIBODBC_ENABLED
+    typedef oasys::InternalKeyDurableTable<
+        oasys::UIntShim, u_int32_t, BundleDetail> BundleDetailTable;
+#endif
     
     /**
      * Boot time initializer that takes as a parameter the storage
@@ -89,6 +95,10 @@ protected:
     const DTNStorageConfig& cfg_; ///< Storage configuration
     BundleTable bundles_;	///< Bundle metabundle table
     FdCache payload_fdcache_;	///< File descriptor cache
+    static bool using_aux_table_;	///< True when an auxiliary info table is configured and in use.
+#ifdef LIBODBC_ENABLED
+    BundleDetailTable bundle_details_;   ///< Auxiliary table for bundle unserialized details
+#endif
     u_int64_t total_size_;	///M Total size in the data store
 };
 

@@ -3267,7 +3267,7 @@ AC_DEFUN(AC_CONFIG_XERCES, [
     ac_save_LDFLAGS="$LDFLAGS"
     ac_save_LIBS="$LIBS"
 
-    AC_MSG_CHECKING([whether xerces-c (>= v2.6.0) was found])
+    AC_MSG_CHECKING([whether xerces-c (>= v2.6.0 and < v3.0.0) was found])
     AC_CACHE_VAL(oasys_cv_path_xerces_c,
     [
         for ac_xerces_inst_dir in $ac_xerces_inst_dirs; do
@@ -3286,18 +3286,22 @@ AC_DEFUN(AC_CONFIG_XERCES, [
                         ],
     
                         [
-                            #if _XERCES_VERSION >= 20600
+			    #if _XERCES_VERSION >= 30000
+				#error
+			    #else
+				#if _XERCES_VERSION >= 20600
 
-                            xercesc::XMLPlatformUtils::Initialize();
-                            {
-                                xercesc::DOMImplementation* impl
-                                    = xercesc::DOMImplementationRegistry::getDOMImplementation
-                                        (xercesc::XMLString::transcode("XML 1.0"));
-                            }
-                            xercesc::XMLPlatformUtils::Terminate();
+				xercesc::XMLPlatformUtils::Initialize();
+				{
+				    xercesc::DOMImplementation* impl
+					= xercesc::DOMImplementationRegistry::getDOMImplementation
+							(xercesc::XMLString::transcode("XML 1.0"));
+				}
+				xercesc::XMLPlatformUtils::Terminate();
 
-                            #else
-                                #error
+				#else
+					#error
+				#endif
                             #endif
                         ]),
                     [

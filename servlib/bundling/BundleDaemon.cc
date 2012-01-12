@@ -522,7 +522,7 @@ void
 BundleDaemon::handle_bundle_delete(BundleDeleteRequest* request)
 {
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     if (request->bundle_.object()) {
         log_info("BUNDLE_DELETE: bundle *%p (reason %s)",
@@ -537,7 +537,7 @@ void
 BundleDaemon::handle_bundle_acknowledged_by_app(BundleAckEvent* ack)
 {
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     log_debug("ack from regid(%d): (%s: (%qu, %qu))",
               ack->regid_,
@@ -584,7 +584,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     Bundle* bundle = bundleref.object();
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     // update statistics and store an appropriate event descriptor
     const char* source_str = "";
@@ -721,8 +721,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
             deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
 
         
-	log_info("/dtn/bundle/protocol", "handle_bundle_received: validating "
-                 "bundle: calling BlockProcessors?");
+        log_info("handle_bundle_received: validating - calling BlockProcessors");
         bool valid = BundleProtocol::validate(bundle,
                                               &reception_reason,
                                               &deletion_reason);
@@ -936,7 +935,7 @@ BundleDaemon::handle_deliver_bundle_to_reg(DeliverBundleToRegEvent* event)
     }
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     Bundle* bundle = bundleref.object();
     log_debug("Delivering bundle id:%d to registration %d %s",
@@ -957,7 +956,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     ASSERT(link != NULL);
     
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     log_debug("trying to find xmit blocks for bundle id:%d on link %s",
               bundle->bundleid(),link->name());
@@ -1134,7 +1133,7 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
     stats_.delivered_bundles_++;
     
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     /*
      * The bundle was delivered to a registration.
@@ -1188,7 +1187,7 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     const BundleRef& bundle = event->bundleref_;
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     log_info("BUNDLE_EXPIRED *%p", bundle.object());
 
@@ -1236,7 +1235,7 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
     }
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     // If the request has a link name, we are just canceling the send on
     // that link.
@@ -1268,7 +1267,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     LinkRef link = event->link_;
     
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     log_info("BUNDLE_CANCELLED id:%d -> %s (%s)",
             bundle->bundleid(),
@@ -1353,7 +1352,7 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
     */
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     EndpointID src(event->src_); 
     EndpointID dest(event->dest_); 
@@ -1481,7 +1480,7 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
              registration->regid(), registration->endpoint().c_str());
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     if (!reg_table_->add(registration,
                          (event->source_ == EVENTSRC_APP) ? true : false))
@@ -1517,7 +1516,7 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
 
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     if (!reg_table_->del(registration->regid())) {
         log_err("error removing registration %d from table",
@@ -1541,7 +1540,7 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
     }
     
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     registration->set_expired(true);
     
@@ -1566,7 +1565,7 @@ BundleDaemon::handle_registration_delete(RegistrationDeleteRequest* request)
     log_info("REGISTRATION_DELETE %d", request->registration_->regid());
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     delete request->registration_;
 }
@@ -2070,7 +2069,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
              event->bundle_->bundleid());
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
@@ -2123,7 +2122,7 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
              CustodySignal::reason_to_str(event->data_.reason_));
 
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     GbofId gbof_id;
     gbof_id.source_ = event->data_.orig_source_eid_;
@@ -2181,7 +2180,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
     log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link.object());
     
     oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->beginTransaction();
+    store->begin_transaction();
 
     // remove and delete the expired timer from the bundle
     oasys::ScopeLock l(bundle->lock(), "BundleDaemon::handle_custody_timeout");
@@ -2687,9 +2686,9 @@ BundleDaemon::handle_event(BundleEvent* event, bool closeTransaction)
 
     if (closeTransaction) {
         oasys::DurableStore* ds = oasys::DurableStore::instance();
-        if ( ds->isTransactionOpen() ) {
+        if ( ds->is_transaction_open() ) {
             log_debug("handle_event closing transaction");
-            ds->endTransaction();
+            ds->end_transaction();
         }
     } else {
         log_debug("handle_event NOT closing transaction");

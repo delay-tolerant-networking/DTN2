@@ -168,6 +168,11 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
                                   "external/remote data store interface\n"
 		"	valid options:	filename"));
 
+    bind_var(new oasys::BoolOpt("odbc_use_aux_tables", &cfg->odbc_use_aux_tables_,
+				"write broken out fields from stored items into "
+				"auxiliary database table(s) in ODBC/SQL DBs (default false)\n"
+		"	valid options:	true or false"));
+
     add_to_help("usage", "print the current storage usage");
 }
 

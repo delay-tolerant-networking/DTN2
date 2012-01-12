@@ -124,6 +124,7 @@ AC_CONFIG_EXTERNAL_DP
 AC_CONFIG_NORM
 AC_CONFIG_LTP
 AC_CONFIG_SCRIPT_APIS
+AC_CONFIG_ODBC
 
 #--------------------------------------------------------------------------
 # Check if BSP should be enabled, and if so, look for OpenSSL

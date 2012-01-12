@@ -30,6 +30,7 @@ BUNDLING_SRCS := 				\
 	bundling/Bundle.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
+	bundling/BundleDetail.cc		\
 	bundling/BundleEventHandler.cc		\
 	bundling/BundleInfoCache.cc		\
 	bundling/BundleList.cc			\
