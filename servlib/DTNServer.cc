@@ -65,6 +65,10 @@
 #include "storage/DTNStorageConfig.h"
 #include "bundling/S10Logger.h"
 
+#ifdef BPQ_ENABLED
+#include "cmd/BPQCommand.h"
+#endif /* BPQ_ENABLED */
+
 //#include <oasys/storage/MySQLStore.h>
 //#include <oasys/storage/PostgresqlStore.h>
 
@@ -246,6 +250,10 @@ DTNServer::init_commands()
 #ifdef BSP_ENABLED
     interp->reg(new SecurityCommand());
 #endif
+
+#ifdef BPQ_ENABLED
+    interp->reg(new BPQCommand());
+#endif /* BPQ_ENABLED */
 
     log_debug("registered dtn commands");
 }

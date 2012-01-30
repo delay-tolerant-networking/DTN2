@@ -262,6 +262,38 @@ enum dtn_extension_block_flags_t {
 typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
 
 /**
+ *	   BPQ extension block type
+ */
+
+#define DTN_BPQ_BLOCK_TYPE 0x0B
+
+/**
+ * BPQ Extension block kind.
+ *
+ *     BPQ_BLOCK_KIND_QUERY							- query bundles
+ *     BPQ_BLOCK_KIND_RESPONSE						- response bundles
+ *     BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG	- response bundles that should not be cached unless complete
+ */
+
+enum dtn_bpq_extension_block_kind_t {
+    BPQ_BLOCK_KIND_QUERY = 0x00,
+    BPQ_BLOCK_KIND_RESPONSE = 0x01,
+    BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG = 0x02,
+};
+typedef enum dtn_bpq_extension_block_kind_t dtn_bpq_extension_block_kind_t;
+
+/**
+ * BPQ Extension block matching rule. (More may be added later)
+ *
+ *     BPQ_MATCHING_RULE_EXACT
+ */
+
+enum dtn_bpq_extension_block_matching_rule_t {
+    BPQ_MATCHING_RULE_EXACT = 0x00,
+};
+typedef enum dtn_bpq_extension_block_matching_rule_t dtn_bpq_extension_block_matching_rule_t;
+
+/**
  * Extension block.
  */
 
@@ -274,6 +306,26 @@ struct dtn_extension_block_t {
 	} data;
 };
 typedef struct dtn_extension_block_t dtn_extension_block_t;
+
+struct dtn_bpq_extension_block_data_t {
+    u_int kind;
+    u_int matching_rule;
+    struct {
+    	dtn_timestamp_t creation_ts;
+    	u_int source_len;
+    	dtn_endpoint_id_t source;
+    } original_id;
+    struct {
+        u_int query_len;
+        char* query_val;
+    } query;
+    struct {
+        u_int num_frag_returned;
+        u_int *frag_offsets;
+        u_int *frag_lenghts;
+    } fragments;
+};
+typedef struct dtn_bpq_extension_block_data_t dtn_bpq_extension_block_data_t;
 
 /**
  * A Sequence ID is a vector of (EID, counter) values in the following
@@ -438,6 +490,9 @@ extern  bool_t xdr_dtn_bundle_priority_t (XDR *, dtn_bundle_priority_t*);
 extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t*);
 extern  bool_t xdr_dtn_extension_block_flags_t (XDR *, dtn_extension_block_flags_t*);
 extern  bool_t xdr_dtn_extension_block_t (XDR *, dtn_extension_block_t*);
+extern  bool_t xdr_dtn_bpq_extension_block_kind_t (XDR *, dtn_bpq_extension_block_kind_t*);
+extern  bool_t xdr_dtn_bpq_extension_block_matching_rule_t (XDR *, dtn_bpq_extension_block_matching_rule_t*);
+extern  bool_t xdr_dtn_bpq_extension_block_data_t (XDR *, dtn_bpq_extension_block_data_t*);
 extern  bool_t xdr_dtn_sequence_id_t (XDR *, dtn_sequence_id_t*);
 extern  bool_t xdr_dtn_bundle_spec_t (XDR *, dtn_bundle_spec_t*);
 extern  bool_t xdr_dtn_bundle_id_t (XDR *, dtn_bundle_id_t*);
@@ -461,6 +516,9 @@ extern bool_t xdr_dtn_bundle_priority_t ();
 extern bool_t xdr_dtn_bundle_delivery_opts_t ();
 extern bool_t xdr_dtn_extension_block_flags_t ();
 extern bool_t xdr_dtn_extension_block_t ();
+extern bool_t xdr_dtn_bpq_extension_block_kind_t ();
+extern bool_t xdr_dtn_bpq_extension_block_matching_rule_t ();
+extern bool_t xdr_dtn_bpq_extension_block_data_t ();
 extern bool_t xdr_dtn_sequence_id_t ();
 extern bool_t xdr_dtn_bundle_spec_t ();
 extern bool_t xdr_dtn_bundle_id_t ();

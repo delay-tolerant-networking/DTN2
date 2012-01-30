@@ -33,6 +33,8 @@ SINGLE_SOURCE_APPS := 			\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\
 	dtnpeek/dtnpeek			\
+	dtnquery/dtnquery   	\
+	dtnrespond/dtnrespond  	\
 	dtnsink/dtnsink			\
 	num2sdnv/num2sdnv		\
 

@@ -17,6 +17,10 @@
 #ifndef _BUNDLE_DAEMON_H_
 #define _BUNDLE_DAEMON_H_
 
+#ifdef HAVE_CONFIG_H
+#  include <dtn-config.h>
+#endif
+
 #include <vector>
 
 #include <oasys/compat/inttypes.h>
@@ -33,6 +37,11 @@
 #include "BundleProtocol.h"
 #include "BundleActions.h"
 #include "BundleStatusReport.h"
+
+#ifdef BPQ_ENABLED
+#	include "BPQBlock.h"
+#	include "BPQCache.h"
+#endif /* BPQ_ENABLED */
 
 namespace dtn {
 
@@ -170,6 +179,13 @@ public:
      */
     BundleList* custody_bundles() { return custody_bundles_; }
     
+#ifdef BPQ_ENABLED
+    /**
+     * Accessor for the BPQ Cache.
+     */
+    BPQCache* bpq_cache() { return bpq_cache_; }
+#endif /* BPQ_ENABLED */
+
     /**
      * Format the given StringBuffer with current routing info.
      */
@@ -449,6 +465,16 @@ protected:
      */
     Bundle* find_duplicate(Bundle* bundle);
 
+#ifdef BPQ_ENABLED
+    /**
+     * Check the bundle for a BPQ extension block. If found handle:
+     * 		QUERY 	 - search for matching response in cache and try to answer
+     * 		RESPONSE - attempt to add to cache
+     * If a query is completely answered the bundle need not be forwarded on.
+     */
+    bool handle_bpq_block(Bundle* b, BundleReceivedEvent* event);
+#endif /* BPQ_ENABLED */
+
     /**
      * Deliver the bundle to the given registration
      */
@@ -493,6 +519,11 @@ protected:
     /// The list of all bundles that we have custody of
     BundleList* custody_bundles_;
     
+#ifdef BPQ_ENABLED
+    /// The LRU cache containing bundles with the BPQ response extension
+    BPQCache* bpq_cache_;
+#endif /* BPQ_ENABLED */
+
     /// The event queue
     oasys::MsgQueue<BundleEvent*>* eventq_;
 

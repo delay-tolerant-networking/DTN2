@@ -44,6 +44,7 @@
 #define S10_STARTING		15		// done
 #define S10_EXITING			16		// done
 #define S10_OHCRAP			17		// never to be done
+#define S10_FROMCACHE       18      // added for BPQ 2011
 
 #define S10_MAXEVENT        S10_OHCRAP
 

@@ -711,6 +711,7 @@ enable_scriptapis
 with_odbc
 with_bsp
 with_openssl
+with_bpq
 with_cc
 with_cxx
 enable_debug
@@ -1373,6 +1374,7 @@ Optional Packages:
   --with-bsp              enable Bundle Security Protocol support
                           (EXPERIMENTAL)
   --with-openssl=DIR      location of an OpenSSL installation (default system)
+  --with-bpq              enable Bundle Protocol Query Extension support
   --with-cc=CC            name (or path) of the C compiler to use
   --with-cxx=CXX          name (or path) of the C++ compiler to use
   --with-extra-cflags=?   additional options to pass to the compiler
@@ -5320,6 +5322,29 @@ fi
        LDFLAGS=$ac_save_LDFLAGS
        LIBS=$ac_save_LIBS
     fi
+
+
+#--------------------------------------------------------------------------
+# Check if BPQ should be enabled
+#--------------------------------------------------------------------------
+
+    ac_bpq='no'
+
+# Check whether --with-bpq was given.
+if test "${with_bpq+set}" = set; then :
+  withval=$with_bpq; ac_bpq=$withval
+fi
+
+                if test "$ac_bpq" = no; then
+        BPQ_ENABLED=0
+    else
+        BPQ_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define BPQ_ENABLED 1
+_ACEOF
+
+    fi # BPQ_ENABLED
 
 
 # -------------------------------------------------------------------------

@@ -28,6 +28,12 @@ BUNDLING_SRCS := 				\
 	bundling/BlockInfo.cc			\
 	bundling/BlockProcessor.cc		\
 	bundling/Bundle.cc			\
+	bundling/BPQBlockProcessor.cc			\
+	bundling/BPQBlock.cc			\
+	bundling/BPQCache.cc			\
+	bundling/BPQCacheEntry.cc			\
+	bundling/BPQFragmentList.cc			\
+	bundling/BPQResponse.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
 	bundling/BundleDetail.cc		\
@@ -111,6 +117,7 @@ CMD_SRCS :=					\
 	cmd/APICommand.cc			\
 	cmd/BlockCommand.cc			\
 	cmd/BundleCommand.cc			\
+	cmd/BPQCommand.cc			\
 	cmd/CompletionNotifier.cc		\
 	cmd/InterfaceCommand.cc			\
 	cmd/LinkCommand.cc          		\

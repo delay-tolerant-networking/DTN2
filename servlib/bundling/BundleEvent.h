@@ -226,7 +226,8 @@ typedef enum {
     EVENTSRC_STORE  = 3,        ///< the data store
     EVENTSRC_ADMIN  = 4,        ///< the admin logic
     EVENTSRC_FRAGMENTATION = 5, ///< the fragmentation engine
-    EVENTSRC_ROUTER = 6         ///< the routing logic
+    EVENTSRC_ROUTER = 6,        ///< the routing logic
+    EVENTSRC_CACHE  = 7         ///< the BPQ cache
 } event_source_t;
 
 /**
@@ -244,6 +245,7 @@ source_to_str(event_source_t source)
     case EVENTSRC_ADMIN:            return "admin";
     case EVENTSRC_FRAGMENTATION:    return "fragmentation";
     case EVENTSRC_ROUTER:           return "router";
+    case EVENTSRC_CACHE:            return "cache";
 
     default:                        return "(invalid source type)";
     }

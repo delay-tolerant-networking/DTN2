@@ -88,6 +88,10 @@ BundleDaemon::BundleDaemon()
     pending_bundles_ = new BundleList("pending_bundles");
     custody_bundles_ = new BundleList("custody_bundles");
 
+#ifdef BPQ_ENABLED
+	bpq_cache_ 	     = new BPQCache();
+#endif /* BPQ_ENABLED */
+
     contactmgr_ = new ContactManager();
     fragmentmgr_ = new FragmentManager();
     reg_table_ = new RegistrationTable();
@@ -106,6 +110,10 @@ BundleDaemon::~BundleDaemon()
 {
     delete pending_bundles_;
     delete custody_bundles_;
+
+#ifdef BPQ_ENABLED
+    delete bpq_cache_;
+#endif /* BPQ_ENABLED */
     
     delete contactmgr_;
     delete fragmentmgr_;
@@ -189,8 +197,18 @@ BundleDaemon::get_routing_state(oasys::StringBuffer* buf)
 void
 BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
 {
+	char bpq_stats[128];
+
+#ifdef BPQ_ENABLED
+    snprintf(bpq_stats, 128, "%zu bpq -- ", bpq_cache()->size());
+#else
+    snprintf(bpq_stats, 128,  "-- bpq -- ");
+#endif /* BPQ_ENABLED */
+
+
     buf->appendf("%zu pending -- "
                  "%zu custody -- "
+            	 "%s bpq -- "
                  "%u received -- "
                  "%u delivered -- "
                  "%u generated -- "
@@ -201,6 +219,7 @@ BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
                  "%u injected",
                  pending_bundles()->size(),
                  custody_bundles()->size(),
+                 bpq_stats,
                  stats_.received_bundles_,
                  stats_.delivered_bundles_,
                  stats_.generated_bundles_,
@@ -624,16 +643,25 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         stats_.generated_bundles_++;
         source_str = " (from fragmentation)";
 		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
+		log_debug("S10_OHCRAP - event source: %s", source_str);
         break;
 
     case EVENTSRC_ROUTER:
         stats_.generated_bundles_++;
         source_str = " (from router)";
 		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
+		log_debug("S10_OHCRAP - event source: %s", source_str);
+        break;
+
+    case EVENTSRC_CACHE:
+        stats_.generated_bundles_++;
+        source_str = " (from cache)";
+        s10_bundle(S10_FROMCACHE,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
         break;
 
     default:
 		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
+		log_debug("S10_OHCRAP - unknown event source: %d", event->source_);
         NOTREACHED;
     }
 
@@ -811,6 +839,33 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         }
 
     }
+
+#ifdef BPQ_ENABLED
+    /*
+     * If the BPQ cache has been enabled and the bundle event is coming from
+     * one of these sources. Try to handle the a BPQ extension block. This
+     * will bounce back out if there is no extension block present.
+     */
+    if ( bpq_cache()->cache_enabled_ ) {
+    	// try to handle a BPQ block
+    	if ( event->source_ == EVENTSRC_APP   ||
+			 event->source_ == EVENTSRC_PEER  ||
+			 event->source_ == EVENTSRC_STORE ||
+			 event->source_ == EVENTSRC_FRAGMENTATION) {
+
+			handle_bpq_block(bundle, event);
+		}
+    }
+
+    /*
+     * If the bundle contains a BPQ query that was successfully answered
+     * a response has already been sent and the query need not be forwarded
+     * so return from this function
+     */
+    if ( event->daemon_only_ ) {
+        return;
+    }
+#endif /* BPQ_ENABLED */
 
     /*
      * Add the bundle to the master pending queue and the data store
@@ -2642,6 +2697,111 @@ BundleDaemon::find_duplicate(Bundle* b)
 
     return found;
 }
+
+//----------------------------------------------------------------------
+#ifdef BPQ_ENABLED
+bool
+BundleDaemon::handle_bpq_block(Bundle* bundle, BundleReceivedEvent* event)
+{
+    const BlockInfo* block = NULL;
+    bool local_bundle = true;
+
+    switch (event->source_) {
+    	case EVENTSRC_PEER:
+    		if (bundle->recv_blocks().has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
+    			block = bundle->recv_blocks().
+    			                find_block(BundleProtocol::QUERY_EXTENSION_BLOCK);
+    			local_bundle = false;
+    		} else {
+    			return false;
+    		}
+    		break;
+
+    	case EVENTSRC_APP:
+    		if (bundle->api_blocks()->has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
+				block = bundle->api_blocks()->
+    		                	find_block(BundleProtocol::QUERY_EXTENSION_BLOCK);
+				local_bundle = true;
+    		} else {
+    			return false;
+    		}
+    		break;
+
+    	case EVENTSRC_STORE:
+    	case EVENTSRC_FRAGMENTATION:
+    		if (bundle->recv_blocks().has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
+				block = bundle->recv_blocks().
+								find_block(BundleProtocol::QUERY_EXTENSION_BLOCK);
+				local_bundle = false;
+    		}
+    		else if (bundle->api_blocks()->has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
+				block = bundle->api_blocks()->
+    		                	find_block(BundleProtocol::QUERY_EXTENSION_BLOCK);
+				local_bundle = true;
+    		} else {
+    			return false;
+    		}
+    		break;
+
+    	default:
+    		log_err_p("/dtn/daemon/bpq", "Handle BPQ Block failed for unknown event source: %s",
+    				source_to_str((event_source_t)event->source_));
+            NOTREACHED;
+            return false;
+        }
+
+    /**
+     * At this point the BPQ Block has been found in the bundle
+     */
+    ASSERT ( block != NULL );
+    BPQBlock bpq_block( bundle );
+
+    log_info_p("/dtn/daemon/bpq", "handle_bpq_block: Kind: %d Query: %s",
+        (int)  bpq_block.kind(),
+        (char*)bpq_block.query_val());
+
+    if (bpq_block.kind() == BPQBlock::KIND_QUERY) {
+    	if (bpq_cache()->answer_query(bundle, &bpq_block)) {
+    		log_info_p("/dtn/daemon/bpq", "Query: %s answered completely",
+    				(char*)bpq_block.query_val());
+            event->daemon_only_ = true;
+        }
+
+    } else if (bpq_block.kind() == BPQBlock::KIND_RESPONSE) {
+    	// don't accept local responses
+    	if (!local_bundle) {
+
+    		if (bpq_cache()->add_response_bundle(bundle, &bpq_block) &&
+    			event->source_ != EVENTSRC_STORE) {
+
+    			bundle->set_in_datastore(true);
+				actions_->store_add(bundle);
+    		}
+    	}
+
+    } else if (bpq_block.kind() == BPQBlock::KIND_RESPONSE_DO_NOT_CACHE_FRAG) {
+    	// don't accept local responses
+    	if (!local_bundle &&
+    		!bundle->is_fragment()	) {
+
+    		if (bpq_cache()->add_response_bundle(bundle, &bpq_block) &&
+    			event->source_ != EVENTSRC_STORE) {
+
+    			bundle->set_in_datastore(true);
+				actions_->store_add(bundle);
+    		}
+    	}
+
+    } else {
+        log_err_p("/dtn/daemon/bpq", "ERROR - BPQ Block: invalid kind %d",
+            bpq_block.kind());
+        NOTREACHED;
+        return false;
+    }
+
+    return true;
+}
+#endif /* BPQ_ENABLED */
 
 //----------------------------------------------------------------------
 void
