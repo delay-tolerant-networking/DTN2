@@ -71,6 +71,7 @@ public:
 		in_addr_t remote_addr_;		//address to connect to
 		u_int16_t remote_port_;		//port to connect to
 		u_int16_t mtu_; // outbound MTU for link
+		int32_t rg_; // red/green setting, missing or -1 is allred, 0=allgreen, otherwise #red bytes
 	};
 	//struct to hold our default parameters
 	static Params defaults_;
@@ -112,6 +113,8 @@ protected:
 		
 		int lmtu;
 
+		int lrg;
+
 	protected:
 		//lets process our incoming ltp segment
 		void process_data(u_char* bp, size_t len);
@@ -151,6 +154,7 @@ protected:
 
 		//ltp MTU to use for outbound DS/RS
 		int lmtu;
+		int lrg;
 		
 		//our receive buffer size
 		int rxbufsize;

@@ -496,6 +496,13 @@ public:
          * MTU of the link, used to control proactive fragmentation.
          */
         u_int mtu_;
+
+		/**
+		 * Red/Green for LTP links 
+		 * XXXSF This shouldn't be here but I'm not sure how to make it LTP specific - Stephen Farrell
+		 */
+		int rg_;
+
          
         /**
          * Minimum amount to wait between attempts to re-open the link

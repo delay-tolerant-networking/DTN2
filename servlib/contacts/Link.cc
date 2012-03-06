@@ -39,6 +39,7 @@ namespace dtn {
 /// Default parameters, values overridden in ParamCommand
 Link::Params::Params()
     : mtu_(0),
+	  rg_(-1),
       min_retry_interval_(5),
       max_retry_interval_(10 * 60),
       idle_close_time_(0),
@@ -313,6 +314,7 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
     p.addopt(new oasys::BoolOpt("reliable", &reliable_));
     p.addopt(new oasys::StringOpt("nexthop", &nexthop_));
     p.addopt(new oasys::UIntOpt("mtu", &params_.mtu_));
+    p.addopt(new oasys::IntOpt("rg", &params_.rg_));
     p.addopt(new oasys::UIntOpt("min_retry_interval",
                                 &params_.min_retry_interval_));
     p.addopt(new oasys::UIntOpt("max_retry_interval",
@@ -605,6 +607,7 @@ Link::dump(oasys::StringBuffer* buf)
                  "nexthop: %s\n"
                  "remote eid: %s\n"
                  "mtu: %u\n"
+                 "rg: %d\n"
                  "min_retry_interval: %u\n"
                  "max_retry_interval: %u\n"
                  "idle_close_time: %u\n"
@@ -618,6 +621,7 @@ Link::dump(oasys::StringBuffer* buf)
                  nexthop(),
                  remote_eid_.c_str(),
                  params_.mtu_,
+                 params_.rg_,
                  params_.min_retry_interval_,
                  params_.max_retry_interval_,
                  params_.idle_close_time_,

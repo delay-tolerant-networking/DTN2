@@ -59,6 +59,7 @@ LTPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
     a->process("local_port", &local_port_);
     a->process("remote_port", &remote_port_);
 	a->process("mtu",&mtu_);
+	a->process("rg",&rg_);
 }
 
 LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceLayer", "ltp")
@@ -68,6 +69,7 @@ LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceL
     defaults_.remote_addr_              = INADDR_NONE;
     defaults_.remote_port_              = 0;
     defaults_.mtu_              = 0;
+    defaults_.rg_              = LTP_ALLRED;
 
 	ltp_inited=false;
 
@@ -86,6 +88,7 @@ LTPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
     p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
     p.addopt(new oasys::UInt16Opt("mtu", &params->mtu_));
+    p.addopt(new oasys::IntOpt("rg", &params->rg_));
 
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -203,6 +206,7 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     log_info("LTP adding %s link %s", link->type_str(), link->nexthop());
 
 	int lmtu=link->params().mtu_;
+	int lrg=link->params().rg_;
 
 	// initialise LTPlib
 	if (!ltp_inited) {
@@ -226,6 +230,7 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     params->local_addr_ = INADDR_NONE;
     params->local_port_ = 0;
     params->mtu_ = lmtu;
+    params->rg_ = lrg;
 
     const char* invalid;
     if (! parse_params(params, argc, argv, &invalid)) {
@@ -381,6 +386,7 @@ LTPConvergenceLayer::Receiver::Receiver(LTPConvergenceLayer::Params *params)
     should_stop_ = false;
     s_sock = 0;
 	lmtu = params->mtu_;
+	lrg = params->rg_;
 
     // start our thread
 }
@@ -429,6 +435,7 @@ LTPConvergenceLayer::Sender::init(Params* params,
 	dest.sock.sin_port=port;
 
 	lmtu=params->mtu_;
+	lrg=params->rg_;
 
 	char *sstr=strdup(ltpaddr2str(&source));
 	char *dstr=strdup(ltpaddr2str(&dest));
@@ -490,6 +497,18 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 	} else {
 		log_debug("LTP Tx: not setting LTP mtu 'cause its %d",lmtu);
 	}
+	// setup red/green
+	if (lrg!=LTP_ALLRED) {
+		rv=ltp_setsockopt(sock,SOL_SOCKET,LTP_SO_RED,&lrg,sizeof(lrg));
+		if (rv) {
+			log_err("LTP ltp_setsockopt for SO_RED failed (%d).\n",lrg);
+			free(inbuf);
+			return(-1);
+		}
+		log_info("LTP Tx: set SO_RED to %d (-1=allred,0=allgreen,other=number of red bytes\n",lrg);
+	} else {
+		log_debug("LTP Tx: not setting SO_RED 'cause its all red (%d)",lrg);
+	}
 	///bind
 	rv = ltp_bind(sock,(ltpaddr*)&source,sizeof(source));
 	if (rv) { 
@@ -549,7 +568,8 @@ void LTPConvergenceLayer::Receiver::run()
 
 	ltpaddr listeners[MAXLTPLISTENERS];
 	int nlisteners;
-	int lastlisteners=-1;
+	int nlastlisteners=-1;
+	ltpaddr lastlisteners[MAXLTPLISTENERS];
 
 #define START_INPUTBUNDLE 0x10000
     size_t rxbufsize = START_INPUTBUNDLE;
@@ -575,12 +595,31 @@ void LTPConvergenceLayer::Receiver::run()
 			break;
 		}
 		// don't want crazy logging so just when there's a change
-		if (lastlisteners!=nlisteners) {
-			log_info("LTP who's listening now says %d listeners (was %d)\n",nlisteners,lastlisteners);
+		bool difflisteners=false;
+		if (nlastlisteners!=nlisteners) {
+			difflisteners=true;
+		} else {
+			// check in case the set has changed (order independent)
+			// inefficient search, but numbers will be small so ok
+			for (int j=0;!difflisteners && j!=nlisteners;j++) {
+				bool looking=true;
+				for (int k=0;looking && k!=nlisteners;k++) {
+					if (!ltpaddr_cmp(&lastlisteners[j],&listeners[k],sizeof(listeners[k]))) {
+						looking=false;
+					}
+				}
+				if (looking) difflisteners=true;
+			}
+		}
+		if (difflisteners) {
+			log_info("LTP who's listening now says %d listeners (was %d)\n",nlisteners,nlastlisteners);
 			for (int j=0;j!=nlisteners;j++) {
 				log_debug("LTP \tListener %d %s\n",j,ltpaddr2str(&listeners[j]));
 			}
+			memcpy(lastlisteners,listeners,sizeof(listeners)); 
+			nlastlisteners=nlisteners;
 		}
+
 		// if we're in "opportunistic mode"
 		// check if I should change link state, depends on who's
 		// listening and linkpeer;
@@ -595,14 +634,14 @@ void LTPConvergenceLayer::Receiver::run()
 							i != links->end(); ++i) {
 
 			// other states (e.g. OPENING) exist that we ignore
-			bool linkopen=(*i)->state()==Link::OPEN;
+			bool linkopen=((*i)->state()==Link::OPEN);
 			bool linkclosed=(
 				(*i)->state()==Link::UNAVAILABLE || 
 				(*i)->state()==Link::AVAILABLE );
 			ltpaddr linkpeer;
 			// might want to use (*i)->nexthop() instead params
 			str2ltpaddr((char*)(*i)->nexthop(),&linkpeer);
-			if (lastlisteners!=nlisteners) {
+			if (difflisteners) {
 				log_debug("LTP linkpeer: %s\n",ltpaddr2str(&linkpeer));
 				log_debug("LTP link state: %s, link cl name: %s\n",
 					Link::state_to_str((*i)->state()),
@@ -642,8 +681,6 @@ void LTPConvergenceLayer::Receiver::run()
 			}
 		}
 		cmlock.unlock();
-		// don't log stuff next time 'round
-		lastlisteners=nlisteners;
 		// now check if something's arrived for me
 		int flags;
 		ltpaddr from;
