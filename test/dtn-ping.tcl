@@ -15,7 +15,7 @@
 #
 
 test::name dtn-ping
-net::num_nodes 3
+#net::num_nodes 3
 
 manifest::file apps/dtnping/dtnping dtnping
 
@@ -23,15 +23,25 @@ global num_pings
 set num_pings 10
 set clayer tcp
 set sched ltp.sched
+set timeout 5000
+set expiry 30
+
 foreach {var val} $opt(opts) {
     if {$var == "-n" } {
 	set num_pings $val
+
+    } elseif {$var == "-e" } {
+    set expiry $val
 	
     } elseif {$var == "-cl" } {
         set clayer $val
-   
+
     } elseif {$var == "-s" } {
 	set sched $val
+
+    } elseif {$var == "-t" } {
+    set timeout $val
+
 
     } else {
 	testlog error "ERROR: unrecognized test option '$var'"
@@ -48,6 +58,8 @@ test::script {
 	dtn::config_ltp_schedule $clayer $sched
 }
     global num_pings
+    global expiry
+    global timeout
     testlog "Running dtnds"
     dtn::run_dtnd *
 
@@ -63,7 +75,7 @@ test::script {
     for {set i $last_node} {$i >= 0} {incr i -1} {
 	testlog "Dtnping'ing from node $last_node to dtn://host-$i\
 	    for $num_pings pings (one per second)"
-	set pid [dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i/ping"]
+	set pid [dtn::run_app $last_node dtnping "-c $num_pings -e $expiry dtn://host-$i/ping"]
 	after [expr ($num_pings -1) * 1000]
 	run::wait_for_pid_exit $last_node $pid 30
     }
@@ -72,7 +84,7 @@ test::script {
 	testlog "Checking bundle stats on node $i"
 	dtn::wait_for_bundle_stats $i [list $num_pings "delivered" \
 		$num_pings "generated" \
-		[expr $num_pings + ($num_pings * 2 * $i)] "received"] 5000
+		[expr $num_pings + ($num_pings * 2 * $i)] "received"] $timeout
     }
     
     # Last node is the ping source so it *also* has N * num_pings
@@ -81,7 +93,7 @@ test::script {
     dtn::wait_for_bundle_stats $last_node [list \
 	    [expr $num_pings * (1 + $N)]  "delivered" \
 	    $num_pings "generated" \
-	    [expr $num_pings + ($num_pings * 2 * $last_node) ] "received"] 5000
+	    [expr $num_pings + ($num_pings * 2 * $last_node) ] "received"] $timeout
     
     testlog "Test success!"
 }

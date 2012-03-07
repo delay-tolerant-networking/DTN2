@@ -15,7 +15,7 @@
 #
 
 test::name dtn-perf
-net::num_nodes 3
+#net::num_nodes 3
 
 manifest::file apps/dtnperf/dtnperf-server dtnperf-server
 manifest::file apps/dtnperf/dtnperf-client dtnperf-client
