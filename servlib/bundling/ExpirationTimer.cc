@@ -39,6 +39,7 @@ ExpirationTimer::timeout(const struct timeval& now)
     bundleref_->set_expiration_timer(NULL);
     
     // post the expiration event
+    log_debug_p("/timer/expiration", "Bundle %d expired", bundleref_.object()->bundleid());
     BundleDaemon::post_at_head(new BundleExpiredEvent(bundleref_.object()));
 
     // clean ourselves up

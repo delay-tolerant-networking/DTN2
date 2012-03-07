@@ -2812,6 +2812,10 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 
     ASSERT(bundle->refcount() == 1);
     ASSERT(all_bundles_->contains(bundle));
+
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->begin_transaction();
+
     all_bundles_->erase(bundle);
     
     bundle->lock()->lock("BundleDaemon::handle_bundle_free");
@@ -2844,6 +2848,8 @@ BundleDaemon::handle_event(BundleEvent* event, bool closeTransaction)
         contactmgr_->handle_event(event);
     }
 
+    event_handlers_completed(event);
+
     if (closeTransaction) {
         oasys::DurableStore* ds = oasys::DurableStore::instance();
         if ( ds->is_transaction_open() ) {
@@ -2853,8 +2859,6 @@ BundleDaemon::handle_event(BundleEvent* event, bool closeTransaction)
     } else {
         log_debug("handle_event NOT closing transaction");
     }
-
-    event_handlers_completed(event);
 
     stats_.events_processed_++;
 
