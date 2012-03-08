@@ -74,8 +74,8 @@ test::script {
     testlog "Sending bundle"
     set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest length=$length]
     
-    testlog "Waiting for bundle arrival"
-    dtn::wait_for_bundle 0 "$source,$timestamp" 30
+    testlog "Waiting for arrival of bundle with size $length from source $source"
+    dtn::wait_for_bundle 0 "$source,$timestamp" 30 
 
     testlog "Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \

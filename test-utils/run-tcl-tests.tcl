@@ -118,34 +118,15 @@ set tests(ltp) {
 # Setup a test environment showing some bundles of various sizes (1k, 10k, 100K) 
 # being sent in both directions using the TCP-CL and the LTP-CL (red and green mode) 
 # with no added delay and no imposed errors
-
-#set tests(ltp_WP4200) {
-#    "dtn-ping.tcl"              "-n 1 -cl tcp"
-#    "send-one-bundle.tcl"       "-cl tcp -length 0"
-#    "send-one-bundle.tcl"       "-cl tcp -length 10"
-#    "send-one-bundle.tcl"       "-cl tcp -length 100"
-#    "send-one-bundle.tcl"       "-cl tcp -length 1000"
-#    "dtn-perf.tcl"              "-cl tcp -payload_len 1024B -perftime 30 -storage_type filesysdb"
-#    "dtn-perf.tcl"              "-cl tcp -payload_len 10240B -perftime 30 -storage_type filesysdb"
-#    "dtn-perf.tcl"              "-cl tcp -payload_len 10240B -perftime 30 -storage_type filesysdb"
-#    "dtn-ping.tcl"              "-n 1 -cl ltp"
-#    "dtn-ping.tcl"              "-n 1 -cl ltp -s ltp.sched"
-#    "send-one-bundle.tcl"       "-cl ltp -length 0"
-#    "send-one-bundle.tcl"       "-cl ltp -length 10"
-#    "send-one-bundle.tcl"       "-cl ltp -length 100"
-#    "send-one-bundle.tcl"       "-cl ltp -length 1000"
-#    "dtn-perf.tcl"              "-cl ltp -payload_len 1024B -perftime 30 -storage_type filesysdb"
-#    "dtn-perf.tcl"              "-cl ltp -payload_len 10240B -perftime 30 -storage_type filesysdb"
-#    "dtn-perf.tcl"              "-cl ltp -payload_len 10240B -perftime 30 -storage_type filesysdb"
-#
-#}
-
-#    "dtn-ping.tcl"              "-n 1 -cl ltp -s ltp.sched -num_nodes 2"
-
-#    "bidirectional.tcl"         "-cl ltp"O
-#    "custody-transfer.tcl"      "-cl ltp"
 set tests(ltp_WP4200) {
-    "dtn-ping.tcl"              "-n 2 -e 5000 -cl ltp -t 50000"
+    "dtn-ping.tcl"              "-n 1 -e 30 -cl tcp -t 999"
+    "send-one-bundle.tcl"       "-cl tcp -length 10"
+    "send-one-bundle.tcl"       "-cl tcp -length 100"
+    "send-one-bundle.tcl"       "-cl tcp -length 1000"
+    "dtn-ping.tcl"              "-n 1 -e 30 -cl ltp -t 999"
+    "send-one-bundle.tcl"       "-cl ltp -length 10"
+    "send-one-bundle.tcl"       "-cl ltp -length 100"
+    "send-one-bundle.tcl"       "-cl ltp -length 1000"
 }
 
 
