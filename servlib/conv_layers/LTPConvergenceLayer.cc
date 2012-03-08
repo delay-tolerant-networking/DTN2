@@ -541,6 +541,13 @@ void LTPConvergenceLayer::Receiver::run()
 
     int ret;
 	int rv;
+	// set local idea of who I am
+	rv=ltp_set_whoiam(&listener);
+	if (rv) { 
+		log_err("LTP ltp_set_whoiam failed.\n");
+		return;
+	}
+
     int s_sock=ltp_socket(AF_LTP,SOCK_LTP_SESSION,0);
     if (!s_sock) {
     	return;
