@@ -40,6 +40,7 @@ namespace dtn {
 Link::Params::Params()
     : mtu_(0),
 	  rg_(-1),
+	  ion_mode_(false),
       min_retry_interval_(5),
       max_retry_interval_(10 * 60),
       idle_close_time_(0),
@@ -315,6 +316,7 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
     p.addopt(new oasys::StringOpt("nexthop", &nexthop_));
     p.addopt(new oasys::UIntOpt("mtu", &params_.mtu_));
     p.addopt(new oasys::IntOpt("rg", &params_.rg_));
+    p.addopt(new oasys::BoolOpt("ion_mode", &params_.ion_mode_));
     p.addopt(new oasys::UIntOpt("min_retry_interval",
                                 &params_.min_retry_interval_));
     p.addopt(new oasys::UIntOpt("max_retry_interval",
@@ -622,6 +624,7 @@ Link::dump(oasys::StringBuffer* buf)
                  remote_eid_.c_str(),
                  params_.mtu_,
                  params_.rg_,
+                 params_.ion_mode_,
                  params_.min_retry_interval_,
                  params_.max_retry_interval_,
                  params_.idle_close_time_,

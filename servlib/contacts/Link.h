@@ -503,6 +503,11 @@ public:
 		 */
 		int rg_;
 
+		/**
+		 * ION mode for LTP links (outbound)
+		 * XXXSF This shouldn't be here but I'm not sure how to make it LTP specific - Stephen Farrell
+		 */
+		bool ion_mode_;
          
         /**
          * Minimum amount to wait between attempts to re-open the link

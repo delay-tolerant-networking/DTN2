@@ -72,6 +72,7 @@ public:
 		u_int16_t remote_port_;		//port to connect to
 		u_int16_t mtu_; // outbound MTU for link
 		int32_t rg_; // red/green setting, missing or -1 is allred, 0=allgreen, otherwise #red bytes
+		bool ion_mode_; // whether this is an outbound link to an ION instance, needed to force LTPlib to use short values
 	};
 	//struct to hold our default parameters
 	static Params defaults_;
@@ -115,6 +116,8 @@ protected:
 
 		int lrg;
 
+		bool lion_mode;
+
 	protected:
 		//lets process our incoming ltp segment
 		void process_data(u_char* bp, size_t len);
@@ -155,6 +158,7 @@ protected:
 		//ltp MTU to use for outbound DS/RS
 		int lmtu;
 		int lrg;
+		bool lion_mode;
 		
 		//our receive buffer size
 		int rxbufsize;

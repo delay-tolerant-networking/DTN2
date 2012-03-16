@@ -60,6 +60,7 @@ LTPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
     a->process("remote_port", &remote_port_);
 	a->process("mtu",&mtu_);
 	a->process("rg",&rg_);
+	a->process("ion_mode",&ion_mode_);
 }
 
 LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceLayer", "ltp")
@@ -70,6 +71,7 @@ LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceL
     defaults_.remote_port_              = 0;
     defaults_.mtu_              = 0;
     defaults_.rg_              = LTP_ALLRED;
+    defaults_.ion_mode_              = false;
 
 	ltp_inited=false;
 
@@ -89,6 +91,7 @@ LTPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
     p.addopt(new oasys::UInt16Opt("mtu", &params->mtu_));
     p.addopt(new oasys::IntOpt("rg", &params->rg_));
+    p.addopt(new oasys::BoolOpt("ion_mode", &params->ion_mode_));
 
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -207,6 +210,7 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
 
 	int lmtu=link->params().mtu_;
 	int lrg=link->params().rg_;
+	bool lion_mode=link->params().ion_mode_;
 
 	// initialise LTPlib
 	if (!ltp_inited) {
@@ -231,6 +235,7 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     params->local_port_ = 0;
     params->mtu_ = lmtu;
     params->rg_ = lrg;
+    params->ion_mode_ = lion_mode;
 
     const char* invalid;
     if (! parse_params(params, argc, argv, &invalid)) {
@@ -387,6 +392,7 @@ LTPConvergenceLayer::Receiver::Receiver(LTPConvergenceLayer::Params *params)
     s_sock = 0;
 	lmtu = params->mtu_;
 	lrg = params->rg_;
+	lion_mode = params->ion_mode_;
 
     // start our thread
 }
@@ -436,6 +442,7 @@ LTPConvergenceLayer::Sender::init(Params* params,
 
 	lmtu=params->mtu_;
 	lrg=params->rg_;
+	lion_mode = params->ion_mode_;
 
 	char *sstr=strdup(ltpaddr2str(&source));
 	char *dstr=strdup(ltpaddr2str(&dest));
@@ -509,6 +516,21 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 	} else {
 		log_debug("LTP Tx: not setting SO_RED 'cause its all red (%d)",lrg);
 	}
+
+	// setup ion mode if needed
+	if (lion_mode) {
+		bool tmp=true;
+		rv=ltp_setsockopt(sock,SOL_SOCKET,LTP_SO_ION,&tmp,sizeof(tmp));
+		if (rv) {
+			log_err("LTP ltp_setsockopt for SO_ION failed");
+			free(inbuf);
+			return(-1);
+		}
+		log_debug("LTP Tx: setting SO_ION 'cause it is ION_MODE");
+	} else {
+		log_debug("LTP Tx: not setting SO_ION 'cause its not ION_MODE");
+	}
+
 	///bind
 	rv = ltp_bind(sock,(ltpaddr*)&source,sizeof(source));
 	if (rv) { 
@@ -563,6 +585,19 @@ void LTPConvergenceLayer::Receiver::run()
 	} else {
 		log_debug("LTP Rx: not setting LTP mtu 'cause its %d",lmtu);
 	}
+
+	// setup ion mode if needed
+	if (lion_mode) {
+		rv=ltp_setsockopt(s_sock,SOL_SOCKET,LTP_SO_ION,&lion_mode,sizeof(lion_mode));
+		if (rv) {
+			log_err("LTP ltp_setsockopt for SO_ION failed");
+			return;
+		}
+		log_debug("LTP Tx: setting SO_ION 'cause it is ION_MODE");
+	} else {
+		log_debug("LTP Tx: not setting SO_ION 'cause its not ION_MODE");
+	}
+
 	rv=ltp_bind(s_sock,&listener,sizeof(ltpaddr));
 	if (rv) { 
 		ltp_close(s_sock); 
