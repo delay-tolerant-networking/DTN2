@@ -16,7 +16,8 @@
 
 
 /// TODO:
-/// - send/receipt of >1 bundle in one LTP block
+/// - test receipt of >1 bundle in one LTP block (code's there now)
+/// - sending >1 bundle in one LTP block
 /// - add LTP configuration file support with good defaults
 /// - figure out if anything leaks between LTPlib and DTN2
 /// - maybe try speed up UDP packet sending in LTPlib, probably a bit slow now 
@@ -755,6 +756,7 @@ void LTPConvergenceLayer::Receiver::run()
 				if (!s_sock) {
 					return;
 				}
+
 				// if the params mtu is set to other than zero then pass it on
 				if (lmtu > 0 ) {
 					log_debug("LTP Rx: setting LTP mtu to %d",lmtu);
@@ -766,6 +768,18 @@ void LTPConvergenceLayer::Receiver::run()
 				} else {
 					log_debug("LTP Rx: not setting LTP mtu 'cause its %d",lmtu);
 				}
+				// setup ion mode if needed
+				if (lion_mode) {
+					rv=ltp_setsockopt(s_sock,SOL_SOCKET,LTP_SO_ION,&lion_mode,sizeof(lion_mode));
+					if (rv) {
+						log_err("LTP ltp_setsockopt for SO_ION failed");
+						return;
+					}
+					log_debug("LTP Tx: setting SO_ION 'cause it is ION_MODE");
+				} else {
+					log_debug("LTP Tx: not setting SO_ION 'cause its not ION_MODE");
+				}
+
 				rv=ltp_bind(s_sock,&listener,sizeof(ltpaddr));
 				if (rv) { 
 					ltp_close(s_sock); 
@@ -792,19 +806,28 @@ void LTPConvergenceLayer::Receiver::run()
             break;
         } else if (ret>0) {
 			log_info("LTP ltp_recvfrom returned %d byte block\n",ret);
-    		// TODO: allow >1 bundle on receipt
+    		// allow >1 bundle on receipt
 			// get it off the stack - gotta hope the Bundle code
 			// properly manages the memory - TODO - check that out
 			// I might need to free it
     		// the payload should contain a full bundle
-    		Bundle* bundle = new Bundle();
-    		bool complete = false;
-    		int cc = BundleProtocol::consume(bundle, buf, ret, &complete);
-    		if (cc < 0 || !complete) {
-        		delete bundle;
-    		} else {
-				BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_PEER, ret, EndpointID::NULL_EID()));
-			}
+			// I can loop around the consume calls until all bytes are used up (I hope;-)
+			size_t remaining=ret;
+			unsigned char *bufp=buf;
+			bool problem=false;
+			while (!problem && remaining > 0 ) {
+    			Bundle* bundle = new Bundle();
+    			bool complete = false;
+    			int tmp = BundleProtocol::consume(bundle, bufp, remaining, &complete);
+    			if (tmp < 0 || !complete) {
+        			delete bundle;
+					problem=true;
+    			} else {
+					BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_PEER, ret, EndpointID::NULL_EID()));
+					bufp+=(remaining-tmp);
+					remaining=tmp;
+				}
+			} 
 			// need to close that socket since its now bound to that
 			// sender within LTPlib (its no longer an "emptylistener")
 			// TODO: have two sockets (at least) so I don't miss out on
@@ -815,6 +838,30 @@ void LTPConvergenceLayer::Receiver::run()
 			if (!s_sock) {
 				return;
 			}
+
+			// if the params mtu is set to other than zero then pass it on
+			if (lmtu > 0 ) {
+				log_debug("LTP Rx: setting LTP mtu to %d",lmtu);
+				rv=ltp_setsockopt(s_sock,SOL_SOCKET,LTP_SO_L2MTU,&lmtu,sizeof(lmtu));
+				if (rv) {
+					log_err("LTP ltp_setsockopt for SO_L2MTU failed.\n");
+					return;
+				}
+			} else {
+				log_debug("LTP Rx: not setting LTP mtu 'cause its %d",lmtu);
+			}
+			// setup ion mode if needed
+			if (lion_mode) {
+				rv=ltp_setsockopt(s_sock,SOL_SOCKET,LTP_SO_ION,&lion_mode,sizeof(lion_mode));
+				if (rv) {
+					log_err("LTP ltp_setsockopt for SO_ION failed");
+					return;
+				}
+				log_debug("LTP Tx: setting SO_ION 'cause it is ION_MODE");
+			} else {
+				log_debug("LTP Tx: not setting SO_ION 'cause its not ION_MODE");
+			}
+
 			rv=ltp_bind(s_sock,&listener,sizeof(ltpaddr));
 			if (rv) { 
 				ltp_close(s_sock); 
