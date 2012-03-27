@@ -98,6 +98,11 @@ GlobalStore::do_init(const oasys::StorageConfig& cfg,
 {
     int flags = 0;
 
+    // Global table has a single row using the (serialized) string key GLOBAL_KEY.
+    // Just tell the database its a variable length string since it doesn't have to do
+    // serious indexing.
+    flags = (0 & KEY_LEN_MASK) << KEY_LEN_SHIFT;
+
     if (cfg.init_) {
         flags |= oasys::DS_CREATE;
     }
@@ -275,7 +280,10 @@ GlobalStore::update()
     // make certain we don't attempt to write out globals before
     // load() has had a chance to load them from the database
     ASSERT(loaded_);
-    
+
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->begin_transaction();
+
     int err = store_->put(oasys::StringShim(GLOBAL_KEY), globals_, 0);
 
     if (err != 0) {

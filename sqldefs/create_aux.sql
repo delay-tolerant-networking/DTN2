@@ -34,11 +34,12 @@ DROP TABLE IF EXISTS bundles_aux;
 
 /* Create the auxiliary table */
 CREATE TABLE bundles_aux \
-	( the_key INTEGER UNSIGNED NOT NULL, \
+	( the_key BINARY(4) NOT NULL, \
 	  bundle_id INTEGER UNSIGNED DEFAULT NULL, \
 	  source_eid VARCHAR(2000), \
 	  dest_eid VARCHAR(2000), \
 	  payload_file VARCHAR(2000), \
 	  bpq_data VARCHAR(2000), \
-	  PRIMARY KEY (the_key));
+	  PRIMARY KEY (create_index));
+CREATE INDEX bundle_create ON bundles_aux (the_key);
 

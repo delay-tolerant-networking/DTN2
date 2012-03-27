@@ -41,6 +41,11 @@ public:
         return snprintf(buf, sz, "%s", c_str());
     }
 
+    // Used to indicate how big a field is needed for the key.
+    // Return is number of bytes needed where 0 means variable
+    //
+    static int shim_length() { return 0; }
+
     EndpointID value() const { return *this; }
 };
 
