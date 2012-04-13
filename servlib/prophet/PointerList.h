@@ -30,7 +30,7 @@ namespace prophet
 template<class T>
 class PointerList : public std::vector<T*>
 {
-public: 
+public:
     typedef std::vector<T*> List;
     typedef typename std::vector<T*>::iterator iterator;
     typedef typename std::vector<T*>::const_iterator const_iterator;
@@ -110,7 +110,7 @@ protected:
             i != a.end();
             i++)
         {
-            push_back(new T(**i));
+            this->push_back(new T(**i));
         }
     }
 }; // template PointerList<T>
