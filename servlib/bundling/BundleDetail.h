@@ -23,6 +23,12 @@
 
 #include "Bundle.h"
 
+#ifdef BPQ_ENABLED
+#include "BPQBlock.h"
+#endif /* BPQ_ENABLED */
+
+
+
 // This functionality is only useful with ODBC/SQL  data storage
 #ifdef LIBODBC_ENABLED
 
@@ -52,7 +58,7 @@ class BundleDetail : public oasys::StoreDetail
 		 * Dummy constructor used only when doing get_table.
 		 */
 		BundleDetail(const oasys::Builder&);
-	    ~BundleDetail() {}
+	    ~BundleDetail();
         //void serialize(oasys::SerializeAction *a)   { (void)a; } ///<Do not use
 	    /**
 	     * Hook for the generic durable table implementation to know what
@@ -63,10 +69,29 @@ class BundleDetail : public oasys::StoreDetail
 
     private:
 	    Bundle *		bundle_;			///< Bundle for which these details apply
+	    /*
+	     * These items are copies of items in the bundle as the private data from
+	     * the bundle isn't exposed and we need stores that are persistent between
+	     * method calls
+	     */
 	    u_int32_t		bundleid_;			///< ID of the above bundle
+		u_int64_t creation_time_;			///< UTC when (whole) bundle was created
+		u_int64_t creation_seq_;			///< Sequence number of bundle in creating node
+		size_t payload_length_;				///< Length of bundle payload (might be fragment)
+		u_int32_t fragment_offset_;			///< Offset of fragment (if it is one)
+		u_int32_t original_length_;			///< If a fragment, total length of bundle payload
+
+#ifdef BPQ_ENABLED
+		/*
+		 * These items come from the BPQ block if they are compiled in and there is one
+		 */
+		bool has_BPQ_blk_;
+		BPQBlock *bpq_blk_;					///< Copy of BPQ block
+        BPQBlock::kind_t bpq_kind_;			///< The kind of BPQ block
+        u_int bpq_matching_rule_;			///< The matching rule to apply
+#endif /* BPQ_ENABLED */
 
 };
-
 
 }  /* namespace dtn */
 

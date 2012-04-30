@@ -31,15 +31,32 @@
 
 /* Discard previous version if it exists */
 DROP TABLE IF EXISTS bundles_aux;
+DROP TABLE IF EXISTS bundles_del;
 
 /* Create the auxiliary table */
 CREATE TABLE bundles_aux \
 	( the_key BINARY(4) NOT NULL, \
 	  bundle_id INTEGER UNSIGNED DEFAULT NULL, \
+	  create_index INTEGER AUTO_INCREMENT, \
+	  creation_time BIGINT UNSIGNED DEFAULT NULL, \
+	  creation_seq BIGINT UNSIGNED DEFAULT NULL, \
 	  source_eid VARCHAR(2000), \
 	  dest_eid VARCHAR(2000), \
 	  payload_file VARCHAR(2000), \
-	  bpq_data VARCHAR(2000), \
+	  bundle_length INTEGER UNSIGNED DEFAULT NULL, \
+	  fragment_offset INTEGER UNSIGNED DEFAULT NULL, \
+	  fragment_length INTEGER UNSIGNED DEFAULT NULL, \
+	  bpq_kind SMALLINT UNSIGNED DEFAULT NULL, \
+	  bpq_matching_rule SMALLINT UNSIGNED DEFAULT NULL, \
+	  bpq_query VARCHAR(2000), \
+	  bpq_real_source VARCHAR(2000), \
 	  PRIMARY KEY (create_index));
 CREATE INDEX bundle_create ON bundles_aux (the_key);
+
+/* Create table to hold list of deleted bundles */
+CREATE TABLE bundles_del \
+	( create_index INTEGER AUTO_INCREMENT, \
+	  the_key INTEGER UNSIGNED NOT NULL, \
+	  bundle_id INTEGER UNSIGNED NOT NULL, \
+	  PRIMARY KEY (create_index));
 

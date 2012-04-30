@@ -39,8 +39,17 @@ BundleDetail::BundleDetail(Bundle				   *bndl,
 		bundle_(bndl)
 {
 	bundleid_ = bndl->bundleid();
+	creation_time_ = bndl->creation_ts().seconds_;
+	creation_seq_ = bndl->creation_ts().seqno_;
+	payload_length_ = bndl->payload().length();
+	log_debug("size of size_t: %d", sizeof(size_t));
+
 	add_detail("bundle_id",			oasys::DK_LONG,
 			   (void *)&bundleid_,	sizeof(int32_t));
+	add_detail("creation_time",		oasys::DK_ULONG_LONG,
+			   (void *)&creation_time_, sizeof(u_int64_t));
+	add_detail("creation_seq",		oasys::DK_ULONG_LONG,
+			   (void *)&creation_seq_, sizeof(u_int64_t));
 	add_detail("source_eid",		oasys::DK_VARCHAR,
 			   (void *)const_cast<char *>(bndl->source().c_str()),
 			   bndl->source().length());
@@ -54,6 +63,50 @@ BundleDetail::BundleDetail(Bundle				   *bndl,
 	} else {
 		add_detail("payload_file",	oasys::DK_VARCHAR,		(void *)"in_memory", 9);
 	}
+	if ( bndl->is_fragment()) {
+		fragment_offset_ = bndl->frag_offset();
+		original_length_ = bndl->orig_length();
+
+		add_detail("fragment_length",			oasys::DK_ULONG,
+				   (void *)&payload_length_,		sizeof(size_t));
+		add_detail("fragment_offset",			oasys::DK_ULONG,
+				   (void *)&fragment_offset_,	sizeof(u_int32_t));
+		add_detail("bundle_length",				oasys::DK_ULONG,
+				   (void *)&original_length_,	sizeof(u_int32_t));
+	} else {
+		add_detail("bundle_length",				oasys::DK_ULONG,
+				   (void *)&payload_length_,		sizeof(size_t));
+	}
+
+#ifdef BPQ_ENABLED
+	/* Check if bundle has a BPQ block */
+	has_BPQ_blk_ = false;
+    if( bndl->recv_blocks().
+        has_block(BundleProtocol::QUERY_EXTENSION_BLOCK) ||
+        const_cast<Bundle*>(bndl)->api_blocks()->
+                       has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
+
+        log_debug("bundle %d has BPQ block - adding details for BPQ", bundleid_);
+
+        bpq_blk_ = new BPQBlock(bndl);
+        has_BPQ_blk_ = true;
+        bpq_kind_ = bpq_blk_->kind();
+        bpq_matching_rule_ = bpq_blk_->matching_rule();
+
+		add_detail("bpq_kind",	oasys::DK_USHORT,
+				   (void *)&bpq_kind_, sizeof(BPQBlock::kind_t));
+		add_detail("bpq_matching_rule",	oasys::DK_USHORT,
+				   (void *)&bpq_matching_rule_, sizeof(u_int));
+		log_debug( "query: %s, src: %s", bpq_blk_->query_val(), bpq_blk_->source().c_str());
+		add_detail("bpq_query", oasys::DK_VARCHAR,
+				   (void *)const_cast<u_char *>(bpq_blk_->query_val()),
+				   bpq_blk_->query_len() - 1);
+		add_detail("bpq_real_source", oasys::DK_VARCHAR,
+				   (void *)const_cast<char *>(bpq_blk_->source().c_str()),
+				   bpq_blk_->source().length());
+    }
+
+#endif /* BPQ_ENABLED */
 }
 //----------------------------------------------------------------------
 BundleDetail::BundleDetail(const oasys::Builder&) :    
@@ -61,6 +114,19 @@ BundleDetail::BundleDetail(const oasys::Builder&) :
 		bundle_(NULL)
 {
 	bundleid_ = 0xFFFFFFFF;
+#ifdef BPQ_ENABLED
+	has_BPQ_blk_ = false;
+#endif /* BPQ_ENABLED */
+}
+//----------------------------------------------------------------------
+BundleDetail::~BundleDetail()
+{
+#ifdef BPQ_ENABLED
+	if (has_BPQ_blk_)
+	{
+		delete bpq_blk_;
+	}
+#endif /* BPQ_ENABLED */
 }
 //----------------------------------------------------------------------
 }  /* namespace dtn */

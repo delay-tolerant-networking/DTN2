@@ -67,9 +67,10 @@ CREATE TRIGGER bundle_insert_trigger AFTER INSERT ON bundles \
 
 CREATE TRIGGER bundle_delete_trigger BEFORE DELETE ON bundles \
 	FOR EACH ROW BEGIN \
+		INSERT INTO bundles_del (the_key, bundle_id) VALUES (OLD.the_key, \
+			( SELECT bundle_id FROM bundles_aux WHERE the_key = OLD.the_key )); \
 		DELETE FROM bundles_aux WHERE the_key = OLD.the_key; \
 	END; \
 --|
 
 --DELIMITER ;
-
