@@ -653,8 +653,6 @@ Link::dump(oasys::StringBuffer* buf)
                  "nexthop: %s\n"
                  "remote eid: %s\n"
                  "mtu: %u\n"
-                 "rg: %d\n"
-                 "ion_mode %s\n"
                  "min_retry_interval: %u\n"
                  "max_retry_interval: %u\n"
                  "idle_close_time: %u\n"
@@ -670,8 +668,6 @@ Link::dump(oasys::StringBuffer* buf)
                  nexthop(),
                  remote_eid_.c_str(),
                  params_.mtu_,
-                 params_.rg_,
-                 params_.ion_mode_ ? "true" : "false",
                  params_.min_retry_interval_,
                  params_.max_retry_interval_,
                  params_.idle_close_time_,
