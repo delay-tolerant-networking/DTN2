@@ -35,9 +35,8 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
 				"(default is berkeleydb).\n"
 		"	valid options:\n"
 		"			berkeleydb\n"
-		"			odbc\n"
-		"			mysql\n"
-		"			postgres\n"
+		"			odbc-mysql\n"
+		"			odbc-sqlite\n"
 		"			external\n"
 		"			memorydb\n"
 		"			filesysdb"));    
@@ -172,6 +171,22 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
 				"write broken out fields from stored items into "
 				"auxiliary database table(s) in ODBC/SQL DBs (default false)\n"
 		"	valid options:	true or false"));
+
+    bind_var(new oasys::StringOpt("odbc_schema_pre_creation", &cfg->odbc_schema_pre_creation_,
+                                  "pathname", "File containing SQL Commands "
+                                  "to initialize database schema before main tables created.\n"
+		"	valid options:	filename"));
+
+    bind_var(new oasys::StringOpt("odbc_schema_post_creation", &cfg->odbc_schema_post_creation_,
+                                  "pathname", "File containing SQL Commands "
+                                  "to initialize database schema after main tables created.\n"
+		"	valid options:	filename"));
+
+    bind_var(new oasys::UInt16Opt("odbc_mysql_keep_alive_interval",
+    		 &cfg->odbc_mysql_keep_alive_interval_, "num",
+			 "set interval in minutes between keep alive pings to "
+			 "MySQL server to avoid connections being terminated (default 10)\n"
+    		 "	valid options:	positive integer"));
 
     add_to_help("usage", "print the current storage usage");
 }
