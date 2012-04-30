@@ -61,6 +61,15 @@ public:
     bool add_new_link(const LinkRef & link);
 
     /**
+     * Record old link information read from datastore. Used to check that link names
+     * are consistent between runs of server so that recorded forwarding logs make sense.
+     * The 'links' in this set are not active - they are only used to check the information
+     * held about the link with prospective new links to ensure consistency. They can
+     * all be of the base class variety - no need to worry about using sub-classes.
+     */
+    void add_previous_link(const LinkRef& link);
+
+    /**
      * Delete a link
      */
     void del_link(const LinkRef& link, bool wait = false,
@@ -83,7 +92,12 @@ public:
     LinkRef find_link(const char* name);
 
     /**
-     * Helper routine to find a link based on criteria:
+     * Finds preeviously existing link corresponding to this name
+     */
+    LinkRef find_previous_link(const char* name);
+
+    /**
+     * Helper routine to find a current link based on criteria:
      *
      * @param cl 	 The convergence layer
      * @param nexthop	 The next hop string
@@ -100,10 +114,54 @@ public:
                          u_int states = 0xffffffff);
     
     /**
+     * Helper routine to find a link that existed in a prior run based on criteria:
+     *
+     * @param cl 	 The convergence layer
+     * @param nexthop	 The next hop string
+     * @param remote_eid Remote endpoint id (NULL_EID for any)
+     * @param type	 Link type (LINK_INVALID for any)
+     * @param states	 Bit vector of legal link states, e.g. ~(OPEN | OPENING)
+     *
+     * @return The link if it matches or NULL if there's no match
+     */
+    LinkRef find_previous_link_to(ConvergenceLayer* cl,
+								  const std::string& nexthop,
+								  const EndpointID& remote_eid = EndpointID::NULL_EID(),
+								  Link::link_type_t type = Link::LINK_INVALID,
+								  u_int states = 0xffffffff);
+
+    /**
+     * Routine to check if usage of a newly created link name is consistent
+     * with its previous usage so that forwarding log entries remain meaningful.
+     */
+    bool consistent_with_previous_usage(const LinkRef& link, bool *reincarnation);
+
+    /**
+     * Routine to check if links created by configuration file are consistent
+     * with previous usage so that forwarding log entries remain meaningful.
+     * This can't be done immediately on creation because the persistent storage
+     * hasn't been initialized.  However the link creation hasn't been completed
+     * because the event loop is not yet running.  This catches any inconsistencies
+     * once previous_links_ has been loaded during BundleDaemon::run startup.
+     */
+    void config_links_consistent(void);
+
+    /**
+     * Reincarnate any non-OPPORTUNISTIC links not set up by configuration file
+     */
+    void reincarnate_links(void);
+
+    /**
      * Return the list of links. Asserts that the CM spin lock is held
      * by the caller.
      */
     const LinkSet* links();
+
+    /**
+     * Return the reloaded list of links reloaded from previous runs.
+     * Lock is not essential here.
+     */
+    const LinkSet* previous_links();
 
     /**
      * Accessor for the ContactManager internal lock.
@@ -161,8 +219,28 @@ public:
     
 protected:
     
+    /**
+     * Helper routine to find a link based on criteria:
+     *
+     * @param link_set links_ or previous_links_
+     * @param cl 	 The convergence layer
+     * @param nexthop	 The next hop string
+     * @param remote_eid Remote endpoint id (NULL_EID for any)
+     * @param type	 Link type (LINK_INVALID for any)
+     * @param states	 Bit vector of legal link states, e.g. ~(OPEN | OPENING)
+     *
+     * @return The link if it matches or NULL if there's no match
+     */
+    LinkRef find_any_link_to(LinkSet * link_set,
+							 ConvergenceLayer* cl,
+							 const std::string& nexthop,
+							 const EndpointID& remote_eid = EndpointID::NULL_EID(),
+							 Link::link_type_t type = Link::LINK_INVALID,
+							 u_int states = 0xffffffff);
+
     LinkSet* links_;			///< Set of all links
     int opportunistic_cnt_;		///< Counter for opportunistic links
+    LinkSet* previous_links_;	///< Set of links used in prior runs of daemon
 
     /**
      * Reopen a broken link.
@@ -194,6 +272,9 @@ protected:
      * Lock to protect internal data structures.
      */
     mutable oasys::SpinLock lock_;
+
+    friend class LinkCommand;
+
 };
 
 

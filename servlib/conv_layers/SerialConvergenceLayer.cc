@@ -46,6 +46,19 @@ SerialConvergenceLayer::SerialLinkParams::SerialLinkParams(bool init_defaults)
 }
 
 //----------------------------------------------------------------------
+void
+SerialConvergenceLayer::SerialLinkParams::serialize(oasys::SerializeAction *a)
+{
+	log_debug_p("SerialLinkParams", "SerialLinkParams::serialize");
+	StreamConvergenceLayer::StreamLinkParams::serialize(a);
+	a->process("hexdump", &hexdump_);
+	a->process("initstr", &initstr_);
+	a->process("ispeed", &ispeed_);
+	a->process("ospeed", &ospeed_);
+    a->process("sync_interval", &sync_interval_);
+}
+
+//----------------------------------------------------------------------
 SerialConvergenceLayer::SerialConvergenceLayer()
     : StreamConvergenceLayer("SerialConvergenceLayer", "serial",
                              SERIALCL_VERSION)
@@ -53,7 +66,7 @@ SerialConvergenceLayer::SerialConvergenceLayer()
 }
 
 //----------------------------------------------------------------------
-ConnectionConvergenceLayer::LinkParams*
+CLInfo*
 SerialConvergenceLayer::new_link_params()
 {
     return new SerialLinkParams(default_link_params_);

@@ -36,6 +36,7 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 bool ExternalConvergenceLayer::client_validation_ = true;
 std::string ExternalConvergenceLayer::schema_ = "";
 in_addr_t ExternalConvergenceLayer::server_addr_ = inet_addr("127.0.0.1");
@@ -44,6 +45,7 @@ bool ExternalConvergenceLayer::create_discovered_links_ = false;
 bool ExternalConvergenceLayer::discovered_prev_hop_header_ = false;
 xml_schema::namespace_infomap ExternalConvergenceLayer::namespace_map_;
 
+//----------------------------------------------------------------------
 ExternalConvergenceLayer::ExternalConvergenceLayer() :
 ConvergenceLayer("ExternalConvergenceLayer", "extcl"),
 global_resource_lock_("/dtn/cl/parts/global_resource_lock"),
@@ -54,11 +56,13 @@ listener_(*this)
 
 }
 
+//----------------------------------------------------------------------
 ExternalConvergenceLayer::~ExternalConvergenceLayer()
 {
 
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::start()
 {
@@ -79,6 +83,7 @@ ExternalConvergenceLayer::start()
     listener_.start();
 }
 
+//----------------------------------------------------------------------
 bool 
 ExternalConvergenceLayer::set_cla_parameters(AttributeVector &params)
 {
@@ -122,6 +127,7 @@ ExternalConvergenceLayer::set_cla_parameters(AttributeVector &params)
     return true;
 }
 
+//----------------------------------------------------------------------
 bool 
 ExternalConvergenceLayer::set_interface_defaults(int argc, const char* argv[],
                                                  const char** invalidp)
@@ -169,6 +175,7 @@ ExternalConvergenceLayer::set_interface_defaults(int argc, const char* argv[],
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 ExternalConvergenceLayer::interface_up(Interface* iface, int argc,
                                        const char* argv[])
@@ -234,6 +241,7 @@ ExternalConvergenceLayer::interface_up(Interface* iface, int argc,
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 ExternalConvergenceLayer::interface_down(Interface* iface)
 {
@@ -255,6 +263,7 @@ ExternalConvergenceLayer::interface_down(Interface* iface)
     return true;
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::dump_interface(Interface* iface,
                                          oasys::StringBuffer* buf)
@@ -276,6 +285,7 @@ ExternalConvergenceLayer::dump_interface(Interface* iface,
     }
 }
 
+//----------------------------------------------------------------------
 bool 
 ExternalConvergenceLayer::set_link_defaults(int argc, const char* argv[],
                                             const char** invalidp)
@@ -343,6 +353,7 @@ ExternalConvergenceLayer::set_link_defaults(int argc, const char* argv[],
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 ExternalConvergenceLayer::init_link(const LinkRef& link,
                                     int argc, const char* argv[])
@@ -445,6 +456,7 @@ ExternalConvergenceLayer::init_link(const LinkRef& link,
     return true;
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::delete_link(const LinkRef& link)
 {
@@ -492,6 +504,7 @@ ExternalConvergenceLayer::delete_link(const LinkRef& link)
     POST_MESSAGE(resource->module_, link_delete_request, request); 
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::dump_link(const LinkRef& link,
                                     oasys::StringBuffer* buf)
@@ -531,7 +544,9 @@ ExternalConvergenceLayer::dump_link(const LinkRef& link,
     }
 }
 
-bool ExternalConvergenceLayer::reconfigure_link(const LinkRef& link, int argc,
+//----------------------------------------------------------------------
+bool
+ExternalConvergenceLayer::reconfigure_link(const LinkRef& link, int argc,
                                                 const char* argv[])
 {
     bool reactive_fragment;
@@ -663,6 +678,7 @@ bool ExternalConvergenceLayer::reconfigure_link(const LinkRef& link, int argc,
     return true;
 }    
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::reconfigure_link(const LinkRef& link,
                                            AttributeVector& params)
@@ -719,6 +735,7 @@ ExternalConvergenceLayer::reconfigure_link(const LinkRef& link,
     POST_MESSAGE(resource->module_, link_reconfigure_request, request); 
 }
 
+//----------------------------------------------------------------------
 bool
 ExternalConvergenceLayer::open_contact(const ContactRef& contact)
 {
@@ -771,6 +788,7 @@ ExternalConvergenceLayer::open_contact(const ContactRef& contact)
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 ExternalConvergenceLayer::close_contact(const ContactRef& contact)
 {
@@ -814,6 +832,7 @@ ExternalConvergenceLayer::close_contact(const ContactRef& contact)
     return true;
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)   
 {
@@ -878,6 +897,7 @@ ExternalConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bu
 //     }
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, const BundleRef& bundle)
 {
@@ -925,6 +945,7 @@ ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, const BundleRef& bu
     return;
 }
 
+//----------------------------------------------------------------------
 bool 
 ExternalConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
 {
@@ -952,6 +973,7 @@ ExternalConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
     return resource->has_outgoing_bundle(bundle);
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::is_eid_reachable(const std::string& query_id,
                                            Interface* iface,
@@ -978,6 +1000,7 @@ ExternalConvergenceLayer::is_eid_reachable(const std::string& query_id,
     POST_MESSAGE(resource->module_, query_eid_reachable, query);
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::query_link_attributes(const std::string& query_id,
                                                 const LinkRef& link,
@@ -1019,6 +1042,7 @@ ExternalConvergenceLayer::query_link_attributes(const std::string& query_id,
     POST_MESSAGE(resource->module_, query_link_attributes, query);
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::query_iface_attributes(const std::string& query_id, 
                                         Interface* iface,
@@ -1048,6 +1072,7 @@ ExternalConvergenceLayer::query_iface_attributes(const std::string& query_id,
     POST_MESSAGE(resource->module_, query_interface_attributes, query);
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::query_cla_parameters(const std::string& query_id,
                                          const AttributeNameVector& parameters)
@@ -1095,6 +1120,7 @@ ExternalConvergenceLayer::query_cla_parameters(const std::string& query_id,
     POST_MESSAGE(module, query_cla_parameters, query);
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::shutdown() 
 {
@@ -1107,6 +1133,14 @@ ExternalConvergenceLayer::shutdown()
     }
 }
 
+//----------------------------------------------------------------------
+CLInfo*
+ExternalConvergenceLayer::new_link_params()
+{
+    return new ECLResource(std::string(""), NULL);
+}
+
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::add_module(ECLModule* module)
 {
@@ -1114,6 +1148,7 @@ ExternalConvergenceLayer::add_module(ECLModule* module)
     module_list_.push_back(module);
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::remove_module(ECLModule* module)
 {
@@ -1130,6 +1165,7 @@ ExternalConvergenceLayer::remove_module(ECLModule* module)
     }
 }
 
+//----------------------------------------------------------------------
 ECLModule*
 ExternalConvergenceLayer::get_module(const std::string& name)
 {
@@ -1147,6 +1183,7 @@ ExternalConvergenceLayer::get_module(const std::string& name)
     return NULL;
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::add_resource(ECLResource* resource)
 {
@@ -1154,6 +1191,7 @@ ExternalConvergenceLayer::add_resource(ECLResource* resource)
     resource_list_.push_back(resource);
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::build_param_sequence(int argc, const char* argv[],
         KeyValueSequence& param_sequence)
@@ -1175,6 +1213,7 @@ ExternalConvergenceLayer::build_param_sequence(int argc, const char* argv[],
     }
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::fill_bundle_attributes(const BundleRef& bundle,
                                                  bundle_attributes& attribs)
@@ -1195,6 +1234,7 @@ ExternalConvergenceLayer::fill_bundle_attributes(const BundleRef& bundle,
     }
 }
 
+//----------------------------------------------------------------------
 std::list<ECLResource*>
 ExternalConvergenceLayer::take_resources(std::string name)
 {
@@ -1220,6 +1260,7 @@ ExternalConvergenceLayer::take_resources(std::string name)
     return new_list;
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::delete_resource(ECLResource* resource)
 {
@@ -1228,6 +1269,7 @@ ExternalConvergenceLayer::delete_resource(ECLResource* resource)
     delete resource;
 }    
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::give_resources(std::list<ECLInterfaceResource*>& list)
 {
@@ -1250,6 +1292,7 @@ ExternalConvergenceLayer::give_resources(std::list<ECLInterfaceResource*>& list)
     list.clear();
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::give_resources(LinkHashMap& list)
 {
@@ -1280,6 +1323,7 @@ ExternalConvergenceLayer::give_resources(LinkHashMap& list)
     list.clear();
 }
 
+//----------------------------------------------------------------------
 ExternalConvergenceLayer::Listener::Listener(ExternalConvergenceLayer& cl)
     : TCPServerThread("ExternalConvergenceLayer::Listener",
                       "/dtn/cl/Listener"),
@@ -1289,11 +1333,13 @@ ExternalConvergenceLayer::Listener::Listener(ExternalConvergenceLayer& cl)
     set_logfd(false);
 }
 
+//----------------------------------------------------------------------
 ExternalConvergenceLayer::Listener::~Listener()
 {
 
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::Listener::start()
 {
@@ -1304,6 +1350,7 @@ ExternalConvergenceLayer::Listener::start()
             log_err("Listener thread failed to start");
 }
 
+//----------------------------------------------------------------------
 void
 ExternalConvergenceLayer::Listener::accepted(int fd, in_addr_t addr,
                                              u_int16_t port)
@@ -1324,6 +1371,14 @@ ExternalConvergenceLayer::Listener::accepted(int fd, in_addr_t addr,
 }
 
 
+//----------------------------------------------------------------------
+void
+ECLResource::serialize(oasys::SerializeAction *a)
+{
+    a->process("protocol", &protocol_);
+}
+
+//----------------------------------------------------------------------
 ECLLinkResource::ECLLinkResource(std::string p, clmessage::cl_message* create,
                                  const LinkRef& l, bool disc) :
     ECLResource(p, create),
@@ -1336,11 +1391,13 @@ ECLLinkResource::ECLLinkResource(std::string p, clmessage::cl_message* create,
     low_water_mark_ = 0;
 }
 
+//----------------------------------------------------------------------
 void
 ECLLinkResource::add_outgoing_bundle(Bundle* bundle) {
     outgoing_bundles_.push_back(bundle);
 }
 
+//----------------------------------------------------------------------
 BundleRef
 ECLLinkResource::get_outgoing_bundle(clmessage::bundle_attributes bundle_attribs)
 {
@@ -1365,18 +1422,21 @@ ECLLinkResource::get_outgoing_bundle(clmessage::bundle_attributes bundle_attribs
     return outgoing_bundles_.find(gbof_id);
 }
 
+//----------------------------------------------------------------------
 bool
 ECLLinkResource::has_outgoing_bundle(Bundle* bundle)
 {
     return outgoing_bundles_.contains(bundle);
 }
 
+//----------------------------------------------------------------------
 bool
 ECLLinkResource::erase_outgoing_bundle(Bundle* bundle)
 {
     return outgoing_bundles_.erase(bundle);
 }
 
+//----------------------------------------------------------------------
 BundleList&
 ECLLinkResource::get_bundle_set() 
 {
@@ -1384,6 +1444,7 @@ ECLLinkResource::get_bundle_set()
 }
 
 
+//----------------------------------------------------------------------
 clmessage::linkTypeType
 XMLConvert::convert_link_type(Link::link_type_t type)
 {
@@ -1399,6 +1460,7 @@ XMLConvert::convert_link_type(Link::link_type_t type)
     return linkTypeType();
 }
 
+//----------------------------------------------------------------------
 Link::link_type_t
 XMLConvert::convert_link_type(clmessage::linkTypeType type)
 {
@@ -1413,6 +1475,7 @@ XMLConvert::convert_link_type(clmessage::linkTypeType type)
     return Link::LINK_INVALID;
 }
 
+//----------------------------------------------------------------------
 Link::state_t 
 XMLConvert::convert_link_state(clmessage::linkStateType state) 
 {
@@ -1430,6 +1493,7 @@ XMLConvert::convert_link_state(clmessage::linkStateType state)
     return Link::CLOSED;
 }
 
+//----------------------------------------------------------------------
 ContactEvent::reason_t
 XMLConvert::convert_link_reason(clmessage::linkReasonType reason)
 {

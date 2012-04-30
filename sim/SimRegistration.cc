@@ -36,7 +36,7 @@ namespace dtnsim {
 
 SimRegistration::SimRegistration(Node* node, const EndpointID& endpoint)
     : Registration(GlobalStore::instance()->next_regid(),
-                   endpoint, DEFER, 0, 0), node_(node)
+                   endpoint, DEFER, 0, 10000), node_(node)
 {
     logpathf("/reg/%s/%d", node->name(), regid_);
 

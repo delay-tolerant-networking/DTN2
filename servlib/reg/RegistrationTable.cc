@@ -165,13 +165,18 @@ RegistrationTable::del(u_int32_t regid)
         return false;
     }
 
+    reglist_.erase(iter);
+
+    // Store (or log) default registrations and not pushed to persistent store
+    if (regid <= Registration::MAX_RESERVED_REGID) {
+        return true;
+    }
+
     if (! RegistrationStore::instance()->del(regid)) {
         log_err("error removing registration %d: error in persistent store",
                 regid);
         return false;
     }
-
-    reglist_.erase(iter);
 
     return true;
 }

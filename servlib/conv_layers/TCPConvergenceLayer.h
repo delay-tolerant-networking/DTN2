@@ -58,6 +58,11 @@ public:
      */
     class TCPLinkParams : public StreamLinkParams {
     public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize( oasys::SerializeAction *);
+
         bool      hexdump_;		///< Log a hexdump of all traffic
         in_addr_t local_addr_;		///< Local address to bind to
         in_addr_t remote_addr_;		///< Peer address used for rcvr-connect
@@ -83,8 +88,8 @@ protected:
     void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     /// @}
     
-    /// @{ Virtual from ConnectionConvergenceLayer
-    virtual LinkParams* new_link_params();
+    /// @{ Virtual from ConvergenceLayer
+    virtual CLInfo* new_link_params();
     virtual bool parse_link_params(LinkParams* params,
                                    int argc, const char** argv,
                                    const char** invalidp);

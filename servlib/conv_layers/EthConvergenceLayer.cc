@@ -48,7 +48,18 @@
 using namespace oasys;
 namespace dtn {
 
+/******************************************************************************
+ *
+ * EthConvergenceLayer::Params
+ *
+ *****************************************************************************/
 struct EthConvergenceLayer::Params EthConvergenceLayer::defaults_;
+
+void
+EthConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
+{
+	a->process("beacon_interval", &beacon_interval_);
+}
 
 /******************************************************************************
  *
@@ -62,6 +73,14 @@ EthConvergenceLayer::EthConvergenceLayer()
     defaults_.beacon_interval_          = 1;
 }
 
+//----------------------------------------------------------------------
+CLInfo*
+EthConvergenceLayer::new_link_params()
+{
+    return new EthConvergenceLayer::Params(EthConvergenceLayer::defaults_);
+}
+
+//----------------------------------------------------------------------
 /**
  * Parse variable args into a parameter structure.
  */
@@ -81,6 +100,7 @@ EthConvergenceLayer::parse_params(Params* params,
     return true;
 }
 
+//----------------------------------------------------------------------
 /* 
  *   Start listening to, and sending beacons on, the provided interface.
  *
@@ -124,6 +144,7 @@ EthConvergenceLayer::interface_up(Interface* iface,
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 EthConvergenceLayer::interface_down(Interface* iface)
 {
@@ -149,6 +170,7 @@ EthConvergenceLayer::interface_down(Interface* iface)
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 EthConvergenceLayer::open_contact(const ContactRef& contact)
 {
@@ -179,6 +201,7 @@ EthConvergenceLayer::open_contact(const ContactRef& contact)
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 EthConvergenceLayer::close_contact(const ContactRef& contact)
 {  
@@ -194,6 +217,7 @@ EthConvergenceLayer::close_contact(const ContactRef& contact)
     return true;
 }
 
+//----------------------------------------------------------------------
 void
 EthConvergenceLayer::delete_link(const LinkRef& link)
 {
@@ -209,6 +233,7 @@ EthConvergenceLayer::delete_link(const LinkRef& link)
     }
 }
 
+//----------------------------------------------------------------------
 /**
  * Send bundles queued up for the contact.
  */
@@ -230,6 +255,7 @@ EthConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
     sender->send_bundle(bundle);
 }
 
+//----------------------------------------------------------------------
 bool
 EthConvergenceLayer::is_queued(const LinkRef& contact, Bundle* bundle)
 {
@@ -256,6 +282,7 @@ EthConvergenceLayer::Receiver::Receiver(const char* if_name,
     (void)params;
 }
 
+//----------------------------------------------------------------------
 void
 EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 {
@@ -405,6 +432,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     }
 }
 
+//----------------------------------------------------------------------
 void
 EthConvergenceLayer::Receiver::run()
 {
@@ -518,6 +546,7 @@ EthConvergenceLayer::Sender::Sender(char* if_name,
     }
 }
         
+//----------------------------------------------------------------------
 /* 
  * Send one bundle.
  */
@@ -607,6 +636,7 @@ EthConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
     return ok;
 }
 
+//----------------------------------------------------------------------
 EthConvergenceLayer::Beacon::Beacon(const char* if_name,
                                     unsigned int beacon_interval)
   : Logger("EthConvergenceLayer::Beacon", "/dtn/cl/eth/beacon"),
@@ -618,6 +648,7 @@ EthConvergenceLayer::Beacon::Beacon(const char* if_name,
     beacon_interval_ = beacon_interval;
 }
 
+//----------------------------------------------------------------------
 void EthConvergenceLayer::Beacon::run()
 {
     // ethernet broadcast address
@@ -703,6 +734,7 @@ void EthConvergenceLayer::Beacon::run()
     }
 }
 
+//----------------------------------------------------------------------
 EthConvergenceLayer::BeaconTimer::BeaconTimer(char * next_hop)
     :  Logger("EthConvergenceLayer::BeaconTimer", "/dtn/cl/eth/beacontimer")
 {
@@ -710,11 +742,13 @@ EthConvergenceLayer::BeaconTimer::BeaconTimer(char * next_hop)
     strcpy(next_hop_, next_hop);
 }
 
+//----------------------------------------------------------------------
 EthConvergenceLayer::BeaconTimer::~BeaconTimer()
 {
     free(next_hop_);
 }
 
+//----------------------------------------------------------------------
 void
 EthConvergenceLayer::BeaconTimer::timeout(const struct timeval& now)
 {
@@ -739,6 +773,7 @@ EthConvergenceLayer::BeaconTimer::timeout(const struct timeval& now)
     }
 }
 
+//----------------------------------------------------------------------
 Timer *
 EthConvergenceLayer::BeaconTimer::copy()
 {

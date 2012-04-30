@@ -121,6 +121,7 @@ public:
 protected:
     bool parse_params(Params* params, int argc, const char** argv,
                       const char** invalidp);
+    virtual CLInfo* new_link_params();
     /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.

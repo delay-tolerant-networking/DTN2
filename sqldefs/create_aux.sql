@@ -57,6 +57,6 @@ CREATE INDEX bundle_create ON bundles_aux (the_key);
 CREATE TABLE bundles_del \
 	( create_index INTEGER AUTO_INCREMENT, \
 	  the_key INTEGER UNSIGNED NOT NULL, \
-	  bundle_id INTEGER UNSIGNED NOT NULL, \
+	  bundle_id INTEGER UNSIGNED, \
 	  PRIMARY KEY (create_index));
 

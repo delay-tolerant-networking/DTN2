@@ -52,18 +52,7 @@ namespace dtn{
 
 struct LTPConvergenceLayer::Params LTPConvergenceLayer::defaults_;
 
-void
-LTPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
-{
-    a->process("local_addr", oasys::InAddrPtr(&local_addr_));
-    a->process("remote_addr", oasys::InAddrPtr(&remote_addr_));
-    a->process("local_port", &local_port_);
-    a->process("remote_port", &remote_port_);
-	a->process("mtu",&mtu_);
-	a->process("rg",&rg_);
-	a->process("ion_mode",&ion_mode_);
-}
-
+//----------------------------------------------------------------------
 LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceLayer", "ltp")
 {
     defaults_.local_addr_               = INADDR_ANY;
@@ -78,7 +67,27 @@ LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceL
 
 }
 
+//----------------------------------------------------------------------
+void
+LTPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
+{
+    a->process("local_addr", oasys::InAddrPtr(&local_addr_));
+    a->process("remote_addr", oasys::InAddrPtr(&remote_addr_));
+    a->process("local_port", &local_port_);
+    a->process("remote_port", &remote_port_);
+	a->process("mtu",&mtu_);
+	a->process("rg",&rg_);
+	a->process("ion_mode",&ion_mode_);
+}
 
+//----------------------------------------------------------------------
+CLInfo*
+LTPConvergenceLayer::new_link_params()
+{
+    return new LTPConvergenceLayer::Params(defaults_);
+}
+
+//----------------------------------------------------------------------
 bool
 LTPConvergenceLayer::parse_params(Params* params,
                                   int argc, const char** argv,
@@ -112,6 +121,7 @@ LTPConvergenceLayer::parse_params(Params* params,
     return true;
 };
 
+//----------------------------------------------------------------------
 bool
 LTPConvergenceLayer::interface_up(Interface* iface,
                                   int argc, const char* argv[])
@@ -167,6 +177,7 @@ LTPConvergenceLayer::interface_up(Interface* iface,
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 LTPConvergenceLayer::interface_down(Interface* iface)
 {
@@ -180,6 +191,7 @@ LTPConvergenceLayer::interface_down(Interface* iface)
     return true;
 }
 
+//----------------------------------------------------------------------
 void
 LTPConvergenceLayer::dump_interface(Interface* iface,
                                     oasys::StringBuffer* buf)
@@ -197,6 +209,7 @@ LTPConvergenceLayer::dump_interface(Interface* iface,
     }
 }
 
+//----------------------------------------------------------------------
 bool
 LTPConvergenceLayer::init_link(const LinkRef& link,
                                int argc, const char* argv[])
@@ -412,24 +425,28 @@ LTPConvergenceLayer::Receiver::Receiver(LTPConvergenceLayer::Params *params)
 }
 
 //----------------------------------------------------------------------
-void LTPConvergenceLayer::Receiver::set_should_stop() {
+void
+LTPConvergenceLayer::Receiver::set_should_stop() {
 	should_stop_ = true;
 }
 
-bool LTPConvergenceLayer::Receiver::should_stop() {
+//----------------------------------------------------------------------
+bool
+LTPConvergenceLayer::Receiver::should_stop() {
 	return should_stop_;
 }
 
-void LTPConvergenceLayer::Receiver::set_sock(int sockval) {
+//----------------------------------------------------------------------
+void
+LTPConvergenceLayer::Receiver::set_sock(int sockval) {
 	s_sock = sockval;
 }
 
-int LTPConvergenceLayer::Receiver::get_sock() {
+//----------------------------------------------------------------------
+int
+LTPConvergenceLayer::Receiver::get_sock() {
 	return s_sock;
 }
-
-//----------------------------------------------------------------------
-
 
 //----------------------------------------------------------------------
 LTPConvergenceLayer::Sender::Sender(const ContactRef& contact)
@@ -572,7 +589,9 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 }
 
 
-void LTPConvergenceLayer::Receiver::run() 
+//----------------------------------------------------------------------
+void
+LTPConvergenceLayer::Receiver::run()
 {
 
     int ret;
@@ -888,8 +907,8 @@ void LTPConvergenceLayer::Receiver::run()
 }
 
 
-}//namespace
+}//namespace dtn
 
 
-#endif
+#endif  // LTP_ENABLED
 

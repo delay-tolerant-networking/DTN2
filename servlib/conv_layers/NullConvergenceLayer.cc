@@ -41,6 +41,13 @@ NullConvergenceLayer::NullConvergenceLayer()
 }
 
 //----------------------------------------------------------------------
+CLInfo*
+NullConvergenceLayer::new_link_params()
+{
+    return new NullConvergenceLayer::Params(NullConvergenceLayer::defaults_);
+}
+
+//----------------------------------------------------------------------
 bool
 NullConvergenceLayer::parse_link_params(Params* params,
                                         int argc, const char** argv,

@@ -166,6 +166,11 @@ protected:
      */
     class StreamLinkParams : public ConnectionConvergenceLayer::LinkParams {
     public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize( oasys::SerializeAction *);
+
         bool  segment_ack_enabled_;	///< Use per-segment acks
         bool  negative_ack_enabled_;	///< Enable negative acks
         u_int keepalive_interval_;	///< Seconds between keepalive packets

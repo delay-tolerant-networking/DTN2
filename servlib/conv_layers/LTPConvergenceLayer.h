@@ -25,6 +25,8 @@
 #include "ltp.h"
 namespace dtn{
 
+class Link;
+
 class LTPConvergenceLayer : public IPConvergenceLayer {
 
 public:
@@ -69,8 +71,11 @@ public:
 	//parameter parsing
 	class Params : public CLInfo {
 	public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize(oasys::SerializeAction *a);
 
-		virtual void serialize(oasys::SerializeAction *a);
 		in_addr_t local_addr_;		//local address to bind to
 		u_int16_t local_port_;		//local port to bind to
 		in_addr_t remote_addr_;		//address to connect to
@@ -85,9 +90,11 @@ public:
 	Interface *iface_;
 
 protected:
+	friend class Link;
 
 	bool ltp_inited;
 
+    virtual CLInfo* new_link_params();
 	bool parse_params(Params* params, int argc, const char** argv,
                       const char** invalidp);
 	

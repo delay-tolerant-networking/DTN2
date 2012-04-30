@@ -26,6 +26,7 @@
 
 #include <oasys/thread/Thread.h>
 #include <oasys/thread/Timer.h>
+#include <oasys/serialize/Serialize.h>
 
 #include "ConvergenceLayer.h"
 #include "naming/EthernetScheme.h" // for eth_addr_t
@@ -155,6 +156,11 @@ public:
      */
     class Params : public CLInfo {
     public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize(oasys::SerializeAction *a);
+
         u_int32_t beacon_interval_;       ///< Beacon Interval
     };
     
@@ -293,6 +299,9 @@ protected:
      */
     bool parse_params(Params* params, int argc, const char** argv,
                       const char** invalidp);
+
+    virtual CLInfo* new_link_params();
+
 
 private:
     Beacon *if_beacon_;

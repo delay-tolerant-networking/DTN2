@@ -288,6 +288,10 @@ CLConnection::find_contact(const EndpointID& peer_eid)
                                     Link::OPPORTUNISTIC,
                                     Link::AVAILABLE | Link::UNAVAILABLE);
 
+    // xxx/Elwyn: I don't understand what this next test is doing..
+    // Clearly link == NULL is fine.. this isn't to be a duplicate.
+    // BUT why do we create a new one if there is one up and running?
+    // And generate a warning about the old one .. anybody grok this?
     if (link == NULL || (link != NULL && link->contact() != NULL)) {
         if (link != NULL) {
             log_warn("CLConnection::find_contact: "

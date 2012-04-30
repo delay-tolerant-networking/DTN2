@@ -20,6 +20,7 @@
 
 #include <oasys/thread/Lock.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/storage/DurableStore.h>
 
 #include "LinkCommand.h"
 #include "bundling/BundleEvent.h"
@@ -295,9 +296,15 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 		if (!BundleDaemon::instance()->contactmgr()->add_new_link(link)) {
 			// A link of that name already exists
 			link->delete_link();
-			resultf("link name %s already exists, use different name", name);
+			resultf("problem adding link with name %s: problem is one of:\n%s,\n%s, or\n%s;\n%s",
+					name,
+					"link with this name already exists,",
+					"link name was previously used with different nexthop, type or convergence layer",
+					"same nexthop, type and convergence layer are or were used with a different name",
+					"Please check your parameters or retry with a different name.");
 			return TCL_ERROR;
 		}
+
 		return TCL_OK;
 
 	} else if (strcmp(cmd, "reconfigure") == 0) {
@@ -501,6 +508,14 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 		oasys::ScopeLock l(cm->lock(), "LinkCommand::exec");
 			
 		const LinkSet* links = cm->links();
+		append_resultf("Active links:\n");
+		for (LinkSet::const_iterator i = links->begin();
+			 i != links->end(); ++i)
+		{
+			append_resultf("%s\n", (*i)->name());
+		}
+		links = cm->previous_links();
+		append_resultf("\nPreviously active links:\n");
 		for (LinkSet::const_iterator i = links->begin();
 			 i != links->end(); ++i)
 		{
@@ -516,6 +531,14 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 			oasys::ScopeLock l(cm->lock(), "LinkCommand::exec");
 			
 			const LinkSet* links = cm->links();
+			append_resultf("Active links:\n");
+			for (LinkSet::const_iterator i = links->begin();
+				 i != links->end(); ++i)
+			{
+				append_resultf("*%p\n", (*i).object());
+			}
+			links = cm->previous_links();
+			append_resultf("\nPreviously active links:\n");
 			for (LinkSet::const_iterator i = links->begin();
 				 i != links->end(); ++i)
 			{
@@ -523,17 +546,24 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 			}
 		} else if (argc == 3) {
 			const char* name = argv[2];
+			char* prefix = "Current link:\n";
 			
 			LinkRef link =
 				BundleDaemon::instance()->contactmgr()->find_link(name);
 			if (link == NULL) {
-				resultf("link %s doesn't exist", name);
-				return TCL_ERROR;
+				prefix = "Link from previous run:\n";
+				link = BundleDaemon::instance()->contactmgr()->find_previous_link(name);
+				if (link == NULL)
+				{
+					resultf("link %s not known.", name);
+					return TCL_ERROR;
+				}
 			}
 
 			oasys::StringBuffer buf;
 			link->dump(&buf);
-			set_result(buf.c_str());
+			//set_result(buf.c_str());
+			resultf("%s%s", prefix, buf.c_str());
 			return TCL_OK;
 		} else {
 			wrong_num_args(argc, argv, 2, 2, 3);

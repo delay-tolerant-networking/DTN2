@@ -34,6 +34,10 @@ class StringBuffer;
 
 namespace dtn {
 
+// forward declaration
+class Link;
+class CLInfo;
+
 /**
  * The abstract interface for a convergence layer.
  */
@@ -210,6 +214,15 @@ public:
     static const u_int32_t MAGIC = 0x64746e21; //'DTN!'
     
 protected:
+    friend class Link;
+
+    /**
+     * Create a new LinkParams structure. This function must be instantiated
+     * in any derived class that is actually used for a convergence layer.
+     * Intermediate layers need not bother.
+     */
+    virtual CLInfo* new_link_params() = 0;
+
     /**
      * The unique name of this convergence layer.
      */

@@ -49,6 +49,13 @@ UDPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 }
 
 //----------------------------------------------------------------------
+CLInfo*
+UDPConvergenceLayer::new_link_params()
+{
+    return new UDPConvergenceLayer::Params(UDPConvergenceLayer::defaults_);
+}
+
+//----------------------------------------------------------------------
 UDPConvergenceLayer::UDPConvergenceLayer()
     : IPConvergenceLayer("UDPConvergenceLayer", "udp")
 {

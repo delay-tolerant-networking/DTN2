@@ -66,6 +66,7 @@ using __gnu_cxx::hash;
 class Interface;
 class Contact;
 class ECLModule;
+class ExternalConvergenceLayer;
 
 typedef ::xsd::cxx::tree::sequence<clmessage::key_value_pair> KeyValueSequence;
 
@@ -82,6 +83,11 @@ public:
         delete create_message_;
     }
     
+    /**
+     * Virtual from SerializableObject
+     */
+    virtual void serialize(oasys::SerializeAction *a);
+
     /// The protocol that this resource is intended for.
     std::string protocol_;
     
@@ -98,6 +104,8 @@ public:
     bool should_delete_;
     
 protected:
+    friend class ExternalConvergenceLayer;
+
     ECLResource(std::string p, clmessage::cl_message* create) :
     lock_("ECLResource") {
         protocol_ = p;
@@ -284,6 +292,7 @@ public:
                               const AttributeNameVector& parameters);
     void shutdown();
 
+    virtual CLInfo* new_link_params();
     
     /** Take unclaimed resources intended for a given protocol.
      * 

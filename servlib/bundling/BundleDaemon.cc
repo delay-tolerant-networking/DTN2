@@ -45,6 +45,7 @@
 #include "session/Session.h"
 #include "storage/BundleStore.h"
 #include "storage/RegistrationStore.h"
+#include "storage/LinkStore.h"
 #include "bundling/S10Logger.h"
 
 #ifdef BSP_ENABLED
@@ -65,7 +66,9 @@ BundleDaemon::Params::Params()
        reactive_frag_enabled_(true),
        retry_reliable_unacked_(true),
        test_permuted_delivery_(false),
-       injected_bundles_in_memory_(false) {}
+       injected_bundles_in_memory_(false),
+       recreate_links_on_restart_(true)
+{}
 
 BundleDaemon::Params BundleDaemon::params_;
 
@@ -74,7 +77,8 @@ bool BundleDaemon::shutting_down_ = false;
 //----------------------------------------------------------------------
 BundleDaemon::BundleDaemon()
     : BundleEventHandler("BundleDaemon", "/dtn/bundle/daemon"),
-      Thread("BundleDaemon", CREATE_JOINABLE)
+      Thread("BundleDaemon", CREATE_JOINABLE),
+      load_previous_links_executed_(false)
 {
     // default local eid
     local_eid_.assign(EndpointID::NULL_EID());
@@ -1639,6 +1643,26 @@ BundleDaemon::handle_link_created(LinkCreatedEvent* event)
         return;
     }
 
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->begin_transaction();
+
+    if (link->reincarnated())
+    {
+    	if (! LinkStore::instance()->update(link.object()))
+    	{
+    		log_crit("error updating link %s: error in persistent store",
+    				 link->name());
+			return;
+		}
+    } else {
+    	if (! LinkStore::instance()->add(link.object()))
+    	{
+    		log_crit("error adding link %s: error in persistent store",
+    				 link->name());
+			return;
+		}
+    }
+
     log_info("LINK_CREATED *%p", link.object());
 }
 
@@ -1648,6 +1672,24 @@ BundleDaemon::handle_link_deleted(LinkDeletedEvent* event)
 {
     LinkRef link = event->link_;
     ASSERT(link != NULL);
+
+    // If link has been used in some forwarding log entry during this run of the
+    // daemon or the link is a reincarnation of a link that was extant when a
+    // previous run was terminated, then the persistent storage should be left
+    // intact (and the link spec will remain in ContactManager::previous_links_
+    // so that consistency will be checked).  Otherwise delete the entry in Links.
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->begin_transaction();
+
+    if (!(link->used_in_fwdlog() || link->reincarnated()))
+    {
+    	if (! LinkStore::instance()->del(link->name_str()))
+    	{
+    		log_crit("error deleting link %s: error in persistent store",
+    				 link->name());
+			return;
+		}
+    }
 
     log_info("LINK_DELETED *%p", link.object());
 }
@@ -1848,6 +1890,10 @@ BundleDaemon::handle_link_create(LinkCreateRequest* request)
         log_err("LINK_CREATE %s failed", request->name_.c_str());
         return;
     }
+
+    oasys::DurableStore *store = oasys::DurableStore::instance();
+    store->begin_transaction();
+
     if (!contactmgr_->add_new_link(link)) {
         log_err("LINK_CREATE %s failed, already exists",
                 request->name_.c_str());
@@ -2912,6 +2958,56 @@ BundleDaemon::load_registrations()
 
 //----------------------------------------------------------------------
 void
+BundleDaemon::load_previous_links()
+{
+    Link* link;
+    LinkStore* link_store = LinkStore::instance();
+    LinkStore::iterator* iter = link_store->new_iterator();
+    LinkRef link_ref;
+
+    log_debug("Entering load_previous_links");
+
+    /*!
+     * By default this routine is called during the start of the run of the BundleDaemon
+     * event loop, but this may need to be preempted if the DTN2 configuration file
+     * 'link add' commands
+     */
+    if (load_previous_links_executed_)
+    {
+    	log_debug("load_previous_links called again - skipping data store reads");
+    	return;
+    }
+
+    load_previous_links_executed_ = true;
+
+    while (iter->next() == 0) {
+        link = link_store->get(iter->cur_val());
+        if (link == NULL) {
+            log_err("error loading link %s from data store",
+                    iter->cur_val().c_str());
+            continue;
+         }
+
+        log_debug("Read link %s from data store", iter->cur_val().c_str());
+        link_ref = LinkRef(link, "Read from datastore");
+        contactmgr_->add_previous_link(link_ref);
+    }
+
+    // Check links created in config file have names consistent with previous usage
+    contactmgr_->config_links_consistent();
+
+    // If configured, reincarnate other non-OPPORTUNISTIC links recorded from previous
+    // runs of the daemon.
+    if (params_.recreate_links_on_restart_)
+    {
+    	contactmgr_->reincarnate_links();
+    }
+
+    delete iter;
+    log_debug("Exiting load_previous_links");
+}
+//----------------------------------------------------------------------
+void
 BundleDaemon::load_bundles()
 {
     Bundle* bundle;
@@ -3045,6 +3141,7 @@ BundleDaemon::run()
     router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
     router_->initialize();
     
+    load_previous_links();
     load_bundles();
     load_registrations();
 

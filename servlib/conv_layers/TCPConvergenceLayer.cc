@@ -46,13 +46,25 @@ TCPConvergenceLayer::TCPLinkParams::TCPLinkParams(bool init_defaults)
 }
 
 //----------------------------------------------------------------------
+void
+TCPConvergenceLayer::TCPLinkParams::serialize(oasys::SerializeAction *a)
+{
+	log_debug_p("TCPLinkParams", "TCPLinkParams::serialize");
+	StreamConvergenceLayer::StreamLinkParams::serialize(a);
+	a->process("hexdump", &hexdump_);
+	a->process("local_addr", oasys::InAddrPtr(&local_addr_));
+    a->process("remote_addr", oasys::InAddrPtr(&remote_addr_));
+    a->process("remote_port", &remote_port_);
+}
+
+//----------------------------------------------------------------------
 TCPConvergenceLayer::TCPConvergenceLayer()
     : StreamConvergenceLayer("TCPConvergenceLayer", "tcp", TCPCL_VERSION)
 {
 }
 
 //----------------------------------------------------------------------
-ConnectionConvergenceLayer::LinkParams*
+CLInfo*
 TCPConvergenceLayer::new_link_params()
 {
     return new TCPLinkParams(default_link_params_);

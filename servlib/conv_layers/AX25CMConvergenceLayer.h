@@ -58,6 +58,11 @@ public:
      */
     class AX25CMLinkParams : public SeqpacketLinkParams {
     public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize(oasys::SerializeAction *a);
+
         bool        hexdump_;           ///< Log a hexdump of all traffic
         std::string local_call_;        ///< Local callsign to bind to
         std::string remote_call_;       ///< Peer callsign
@@ -86,7 +91,7 @@ protected:
     /// @}
     
     /// @{ Virtual from ConnectionConvergenceLayer
-    virtual LinkParams* new_link_params();
+    virtual CLInfo* new_link_params();
     virtual bool parse_link_params(LinkParams* params,
                                    int argc, const char** argv,
                                    const char** invalidp);
@@ -136,11 +141,6 @@ protected:
          * Destructor.
          */
         virtual ~Connection();
-
-        /**
-         * Virtual from SerializableObject
-         */
-        virtual void serialize(oasys::SerializeAction *a);
 
     protected:
         friend class AX25CMConvergenceLayer;

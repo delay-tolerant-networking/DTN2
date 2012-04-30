@@ -97,6 +97,11 @@ public:
      */
     class LinkParams : public CLInfo {
     public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize( oasys::SerializeAction *a);
+
         bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         u_int sendbuf_len_;		///< Buffer size for sending data
         u_int recvbuf_len_;		///< Buffer size for receiving data
@@ -123,11 +128,6 @@ public:
     virtual bool parse_nexthop(const LinkRef& link, LinkParams* params) = 0;
 
 protected:
-    /**
-     * Create a new LinkParams structure.
-     */
-    virtual LinkParams* new_link_params() = 0;
-
     /**
      * Parse the link parameters, returning true iff the args are
      * valid for the given nexthop address.

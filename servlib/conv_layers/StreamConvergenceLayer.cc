@@ -38,6 +38,18 @@ StreamConvergenceLayer::StreamLinkParams::StreamLinkParams(bool init_defaults)
 }
 
 //----------------------------------------------------------------------
+void
+StreamConvergenceLayer::StreamLinkParams::serialize(oasys::SerializeAction *a)
+{
+	log_debug_p("StreamLinkParams", "StreamLinkParams::serialize");
+	ConnectionConvergenceLayer::LinkParams::serialize(a);
+	a->process("segment_ack_enabled", &segment_ack_enabled_);
+	a->process("negative_ack_enabled", &negative_ack_enabled_);
+	a->process("keepalive_interval", &keepalive_interval_);
+	a->process("segment_length", &segment_length_);
+}
+
+//----------------------------------------------------------------------
 StreamConvergenceLayer::StreamConvergenceLayer(const char* logpath,
                                                const char* cl_name,
                                                u_int8_t    cl_version)

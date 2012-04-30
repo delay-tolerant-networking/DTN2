@@ -390,14 +390,29 @@ public:
     ConvergenceLayer* clayer() const { return clayer_; }
 
     /**
-     * Accessor to this links name
+     * Accessor to this links name - its unique identifier
      */
     const char* name() const { return name_.c_str(); }
+
+    /**
+     * Accessors for unique link name when used as datastore table key
+     */
+    std::string durable_key() const { return name_; }
 
     /**
      * Accessor to this links name as a c++ string
      */
     const std::string& name_str() const { return name_; }
+
+    /**
+     * Accessor to convergence layer name string
+     */
+    const char* cl_name() const { return cl_name_.c_str(); }
+
+    /**
+     * Accessor to convergence layer name as a C++ string
+     */
+    const std::string& cl_name_str() const { return cl_name_; }
 
     /**
      * Accessor to next hop string
@@ -430,6 +445,32 @@ public:
     void set_remote_eid(const EndpointID& remote) {
         remote_eid_.assign(remote);
     }
+
+    /**
+     * Accessor to check if this link was reincarnated.
+     * Used to choose addition or updating of persistent store.
+     */
+    bool reincarnated() { return reincarnated_; }
+
+    /**
+     * Accessor to set reincarnated_, recoding that this link specification
+     * had a previous incarnation, so that its persistent store just needs
+     * updating rather than creating..
+     */
+    void set_reincarnated() { reincarnated_ = true; }
+
+    /**
+     * Accessor to check if this link has been referenced in a bundle
+     * forwarding log.
+     */
+    bool used_in_fwdlog() { return used_in_fwdlog_; }
+
+    /**
+     * Accessor to set used_in_fwdlog recording that the link has been referenced
+     * in one or more bundle forwarding logs. Forces update of persistent store
+     * when used_in_fwdlog_ transitions from false to true.
+     */
+    void set_used_in_fwdlog(void);
 
     /**
      * Accessor to the remote endpoint id.
@@ -657,6 +698,7 @@ public:
      */
     oasys::Lock* lock() { return &lock_; }
     
+    virtual ~Link();
 protected:
     friend class BundleActions;
     friend class BundleDaemon;
@@ -743,6 +785,9 @@ protected:
     /// Pointer to convergence layer
     ConvergenceLayer* clayer_;
 
+    /// Name of convergence layer
+    std::string cl_name_;
+
     /// Convergence layer specific info, if needed
     CLInfo* cl_info_;
 
@@ -752,8 +797,24 @@ protected:
     /// Remote's endpoint ID (eg, dtn://hostname.dtn)
     EndpointID remote_eid_;
 
+    /// Flag indicating that this link is a reincarnation of a closely similar
+    /// link that existed during a previous run.  The name, nexthop, type and
+    /// convergence layer are the same but some other parameters may have been
+    /// varied depending on whether it was automatically or manually recreated
+    /// and whether or not the defaults have changed.  Used to determine whether
+    /// persistent storage should be added or updated.
+    bool reincarnated_;
+
+    /// Flag indicating if this link (name) has been referenced in a bundle
+    /// forwarding log.  If so, then the link will remain in persistent
+    /// storage even if it is deleted and the name cannot be reused unless
+    /// the same nexthop, type and convergence layer are specified.  If not,
+    /// the link can be deleted completely and the name reused (to allow
+    /// command input finger trouble to be corrected).
+    bool used_in_fwdlog_;
+
     /// Destructor -- protected since links shouldn't be deleted
-    virtual ~Link();
+    //virtual ~Link();
 };
 
 } // namespace dtn

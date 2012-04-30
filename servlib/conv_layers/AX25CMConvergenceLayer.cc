@@ -57,6 +57,19 @@ AX25CMConvergenceLayer::AX25CMLinkParams::AX25CMLinkParams(bool init_defaults)
 }
 
 //----------------------------------------------------------------------
+void
+AX25CMConvergenceLayer::AX25CMLinkParams::serialize(oasys::SerializeAction *a)
+{
+    SeqpacketConvergenceLayer::SeqpacketLinkParams::serialize(a);
+    a->process("hexdump", &hexdump_);
+    a->process("local_call", &local_call_);
+    a->process("remote_call", &remote_call_);
+    a->process("digipeater", &digipeater_);
+    a->process("axport", &axport_);
+
+}
+
+//----------------------------------------------------------------------
 AX25CMConvergenceLayer::AX25CMConvergenceLayer()
     : SeqpacketConvergenceLayer("AX25CMConvergenceLayer", "ax25cm", AX25CMCL_VERSION)
 {
@@ -65,7 +78,7 @@ AX25CMConvergenceLayer::AX25CMConvergenceLayer()
 }
 
 //----------------------------------------------------------------------
-ConnectionConvergenceLayer::LinkParams*
+CLInfo*
 AX25CMConvergenceLayer::new_link_params()
 {
     return new AX25CMLinkParams(default_link_params_);
@@ -378,31 +391,6 @@ AX25CMConvergenceLayer::Connection::~Connection()
 {
     sock_->shutdown(SHUT_RDWR);
     delete sock_;
-}
-
-//----------------------------------------------------------------------
-void
-AX25CMConvergenceLayer::Connection::serialize(oasys::SerializeAction *a)
-{
-    AX25CMLinkParams *params = ax25cm_lparams();
-    if (! params) return;
-
-    a->process("hexdump", &params->hexdump_);
-    a->process("local_call", &params->local_call_);
-    a->process("axport", &params->axport_);    
-    a->process("remote_call", &params->remote_call_);
-
-    // from SeqpacketLinkParams
-    a->process("segment_ack_enabled", &params->segment_ack_enabled_);
-    a->process("negative_ack_enabled", &params->negative_ack_enabled_);
-    a->process("keepalive_interval", &params->keepalive_interval_);
-    a->process("segment_length", &params->segment_length_);
-
-    // from LinkParams
-    a->process("reactive_frag_enabled", &params->reactive_frag_enabled_);
-    a->process("sendbuf_length", &params->sendbuf_len_);
-    a->process("recvbuf_length", &params->recvbuf_len_);
-    a->process("data_timeout", &params->data_timeout_);
 }
 
 //----------------------------------------------------------------------

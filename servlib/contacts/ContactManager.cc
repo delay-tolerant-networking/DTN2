@@ -25,6 +25,7 @@
 #include "Link.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
+#include "storage/LinkStore.h"
 #include "conv_layers/ConvergenceLayer.h"
 
 namespace dtn {
@@ -35,12 +36,14 @@ ContactManager::ContactManager()
       opportunistic_cnt_(0)
 {
     links_ = new LinkSet();
+    previous_links_ = new LinkSet();
 }
 
 //----------------------------------------------------------------------
 ContactManager::~ContactManager()
 {
     delete links_;
+    delete previous_links_;
 }
 
 //----------------------------------------------------------------------
@@ -52,11 +55,23 @@ ContactManager::add_new_link(const LinkRef& link)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     
+	bool reincarnation = false;
+
     log_debug("adding NEW link %s", link->name());
     if (has_link(link->name())) {
         return false;
     }
+    if (!consistent_with_previous_usage(link, &reincarnation))
+    {
+    	return false;
+    }
+
     links_->insert(LinkRef(link.object(), "ContactManager"));
+
+    if (reincarnation)
+    {
+    	link->set_reincarnated();
+    }
 
     if (!link->is_create_pending()) {
         log_debug("posting LinkCreatedEvent");
@@ -66,6 +81,17 @@ ContactManager::add_new_link(const LinkRef& link)
     return true;
 }
 
+//----------------------------------------------------------------------
+void
+ContactManager::add_previous_link(const LinkRef& link)
+{
+    ASSERT(link != NULL);
+
+    log_debug("adding OLD link %s", link->name());
+    previous_links_->insert(LinkRef(link.object(), "From Datastore"));
+
+    return;
+}
 //----------------------------------------------------------------------
 void
 ContactManager::del_link(const LinkRef& link, bool wait,
@@ -110,6 +136,16 @@ ContactManager::del_link(const LinkRef& link, bool wait,
 
     links_->erase(link);
     
+    // If link has been used in some forwarding log entry then there should
+    // be an entry in previous_links_ in case the user tries to add the same name
+    // back with a different specification.  However, if this link was a
+    // reincarnation, it will already be (correctly) in previous_links_ and
+    // no action is required.
+    if (link->used_in_fwdlog() && !link->reincarnated())
+    {
+    	previous_links_->insert(link);
+    }
+
     if (wait) {
         l.unlock();
         // If some parent calling del_link already locked the Contact Manager,
@@ -172,12 +208,154 @@ ContactManager::find_link(const char* name)
 }
 
 //----------------------------------------------------------------------
+LinkRef
+ContactManager::find_previous_link(const char* name)
+{
+    LinkSet::iterator iter;
+    LinkRef link("ContactManager::find_previous_link: return value");
+
+    for (iter = previous_links_->begin(); iter != previous_links_->end(); ++iter) {
+        if (strcasecmp((*iter)->name(), name) == 0) {
+            link = *iter;
+            ASSERT(!link->isdeleted());
+            return link;
+        }
+    }
+    return link;
+}
+
+//----------------------------------------------------------------------
+bool
+ContactManager::consistent_with_previous_usage(const LinkRef& link, bool *reincarnation)
+{
+	/**
+	 * This routine checks that the mapping between the link name
+	 * and the major parameters of a proposed new link is consistent
+	 * with any recorded previous usage of the name.  There are
+	 * essentially two cases:
+	 * - (Originally) manually configured links with types other than OPPORTUNISTIC:
+	 *   The link add command has to specify the nexthop, type and convergence layer
+	 *   but the remote_eid will generally not be known until the link is actually
+	 *   opened.  In this case for consistency we require name, type, nexthop and
+	 *   convergence layer to match and allow the remote_eid to be undefined or
+	 *   the same as it was when previously used.
+	 * - New OPPORTUNISTIC links: In this case the remote_eid is always known and
+	 *   is the interesting parameter.  The link to the remote_eid can be made over
+	 *   any convergence layer and the nexthop address can be any value.
+	 * If a consistent link is found, the reincarnation parameter is set true to flag
+	 * that the new link is indeed a reincarnation of some previously known link with
+	 * the same name. This is later used to select whether to add or update the
+	 * corresponding persistent store entry.
+	 */
+    LinkSet::iterator iter;
+    const char *name = link->name();
+    bool test_name, test_spec;
+    ASSERT(reincarnation != NULL);
+
+    log_debug("check link name usage consistency for %s", link->name());
+    *reincarnation = false;
+
+    for (iter = previous_links_->begin(); iter != previous_links_->end(); ++iter)
+    {
+    	log_debug("testing against %s", (*iter)->name());
+        test_name = (strcasecmp((*iter)->name(), name) == 0)? true : false;
+        test_spec = (((link->remote_eid()	== EndpointID::NULL_EID())      ||
+					  (link->remote_eid()	== (*iter)->remote_eid())		  ) &&
+					 ((link->type()		== Link::OPPORTUNISTIC)             ||
+					  ((strcmp(link->nexthop(), (*iter)->nexthop()) == 0) &&
+					  (link->type() 			== (*iter)->type())       &&
+					  (strcmp(link->cl_name(), (*iter)->cl_name()) == 0)     )));
+        if (test_name)
+        {
+        	log_debug("Found previous_link with same name");
+        	if (test_spec)
+        	{
+        		// We appear to be consistent
+        		// Force remote_eid to be consistent
+        		link->set_remote_eid((*iter)->remote_eid());
+
+        		// Record that this is a reincarnation
+        		*reincarnation = true;
+
+        		return true;
+        	} else {
+        		return false;
+        	}
+        } else {
+        	if (test_spec)
+        	{
+        		log_debug("Found previous link with same spec but different name");
+        		return false;
+        	} else {
+        		// neither name nor spec match - continue with other entries
+        		continue;
+        	}
+        }
+    }
+
+    // Neither name nor spec recorded as used - so must be consistent
+    // because not previously used - and hence not a reincarnation
+    return true;
+}
+
+//----------------------------------------------------------------------
+void
+ContactManager::config_links_consistent(void)
+{
+    oasys::ScopeLock l(&lock_, "ContactManager::find_link");
+
+    LinkSet::iterator iter;
+    LinkRef link;
+    bool reincarnation;
+
+    for (iter = links_->begin(); iter != links_->end(); ) {
+    	// Need to do this to avoid erasing the element the iterator is pointing at
+    	link = *iter;
+    	++iter;
+        if (consistent_with_previous_usage(link, &reincarnation))
+        {
+        	if (reincarnation)
+        	{
+        		link->set_reincarnated();
+        	}
+        }
+        else
+        {
+        	// Deletion is permissible because the link has not yet been completely created
+        	// This just undoes what had been done in add_new_link.
+        	log_err("Link %s created by configuration file is inconsistent with previous usage - deleting",
+        			link->name());
+        	link->delete_link();
+        	links_->erase(link);
+        }
+    }
+    return;
+}
+
+//----------------------------------------------------------------------
+void
+ContactManager::reincarnate_links(void)
+{
+	/**
+	 * Reincarnate any non-OPPORTUNISTIC links not set up by configuration file
+	 */
+	log_debug("reincarnate_links");
+}
+
+//----------------------------------------------------------------------
 const LinkSet*
 ContactManager::links()
 {
     ASSERTF(lock_.is_locked_by_me(),
             "ContactManager::links must be called while holding lock");
     return links_;
+}
+
+//----------------------------------------------------------------------
+const LinkSet*
+ContactManager::previous_links()
+{
+    return previous_links_;
 }
 
 //----------------------------------------------------------------------
@@ -397,6 +575,30 @@ ContactManager::find_link_to(ConvergenceLayer* cl,
                              Link::link_type_t type,
                              u_int states)
 {
+	log_debug("find current link using find_any_link_to and links_");
+	return find_any_link_to(links_, cl, nexthop, remote_eid, type, states);
+}
+
+//----------------------------------------------------------------------
+LinkRef
+ContactManager::find_previous_link_to(ConvergenceLayer* cl,
+									  const std::string& nexthop,
+									  const EndpointID& remote_eid,
+									  Link::link_type_t type,
+									  u_int states)
+{
+	log_debug("find previously existing link using find_any_link_to and previous_links_");
+	return find_any_link_to(previous_links_, cl, nexthop, remote_eid, type, states);
+}
+//----------------------------------------------------------------------
+LinkRef
+ContactManager::find_any_link_to(LinkSet *link_set,
+								 ConvergenceLayer* cl,
+								 const std::string& nexthop,
+								 const EndpointID& remote_eid,
+								 Link::link_type_t type,
+								 u_int states)
+{
     oasys::ScopeLock l(&lock_, "ContactManager::find_link_to");
     
     LinkSet::iterator iter;
@@ -415,7 +617,7 @@ ContactManager::find_link_to(ConvergenceLayer* cl,
            (remote_eid != EndpointID::NULL_EID()) ||
            (type != Link::LINK_INVALID));
     
-    for (iter = links_->begin(); iter != links_->end(); ++iter) {
+    for (iter = link_set->begin(); iter != link_set->end(); ++iter) {
         if ( ((type == Link::LINK_INVALID) || (type == (*iter)->type())) &&
              ((cl == NULL) || ((*iter)->clayer() == cl)) &&
              ((nexthop == "") || (nexthop == (*iter)->nexthop())) &&
@@ -431,11 +633,17 @@ ContactManager::find_link_to(ConvergenceLayer* cl,
         }
     }
 
-    log_debug("ContactManager::find_link_to: no match");
+    log_debug("ContactManager::find_any_link_to: no match - link %s NULL",
+    		  (link==NULL)? "is" : "is not");
     return link;
 }
 
 //----------------------------------------------------------------------
+// Opportunistic link names are of form <name>-<decimal number>
+// Constrains maximum length for opportunistic link names
+#define OPP_NAME_LEN_BUFFER_SZ 64
+// Maximum number of digits in opportunistic link name suffix
+#define MAX_OPP_LINK_DIGITS 6
 LinkRef
 ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
                                        const std::string& nexthop,
@@ -444,33 +652,52 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
 {
     log_debug("new_opportunistic_link: cl %s nexthop %s remote_eid %s",
               cl->name(), nexthop.c_str(), remote_eid.c_str());
+    LinkRef link;
+
+
+    char name[OPP_NAME_LEN_BUFFER_SZ], name_fmt[OPP_NAME_LEN_BUFFER_SZ];
     
+
     oasys::ScopeLock l(&lock_, "ContactManager::new_opportunistic_link");
 
-    // find a unique link name
-    char name[64];
+    // See if an OPPORTUNISTIC link went to this remote_eid during a previous
+    // run of the daemon - if so we will use the same name so that the forwarding log
+    // will not be made inconsistent.- Scan existing links for one to this remote_eid.
+    // Don't worry about either the convergence layer or nexthop string - only the
+    // remote_eid and the type are relevant.  The state is irrelevant since we are
+    // dealing with information about previous links.
+    // xxx/Elwyn: Arguably not even the type should be relevant - if the user changes
+    // over from statically configured to OPPORTUNISTIC or vice versa between runs
+    // then the routing might send bundles again, but this is a nuisance rather than
+    // a big problem.
+    link = find_previous_link_to(NULL, "", remote_eid, Link::OPPORTUNISTIC);
     
-    if (link_name) {
-        strncpy(name, link_name->c_str(), sizeof(name));
-        
-        while (find_link(name) != NULL) {
-            snprintf(name, sizeof(name), "%s-%d",
-                     link_name->c_str(), opportunistic_cnt_);
-                     
-            opportunistic_cnt_++;
-        }
+    if (link != NULL)
+    {
+    	strcpy(name, link->name());
     }
-    
-    else {
-        do {
-            snprintf(name, sizeof(name), "link-%d",
-                    opportunistic_cnt_); 
-            opportunistic_cnt_++;
-        } while (find_link(name) != NULL);
+    else
+    {
+		// find a unique link name
+		if (link_name)
+		{
+			strncpy(name_fmt, link_name->c_str(), sizeof(name_fmt) - MAX_OPP_LINK_DIGITS - 2);
+			strcat(name_fmt, "-%d");
+		}
+		else
+		{
+			strcpy(name_fmt, "link-%d");
+		}
+
+		do {
+			snprintf(name, sizeof(name), name_fmt, opportunistic_cnt_);
+			opportunistic_cnt_++;
+			ASSERT(opportunistic_cnt_ < 1000000);
+		} while ((find_link(name) != NULL) || (find_previous_link(name) != NULL));
     }
-        
-    LinkRef link = Link::create_link(name, Link::OPPORTUNISTIC, cl,
-                                     nexthop.c_str(), 0, NULL);
+
+    link = Link::create_link(name, Link::OPPORTUNISTIC, cl,
+                             nexthop.c_str(), 0, NULL);
     if (link == NULL) {
         log_warn("ContactManager::new_opportunistic_link: "
                  "unexpected error creating opportunistic link");

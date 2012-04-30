@@ -49,6 +49,11 @@ public:
      */
     class SerialLinkParams : public StreamLinkParams {
     public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize(oasys::SerializeAction *a);
+
         bool        hexdump_;		///< Log a hexdump of all traffic
         std::string initstr_;		///< String to initialize the tty
         u_int       ispeed_;		///< Input speed on the tty
@@ -73,8 +78,8 @@ protected:
     void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     /// @}
     
-    /// @{ Virtual from ConnectionConvergenceLayer
-    virtual LinkParams* new_link_params();
+    /// @{ Virtual from ConvergenceLayer
+    virtual CLInfo* new_link_params();
     virtual bool parse_link_params(LinkParams* params,
                                    int argc, const char** argv,
                                    const char** invalidp);

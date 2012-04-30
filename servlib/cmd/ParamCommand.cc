@@ -71,6 +71,13 @@ ParamCommand::ParamCommand()
                                 "Injected bundles are held in memory by default"
                                 "(default is false)"));
 
+    bind_var(new oasys::BoolOpt("recreate_links_on_restart",
+                                &BundleDaemon::params_.recreate_links_on_restart_,
+                                "Recreate non-opportunistic links added "
+                                "during previous runs \nof the DTN daemon "
+                                "when restarting "
+                                "(default is true)"));
+
     static oasys::EnumOpt::Case IsSingletonCases[] = {
         {"unknown",   EndpointID::UNKNOWN},
         {"singleton", EndpointID::SINGLETON},

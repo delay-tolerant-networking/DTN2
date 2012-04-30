@@ -32,6 +32,7 @@
 #include "conv_layers/ConvergenceLayer.h"
 #include "naming/EndpointIDOpt.h"
 #include "routing/RouterInfo.h"
+#include "storage/LinkStore.h"
 
 namespace dtn {
 
@@ -85,6 +86,7 @@ Link::create_link(const std::string& name, link_type_t type,
     // notify the convergence layer, which parses the rest of the
     // arguments
     ASSERT(link->clayer_);
+    link->cl_name_ = std::string(link->clayer_->name());
     if (!link->clayer_->init_link(link, argc, argv)) {
         link->deleted_ = true;
         link = NULL;
@@ -125,9 +127,12 @@ Link::Link(const std::string& name, link_type_t type,
       bytes_inflight_(0),
       contact_("Link"),
       clayer_(cl),
+      cl_name_(cl->name()),
       cl_info_(NULL),
       router_info_(NULL),
-      remote_eid_(EndpointID::NULL_EID())
+      remote_eid_(EndpointID::NULL_EID()),
+      reincarnated_(false),
+      used_in_fwdlog_(false)
 {
     ASSERT(clayer_);
 
@@ -158,9 +163,12 @@ Link::Link(const oasys::Builder&)
       bytes_inflight_(0),
       contact_("Link"),
       clayer_(NULL),
+      cl_name_(""),
       cl_info_(NULL),
       router_info_(NULL),
-      remote_eid_(EndpointID::NULL_EID())
+      remote_eid_(EndpointID::NULL_EID()),
+      reincarnated_(false),
+      used_in_fwdlog_(false)
 {
 }
 
@@ -183,6 +191,32 @@ Link::isdeleted() const
 {
     oasys::ScopeLock l(&lock_, "Link::delete_link");
     return deleted_;
+}
+
+//----------------------------------------------------------------------
+void
+Link::set_used_in_fwdlog()
+{
+    oasys::ScopeLock l(&lock_, "Link::set_used_in_fwdlog");
+
+    // Update persistent storage if changing value
+    if (!used_in_fwdlog_)
+    {
+        oasys::DurableStore *store = oasys::DurableStore::instance();
+        if (!store->is_transaction_open())
+        {
+        	store->begin_transaction();
+        }
+
+        used_in_fwdlog_ = true;
+
+    	if (! LinkStore::instance()->update(this))
+    	{
+    		log_crit("error updating link %s: error in persistent store",
+    				 name_.c_str());
+		}
+    }
+
 }
 
 //----------------------------------------------------------------------
@@ -259,7 +293,7 @@ Link::reconfigure_link(AttributeVector& params)
 void
 Link::serialize(oasys::SerializeAction* a)
 {
-    std::string cl_name;
+    //std::string cl_name;
     std::string type_str;
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
@@ -277,16 +311,30 @@ Link::serialize(oasys::SerializeAction* a)
     a->process("deleted",  &deleted_);
     a->process("usable",   &usable_);
     a->process("reliable", &reliable_);
+    a->process("used_in_fwdlog", &used_in_fwdlog_);
 
+
+    /**
+     * The persistent store just records the name of the convergence layer.
+     * Initially we are just using this for checking manually created links
+     * for consistency.  If the convergence layer is not available when
+     * restarting we just leave the clayer NULL.  the cl_info needs more
+     * work because the connection convergence layer doesn't have a serialize
+     * routine for the link parameters (yet).
+     */
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
-        a->process("clayer", &cl_name);
-        clayer_ = ConvergenceLayer::find_clayer(cl_name.c_str());
+        a->process("clayer", &cl_name_);
+        clayer_ = ConvergenceLayer::find_clayer(cl_name_.c_str());
         ASSERT(clayer_);
+        cl_info_ = clayer_->new_link_params();
+        a->process("cl_info", cl_info_);
     } else {
-        cl_name = clayer_->name();
-        a->process("clayer", &cl_name);
+        a->process("clayer", &cl_name_);
+        a->process("cl_info", cl_info_);
+#if 0
         if (state_ == OPEN)
             a->process("clinfo", contact_->cl_info());
+#endif
     }
 
     // XXX/demmer router_info_??
@@ -611,9 +659,11 @@ Link::dump(oasys::StringBuffer* buf)
                  "max_retry_interval: %u\n"
                  "idle_close_time: %u\n"
                  "potential_downtime: %u\n"
-                 "prevhop_hdr: %s\n",
+                 "prevhop_hdr: %s\n"
+				 "reincarnated: %s\n"
+    		     "used in fwdlog: %s\n",
                  name(),
-                 clayer_->name(),
+                 (clayer_!=NULL) ? clayer_->name(): "(blank)",
                  link_type_to_str(type()),
                  state_to_str(state()),
                  (deleted_? "true" : "false"),
@@ -626,10 +676,13 @@ Link::dump(oasys::StringBuffer* buf)
                  params_.max_retry_interval_,
                  params_.idle_close_time_,
                  params_.potential_downtime_,
-                 params_.prevhop_hdr_ ? "true" : "false");
+                 params_.prevhop_hdr_ ? "true" : "false",
+                 reincarnated_ ? "true" : "false",
+                 used_in_fwdlog_ ? "true" : "false" );
 
     ASSERT(clayer_ != NULL);
-    clayer_->dump_link(LinkRef(this, "Link::dump"), buf);
+    if (cl_info_ !=NULL)
+    	clayer_->dump_link(LinkRef(this, "Link::dump"), buf);
 }
 
 //----------------------------------------------------------------------

@@ -42,6 +42,22 @@ ConnectionConvergenceLayer::LinkParams::LinkParams(bool init_defaults)
 }
 
 //----------------------------------------------------------------------
+void
+ConnectionConvergenceLayer::LinkParams::serialize(oasys::SerializeAction *a)
+{
+	log_debug_p("LinkParams", "ConnectionConvergenceLayer::LinkParams::serialize");
+	a->process("reactive_frag_enabled", &reactive_frag_enabled_);
+	a->process("sendbuf_len", &sendbuf_len_);
+	a->process("recvbuf_len", &recvbuf_len_);
+	a->process("data_timeout", &data_timeout_);
+	a->process("test_read_delay", &test_read_delay_);
+	a->process("test_write_delay", &test_write_delay_);
+	a->process("test_recv_delay", &test_recv_delay_);
+	a->process("test_read_limit", &test_read_limit_);
+	a->process("test_write_limit", &test_write_limit_);
+}
+
+//----------------------------------------------------------------------
 ConnectionConvergenceLayer::ConnectionConvergenceLayer(const char* classname,
                                                        const char* cl_name)
     : ConvergenceLayer(classname, cl_name)
@@ -125,7 +141,8 @@ ConnectionConvergenceLayer::init_link(const LinkRef& link,
 
     // Create a new parameters structure, parse the options, and store
     // them in the link's cl info slot.
-    LinkParams* params = new_link_params();
+    LinkParams* params = dynamic_cast<LinkParams *>(new_link_params());
+    ASSERT(params != NULL);
 
     // Try to parse the link's next hop, but continue on even if the
     // parse fails since the hostname may not be resolvable when we

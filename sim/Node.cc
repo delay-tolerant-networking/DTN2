@@ -67,6 +67,11 @@ Node::do_init()
     oasys::TimerSystem::create();
     timersys_ = oasys::TimerSystem::instance();
 
+    // Create a faux-singleton memory storage - one per node
+    // Note that the instance has to be left valid for begin_/end_transaction
+    // at the end of creating nodes,
+    // but it is irrelevant which one because memory db doesn't do transactions.
+    oasys::DurableStore::force_set_instance(NULL);
     store_ = new oasys::DurableStore("/dtnsim/storage");
     store_->create_store(storage_config_);
 

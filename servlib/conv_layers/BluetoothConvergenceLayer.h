@@ -97,8 +97,8 @@ protected:
     void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     /// @}
 
-    /// @{ virtual from ConnectionConvergenceLayer
-    virtual LinkParams* new_link_params();
+    /// @{ virtual from ConvergenceLayer
+    virtual CLInfo* new_link_params();
     virtual bool parse_link_params(LinkParams* params, int argc,
                                    const char** argv,
                                    const char** invalidp);

@@ -249,6 +249,11 @@ public:
 
         /// Whether or not injected bundles are held in memory by default
         bool injected_bundles_in_memory_;
+
+        /// Whether non-opportunistic links should be recreated when the
+        /// DTN daemon is restarted.
+        bool recreate_links_on_restart_;
+
     };
 
     static Params params_;
@@ -301,6 +306,22 @@ public:
      */
     void handle_event(BundleEvent* event);
     void handle_event(BundleEvent* event, bool closeTransaction);
+
+    /**
+     * Load in the previous links data.  This information is used to ensure
+     * consistency between links created in this session and links created in
+     * previous sessions, especially for opportunistic links. Note that this data
+     * is not used to initialize any links but is used to check the consistency
+     * of links created by the configuration file or subsequently.  In order to cope
+     * with links created in the configuration file this function may be called from
+     * the LinkCommand before its normal position at the start of run.  The flag
+     * is used to ensure that the body of the code reading the data store is executed
+     * exactly once.
+     */
+    void load_previous_links();
+    bool load_previous_links_executed_;
+
+
 
 protected:
     friend class BundleActions;

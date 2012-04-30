@@ -53,6 +53,7 @@ public:
 
     /// @{
     /// Virtual from ConvergenceLayer
+    virtual CLInfo *new_link_params(void) { return NULL; }
     bool init_link(const LinkRef& link, int argc, const char* argv[]);
     void delete_link(const LinkRef& link);
     bool open_contact(const ContactRef& contact);

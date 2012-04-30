@@ -50,6 +50,11 @@ ForwardingLog::get_latest_entry(const LinkRef& link, ForwardingInfo* info) const
             // This assertion holds as long as the mapping of link
             // name to remote eid is persistent. This may need to be
             // revisited once link tables are serialized to disk.
+        	// xxx/Elwyn: (hopefully) correctly persistent link names
+        	// across restarts are now implemented and this assertion
+        	// has been forced to hold.
+        	// See ContactManager::new_opportunistic_link.
+        	// (as at March 2012).
             ASSERT(iter->remote_eid() == EndpointID::NULL_EID() ||
                    iter->remote_eid() == link->remote_eid());
             *info = *iter;
@@ -214,6 +219,8 @@ ForwardingLog::add_entry(const LinkRef& link,
     
     log_.push_back(ForwardingInfo(state, action, link->name_str(), 0xffffffff,
                                   link->remote_eid(), custody_timer));
+
+    link->set_used_in_fwdlog();
 
     daemon->actions()->store_update(bundle_);
 }

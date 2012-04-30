@@ -56,6 +56,7 @@ private:
     bool parse_link_params(Params* params,
                            int argc, const char** argv,
                            const char** invalidp);
+    virtual CLInfo* new_link_params();
 };
 
 } // namespace dtn
