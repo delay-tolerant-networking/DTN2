@@ -210,10 +210,6 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     log_info("LTP adding %s link %s", link->type_str(), link->nexthop());
 
 	int lmtu=link->params().mtu_;
-#if 0
-	int lrg=link->params().rg_;
-	bool lion_mode=link->params().ion_mode_;
-#endif
 
 	// initialise LTPlib
 	if (!ltp_inited) {
@@ -237,10 +233,6 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     params->local_addr_ = INADDR_NONE;
     params->local_port_ = 0;
     params->mtu_ = lmtu;
-#if 0
-    params->rg_ = lrg;
-    params->ion_mode_ = lion_mode;
-#endif
 
     const char* invalid;
     if (! parse_params(params, argc, argv, &invalid)) {
