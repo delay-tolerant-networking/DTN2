@@ -4717,7 +4717,7 @@ main ()
 _ACEOF
 if ac_fn_cxx_try_compile "$LINENO"; then :
 
-                        dtn_cv_path_ltp="$ac_ltp_inst_dir"
+                        dtn_cv_path_ltp=`cd $ac_ltp_inst_dir && pwd`
                         break
 
 else

@@ -220,7 +220,7 @@ AC_DEFUN(AC_CONFIG_LTP, [
                             ltpaddr la; 
                         ]),
                     [
-                        dtn_cv_path_ltp="$ac_ltp_inst_dir"
+                        dtn_cv_path_ltp=`cd $ac_ltp_inst_dir && pwd`
                         break
                     ],
                     [
@@ -750,13 +750,13 @@ AC_DEFUN(AC_CONFIG_BONJOUR, [
 ])
 dnl
 dnl    Copyright 2005-2006 Intel Corporation
-dnl 
+dnl
 dnl    Licensed under the Apache License, Version 2.0 (the "License");
 dnl    you may not use this file except in compliance with the License.
 dnl    You may obtain a copy of the License at
-dnl 
+dnl
 dnl        http://www.apache.org/licenses/LICENSE-2.0
-dnl 
+dnl
 dnl    Unless required by applicable law or agreed to in writing, software
 dnl    distributed under the License is distributed on an "AS IS" BASIS,
 dnl    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -777,7 +777,7 @@ If you do not want Berkeley DB support at all, you can specify
 --without-db.
 
 If your installed version is not one of the following versions:
-'[$ac_dbvers]', you may have to specify the version explicitly 
+'[$ac_dbvers]', you may have to specify the version explicitly
 with --with-dbver=<version>.
 
 If your installation is in a non-standard path, you can specify
@@ -796,16 +796,16 @@ EOF
 ])
 
 dnl
-dnl Main macro for finding a usable db installation 
+dnl Main macro for finding a usable db installation
 dnl
 AC_DEFUN(AC_CONFIG_DB, [
-    ac_dbvers='5.2 5.1 4.8 4.7 4.6 4.5 4.4 4.3 4.2 4.1'
+    ac_dbvers='5.3 5.2 5.1 4.8 4.7 4.6 4.5 4.4 4.3 4.2 4.1'
     ac_dbdir='yes'
 
     AC_ARG_WITH(db,
         AC_HELP_STRING([--with-db=DIR],
     		   [location of a Berkeley DB installation (default system)]),
-        ac_dbdir=$withval) 
+        ac_dbdir=$withval)
 
     AC_ARG_WITH(dbver,
         AC_HELP_STRING([--with-dbver=VERSION],
@@ -820,7 +820,7 @@ AC_DEFUN(AC_CONFIG_DB, [
     else
 
     LIBDB_ENABLED=1
-    AC_DEFINE_UNQUOTED(LIBDB_ENABLED, 1, 
+    AC_DEFINE_UNQUOTED(LIBDB_ENABLED, 1,
         [whether berkeley db storage support is enabled])
 
     dnl
@@ -834,7 +834,7 @@ AC_DEFUN(AC_CONFIG_DB, [
     else
         AC_FIND_DB
     fi # no cache
- 
+
     if test ! $oasys_cv_db_incpath = /usr/include ; then
         EXTLIB_CFLAGS="$EXTLIB_CFLAGS -I$oasys_cv_db_incpath"
     fi
@@ -871,7 +871,7 @@ AC_DEFUN(AC_FIND_DB, [
     dnl
     if test "$ac_dbdir" = system -o \
             "$ac_dbdir" = yes -o \
-            "$ac_dbdir" = "" ; 
+            "$ac_dbdir" = "" ;
     then
 	ac_dbdirs="/usr /usr/local /usr/local/BerkeleyDB.$ac_dbver"
     else
@@ -902,7 +902,7 @@ AC_DEFUN(AC_FIND_DB, [
 	LIBS="$ac_save_LIBS"
 
 	dnl
-	dnl First check the version in the header file. If there's a match, 
+	dnl First check the version in the header file. If there's a match,
 	dnl fall through to the other check to make sure it links.
 	dnl If not, then we can break out of the two inner loops.
 	dnl
@@ -911,45 +911,45 @@ AC_DEFUN(AC_FIND_DB, [
 	  AC_LANG_PROGRAM(
 	    [
                 #include <db.h>
-           
+
                 #if (DB_VERSION_MAJOR != ${ac_dbver_major}) || \
                     (DB_VERSION_MINOR != ${ac_dbver_minor})
                 #error "incorrect version"
                 #endif
             ],
-            
+
             [
             ]),
-          [ 
+          [
 	      AC_MSG_RESULT([yes])
           ],
           [
               AC_MSG_RESULT([no])
 	      continue
           ])
-	
+
           for ac_dblibdir in $ac_dblibdirs; do
           for ac_dblib    in db-$ac_dbver; do
-  
+
           LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
           if test x"$STATIC" = x"extlibs" ; then
                   LIBS="-Wl,-Bstatic -l$ac_dblib -Wl,-Bdynamic $ac_save_LIBS"
           else
                   LIBS="-l$ac_dblib $ac_save_LIBS"
           fi
-  
+
           AC_MSG_CHECKING([for Berkeley DB library in $ac_dblibdir, -l$ac_dblib])
           AC_LINK_IFELSE(
             AC_LANG_PROGRAM(
               [
                   #include <db.h>
               ],
-              
+
               [
                   DB *db;
                   db_create(&db, NULL, 0);
               ]),
-  
+
             [
                 AC_MSG_RESULT([yes])
                 oasys_cv_db_incpath=$ac_dbincdir
@@ -967,7 +967,7 @@ AC_DEFUN(AC_FIND_DB, [
     done # foreach ac_dbdir
     done # foreach ac_dbver
 
-    AC_DEFINE_UNQUOTED(BERKELEY_DB_VERSION, $ac_dbver, 
+    AC_DEFINE_UNQUOTED(BERKELEY_DB_VERSION, $ac_dbver,
         [configured version of berkeley db])
 
     CPPFLAGS="$ac_save_CPPFLAGS"
