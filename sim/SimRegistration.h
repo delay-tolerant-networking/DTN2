@@ -29,14 +29,19 @@ namespace dtnsim {
 /**
  * Registration used for the simulator
  */
-class SimRegistration : public Registration {
+class SimRegistration : public oasys::Formatter, public APIRegistration {
 public:
-    SimRegistration(Node* node, const EndpointID& endpoint);
+    SimRegistration(Node* node, const EndpointID& endpoint, u_int32_t expiration = 10);
 
     /**
      * Deliver the given bundle.
      */
     void deliver_bundle(Bundle* bundle);
+
+    /**
+     * Virtual from Formatter
+     */
+    int format(char* buf, size_t sz) const;
 
 protected:
     Node* node_;

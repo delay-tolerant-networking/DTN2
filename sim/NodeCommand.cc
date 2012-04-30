@@ -120,7 +120,7 @@ NodeCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
     else if (strcmp(cmd, "registration") == 0)
     {
         if (strcmp(subcmd, "add") == 0) {
-            // <node> registration add <eid>
+            // <node> registration add <eid> [<expiration>]
             const char* eid_str = argv[3];
             EndpointIDPattern eid(eid_str);
 
@@ -130,9 +130,15 @@ NodeCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
                 return TCL_ERROR;
             }
 
-            Registration* r = new SimRegistration(node_, eid);
+            u_int32_t expiration = 10;
+
+            if (argc > 4) {
+            	expiration = atoi(argv[4]);
+            }
+
+            Registration* r = new SimRegistration(node_, eid, expiration);
             RegistrationAddedEvent* e =
-                new RegistrationAddedEvent(r, EVENTSRC_ADMIN);
+                new RegistrationAddedEvent(r, EVENTSRC_APP); // Was EVENTSRC_ADMIN
 
             node_->post_event(e);
             

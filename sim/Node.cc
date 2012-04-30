@@ -115,6 +115,8 @@ Node::set_active()
     oasys::Singleton<oasys::TimerSystem>::force_set_instance(timersys_);
     oasys::Log::instance()->set_prefix(name_.c_str());
 
+    oasys::DurableStore::force_set_instance(store_);
+
     BundleStore::force_set_instance(bundle_store_);
     ProphetStore::force_set_instance(prophet_store_);
     LinkStore::force_set_instance(link_store_);
@@ -151,6 +153,10 @@ Node::process_one_bundle_event()
         event = eventq_->front();
         eventq_->pop();
         handle_event(event);
+        if ( store_->is_transaction_open() ) {
+            log_debug("process_one_bundle_event closing transaction");
+            store_->end_transaction();
+        }
         delete event;
         log_debug("event (%p) %s processed and deleted",event,event->type_str());
         return true;
@@ -165,6 +171,10 @@ Node::run_one_event_now(BundleEvent* event)
     Node* cur_active = active_node();
     set_active();
     handle_event(event);
+    if ( store_->is_transaction_open() ) {
+        log_debug("run_one_event_now closing transaction");
+        store_->end_transaction();
+    }
     log_debug("event (%p) %s processed",event,event->type_str());
     cur_active->set_active();
 }

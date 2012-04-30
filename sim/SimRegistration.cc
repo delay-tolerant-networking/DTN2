@@ -29,14 +29,16 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 #include "storage/GlobalStore.h"
+#include "session/Session.h"
 
 using namespace dtn;
 
 namespace dtnsim {
 
-SimRegistration::SimRegistration(Node* node, const EndpointID& endpoint)
-    : Registration(GlobalStore::instance()->next_regid(),
-                   endpoint, DEFER, 0, 10000), node_(node)
+SimRegistration::SimRegistration(Node* node, const EndpointID& endpoint, u_int32_t expiration)
+    : APIRegistration(GlobalStore::instance()->next_regid(),
+                   endpoint, DEFER, NONE, 0, expiration,
+                   false, 0, ""), node_(node)
 {
     logpathf("/reg/%s/%d", node->name(), regid_);
 
@@ -56,4 +58,25 @@ SimRegistration::deliver_bundle(Bundle* bundle)
     BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
 }
 
+int
+SimRegistration::format(char* buf, size_t sz) const
+{
+    return snprintf(buf, sz,
+                    "id %u: %s %s (%s%s %s %s) [expiration %d%s%s%s%s]",
+                    regid(),
+                    active() ? "active" : "passive",
+                    endpoint().c_str(),
+                    failure_action_toa(failure_action()),
+                    failure_action() == Registration::EXEC ?
+                      script().c_str() : "",
+                    replay_action_toa(replay_action()),
+                    delivery_acking_ ? "ACK_Bndl_Dlvry" : "Auto-ACK_Bndl_Dlvry",
+                    expiration(),
+                    session_flags() != 0 ? " session:" : "",
+                    (session_flags() & Session::CUSTODY) ? " custody" : "",
+                    (session_flags() & Session::PUBLISH) ? " publish" : "",
+                    (session_flags() & Session::SUBSCRIBE) ? " subscribe" : ""
+        );
+}
 } // namespace dtnsim
+

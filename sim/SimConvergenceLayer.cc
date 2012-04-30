@@ -41,6 +41,11 @@ class InFlightBundle;
 //----------------------------------------------------------------------
 class SimLink : public CLInfo,
                 public oasys::Logger {
+	// Note although this is derived from CLInfo (and hence SerializableObject
+	// we don't define serialize and it defaults to the empty routine in CLInfo.
+	// Since the simulator uses the memory 'persistent' data store, there is never
+	// anything to read back in on restart, so it is irrelevant what is serialized
+	// the cl_info field of any Links.
 public:
     struct Params;
     
@@ -90,6 +95,9 @@ public:
         bool set_prevhop_;
         
     } params_;
+
+    /// The sending node
+    Node* src_node_;
 
     /// The receiving node
     Node* peer_node_;	
@@ -154,10 +162,21 @@ SimLink::start_next_bundle()
     ASSERT(!link_->queue()->empty());
     ASSERT(pending_inflight_ == NULL);
     
-    Node* src_node = Node::active_node();
-    ASSERT(src_node != peer_node_);
+    // Remember the node that was active on entry
+    // Have to control the active node so that operations are done
+    // on either the source or destination node as appropriate.
+    // Since this routine is called via the (single) timer system,
+    // there is no guarantee what node is active when it is called.
+    // and we have to force the active node first to the link source
+    // and later to the link destination.  The active node is set back
+    // to the same as on entry at the end.
+    // These considerations also apply to handle_arrival_events and
+    // handle_transmitted_events
+    Node * orig_node = Node::active_node();
 
-    const ConnState* cs = Connectivity::instance()->lookup(src_node, peer_node_);
+    src_node_->set_active();
+
+    const ConnState* cs = Connectivity::instance()->lookup(src_node_, peer_node_);
     ASSERT(cs);
 
     BundleRef src_bundle("SimLink::start_next_bundle");
@@ -189,6 +208,7 @@ SimLink::start_next_bundle()
         total_len += src_bundle->payload().length();
 
     complete = false;
+    peer_node_->set_active();
     Bundle* dst_bundle = new Bundle(src_bundle->payload().location());
     int cc = BundleProtocol::consume(dst_bundle, buf_, len, &complete);
     ASSERT(cc == (int)len);
@@ -225,6 +245,7 @@ SimLink::start_next_bundle()
     transmitted_events_.push(new PendingEvent(src_bundle.object(), total_len, transmitted_time));
 
     reschedule_timers();
+    orig_node->set_active();
 }
 
 //----------------------------------------------------------------------
@@ -304,7 +325,10 @@ SimLink::handle_arrival_events(const oasys::Time& now)
 {
     ASSERT(! arrival_events_.empty());
     
+    Node * orig_node = Node::active_node();
+
     // deliver any bundles that have arrived
+	peer_node_->set_active();
     while (! arrival_events_.empty()) {
         PendingEvent* next = arrival_events_.front();
         if (next->time_ <= now) {
@@ -330,6 +354,7 @@ SimLink::handle_arrival_events(const oasys::Time& now)
     }
 
     reschedule_timers();
+    orig_node->set_active();
 }
 
 //----------------------------------------------------------------------
@@ -338,7 +363,10 @@ SimLink::handle_transmitted_events(const oasys::Time& now)
 {
     ASSERT(! transmitted_events_.empty());
     
+    Node * orig_node = Node::active_node();
+
     // deliver any bundles that have arrived
+	src_node_->set_active();
     while (! transmitted_events_.empty()) {
         PendingEvent* next = transmitted_events_.front();
         if (next->time_ <= now) {
@@ -362,6 +390,7 @@ SimLink::handle_transmitted_events(const oasys::Time& now)
     }
     
     reschedule_timers();
+    orig_node->set_active();
 }
 
 //----------------------------------------------------------------------
@@ -403,9 +432,12 @@ SimConvergenceLayer::init_link(const LinkRef& link,
     }
 
     SimLink* sl = new SimLink(link, params);
+    sl->src_node_ = Node::active_node();
     sl->peer_node_ = Topology::find_node(link->nexthop());
 
-    ASSERT(sl->peer_node_);
+    ASSERT (sl->peer_node_);
+    ASSERT (sl->src_node_ != sl->peer_node_);
+
     link->set_cl_info(sl);
 
     return true;
