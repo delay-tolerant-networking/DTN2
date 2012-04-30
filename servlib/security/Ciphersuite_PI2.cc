@@ -147,8 +147,10 @@ Ciphersuite_PI2::validate(const Bundle*           bundle,
     u_char*         buf;
     size_t          len;
     size_t          digest_len;
-    u_char          ps_digest[EVP_MAX_MD_SIZE];
-     BP_Local_CS*    locals = NULL;
+    size_t          read_digest_len;
+    //u_char          ps_digest[EVP_MAX_MD_SIZE];
+    u_char*          ps_digest;
+    BP_Local_CS*    locals = NULL;
     u_int64_t       field_length;
     std::vector<u_int64_t>              correlator_list;
     std::vector<u_int64_t>::iterator    cl_iter;
@@ -173,11 +175,10 @@ Ciphersuite_PI2::validate(const Bundle*           bundle,
         
         create_digest(bundle, block_list, block, db);   
         digest_len = db.len();
-        memcpy(ps_digest, db.buf(), digest_len);     
 
         log_debug_p(log, "Ciphersuite_PI2::validate() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
-                    ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
-                    ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
+        		db.buf()[0], db.buf()[1], db.buf()[2], db.buf()[3], db.buf()[4], db.buf()[5], db.buf()[6], db.buf()[7], db.buf()[8], db.buf()[9], db.buf()[10],
+        		db.buf()[11], db.buf()[12], db.buf()[13], db.buf()[14], db.buf()[15], db.buf()[16], db.buf()[17], db.buf()[18], db.buf()[19]);
 
         // get pieces from results -- should be just the signature
         buf = locals->security_result().buf();
@@ -196,15 +197,16 @@ Ciphersuite_PI2::validate(const Bundle*           bundle,
             {
                 log_debug_p(log, "Ciphersuite_PI2::validate() CS_signature_field item, len %llu", U64FMT(field_length));
                         
-                err = KeySteward::verify(bundle, buf, field_length, ps_digest, digest_len);
-                if ( err == 0 ) {
-                    log_debug_p(log, "Ciphersuite_PI2::validate() -- KeySteward::verify() returned %d", err);
-                    locals->set_proc_flag(CS_BLOCK_PASSED_VALIDATION | CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
-                } else {
-                    log_err_p(log, "Ciphersuite_PI2::validate: CS_signature_field validation failed");                      
+                err = KeySteward::verify(bundle, buf, field_length, &ps_digest, &read_digest_len, (int) cs_num());
+                CS_FAIL_IF(err != 0);
+                log_debug_p(log, "Ciphersuite_PI2::validate() -- KeySteward::verify() returned %d", err);
+                locals->set_proc_flag(CS_BLOCK_PASSED_VALIDATION | CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
+
+                if(digest_len != read_digest_len || memcmp(ps_digest, db.buf(), digest_len) != 0) {
+                    log_err_p(log, "Ciphersuite_PI2::validate: digests didn't match");
                     goto fail;
                 }
-                        
+                free(ps_digest);
             }
             break;
                     
@@ -424,7 +426,7 @@ Ciphersuite_PI2::generate(const Bundle*  bundle,
         generate_preamble(xmit_blocks, 
                           block,
                           BundleProtocol::PAYLOAD_SECURITY_BLOCK,
-                          BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
+                          //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |  //This causes non-BSP nodes to delete the bundle
                           (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                           length);
 
@@ -479,12 +481,12 @@ Ciphersuite_PI2::generate(const Bundle*  bundle,
          - signed hash, plus type and length
     */
     EVP_MD_CTX_init(&ctx);
-    err = EVP_DigestInit_ex(&ctx, EVP_sha1(), NULL);
+    err = EVP_DigestInit_ex(&ctx, EVP_sha256(), NULL);
     CS_FAIL_IF(err == 0);
     digest_len = EVP_MD_CTX_size(&ctx);
     EVP_MD_CTX_cleanup(&ctx);
     
-    KeySteward::signature_length(bundle, NULL, link, digest_len, sig_len);
+    KeySteward::signature_length(bundle, NULL, link, digest_len, sig_len, (int) cs_num());
     
     res_len = 1 + SDNV::encoding_len(sig_len) + sig_len;
     
@@ -496,7 +498,9 @@ Ciphersuite_PI2::generate(const Bundle*  bundle,
     length += SDNV::encoding_len(locals->cs_flags());
     
     param_len = locals->security_params().len();
-    length += SDNV::encoding_len(param_len) + param_len;
+    if(param_len > 0) {
+        length += SDNV::encoding_len(param_len) + param_len;
+    }
     locals->set_security_result_offset(length);     //remember this for finalize()
     length += SDNV::encoding_len(res_len) + res_len;
         
@@ -505,11 +509,10 @@ Ciphersuite_PI2::generate(const Bundle*  bundle,
     generate_preamble(xmit_blocks, 
                       block,
                       BundleProtocol::PAYLOAD_SECURITY_BLOCK,
-                      BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
+                      //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |  //This causes non-BSP nodes to delete the bundle
                       (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                       length);
     
-
     log_debug_p(log, "Ciphersuite_PI2::generate() preamble len %u block len %zu", block->data_offset(), length);
     contents->reserve(block->data_offset() + length);
     contents->set_len(block->data_offset() + length);
@@ -530,6 +533,7 @@ Ciphersuite_PI2::generate(const Bundle*  bundle,
     len -= sdnv_len;
             
     if ( param_len > 0 ) {
+        log_debug_p(log, "Ciphersuite_PI2::generate: encoding parameters of length %d", param_len);
         // length of params
         sdnv_len = SDNV::encode(param_len, buf, len);
         CS_FAIL_IF(sdnv_len <= 0);
@@ -544,8 +548,19 @@ Ciphersuite_PI2::generate(const Bundle*  bundle,
 
     // length of result -- we have to put this in now
     sdnv_len = SDNV::encode(res_len, buf, len);
+    if(sdnv_len == 2) {
+        log_debug_p(log, "Ciphersuite_PI::generate() encoded res_len=0x%02x%02x", *buf, *(buf+1));
+    } else if(sdnv_len == 1) {
+        log_debug_p(log, "Ciphersuite_PI::generate() encoded res_len=0x%02x", *buf);
+    } else {
+        log_debug_p(log, "Ciphersuite_PI::generate() encoded res_len=0x%02x%02x...", *buf, *(buf+1));
+    }
+    log_debug_p(log, "Ciphersuite_PI::generate() res_len=0x%02x", res_len);
+    log_debug_p(log, "Ciphersuite_PI::generate() sdnv_len=%d", sdnv_len);
+    buf += sdnv_len;
+    len -= sdnv_len;
 
-    
+   
     //  no, no ! Not yet !!    
     //  ASSERT( len == 0 );
     log_debug_p(log, "Ciphersuite_PI2::generate() done");
@@ -595,7 +610,7 @@ Ciphersuite_PI2::finalize(const Bundle*  bundle,
     
     create_digest(bundle, xmit_blocks, block, db_digest);        
     
-    err = KeySteward::sign(bundle, NULL, link, db_digest, db_signed);
+    err = KeySteward::sign(bundle, NULL, link, db_digest, db_signed, (int) cs_num());
     CS_FAIL_IF(err != 0);
     sig_len = db_signed.len();
     res_len = 1 + SDNV::encoding_len(sig_len) + sig_len;
@@ -633,6 +648,9 @@ Ciphersuite_PI2::finalize(const Bundle*  bundle,
     memcpy(buf, digest_result->buf(), digest_result->len());
     log_debug_p(log, "Ciphersuite_PI2::finalize() done");
     
+
+
+
     result = BP_SUCCESS;
     return result;
 
@@ -655,7 +673,7 @@ Ciphersuite_PI2::digest(const Bundle*    bundle,
     (void)caller_block;
     (void)target_block;
     log_debug_p(log, "Ciphersuite_PI2::digest() %zu bytes", len);
-    
+
     EVP_MD_CTX*       pctx = reinterpret_cast<EVP_MD_CTX*>(r);
     
     EVP_DigestUpdate( pctx, buf, len );
@@ -1050,7 +1068,7 @@ Ciphersuite_PI2::create_digest(const Bundle*  bundle,
     // XXX-pl  check error -- zero is failure
     
     log_debug_p(log, "Ciphersuite_PI2::create_digest() digest      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
-                ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10], 
+                ps_digest[0], ps_digest[1], ps_digest[2], ps_digest[3], ps_digest[4], ps_digest[5], ps_digest[6], ps_digest[7], ps_digest[8], ps_digest[9], ps_digest[10],
                 ps_digest[11], ps_digest[12], ps_digest[13], ps_digest[14], ps_digest[15], ps_digest[16], ps_digest[17], ps_digest[18], ps_digest[19]);
 
     EVP_MD_CTX_cleanup(&ctx);

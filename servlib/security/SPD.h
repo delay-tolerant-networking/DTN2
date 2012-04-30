@@ -40,18 +40,6 @@ namespace dtn {
 class SPD : public oasys::Singleton<SPD, false> {
 public:
 
-    typedef enum {
-        SPD_DIR_IN,
-        SPD_DIR_OUT
-    } spd_direction_t;
-
-    typedef enum {
-        SPD_USE_NONE  = 0,
-        SPD_USE_BAB   = 1 << 0,
-        SPD_USE_PCB    = 1 << 1,
-        SPD_USE_PIB   = 1 << 2,
-    } spd_policy_t;
-
     /**
      * Constructor (called at startup).
      */
@@ -68,18 +56,10 @@ public:
     static void init();
 
     /**
-     * Set global policy to a bitwise-OR'ed combination of
-     * SPD_USE_BAB, SPD_USE_PSB, and/or SPD_USE_CB.  SPD_USE_NONE can
-     * also be specified to turn security features off entirely.
-     */
-    static void set_global_policy(spd_direction_t direction,
-                                  spd_policy_t policy);
-
-    /**
      * Add the security blocks required by security policy for the
      * given outbound bundle.
      */
-    static void prepare_out_blocks(const Bundle* bundle,
+    static int prepare_out_blocks(const Bundle* bundle,
                                    const LinkRef& link,
                                    BlockInfoVec* xmit_blocks);
 
@@ -90,19 +70,7 @@ public:
     static bool verify_in_policy(const Bundle* bundle);
 
 private:
-    spd_policy_t global_policy_inbound_;
-    spd_policy_t global_policy_outbound_;
-
-    /**
-     * Return the policy for the given bundle in the given direction.
-     *
-     * XXX For now this just returns the global policy regardless of
-     * the value of the 'bundle' argument; in the future it should be
-     * moddified to look up an SPD entry indexed by source and
-     * destination EndpointIDPatterns.
-     */
-    static spd_policy_t find_policy(spd_direction_t direction,
-                                    const Bundle* bundle);
+    static bool verify_one_ciphersuite(set<int> *cs, const Bundle *bundle, const BlockInfoVec *recv_blocks);
 
 };
 

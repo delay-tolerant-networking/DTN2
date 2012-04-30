@@ -13,10 +13,6 @@
  * implied.
  */
 
-/*
- * $Id$
- */
-
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -24,10 +20,13 @@
 #ifdef BSP_ENABLED
 
 #include "SPD.h"
+#include "bundling/BundleDaemon.h"
 #include "Ciphersuite.h"
 #include "Ciphersuite_BA1.h"
 #include "Ciphersuite_PI2.h"
 #include "Ciphersuite_PC3.h"
+#include "Ciphersuite_ES4.h"
+#include "SecurityPolicy.h"
 
 namespace dtn {
 
@@ -36,10 +35,7 @@ SPD* oasys::Singleton<SPD, false>::instance_ = NULL;
 
 static const char * log = "/dtn/bundle/security";
 
-SPD::SPD()
-    : global_policy_inbound_(SPD_USE_NONE),
-      global_policy_outbound_(SPD_USE_NONE)
-{
+SPD::SPD() {
 }
 
 SPD::~SPD()
@@ -58,92 +54,90 @@ SPD::init()
 	log_debug_p(log, "SPD::init() done");
 }
 
-void
-SPD::set_global_policy(spd_direction_t direction, spd_policy_t policy)
-{
-    ASSERT(direction == SPD_DIR_IN || direction == SPD_DIR_OUT);
-    ASSERT((policy & ~(SPD_USE_BAB | SPD_USE_PCB | SPD_USE_PIB)) == 0);
-    if (direction == SPD_DIR_IN)
-        instance()->global_policy_inbound_ = policy;
-    else
-        instance()->global_policy_outbound_ = policy;
-	log_debug_p(log, "SPD::set_global_policy() done");
-}
-
-void
+int
 SPD::prepare_out_blocks(const Bundle* bundle, const LinkRef& link,
                     BlockInfoVec* xmit_blocks)
 {
-    spd_policy_t policy = find_policy(SPD_DIR_OUT, bundle);
-    
-    if (policy & SPD_USE_PIB) {
-        Ciphersuite* bp =
-            Ciphersuite::find_suite(Ciphersuite_PI2::CSNUM_PI2);
-        ASSERT(bp != NULL);
-        bp->prepare(bundle, xmit_blocks, NULL, link,
-                    BlockInfo::LIST_NONE);
+    std::string bundle_src_str = bundle->source().uri().scheme() + "://" +
+                                 bundle->source().uri().host();
+    EndpointID        src_node(bundle_src_str);
+    vector<int> bps = bundle->security_policy().get_out_bps();
+    vector<int>::iterator it;
+    Ciphersuite *bp;
+
+
+    for(it=bps.begin();it!=bps.end();it++) {
+
+        if(src_node != BundleDaemon::instance()->local_eid() && *it != 1) {
+            log_debug_p(log, "SPD::prepare_out_blocks() not adding security block %d to forwarded node", *it);
+        } else {
+        bp = Ciphersuite::find_suite(*it);
+        if(bp == NULL) {
+            log_err_p(log, "SPD::prepare_out_blocks() couldn't find ciphersuite %d which our current policy requires.  Therefore, we are not going to send this bundle.", *it);
+            goto fail;
+        }
+
+        if(BP_FAIL == bp->prepare(bundle, xmit_blocks, NULL, link,
+                    BlockInfo::LIST_NONE)) {
+            log_err_p(log, "SPD::prepare_out_blocks() Ciphersuite number %d->prepare returned BP_FAIL", bp->cs_num());
+            goto fail;
+        }
+        }
     }
 
-    if (policy & SPD_USE_PCB) {
-        Ciphersuite* bp =
-            Ciphersuite::find_suite(Ciphersuite_PC3::CSNUM_PC3);
-        ASSERT(bp != NULL);
-        bp->prepare(bundle, xmit_blocks, NULL, link,
-                    BlockInfo::LIST_NONE);
-    }
-
-    if (policy & SPD_USE_BAB) {
-        Ciphersuite* bp =
-            Ciphersuite::find_suite(Ciphersuite_BA1::CSNUM_BA1);
-        ASSERT(bp != NULL);
-        bp->prepare(bundle, xmit_blocks, NULL, link,
-                    BlockInfo::LIST_NONE);
-    }
 	log_debug_p(log, "SPD::prepare_out_blocks() done");
+    return BP_SUCCESS;
+fail:
+    return BP_FAIL;
 }
+
+bool SPD::verify_one_ciphersuite(set<int> *cs, const Bundle *bundle, const BlockInfoVec *recv_blocks) {
+    set<int>::iterator it;
+  if(cs->count(0) > 0) {
+        log_debug_p(log, "Allowing bundle because 0 is in the list of allowed ciphersuites");
+        return true;
+    } else {
+        for(it=cs->begin();it!=cs->end();it++) {
+            if(Ciphersuite::check_validation(bundle, recv_blocks, *it)) {
+                log_debug_p(log, "Allowing bundle because cs=%d say's it is ok", *it);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 
 bool
 SPD::verify_in_policy(const Bundle* bundle)
 {
-    spd_policy_t policy = find_policy(SPD_DIR_IN, bundle);
+    std::string bundle_dest_str = bundle->dest().uri().scheme() + "://" +
+                                 bundle->dest().uri().host();
+    EndpointID        dest_node(bundle_dest_str);
+    set<int> *cs;
     const BlockInfoVec* recv_blocks = &bundle->recv_blocks();
+    cs = Ciphersuite::config->get_allowed_babs();
+    if(!verify_one_ciphersuite(cs,bundle, recv_blocks)) {
+        log_debug_p(log, "BAB disallowing bundle");
+        return false;
+    }
 
-	log_debug_p(log, "SPD::verify_in_policy() 0x%x", policy);
+    if(dest_node != BundleDaemon::instance()->local_eid()) {
+        log_debug_p(log, "SPD::verify_in_policy() quiting after BAB check because we're just forwarding");
+        return true;
+    }
+    cs = Ciphersuite::config->get_allowed_pibs();
+    if(!verify_one_ciphersuite(cs, bundle, recv_blocks)) {
+        log_debug_p(log, "PIB disallowing bundle");
+        return false;
+    }
+    cs = Ciphersuite::config->get_allowed_pcbs();
+    if(!verify_one_ciphersuite(cs, bundle, recv_blocks)) {
+        log_debug_p(log, "PCB disallowing bundle");
+        return false;
+    }
 
-    if (policy & SPD_USE_BAB) {
-        if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_BA1::CSNUM_BA1 )) {
-        	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_BAB_IN_DONE");
-            return false;
-        }
-    }
-    
-    if (policy & SPD_USE_PCB) {
-        if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_PC3::CSNUM_PC3 )) {
-        	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_PCB_IN_DONE");
-            return false;
-        }
-    }
-    
-    if (policy & SPD_USE_PIB) {
-        if ( !Ciphersuite::check_validation(bundle, recv_blocks, Ciphersuite_PI2::CSNUM_PI2 )) {
-        	log_debug_p(log, "SPD::verify_in_policy() no BP_TAG_PIB_IN_DONE");
-            return false;
-        }
-    }
-            
     return true;
-}
-
-SPD::spd_policy_t
-SPD::find_policy(spd_direction_t direction, const Bundle* bundle)
-{
-    ASSERT(direction == SPD_DIR_IN || direction == SPD_DIR_OUT);
-
-    (void)bundle;
-	log_debug_p(log, "SPD::find_policy()");
-
-    return (direction == SPD_DIR_IN ? instance()->global_policy_inbound_
-            : instance()->global_policy_outbound_);
 }
 
 } // namespace dtn

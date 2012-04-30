@@ -180,19 +180,27 @@ BA_BlockProcessor::prepare(const Bundle*    bundle,
         // if we do not
             
         p = Ciphersuite::find_suite(locals->owner_cs_num());
-        if ( p == NULL )
+        if ( p == NULL ) {
+            log_err_p(log, "BA_BlockProcessor::prepare: Couldn't find ciphersuite in registration!");
             return result;
+        }
             
         // Now we know the suite, get it to prepare its own block
         result = p->prepare( bundle, xmit_blocks, source, link, list );
+        if(result == BP_FAIL) {
+            log_err_p(log, "BA_BlockProcessor::prepare: The ciphersuite prepare returned BP_FAIL");
+        }
         break;
         
 //        case BlockInfo::LIST_NONE:       //can't handle this as generic BA
 //        case BlockInfo::LIST_RECEIVED:   //don't forward received BA blocks
     default:
+        log_debug_p(log, "BA_BlockProcessor::prepare: We landed in the defaiult case");
+        return BP_SUCCESS;
         break;
             
     }
+    
     
     return result;
 

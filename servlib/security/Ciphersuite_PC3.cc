@@ -118,6 +118,7 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
     u_int64_t       orig_length_;   // Length of original bundle
     ret_type        ret = 0;
     DataBuffer      db;
+    int 			err = 0;
      
     log_debug_p(log, "Ciphersuite_PC3::validate() %p", block);
     CS_FAIL_IF_NULL(locals);
@@ -200,15 +201,24 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
             switch ( item_type ) {
             case CS_key_info_field: 
             {
-                log_debug_p(log, "Ciphersuite_PC3::validate() key-info item");
-                // not sure what this looks like
-                buf += field_length;
-                len -= field_length;
+            	log_debug_p(log, "Ciphersuite_PC3::validate() key-info item");
+            	log_debug_p(log, "Ciphersuite_PC3::validate() key-info (1st 20 bytes) : 0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+            			buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
+            			buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15],
+            			buf[16], buf[17], buf[18], buf[19]);
+            	err = KeySteward::decrypt(bundle, locals->security_src(), buf, field_length, db, (int) cs_num());
+                CS_FAIL_IF(err != 0);
+            	memcpy(key, db.buf(), key_len);
+            	log_debug_p(log, "Ciphersuite_PC3::validate() key      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+            			key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7],
+            			key[8], key[9], key[10], key[11], key[12], key[13], key[14], key[15]);
+
+            	buf += field_length;
+            	len -= field_length;
             }
             break;
-                    
-/*
-            case CS_encoded_key_field:
+
+            /*case CS_encoded_key_field:
             {
                 log_debug_p(log, "Ciphersuite_PC3::validate() encoded key item");
                 KeySteward::decrypt(bundle, locals->security_src(), buf, field_length, db);
@@ -219,8 +229,8 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
                 buf += field_length;
                 len -= field_length;
             }
-            break;
-*/
+            break;*/
+
 
             case CS_PC_block_ICV_field:
             {
@@ -565,7 +575,7 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
                 memcpy(ptr, iv, iv_len);
                 log_debug_p(log, "Ciphersuite_PC3::validate() nonce    0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                             nonce[0], nonce[1], nonce[2], nonce[3], nonce[4], nonce[5], nonce[6], nonce[7], nonce[8], nonce[9], nonce[10], nonce[11]);
-                    
+
                 // prepare context
                 gcm_init_message(nonce, nonce_len, &(ctx_ex.c));
                     
@@ -588,6 +598,7 @@ Ciphersuite_PC3::validate(const Bundle*           bundle,
                 log_debug_p(log, "Ciphersuite_PC3::validate() tag_calc 0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                             tag_calc[0], tag_calc[1], tag_calc[2], tag_calc[3], tag_calc[4], tag_calc[5], tag_calc[6], tag_calc[7], 
                             tag_calc[8], tag_calc[9], tag_calc[10], tag_calc[11], tag_calc[12], tag_calc[13], tag_calc[14], tag_calc[15]);
+
                 if (memcmp(tag, tag_calc, tag_len) != 0) {
                     log_err_p(log, "Ciphersuite_PC3::validate: tag comparison failed");
                     goto fail;
@@ -818,7 +829,7 @@ Ciphersuite_PC3::generate(const Bundle*  bundle,
         generate_preamble(xmit_blocks, 
                           block,
                           BundleProtocol::CONFIDENTIALITY_BLOCK,
-                          BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
+                          //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |  //This causes non-BSP nodes to delete the bundle
                           BundleProtocol::BLOCK_FLAG_REPLICATE           |
                           (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                           length);
@@ -880,17 +891,29 @@ Ciphersuite_PC3::generate(const Bundle*  bundle,
 
     params = locals->writable_security_params();
     
-    // populate salt and IV
-    RAND_bytes(salt, sizeof(salt));
-    RAND_bytes(iv, sizeof(iv));
+    param_len = 1 + 1 + sizeof(salt);        // salt
+    param_len += 1 + 1 + sizeof(iv);            // IV
+ 
+    if(!bundle->payload_bek_set()) {
+        // populate salt and IV
+        RAND_bytes(salt, sizeof(salt));
+        RAND_bytes(iv, sizeof(iv));
+        // generate actual key
+        RAND_bytes(key, sizeof(key));
+        const_cast<Bundle*>(bundle)->set_payload_bek(key, sizeof(key), iv, salt);
+    } else {
+        memcpy(key, bundle->payload_bek(), sizeof(key));
+        memcpy(salt, bundle->payload_salt(), sizeof(salt));
+        memcpy(iv, bundle->payload_iv(), sizeof(iv));
+    }
 
+    
     // save for finalize()
+    locals->set_key(key, sizeof(key));
     locals->set_salt(salt, sizeof(salt));
     locals->set_iv(iv, sizeof(iv));
 
-    param_len = 1 + 1 + sizeof(salt);        // salt
-    param_len += 1 + 1 + sizeof(iv);            // IV
-    
+   
     if ( bundle->is_fragment() ) {
         log_debug_p(log, "Ciphersuite_PC3::generate() bundle is fragment");
         ptr = &fragment_item[2];
@@ -934,17 +957,12 @@ Ciphersuite_PC3::generate(const Bundle*  bundle,
     /* encrypt the key, keeping a local copy --
        put it directly into the result field
     */
-    
-    // generate actual key
-    RAND_bytes(key, sizeof(key));
-    
-    // save for finalize()
-    locals->set_key(key, sizeof(key));
+
 
     log_debug_p(log, "Ciphersuite_PC3::generate() key      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                 key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7], 
                 key[8], key[9], key[10], key[11], key[12], key[13], key[14], key[15]);
-    err = KeySteward::encrypt(bundle, NULL, link, locals->security_dest(), key, sizeof(key), encrypted_key);
+    err = KeySteward::encrypt(bundle, NULL, link, locals->security_dest(), key, sizeof(key), encrypted_key, (int) cs_num());
     CS_FAIL_IF(err != 0);
     log_debug_p(log, "Ciphersuite_PC3::generate() encrypted_key len = %zu", encrypted_key.len());
     
@@ -992,7 +1010,7 @@ Ciphersuite_PC3::generate(const Bundle*  bundle,
     generate_preamble(xmit_blocks, 
                       block,
                       BundleProtocol::CONFIDENTIALITY_BLOCK,
-                      BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
+                      //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |  //This causes non-BSP nodes to delete the bundle
                       (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                       length);
     
@@ -1266,7 +1284,7 @@ Ciphersuite_PC3::finalize(const Bundle*  bundle,
             generate_preamble(xmit_blocks, 
                               &*iter,
                               BundleProtocol::CONFIDENTIALITY_BLOCK,
-                              BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
+                              //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |  //This causes non-BSP nodes to delete the bundle
                               (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                               length);
                     
@@ -1357,6 +1375,7 @@ Ciphersuite_PC3::finalize(const Bundle*  bundle,
             size_t            rem;
             u_char            type;
             u_int64_t        field_len;
+            if(!bundle->payload_encrypted()) {
             ptr = nonce;
                     
             log_debug_p(log, "Ciphersuite_PC3::finalize() PAYLOAD_BLOCK");
@@ -1371,6 +1390,7 @@ Ciphersuite_PC3::finalize(const Bundle*  bundle,
                 
             offset = iter->data_offset();
             len = iter->data_length();
+
             changed = 
                 iter->owner()->mutate( Ciphersuite_PC3::do_crypt,
                                        deliberate_const_cast_bundle,
@@ -1384,6 +1404,14 @@ Ciphersuite_PC3::finalize(const Bundle*  bundle,
             gcm_compute_tag( tag, tag_len, &(ctx_ex.c) );
             log_debug_p(log, "Ciphersuite_PC3::finalize() tag      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
                         tag[0], tag[1], tag[2], tag[3], tag[4], tag[5], tag[6], tag[7], tag[8], tag[9], tag[10], tag[11], tag[12], tag[13], tag[14], tag[15]);
+             const_cast<Bundle *>(bundle)->set_payload_tag(tag);
+             const_cast<Bundle *>(bundle)->set_payload_encrypted();
+           }   else {
+               memcpy(tag, bundle->payload_tag(), tag_len);
+            log_debug_p(log, "Ciphersuite_PC3::finalize() tag      0x%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx%2.2hhx",
+                        tag[0], tag[1], tag[2], tag[3], tag[4], tag[5], tag[6], tag[7], tag[8], tag[9], tag[10], tag[11], tag[12], tag[13], tag[14], tag[15]);
+          }
+
                     
             // get the result item, and step over the encrypted key item
             LocalBuffer* result = locals->writable_security_result();
@@ -1455,8 +1483,9 @@ Ciphersuite_PC3::do_crypt(const Bundle*    bundle,
     (void) caller_block;
     (void) target_block;
     gcm_ctx_ex* pctx = reinterpret_cast<gcm_ctx_ex*>(r);
-    
+
     log_debug_p(log, "Ciphersuite_PC3::do_crypt() operation %hhu len %zu", pctx->operation, len);
+
     if (pctx->operation == op_encrypt)
         gcm_encrypt( reinterpret_cast<u_char*>(buf), len, &(pctx->c) );
     else    

@@ -110,7 +110,15 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
     log_debug("trying to create xmit blocks for bundle id:%d on link %s",
               bundle->bundleid(), link->name());
     BlockInfoVec* blocks = BundleProtocol::prepare_blocks(bundle, link);
+    if(blocks == NULL) {
+        log_err("BundleActions::queue_bundle: prepare_blocks returned NULL on bundle %d", bundle->bundleid());
+        return false;
+    }
     size_t total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
+    if(total_len == 0) {
+        log_err("BundleActions::queue_bundle: generate_blocks returned 0 on bundle %d", bundle->bundleid());
+        return false;
+    }
 
     log_debug("queue bundle *%p on %s link %s (%s) (total len %zu)",
               bundle, link->type_str(), link->name(), link->nexthop(),

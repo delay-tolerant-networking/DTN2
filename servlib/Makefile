@@ -223,9 +223,11 @@ SECURITY_SRCS :=				\
 	security/BA_BlockProcessor.cc		\
 	security/PI_BlockProcessor.cc		\
 	security/PC_BlockProcessor.cc		\
+	security/ES_BlockProcessor.cc		\
 	security/Ciphersuite_BA1.cc		\
 	security/Ciphersuite_PI2.cc		\
 	security/Ciphersuite_PC3.cc		\
+	security/Ciphersuite_ES4.cc		\
 	security/BP_Tag.cc			\
 	security/KeyDB.cc			\
 	security/SPD.cc				\

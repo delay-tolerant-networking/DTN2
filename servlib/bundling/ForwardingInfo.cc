@@ -24,6 +24,8 @@
 #endif
 
 #include "ForwardingInfo.h"
+#include "bundling/BundleDaemon.h"
+#include "contacts/ContactManager.h"
 
 namespace dtn {
 
@@ -37,6 +39,12 @@ ForwardingInfo::serialize(oasys::SerializeAction *a)
     a->process("remote_eid", &remote_eid_);
     a->process("timestamp_sec", &timestamp_.sec_);
     a->process("timestamp_usec", &timestamp_.usec_);
+    if(a->action_code() == oasys::Serialize::UNMARSHAL) {
+        if(state_ == QUEUED && !BundleDaemon::instance()->contactmgr()->has_link(link_name_.c_str())) {
+            state_ = TRANSMIT_FAILED;
+            timestamp_.get_time();
+        }
+    }
 }
 
 } // namespace dtn

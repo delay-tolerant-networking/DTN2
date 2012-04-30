@@ -27,6 +27,8 @@
 #include "Ciphersuite_PI2.h"
 #include "PC_BlockProcessor.h"
 #include "Ciphersuite_PC3.h"
+#include "ES_BlockProcessor.h"
+#include "Ciphersuite_ES4.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
@@ -38,6 +40,7 @@ namespace dtn {
 
 #define CS_MAX 1024
 Ciphersuite* Ciphersuite::ciphersuites_[CS_MAX];
+SecurityConfig* Ciphersuite::config=NULL;
 
 static const char* log = "/dtn/bundle/ciphersuite";
 
@@ -47,12 +50,18 @@ bool Ciphersuite::inited = false;
 Ciphersuite::Ciphersuite()
 //    : BlockProcessor(block_type)
 {
-    log_debug_p(log, "Ciphersuite::Ciphersuite()");
+}
+Ciphersuite::Ciphersuite(SecurityConfig *c) {
+    config = c;
 }
 
 //----------------------------------------------------------------------
 Ciphersuite::~Ciphersuite()
-{ }
+{ 
+}
+void Ciphersuite::shutdown() {
+    delete config;
+}
 
 //----------------------------------------------------------------------
 void
@@ -88,15 +97,18 @@ Ciphersuite::init_default_ciphersuites()
 {
     log_debug_p(log, "Ciphersuite::init_default_ciphersuites()");
     if ( ! inited ) {
+        config = new SecurityConfig();
         // register default block processor handlers
         BundleProtocol::register_processor(new BA_BlockProcessor());
         BundleProtocol::register_processor(new PI_BlockProcessor());
         BundleProtocol::register_processor(new PC_BlockProcessor());
+        BundleProtocol::register_processor(new ES_BlockProcessor());
         
         // register mandatory ciphersuites
         register_ciphersuite(new Ciphersuite_BA1());
         register_ciphersuite(new Ciphersuite_PI2());
         register_ciphersuite(new Ciphersuite_PC3());
+        register_ciphersuite(new Ciphersuite_ES4());
         
         inited = true;
     }
@@ -137,14 +149,10 @@ Ciphersuite::parse(BlockInfo* block)
     ASSERT(block != NULL);
     
     // preamble has already been parsed and stored, so we skip over it here
-//get the type
-//get flags sdnv
-//get length sdnv
-    
     buf = block->contents().buf() + block->data_offset();
     len = block->data_length();
     
-//get ciphersuite and flags
+    // get ciphersuite and flags
     sdnv_len = SDNV::decode(buf,
                             len,
                             &suite_num);
@@ -183,11 +191,11 @@ Ciphersuite::parse(BlockInfo* block)
     ASSERT ( suite_num < 65535 );
     locals->set_owner_cs_num(suite_num);
 
-//set cs_flags
+    // set cs_flags
     ASSERT ( cs_flags  < 65535  );
     locals->set_cs_flags(cs_flags);
     
-//get correlator, if present
+    // get correlator, if present
     if ( has_correlator ) {    
         sdnv_len = SDNV::decode(buf,
                                 len,
@@ -200,7 +208,7 @@ Ciphersuite::parse(BlockInfo* block)
     locals->set_correlator(security_correlator);
     
 
-//get cs params length, and data
+    // get cs params length, and data
     if ( has_params ) {    
         sdnv_len = SDNV::decode(buf,
                                 len,
@@ -218,7 +226,7 @@ Ciphersuite::parse(BlockInfo* block)
     }
     
 
-//get sec-src length and data
+    // get sec-src length and data
     log_debug_p(log, "Ciphersuite::parse() eid_list().size() %zu has_source %u has_dest %u", 
                 block->eid_list().size(), has_source, has_dest);
     
@@ -231,14 +239,14 @@ Ciphersuite::parse(BlockInfo* block)
         }
         
 
-        //get sec-dest length and data
+        // get sec-dest length and data
         if ( has_dest ) {    
             locals->set_security_dest( iter->str() );
         }
     }
     
 
- //get sec-result length and data, if present
+    // get sec-result length and data, if present
     if ( has_result ) {    
         sdnv_len = SDNV::decode(buf,
                                 len,
@@ -408,17 +416,24 @@ Ciphersuite::check_validation(const Bundle*       bundle,
     
     // Now check what we have collected
     // If we positively validated, we succeeded
-    if ( proc_flags & CS_BLOCK_PASSED_VALIDATION )
+    if ( proc_flags & CS_BLOCK_PASSED_VALIDATION ) {
+        log_debug_p(log, "Ciphersuite::check_validation(%hu) returning true because CS_BLOCK_PASSED_VALIDATION", num);
         return true;
+    }
     
     // If we had no positives, then any failure is failure
-    if ( proc_flags & CS_BLOCK_FAILED_VALIDATION )
+    if ( proc_flags & CS_BLOCK_FAILED_VALIDATION ) {
+        log_debug_p(log, "Ciphersuite::check_validation(%hu) returning false because CS_BLOCK_FAILED_VALIDATION", num);
         return false;
+    }
     
     // If no positives but no failure, then did we have 
     // a block which we couldn't test
-    if ( proc_flags & CS_BLOCK_DID_NOT_FAIL )
+    if ( proc_flags & CS_BLOCK_DID_NOT_FAIL ) {
+        log_debug_p(log, "Ciphersuite::check_validation(%hu) returning true because CS_BLOCK_DID_NOT_FAIL", num);
         return true;
+    }
+    log_debug_p(log, "Ciphersuite::check_validation(%hu) returning false because we didn't find a block at all", num);
     
     return false;   // no blocks of wanted type
 }

@@ -58,6 +58,15 @@ KeyDB::init()
 	log_debug_p(log, "KeyDB::init() done");
 }
 
+void KeyDB::shutdown()
+{
+    if(instance_ != NULL) 
+    {
+        delete instance_;
+        log_debug_p(log, "KeyDB::shutdown() completed");
+    }
+}
+
 void
 KeyDB::set_key(Entry& entry)
 {
@@ -208,7 +217,7 @@ KeyDB::Entry::~Entry()
 {
     if (key_ != NULL) {
         memset(key_, 0, key_len_);
-        delete key_;
+        delete[] key_;
         key_len_ = 0;
     } else
         ASSERT(key_len_ == 0);
@@ -220,7 +229,7 @@ KeyDB::Entry::operator=(const Entry& other)
 {
     if (key_ != NULL) {
         memset(key_, 0, key_len_);
-        delete key_;
+        delete[] key_;
     }
 
     host_   = other.host_;

@@ -753,7 +753,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
             deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
 
         
-        log_info("handle_bundle_received: validating - calling BlockProcessors");
+	log_info("/dtn/bundle/protocol", "handle_bundle_received: validating "
+                 "bundle: calling BlockProcessors?");
         bool valid = BundleProtocol::validate(bundle,
                                               &reception_reason,
                                               &deletion_reason);
@@ -2380,6 +2381,11 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 
     // fall through -- the DTNServer will close and flush all the data
     // stores
+#ifdef BSP_ENABLED
+    Ciphersuite::shutdown();
+    KeyDB::shutdown();
+#endif
+
 }
 //----------------------------------------------------------------------
 

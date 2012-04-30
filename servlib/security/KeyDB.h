@@ -52,6 +52,7 @@ public:
      * Startup-time initializer.
      */
     static void init();
+    static void shutdown();
 
     /**
      * Set the key for a given host and ciphersuite type.  This will

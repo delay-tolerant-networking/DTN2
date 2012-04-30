@@ -366,7 +366,7 @@ Ciphersuite_BA1::generate(const Bundle*  bundle,
     generate_preamble(xmit_blocks, 
                       block,
                       BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK,
-                      BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
+                      //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |  //This causes non-BSP nodes to delete the bundle
                       (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                       length);
 

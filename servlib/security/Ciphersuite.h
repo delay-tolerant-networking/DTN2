@@ -20,6 +20,7 @@
 #ifdef BSP_ENABLED
 
 #include "bundling/BlockProcessor.h"
+#include "SecurityConfig.h"
 
 namespace dtn {
 
@@ -88,17 +89,20 @@ public:
     
     /// Constructor
     Ciphersuite();
+    Ciphersuite(SecurityConfig *config);
 
     /**
      * Virtual destructor.
      */
     virtual ~Ciphersuite();
-    
+
     static void register_ciphersuite(Ciphersuite* cs);
 
     static Ciphersuite* find_suite(u_int16_t num);
 
     static void init_default_ciphersuites(void);
+
+    static void shutdown(void);
     
     virtual u_int16_t cs_num();
 
@@ -213,6 +217,8 @@ public:
     
     
     virtual void init_locals(BlockInfo* block);
+
+    static SecurityConfig *config;
     
 protected:
     

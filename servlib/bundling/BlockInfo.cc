@@ -108,6 +108,8 @@ BlockInfo::type() const
     (void)data;
     if (owner_ != NULL)
         ASSERT(contents_.buf()[0] == owner_->block_type()
+               || owner_->block_type() == BundleProtocol::CONFIDENTIALITY_BLOCK
+               || owner_->block_type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK
                || owner_->block_type() == BundleProtocol::UNKNOWN_BLOCK
                || owner_->block_type() == BundleProtocol::API_EXTENSION_BLOCK);
     return contents_.buf()[0];

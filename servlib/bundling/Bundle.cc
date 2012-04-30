@@ -58,6 +58,17 @@ Bundle::init(u_int32_t id)
     fragmented_incoming_= false;
     session_flags_      = 0;
     freed_          = false;
+#ifdef BSP_ENABLED
+    security_policy_ = SecurityPolicy(Ciphersuite::config);
+    payload_bek_ = NULL;
+    payload_bek_len_ = 0;
+    payload_bek_set_ = false;
+    payload_encrypted_ = false;
+    memset(payload_salt_, 0, 4);
+    memset(payload_iv_, 0, 8);
+    memset(payload_tag_, 0, 16);
+#endif
+    
 
     // as per the spec, the creation timestamp should be calculated as
     // seconds since 1/1/2000, and since the bundle id should be
@@ -121,6 +132,11 @@ Bundle::~Bundle()
     log_debug_p("/dtn/bundle/free", "destroying bundle id %d", bundleid_);
     
     ASSERT(mappings_.size() == 0);
+#ifdef BSP_ENABLED
+    if(payload_bek_set_) {
+        free(payload_bek_);
+    }
+#endif
     bundleid_ = 0xdeadf00d;
 
     ASSERTF(expiration_timer_ == NULL,
@@ -276,6 +292,22 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("api_blocks", &api_blocks_);
 
     a->process("age", &age_); // [AEB]
+#ifdef BSP_ENABLED
+    a->process("security_policy", &security_policy_);
+    a->process("payload_bek_len", &payload_bek_len_);
+    if(a->action_code() == oasys::Serialize::UNMARSHAL) {
+        if(payload_bek_!= NULL) {
+            free(payload_bek_);
+        }
+        payload_bek_ = (u_char *)malloc(payload_bek_len_);
+    }
+    a->process("payload_bek", payload_bek_, payload_bek_len_);
+    a->process("payload_salt", payload_salt_, 4);
+    a->process("payload_iv", payload_iv_, 8);
+    a->process("payload_tag", payload_tag_, 16);
+    a->process("payload_bek_set", &payload_bek_set_);
+    a->process("payload_encrypted", &payload_encrypted_);
+#endif
     //a->process("time_aeb", &time_aeb_); // [AEB]
 
     // a->process("metadata", &recv_metadata_); // XXX/kscott

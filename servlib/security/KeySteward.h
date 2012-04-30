@@ -19,8 +19,9 @@
 
 #ifdef BSP_ENABLED
 
-#include <oasys/util/ScratchBuffer.h>
-//#include "bundling/BlockProcessor.h"
+#include "oasys/util/ScratchBuffer.h"
+#include "openssl/cms.h"
+#include "openssl/bio.h"
 
 namespace dtn {
 
@@ -34,39 +35,48 @@ class KeySteward  {
 
 public:
     
-    /// static class in this demo code
-    
-    static int encrypt(const Bundle*     b,
+    static int encrypt(
+                       const Bundle*     b,
                        KeyParameterInfo* kpi,
                        const LinkRef&    link,
                        std::string       security_dest,
                        u_char*           data,
                        size_t            data_len,
-                       DataBuffer&       db);
+                       DataBuffer&       db,
+                       int csnum);
     
-    static int decrypt(const Bundle* b,
+    static int decrypt(
+                       const Bundle* b,
                        std::string   security_src,
                        u_char*       enc_data,
                        size_t        enc_data_len,
-                       DataBuffer&   db);
+                       DataBuffer&   db,
+                       int csnum);
     
-    static int sign(const Bundle*    b,
+    static int sign(
+                    const Bundle*    b,
                     KeyParameterInfo*kpi,
                     const LinkRef&   link,
                     DataBuffer&      db_digest,
-                    DataBuffer&      db_signed);
+                    DataBuffer&      db_signed,
+                    int csnum);
     
-    static int signature_length(const Bundle*     b,
+    static int signature_length(
+                                const Bundle*     b,
                                 KeyParameterInfo* kpi,
                                 const LinkRef&    link,
                                 size_t            data_len,
-                                size_t&           out_len);
+                                size_t&           out_len,
+                                int csnum);
     
-    static int verify(const Bundle* b,
+    static int verify(
+                      const Bundle*	b,
                       u_char*       enc_data,
                       size_t        enc_data_len,
-                      u_char*       data,
-                      size_t        data_len);
+                      u_char**      data,
+                      size_t*      	data_len,
+                      int 			csnum);
+
 };
 
 

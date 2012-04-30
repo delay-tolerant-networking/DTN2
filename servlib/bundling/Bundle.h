@@ -35,6 +35,10 @@
 #include "MetadataBlock.h"
 #include "SequenceID.h"
 #include "naming/EndpointID.h"
+#include "security/SecurityPolicy.h"
+#include "security/Ciphersuite.h"
+
+typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
 
 namespace dtn {
 
@@ -239,6 +243,16 @@ public:
     const BlockInfoVec& recv_blocks()     const { return recv_blocks_; }
     const MetadataVec& recv_metadata()    const { return recv_metadata_; }
     const LinkMetadataSet& generated_metadata() const { return generated_metadata_; }
+#ifdef BSP_ENABLED
+    const SecurityPolicy& security_policy() const {return security_policy_;}
+    const u_char *payload_bek() const {return payload_bek_;}
+    const u_char * payload_iv() const {return payload_iv_;}
+    const u_char * payload_salt() const {return payload_salt_;}
+    const u_char * payload_tag() const {return payload_tag_;}
+    bool payload_encrypted() const {return payload_encrypted_;}
+    bool payload_bek_set() const {return payload_bek_set_;}
+    
+#endif
 
     u_int64_t         age()               const { return age_; } ///< [AEB] return age
     oasys::Time       time_aeb()          const { return time_aeb_; } ///< [AEB]
@@ -291,6 +305,22 @@ public:
     void set_expiration_timer(ExpirationTimer* e) {
         expiration_timer_ = e;
     }
+#ifdef BSP_ENABLED
+    void set_payload_bek(u_char *bek, u_int32_t bek_len, u_char *iv, u_char *salt) {
+        payload_bek_ = (u_char *)malloc(bek_len);
+        payload_bek_len_ = bek_len;
+        memcpy(payload_bek_, bek, bek_len);
+        memcpy(payload_iv_, iv, 8);
+        memcpy(payload_salt_, salt, 4);
+        payload_bek_set_ = true;
+    }
+    void set_payload_encrypted() {
+        payload_encrypted_ =true;
+    }
+    void set_payload_tag(u_char *tag) {
+        memcpy(payload_tag_, tag, 16);
+    }
+#endif
 
     void set_age(u_int64_t a)          { age_ = a; } ///< [AEB] set age
     void set_time_aeb(oasys::Time time){ time_aeb_ = time; } ///< [AEB]
@@ -327,6 +357,16 @@ private:
     EndpointID session_eid_;	///< Session eid
     u_int8_t session_flags_;	///< Session flags
     BundlePayload payload_;	///< Reference to the payload
+#ifdef BSP_ENABLED
+    u_char *payload_bek_;
+    u_int32_t payload_bek_len_;
+    u_char payload_salt_[4];
+    u_char payload_iv_[8];
+    u_char payload_tag_[16];
+    bool payload_encrypted_;
+    bool payload_bek_set_;
+    SecurityPolicy security_policy_; ///The security policy that applies to this particular bundle
+#endif
     
     u_int64_t age_;             ///< Age of our bundle [AEB]
 

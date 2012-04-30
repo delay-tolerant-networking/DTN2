@@ -36,6 +36,11 @@ public:
      * Virtual from CommandModule.
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
+private:
+    bool is_a_bab(int num);
+    bool is_a_pib(int num);
+    bool is_a_pcb(int num);
+    bool is_a_esb(int num);
 };
 
 } // namespace dtn

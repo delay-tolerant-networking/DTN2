@@ -1478,8 +1478,9 @@ APIClient::handle_recv()
             bp->data.data_val = dp;
             memcpy(dp, b->recv_blocks()[i].data(), bp->data.data_len);
 
-            bp++;
+            // These 2 lines were swapped before, causing problems with multiple extension blocks
             dp += bp->data.data_len;
+            bp++;
         }
 
         spec.blocks.blocks_len = blocks_found;

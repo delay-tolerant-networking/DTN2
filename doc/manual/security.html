@@ -1,0 +1,211 @@
+<html>
+<head>
+<title> DTN2 Manual: Security </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+
+<h1>Bundle Security Protocol in DTN2</h1>
+
+
+
+<h2>Building DTN2 with BSP</h2>
+
+
+<p>DTN2 uses OpenSSL to perform the cryptographic operations. In order to provide the Cryptographic Message Syntax (<a href="http://tools.ietf.org/html/rfc5652">CMS</a>) support required for <a href="http://tools.ietf.org/html/rfc6257">BSP</a>, we require OpenSSL version 1.0.0. 
+For directions on installing OpenSSL see the <a href="http://www.openssl.org/">OpenSSL homepage</a>.
+
+<p>To configure DTN2 with BSP enabled:
+
+<blockquote><pre>$ ./configure --with-bsp LIBS=&#34-ldl&#34 --with-openssl=&#60;path to openssl&#62;
+</pre>
+</blockquote>
+
+<p>By default, OpenSSL is installed in /usr/local/ssl. Now DTN2 should build as usual.
+
+
+<h2>Generating RSA Keys</h2>
+
+<p>We can also use OpenSSL to generate the RSA keys needed for BSP.
+
+<p>To generate an RSA key pair and save the private key to the file privkey.pem:
+
+<blockquote><pre>$ openssl genrsa -out privkey.pem &#60;key length in bits&#62;
+</pre>
+</blockquote>
+
+<p>To display the public key:
+
+<blockquote><pre>$ openssl rsa -in privkey.pem -modulus
+</pre>
+</blockquote>
+
+<p>To generate a self-signed certificate (for testing):
+
+<blockquote><pre>$ openssl req -new -x509 -key privkey.pem -out cert.pem
+</pre>
+</blockquote>
+
+<p>The format we use for RSA private keys:
+
+<blockquote><pre>$ cat privkey.pem cert.pem > RSA_enc_priv_key.pem
+</pre>
+</blockquote>
+
+<h2>Security Configuration</h2>
+
+<p>Once DTN2 has been compiled with BSP, it can be configured using the security command at the tcl shell. To list all the security commands, with a brief description of each:
+
+<blockquote><pre>dtn% help security
+</pre>
+</blockquote>
+
+<p>To turn on one of the security blocks for outgoing bundles:
+
+<blockquote><pre>dtn% security outgoing &#60;bab|pib|pcb|esb&#62; &#60;ciphersuite number&#62;
+</pre>
+</blockquote>
+
+<p>To use the ciphersuites defined in BSP:
+
+<blockquote><pre>dtn% security outgoing bab 1
+dtn% security outgoing pib 2
+dtn% security outgoing pcb 3
+dtn% security outgoing esb 4
+</pre>
+</blockquote>
+
+<p>To turn off one of the blocks, use a ciphersuite number 0:
+
+<blockquote><pre>dtn% security outgoing pib 0
+</pre>
+</blockquote>
+
+<p>To turn off all of the security blocks for outgoing bundles:
+
+<blockquote><pre>dtn% security outgoing reset
+</pre>
+</blockquote>
+
+<p>We can also require all incoming bundles to have certain security blocks:
+
+<blockquote><pre>dtn% security incoming &#60;bab | pib | pcb&#62; [allowed ciphersuite number]
+</pre>
+</blockquote>
+
+<p>To use the ciphersuites defined in BSP:
+
+<blockquote><pre>dtn% security incoming bab 1
+dtn% security incoming pib 2
+dtn% security incoming pcb 3
+</pre>
+</blockquote>
+
+<p>To turn off the requirements for a particular block, use a ciphersuite value of 0:
+
+<blockquote><pre>dtn% security incoming pib 0
+</pre>
+</blockquote>
+
+<p>To turn off the requirements for all the blocks:
+
+<blockquote><pre>dtn% security incoming reset
+</pre>
+</blockquote>
+
+<p>To display the current security configuration for outgoing and incoming bundles:
+
+<blockquote><pre>dtn% security listpolicy
+</pre>
+</blockquote>
+
+<h2>Setting Keys for BAB</h2>
+
+<p>To set a 20-byte symmetric key, which is used by BAB, use the command:
+
+<blockquote><pre>dtn% security setkey &#60;host&#62; &#60;ciphersuite number&#62; &#60;key&#62;
+</pre>
+</blockquote>
+
+<p>Example:
+<blockquote><pre>dtn% security setkey node1.dtn 1 abcd1234abcd1234abcd1234abcd1234abcd1234
+</pre>
+</blockquote>
+
+<p>We could also use the wildcard * in place of the EID.
+
+<p>To display all the symmetric keys:
+
+<blockquote><pre>dtn% security dumpkeys
+</pre>
+</blockquote>
+
+<p>To erase all the symmetric keys:
+
+<blockquote><pre>dtn% security flushkeys
+</pre>
+</blockquote>
+
+<h2>Setting Keys for PIB, PCB and ESB</h2>
+
+<p>The default directory for storing public key certificates is /usr/local/ssl/certs/. To change the directory where certificates are stored (the name must end with &#34;/&#34;):
+
+<blockquote><pre>dtn% security certdir &#60;directory containing certificates&#62;
+</pre>
+</blockquote>
+
+<p>The default directory for storing private keys is /usr/local/ssl/private/. To change the directory where private keys are stored (the name must end with &#34;/&#34;):
+
+<blockquote><pre>dtn% security privdir &#60;directory containing private keys&#62;
+</pre>
+</blockquote>
+
+<p>To set the file name for public and private keys:
+
+<blockquote><pre>dtn% security keypaths [pub_keys_enc | priv_keys_dec | priv_keys_sig | pub_keys_ver] &#60;ciphersuite number&#62; &#60;file name&#62;
+</pre>
+</blockquote>
+
+<p>For example, if our RSA signature key is stored in &#34;my_priv_key.pem&#34;, we would set this via:
+
+<blockquote><pre>dtn% security keypaths priv_keys_sig 2 my_priv_key.pem
+</pre>
+</blockquote>
+
+<p>The RSA private keys for signature and encryption must have the private key, followed by the certificate for that key. If the value &#60;NODE&#62; is used in the file name, it will be replaced with the EID.
+
+<p>To list the directories and file names for the public and private keys:
+
+<blockquote><pre>dtn% security listpaths
+</pre>
+</blockquote>
+
+<p>The default values for these variables are as follows.
+
+<blockquote><pre>certdir = /usr/local/ssl/certs/
+privdir = /usr/local/ssl/private/
+
+priv_keys_dec:
+(cs num 3) => RSA_enc_priv_key.pem
+(cs num 4) => RSA_enc_priv_key.pem
+
+pub_keys_enc:
+(cs num 3) => RSA_enc_cert_&#60;NODE&#62;.pem
+(cs num 4) => RSA_enc_cert_&#60;NODE&#62;.pem
+
+pub_keys_ver:
+(cs num 2) => RSA_sig_cert_&#60;NODE&#62;.pem
+
+priv_keys_sig:
+(cs num 2) => RSA_sig_priv_key.pem
+</pre>
+</blockquote>
+
+
+
+
+
+ 
+
+
+</body></html>

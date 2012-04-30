@@ -221,6 +221,7 @@ PI_BlockProcessor::prepare(const Bundle*    bundle,
         locals->set_cs_flags(cs_flags);
         log_debug_p(log, "PI_BlockProcessor::prepare() - inserted block eid_list_count %zu",
                     bp->eid_list().size());
+        result = BP_SUCCESS;
     } else {
         if ( source != NULL ) {
             source_locals = dynamic_cast<BP_Local_CS*>(source->locals());
@@ -271,7 +272,7 @@ PI_BlockProcessor::generate(const Bundle*  bundle,
         generate_preamble(xmit_blocks, 
                           block,
                           BundleProtocol::PAYLOAD_SECURITY_BLOCK,
-                          BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
+                          //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |  //This causes non-BSP nodes to delete the bundle
                           (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
                           length);
 
