@@ -34,33 +34,46 @@ namespace dtn {
 LinkCommand::LinkCommand()
 	: TclCommand("link")
 {
-	add_to_help("add <name> <next hop> <type> <conv layer> <opt=val> <opt2=val2>...",
+	add_to_help("add <name> <next hop> <type> <conv layer type> <opt=val> <opt2=val2>...",
 			"add links"
 			"\n"
 	"	valid options:\n"
 	"		<name>\n" 
 	"			A string to define link name\n"
 	"		<next hop>\n"
-	"			A string to define next hop name "
-	"if CLA type is file is a filesystem, if is eth is an Ethernet "
-	"HW Address or if is tcp or udp is an IP:PORT)\n"
-	"		<conv layer>\n"
-	"			The CLA type\n"
-	"				    udp\n"
-	"				    tcp\n"
-	"				    eth\n"
-	"				    bt\n"
-	"				    serial\n"
-	"				    null\n"
-	"				    file\n"
-	"				    extcl\n"
+	"			A string to define next hop name\n"
+	"\t\tfor <conve(rgence) layer type>\t<next hop> is\n"
+	"\t\t\tserial\t\t\tSerial port device name\n"
+	"\t\t\tnull\t\t\t(any string)\n"
+#if 0
+	"\t\t\tfile\t\t\tdirectory name\n"
+#endif
+#ifdef __linux__
+	"\t\t\teth\t\t\tEthernet HW Address (MAC address format)\n"
+#endif
+	"\t\t\ttcp or udp\t\tIP address:PORT or hostname:PORT\n"
+#ifdef OASYS_BLUETOOTHENABLED
+	"\t\t\tbt\t\t\tBluetooth Address (MAC address format)\n"
+#endif
+#ifdef LTP_ENABLED
+	"\t\t\tltp\t\t\tIP address:PORT or hostname:PORT\n"
+#endif
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
+	"\t\t\textcl\t\t\t(Externally defined)\n"
+#endif
+#ifdef OASYS_AX25_ENABLED
+	"\t\t\tax25cm\t\t\tLOCAL_CALL:REMOTE_CALL:AXPORT or REMOTE_CALL<,DIGIPEATER>:axport\n"
+#endif
+#ifdef NORM_ENABLED
+	"\t\t\tnorm\t\t\tIP address:PORT or hostname:PORT\n"
+#endif
 	"		<type>\n"
 	"			link type options\n" 
-	"				    ALLWAYSON\n" 
-	"   				    ONDEMAND\n" 
-	"				    SCHEDULED\n" 
-	"				    OPPORTUNISTIC\n" 
-	"		<opt>:\n"
+	"\t\t\tALLWAYSON\n"
+	"\t\t\tONDEMAND\n"
+	"\t\t\tSCHEDULED\n"
+	"\t\t\t(OPPORTUNISTIC)\n"
+	"		<opt> (all links):\n"
 	"			mtu <number (MTU)>\n"
 	"			min_retry_interval <number (seconds)>\n"
 	"			max_retry_interval <number (seconds)>\n"
@@ -138,16 +151,33 @@ LinkCommand::LinkCommand()
 				"configure convergence layer specific default options"
 				"\n"
 	"	valid options:\n"
-	"		<conv layer>\n"
-	"			The CLA type\n"
-	"				   udp\n"
-	"				   tcp\n"
-	"				   eth\n"
-	"				   bt\n"
-	"				   serial\n"
-	"				   null\n"
-	"				   file\n"
-	"				   extcl\n"
+	"		<conv layer type>\n"
+	"			The convergence layer type\n"
+	"\t\t\t    serial\n"
+	"\t\t\t    null\n"
+#if 0
+	"\t\t\t    file\n"
+#endif
+#ifdef __linux__
+	"\t\t\t    eth\n"
+#endif
+	"\t\t\t    tcp\n"
+	"\t\t\t    udp\n"
+#ifdef OASYS_BLUETOOTHENABLED
+	"\t\t\t    bt\n"
+#endif
+#ifdef LTP_ENABLED
+	"\t\t\t    ltp\n"
+#endif
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
+	"\t\t\t    extcl\n"
+#endif
+#ifdef OASYS_AX25_ENABLED
+	"\t\t\t    ax25cm\n"
+#endif
+#ifdef NORM_ENABLED
+	"\t\t\t    norm\n"
+#endif
 	"		<opt>:\n"
 	"			mtu <number (MTU)>\n"
 	"			min_retry_interval <number (seconds)>\n"

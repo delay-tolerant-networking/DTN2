@@ -49,8 +49,13 @@ public:
 	//delete link (delete the aforementioned bits and bobs)
 	void delete_link(const LinkRef& link);
 	
+	/// @{ Virtual from ConvergenceLayer
+    // Defaults for link params for opportunistic links
+	bool set_link_defaults(int argc, const char* argv[],
+                           const char** invalidp);
 	//dump link (Show us what you got link)
-	void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
+    void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
+    /// @}
 	
 	//open contact
 	bool open_contact(const ContactRef& contact);

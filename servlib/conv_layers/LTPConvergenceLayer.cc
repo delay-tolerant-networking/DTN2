@@ -70,9 +70,9 @@ LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceL
     defaults_.local_port_               = LTPCL_DEFAULT_PORT;
     defaults_.remote_addr_              = INADDR_NONE;
     defaults_.remote_port_              = 0;
-    defaults_.mtu_              = 0;
-    defaults_.rg_              = LTP_ALLRED;
-    defaults_.ion_mode_              = false;
+    defaults_.mtu_              		= 0;
+    defaults_.rg_              			= LTP_ALLRED;
+    defaults_.ion_mode_              	= false;
 
 	ltp_inited=false;
 
@@ -210,8 +210,10 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     log_info("LTP adding %s link %s", link->type_str(), link->nexthop());
 
 	int lmtu=link->params().mtu_;
+#if 0
 	int lrg=link->params().rg_;
 	bool lion_mode=link->params().ion_mode_;
+#endif
 
 	// initialise LTPlib
 	if (!ltp_inited) {
@@ -235,8 +237,10 @@ LTPConvergenceLayer::init_link(const LinkRef& link,
     params->local_addr_ = INADDR_NONE;
     params->local_port_ = 0;
     params->mtu_ = lmtu;
+#if 0
     params->rg_ = lrg;
     params->ion_mode_ = lion_mode;
+#endif
 
     const char* invalid;
     if (! parse_params(params, argc, argv, &invalid)) {
@@ -282,6 +286,23 @@ LTPConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 
     buf->appendf("\tremote_addr: %s remote_port: %d\n",
                  intoa(params->remote_addr_), params->remote_port_);
+    buf->appendf("\tmtu: %d\n", params->mtu_);
+    if (params->rg_ == LTP_ALLRED) {
+    	buf->appendf("\tRed/Green balance: all red\n");
+    } else if (params->rg_ == LTP_ALLGREEN) {
+    	buf->appendf("\tRed/Green balance: all green\n");
+    } else {
+    	buf->appendf("\tRed/Green balance: redlen: %d", params->rg_);
+	}
+	buf->appendf("\tION mode: %s", params->ion_mode_ ? "true" : "false");
+}
+
+//----------------------------------------------------------------------
+bool
+LTPConvergenceLayer::set_link_defaults(int argc, const char* argv[],
+                                       const char** invalidp)
+{
+    return parse_params(&defaults_, argc, argv, invalidp);
 }
 
 //----------------------------------------------------------------------
