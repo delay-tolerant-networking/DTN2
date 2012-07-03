@@ -257,6 +257,7 @@ public:
     u_int64_t         age()               const { return age_; } ///< [AEB] return age
     oasys::Time       time_aeb()          const { return time_aeb_; } ///< [AEB]
     const BlockInfoVec*    api_blocks_c()   const { return &api_blocks_; }
+    const BlockInfoVec&    api_blocks_r()   const { return api_blocks_; }
     bool              is_freed() { return freed_; }
     /// @}
 

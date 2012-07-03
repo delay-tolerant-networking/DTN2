@@ -30,6 +30,8 @@ BPQCommand::BPQCommand()
 {
 	add_to_help("enabled", "enable BPQ cache");
 	add_to_help("cache_size <size>", "set BPQ cache size");
+	add_to_help("list", "list all keys in cache");
+	add_to_help("lru", "ordered list of keys in LRU list");
 }
 
 int
@@ -64,6 +66,22 @@ BPQCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
 		BundleDaemon::instance()->bpq_cache()->max_cache_size_ = size;
 		return TCL_OK;
+    } else if(strncmp(op, "list", strlen("list")) == 0) {
+    	oasys::StringBuffer buf;
+
+    	BundleDaemon::instance()->bpq_cache()->get_keys(&buf);
+
+    	set_result(buf.c_str());
+
+    	return TCL_OK;
+    } else if(strncmp(op, "lru", strlen("lru")) == 0) {
+    	oasys::StringBuffer buf;
+
+    	BundleDaemon::instance()->bpq_cache()->get_lru_list(&buf);
+
+    	set_result(buf.c_str());
+
+    	return TCL_OK;
     }
 
     resultf("invalid bpq subcommand '%s'", op);

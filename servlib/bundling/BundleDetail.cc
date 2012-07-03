@@ -81,15 +81,17 @@ BundleDetail::BundleDetail(Bundle				   *bndl,
 #ifdef BPQ_ENABLED
 	/* Check if bundle has a BPQ block */
 	has_BPQ_blk_ = false;
-    if( bndl->recv_blocks().
-        has_block(BundleProtocol::QUERY_EXTENSION_BLOCK) ||
-        const_cast<Bundle*>(bndl)->api_blocks()->
-                       has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
+	const BlockInfo* bi_bpq;
+    if( ((bi_bpq = bndl->recv_blocks().find_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) != NULL) ||
+        ((bi_bpq = (const_cast<Bundle*>(bndl)->api_blocks()->
+                       find_block(BundleProtocol::QUERY_EXTENSION_BLOCK))) != NULL) ) {
 
         log_debug("bundle %d has BPQ block - adding details for BPQ", bundleid_);
 
-        bpq_blk_ = new BPQBlock(bndl);
+        bpq_blk_ = dynamic_cast<BPQBlock *>(bi_bpq->locals());
+        ASSERT (bpq_blk_ != NULL);
         has_BPQ_blk_ = true;
+        bpq_blk_->add_ref("bundle_detail::", "add_detail");
         bpq_kind_ = bpq_blk_->kind();
         bpq_matching_rule_ = bpq_blk_->matching_rule();
 
@@ -124,7 +126,7 @@ BundleDetail::~BundleDetail()
 #ifdef BPQ_ENABLED
 	if (has_BPQ_blk_)
 	{
-		delete bpq_blk_;
+		bpq_blk_->del_ref("bundle_detail:", "destructor");
 	}
 #endif /* BPQ_ENABLED */
 }

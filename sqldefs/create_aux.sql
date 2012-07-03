@@ -1,5 +1,5 @@
 /*
- *    Copyright 2011 Trinity College Dublin
+ *    Copyright 2011-12 Trinity College Dublin
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -29,7 +29,18 @@
 /* by piping through "tr -d '\\'". Unlike mysql, sqlite3 treats   */
 /* newlines as white space and doesn't need them escaped.         */
 
-/* Discard previous version if it exists */
+/* If it doesn't already exist, create a table to hold records    */
+/* of when the database was tidied so that external programs      */
+/* don't get confused when the numbering restarts.                */
+CREATE TABLE IF NOT EXISTS tidy_occasions \
+	( create_index INTEGER AUTO_INCREMENT, \
+	  when_tidied TIMESTAMP DEFAULT NOW(), \
+	  PRIMARY KEY (create_index));
+
+/* Record that it is just being tidied (again)                    */
+INSERT INTO tidy_occasions (when_tidied) VALUES (NOW());
+
+/* Discard previous version of other aux tables if they exist     */
 DROP TABLE IF EXISTS bundles_aux;
 DROP TABLE IF EXISTS bundles_del;
 
@@ -37,7 +48,6 @@ DROP TABLE IF EXISTS bundles_del;
 CREATE TABLE bundles_aux \
 	( the_key BINARY(4) NOT NULL, \
 	  bundle_id INTEGER UNSIGNED DEFAULT NULL, \
-	  create_index INTEGER AUTO_INCREMENT, \
 	  creation_time BIGINT UNSIGNED DEFAULT NULL, \
 	  creation_seq BIGINT UNSIGNED DEFAULT NULL, \
 	  source_eid VARCHAR(2000), \
@@ -50,8 +60,8 @@ CREATE TABLE bundles_aux \
 	  bpq_matching_rule SMALLINT UNSIGNED DEFAULT NULL, \
 	  bpq_query VARCHAR(2000), \
 	  bpq_real_source VARCHAR(2000), \
-	  PRIMARY KEY (create_index));
-CREATE INDEX bundle_create ON bundles_aux (the_key);
+	  PRIMARY KEY (the_key));
+CREATE INDEX bundle_create ON bundles_aux (bundle_id);
 
 /* Create table to hold list of deleted bundles */
 CREATE TABLE bundles_del \

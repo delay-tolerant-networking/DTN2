@@ -20,6 +20,8 @@
 
 #ifdef BPQ_ENABLED
 
+#include <oasys/util/ScratchBuffer.h>
+
 #include "BPQResponse.h"
 #include "BundleTimestamp.h"
 
@@ -36,6 +38,10 @@ BPQResponse::create_bpq_response(Bundle*      new_response,
                                  EndpointID&  local_eid)
 {
     log_debug_p(LOG, "BPQResponse::create_bpq_response");
+
+	typedef oasys::ScratchBuffer<u_char*, 128> local_buf_t;
+	local_buf_t *temp_buf = new local_buf_t();
+	size_t data_length;
 
     // init metadata
     cached_response->copy_metadata(new_response);
@@ -75,17 +81,30 @@ BPQResponse::create_bpq_response(Bundle*      new_response,
 
         // take a pointer to the data in the buffer
         // making sure the buffer is big enough
+        data_length = current_bi.data_length();
         const u_char* data = current_bi.writable_contents()->
-                             buf(current_bi.full_length())
-                           + current_bi.data_offset();
+                             buf(current_bi.full_length()) +
+                             current_bi.data_offset();
+
+        // Watch for BPQ block and mutate kind PUBLISH to kind RESPONSE
+        if (current_bi.type() == BundleProtocol::QUERY_EXTENSION_BLOCK) {
+        	temp_buf->reserve(data_length);
+        	temp_buf->set_len(data_length);
+        	memcpy(temp_buf->buf(), data, data_length);
+        	if (*data == BPQBlock::KIND_PUBLISH) {
+        		*(temp_buf->buf()) = BPQBlock::KIND_RESPONSE;
+        		data = temp_buf->buf();
+        	}
+        }
 
         BlockInfo* new_bi = new_response->api_blocks()->append_block(new_bp);
         new_bp->init_block( new_bi,
                             new_response->api_blocks(),
+                            NULL, // Already have original source and creation_ts in extension data
                             current_bi.type(),
                             current_bi.flags(),
                             data,
-                            current_bi.full_length() );
+                            data_length );
     }
 
     // copy RECV blocks
@@ -105,19 +124,34 @@ BPQResponse::create_bpq_response(Bundle*      new_response,
 
         // take a pointer to the data in the buffer
         // making sure the buffer is big enough
+        data_length = current_bi.data_length();
         const u_char* data = current_bi.writable_contents()->
                              buf(current_bi.full_length())
                            + current_bi.data_offset();
 
+        // Watch for BPQ block and mutate kind PUBLISH to kind RESPONSE
+        if (current_bi.type() == BundleProtocol::QUERY_EXTENSION_BLOCK) {
+        	temp_buf->reserve(data_length);
+        	temp_buf->set_len(data_length);
+        	memcpy(temp_buf->buf(), data, data_length);
+        	if (*data == BPQBlock::KIND_PUBLISH) {
+        		*(temp_buf->buf()) = BPQBlock::KIND_RESPONSE;
+        		data = temp_buf->buf();
+        	}
+        }
+
         BlockInfo* new_bi = new_response->mutable_recv_blocks()->append_block(new_bp);
         new_bp->init_block( new_bi,
                             new_response->mutable_recv_blocks(),
+                            NULL, // Already have original source and creation_ts in extension data
                             current_bi.type(),
                             current_bi.flags(),
                             data,
-                            current_bi.data_length() );
-    }
+                            data_length );
+        new_bi->set_complete(current_bi.complete());
+   }
     
+   delete temp_buf;
    return true;
 }
 

@@ -43,6 +43,9 @@
 #  include "security/SPD.h"
 #endif
 
+#ifdef BPQ_ENABLED
+#include "BPQBlockProcessor.h"
+#endif
 namespace dtn {
 
 static const char* LOG = "/dtn/bundle/protocol";
@@ -96,6 +99,9 @@ BundleProtocol::init_default_processors()
     BundleProtocol::register_processor(new PayloadBlockProcessor());
     BundleProtocol::register_processor(new PreviousHopBlockProcessor());
     BundleProtocol::register_processor(new MetadataBlockProcessor());
+#ifdef BPQ_ENABLED
+    BundleProtocol::register_processor(new BPQBlockProcessor());
+#endif
     BundleProtocol::register_processor(new SessionBlockProcessor());
     BundleProtocol::register_processor(
         new SequenceIDBlockProcessor(BundleProtocol::SEQUENCE_ID_BLOCK));

@@ -397,7 +397,7 @@ BlockProcessor::reload_post_process(Bundle*       bundle,
     (void)block_list;
     (void)block;
     
-    block->set_reloaded(false);
+    block->set_reloaded(true);
     return 0;
 }
 
@@ -509,12 +509,14 @@ BlockProcessor::produce(const Bundle*    bundle,
 void
 BlockProcessor::init_block(BlockInfo*    block,
                            BlockInfoVec* block_list,
+                           Bundle*       bundle,
                            u_int8_t      type,
                            u_int8_t      flags,
                            const u_char* bp,
                            size_t        len)
 {
-    ASSERT(block->owner() != NULL);
+	(void)bundle; // Not used in generic case
+	ASSERT(block->owner() != NULL);
     generate_preamble(block_list, block, type, flags, len);
     ASSERT(block->data_offset() != 0);
     block->writable_contents()->reserve(block->full_length());

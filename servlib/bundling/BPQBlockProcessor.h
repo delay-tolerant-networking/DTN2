@@ -1,5 +1,5 @@
 /*
- *    Copyright 2010-2011 Trinity College Dublin
+ *    Copyright 2010-2012 Trinity College Dublin
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -68,6 +68,28 @@ public:
                   BlockInfo*              block,
                   status_report_reason_t* reception_reason,
                   status_report_reason_t* deletion_reason);
+
+    /**
+     * Overrides reload_post_process in base class.
+     * Sets up BP_Local data as a BPQBlock from the data read into the block.
+     */
+    virtual int reload_post_process(Bundle*       bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block);
+
+    /**
+     * Overrides init_block in base class.
+     * Sets up BP_Local data as a BPQBlock from the supplied data in the (bp,len) pair.
+     */
+    virtual void init_block(BlockInfo*    block,
+                            BlockInfoVec* block_list,
+                            Bundle*		  bundle,
+                            u_int8_t      type,
+                            u_int8_t      flags,
+                            const u_char* bp,
+                            size_t        len);
+
+    int format(oasys::StringBuffer* buf, BlockInfo *block);
 
     /// @}
 

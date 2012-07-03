@@ -273,12 +273,14 @@ typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
  *     BPQ_BLOCK_KIND_QUERY							- query bundles
  *     BPQ_BLOCK_KIND_RESPONSE						- response bundles
  *     BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG	- response bundles that should not be cached unless complete
+ *     BPQ_BLOCK_KIND_PUBLISH						- publish bundles - treated like response except local storage
  */
 
 enum dtn_bpq_extension_block_kind_t {
     BPQ_BLOCK_KIND_QUERY = 0x00,
     BPQ_BLOCK_KIND_RESPONSE = 0x01,
     BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG = 0x02,
+    BPQ_BLOCK_KIND_PUBLISH = 0x03,
 };
 typedef enum dtn_bpq_extension_block_kind_t dtn_bpq_extension_block_kind_t;
 

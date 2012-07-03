@@ -41,10 +41,6 @@ public:
                                     Bundle*     query,
                                     Bundle*     cached_response,
                                     EndpointID& source_eid);
-
-    static bool copy_bpq_response(Bundle*     new_response,
-                                  Bundle*     response);
-
 };
 
 } // namespace dtn

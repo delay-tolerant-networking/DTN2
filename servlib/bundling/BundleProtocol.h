@@ -175,17 +175,16 @@ public:
      */
     typedef enum {
         PRIMARY_BLOCK               = 0x000, ///< INTERNAL ONLY -- NOT IN SPEC
-        PAYLOAD_BLOCK               = 0x001, 
-        BUNDLE_AUTHENTICATION_BLOCK = 0x002,
-        PAYLOAD_SECURITY_BLOCK      = 0x003,
-        CONFIDENTIALITY_BLOCK       = 0x004,
-        PREVIOUS_HOP_BLOCK          = 0x005,
-        METADATA_BLOCK              = 0x008, ///< NOT IN SPEC YET
-	EXTENSION_SECURITY_BLOCK    = 0x009, /// Defined in RFC6257
-	SESSION_BLOCK               = 0x00c, ///< NOT IN SPEC YET
-
+        PAYLOAD_BLOCK               = 0x001, ///< Defined in RFC5050
+        BUNDLE_AUTHENTICATION_BLOCK = 0x002, ///< Defined in RFC6257
+        PAYLOAD_SECURITY_BLOCK      = 0x003, ///< Defined in RFC6257
+        CONFIDENTIALITY_BLOCK       = 0x004, ///< Defined in RFC6257
+        PREVIOUS_HOP_BLOCK          = 0x005, ///< Defined in RFC6259
+        METADATA_BLOCK              = 0x008, ///< Defined in RFC6258
+        EXTENSION_SECURITY_BLOCK    = 0x009, ///< Defined in RFC6257
+        SESSION_BLOCK               = 0x00c, ///< NOT IN SPEC YET
         AGE_BLOCK                   = 0x00a, ///< draft-irtf-dtnrg-bundle-age-block-01
-	QUERY_EXTENSION_BLOCK       = 0x00b, ///< draft-farrell-dtnrg-bpq-00
+        QUERY_EXTENSION_BLOCK       = 0x00b, ///< draft-irtf-dtnrg-bpq-00
         SEQUENCE_ID_BLOCK           = 0x010, ///< NOT IN SPEC YET
         OBSOLETES_ID_BLOCK          = 0x011, ///< NOT IN SPEC YET
         API_EXTENSION_BLOCK         = 0x100, ///< INTERNAL ONLY -- NOT IN SPEC

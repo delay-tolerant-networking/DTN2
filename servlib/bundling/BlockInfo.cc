@@ -93,7 +93,7 @@ BlockInfo::set_locals(BP_Local* l)
 int
 BlockInfo::type() const
 {
-    if (owner_->block_type() == BundleProtocol::PRIMARY_BLOCK) {
+	if (owner_->block_type() == BundleProtocol::PRIMARY_BLOCK) {
         return BundleProtocol::PRIMARY_BLOCK;
     }
 
@@ -108,10 +108,19 @@ BlockInfo::type() const
     (void)data;
     if (owner_ != NULL)
         ASSERT(contents_.buf()[0] == owner_->block_type()
-               || owner_->block_type() == BundleProtocol::CONFIDENTIALITY_BLOCK
-               || owner_->block_type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK
-               || owner_->block_type() == BundleProtocol::UNKNOWN_BLOCK
-               || owner_->block_type() == BundleProtocol::API_EXTENSION_BLOCK);
+                || owner_->block_type() == BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK
+                || owner_->block_type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK
+				|| owner_->block_type() == BundleProtocol::CONFIDENTIALITY_BLOCK
+                || owner_->block_type() == BundleProtocol::PREVIOUS_HOP_BLOCK
+                || owner_->block_type() == BundleProtocol::METADATA_BLOCK
+                || owner_->block_type() == BundleProtocol::EXTENSION_SECURITY_BLOCK
+                || owner_->block_type() == BundleProtocol::SESSION_BLOCK
+				|| owner_->block_type() == BundleProtocol::AGE_BLOCK
+				|| owner_->block_type() == BundleProtocol::QUERY_EXTENSION_BLOCK
+				|| owner_->block_type() == BundleProtocol::SEQUENCE_ID_BLOCK
+				|| owner_->block_type() == BundleProtocol::OBSOLETES_ID_BLOCK
+				|| owner_->block_type() == BundleProtocol::UNKNOWN_BLOCK
+				|| owner_->block_type() == BundleProtocol::API_EXTENSION_BLOCK);
     return contents_.buf()[0];
 }
 
@@ -211,7 +220,7 @@ BlockInfoVec::find_block(u_int8_t type) const
             return &*iter;
         }
     }
-    return false;
+    return NULL;
 }
 
 //----------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- *    Copyright 2010-2011 Trinity College Dublin
+ *    Copyright 2010-2012 Trinity College Dublin
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -39,10 +39,13 @@ bool
 BPQCache::add_response_bundle(Bundle* bundle, BPQBlock* block)
 {
 	ASSERT( block->kind() == BPQBlock::KIND_RESPONSE ||
-			block->kind() == BPQBlock::KIND_RESPONSE_DO_NOT_CACHE_FRAG );
+			block->kind() == BPQBlock::KIND_RESPONSE_DO_NOT_CACHE_FRAG ||
+			block->kind() == BPQBlock::KIND_PUBLISH );
 
 	std::string key;
 	get_hash_key(block, &key);
+
+	oasys::ScopeLock l(&lock_, "BPQCache::add_reponse_bundle");
 
 	Cache::iterator iter = bpq_table_.find(key);
 
@@ -114,6 +117,8 @@ BPQCache::answer_query(Bundle* bundle, BPQBlock* block)
 	std::string key;
 	get_hash_key(block, &key);
 
+	oasys::ScopeLock l1(&lock_, "BPQCache::answer_query");
+
 	Cache::iterator cache_iter = bpq_table_.find(key);
 
 	if ( cache_iter == bpq_table_.end() ) {
@@ -129,7 +134,7 @@ BPQCache::answer_query(Bundle* bundle, BPQBlock* block)
 	bool is_complete = false;
 	Bundle* current_bundle;
 	BundleList::iterator frag_iter;
-	oasys::ScopeLock l(entry->fragment_list().lock(), "BPQCache::answer_query");
+	oasys::ScopeLock l2(entry->fragment_list().lock(), "BPQCache::answer_query");
 
 	for (frag_iter  = entry->fragment_list().begin();
 		 frag_iter != entry->fragment_list().end();
@@ -179,7 +184,7 @@ BPQCache::answer_query(Bundle* bundle, BPQBlock* block)
 			}
 		}
 	}
-	l.unlock();
+	l2.unlock();
 
 	if ( is_complete ) {
 		return true;
@@ -189,6 +194,131 @@ BPQCache::answer_query(Bundle* bundle, BPQBlock* block)
 	}
 }
 
+//----------------------------------------------------------------------
+void
+BPQCache::check_and_remove(Bundle* bundle)
+{
+	/* Check if bundle has a BPQ block - nothing to do if it doesn't have */
+	const BlockInfo* bi_bpq;
+	BPQBlock* block;
+    if( ((bi_bpq = bundle->recv_blocks().find_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) != NULL) ||
+        ((bi_bpq = ((const_cast<Bundle*>(bundle))->api_blocks()->
+                       find_block(BundleProtocol::QUERY_EXTENSION_BLOCK))) != NULL) ) {
+
+        log_debug("bundle %d has BPQ block - removing from cache if present", bundle->bundleid());
+
+        // now check if there is a cache entry for this key
+        block = dynamic_cast<BPQBlock *>(bi_bpq->locals());
+        ASSERT (block != NULL);
+    	std::string key;
+    	get_hash_key(block, &key);
+
+    	oasys::ScopeLock l(&lock_, "BPQCache::check_and_remove");
+
+    	Cache::iterator cache_iter = bpq_table_.find(key);
+
+    	if ( cache_iter == bpq_table_.end() ) {
+    		log_debug("no entry found in cache for query %s", key.c_str());
+    		return;
+    	}
+
+    	// Remove bundle from cache entry and remove cache entry if no bundles left
+    	if (cache_iter->second->remove_bundle(bundle)) {
+    		cache_size_ -= bundle->payload().length();
+    		if (cache_iter->second->is_empty()) {
+    			log_debug("Deleting cache item key: %s", cache_iter->first.c_str());
+    			int i = bpq_table_.erase(key);
+    			log_debug("%d entries removed from bpq_table)", i);
+    			lru_keys_.remove(key);
+    		}
+    	}
+    }
+
+}
+//----------------------------------------------------------------------
+bool
+BPQCache::bundle_in_bpq_cache(Bundle* bundle)
+{
+	/* Check if bundle has a BPQ block - nothing to do if it doesn't have */
+	const BlockInfo* bi_bpq;
+	BPQBlock* block;
+    if( ((bi_bpq = bundle->recv_blocks().find_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) != NULL) ||
+        ((bi_bpq = ((const_cast<Bundle*>(bundle))->api_blocks()->
+                       find_block(BundleProtocol::QUERY_EXTENSION_BLOCK))) != NULL) ) {
+
+        log_debug("bundle %d has BPQ block - maybe prevent early expiry", bundle->bundleid());
+
+        // now check if there is a cache entry for this key
+        block = dynamic_cast<BPQBlock *>(bi_bpq->locals());
+        ASSERT (block != NULL);
+    	std::string key;
+    	get_hash_key(block, &key);
+
+    	oasys::ScopeLock l(&lock_, "BPQCache::bundle_in_bpq_cache");
+
+    	Cache::iterator cache_iter = bpq_table_.find(key);
+
+    	if ( cache_iter == bpq_table_.end() ) {
+    		log_debug("no entry found in cache for query %s", key.c_str());
+    		return false;
+    	}
+
+    	// There is a cache entry that matches this bundle BUT the bundle
+    	// that is cached might not be this one as any generated response
+    	// bundles will contain a BPQ block copied from the cached bundle
+    	// so check if this is actually the cached bundle or another one.
+    	return cache_iter->second->is_bundle_in_entry(bundle);
+    }
+
+    // Bundle doesn't have BPQ block so can't be in cache
+    return false;
+}
+
+//----------------------------------------------------------------------
+void
+BPQCache::get_keys(oasys::StringBuffer* buf)
+{
+
+	oasys::ScopeLock l1(&lock_, "BPQCache::get_keys");
+
+	buf->appendf("Currently cached keys:\n");
+
+	for (Cache::iterator cache_iter = bpq_table_.begin();
+			cache_iter != bpq_table_.end();
+			cache_iter++) {
+		buf->appendf("%s with bundle(s) ", cache_iter->first.c_str());
+		BundleList& frags = cache_iter->second->fragment_list();
+		BundleList::iterator frag_iter, frag_iter_first;
+		oasys::ScopeLock l2(frags.lock(), "BPQCache::get_keys");
+
+		frag_iter_first = frags.begin();
+
+		for (frag_iter  = frag_iter_first;
+			 frag_iter != frags.end();
+			 ++frag_iter) {
+			buf->appendf("%s%d", ((frag_iter == frag_iter_first) ? "" : ", "),
+					             (*frag_iter)->bundleid());
+		}
+		buf->append("\n");
+		l2.unlock();
+	}
+}
+
+//----------------------------------------------------------------------
+void
+BPQCache::get_lru_list(oasys::StringBuffer* buf)
+{
+
+	oasys::ScopeLock l(&lock_, "BPQCache::get_lru_list");
+
+	buf->appendf("Current LRU list (most recent first):\n");
+
+	for (std::list<std::string>::iterator lru_iter = lru_keys_.begin();
+			lru_iter != lru_keys_.end();
+			lru_iter++) {
+		buf->appendf("%s\n", lru_iter->c_str());
+	}
+}
 
 //----------------------------------------------------------------------
 bool
@@ -247,8 +377,11 @@ BPQCache::replace_cache_entry(BPQCacheEntry* entry, Bundle* bundle,
 void
 BPQCache::remove_cache_entry(BPQCacheEntry* entry, std::string key)
 {
-	oasys::ScopeLock l(entry->fragment_list().lock(),
+	oasys::ScopeLock l1(&lock_, "BPQCache::remove_cache_entry");
+	oasys::ScopeLock l2(entry->fragment_list().lock(),
 						   "BPQCache::remove_cache_entry");
+
+	log_debug("remove_cache_entry called for key %s", key.c_str());
 
 	cache_size_ -= entry->entry_size();
 	while (! entry->fragment_list().empty()) {
@@ -258,10 +391,9 @@ BPQCache::remove_cache_entry(BPQCacheEntry* entry, std::string key)
 	}
 
 	ASSERT(entry->fragment_list().size() == 0);
-	l.unlock();
+	l2.unlock();
 
-	delete entry;
-	bpq_table_[key] = NULL;
+	bpq_table_.erase(key);
 	lru_keys_.remove(key);
 }
 //----------------------------------------------------------------------

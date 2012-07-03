@@ -19,6 +19,8 @@
 
 #include <oasys/util/Ref.h>
 #include <oasys/util/RefCountedObject.h>
+#include <oasys/debug/Log.h>
+
 
 namespace dtn {
 
@@ -30,12 +32,16 @@ public:
     /**
      * Constructor.
      */
-    BP_Local() : RefCountedObject("/dtn/bp_local/refs") {};
+    BP_Local() : RefCountedObject("/dtn/bp_local/refs") {
+    	log_debug_p("/dtn/bp_local/refs", "constructor");
+    };
 
     /**
      * Virtual destructor.
      */
-    virtual ~BP_Local() {};
+    virtual ~BP_Local() { log_debug_p("/dtn/bp_local/refs", "destructor"); };
+
+    virtual void dummy() {};
 
 };  /* BP_Local */
 

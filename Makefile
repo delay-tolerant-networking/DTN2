@@ -105,12 +105,13 @@ installbin: installdirs
 		    apps/dtncp/dtncp \
 		    apps/dtncpd/dtncpd \
 		    apps/dtnhttpproxy/dtnhttpproxy \
+		    apps/dtnpeek/dtnpeek \
 		    apps/dtnperf/dtnperf-client \
 		    apps/dtnperf/dtnperf-server \
 		    apps/dtnping/dtnping \
 		    apps/dtnping/dtntraceroute \
+		    apps/dtnpublish/dtnpublish \
 		    apps/dtnrecv/dtnrecv \
-		    apps/dtnpeek/dtnpeek \
 		    apps/dtnsend/dtnsend \
 		    apps/dtntunnel/dtntunnel \
 		    apps/num2sdnv/num2sdnv \

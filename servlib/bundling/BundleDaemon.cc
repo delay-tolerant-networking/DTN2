@@ -753,8 +753,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
             deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
 
         
-	log_info("/dtn/bundle/protocol", "handle_bundle_received: validating "
-                 "bundle: calling BlockProcessors?");
+        log_info("handle_bundle_received: validating bundle: calling BlockProcessors?");
         bool valid = BundleProtocol::validate(bundle,
                                               &reception_reason,
                                               &deletion_reason);
@@ -2626,6 +2625,15 @@ BundleDaemon::try_to_delete(const BundleRef& bundle)
         return false;
     }
     
+#ifdef BPQ_ENABLED
+    if (bpq_cache()->bundle_in_bpq_cache(bundle.object())) {
+    	log_debug("try_to_delete(*%p): not deleting because"
+    			  "bundle is in BPQ cache",
+    			  bundle.object());
+    	return false;
+    }
+#endif
+
     return delete_bundle(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
 }
 
@@ -2661,6 +2669,13 @@ BundleDaemon::delete_bundle(const BundleRef& bundleref,
 
     // notify the router that it's time to delete the bundle
     router_->delete_bundle(bundleref);
+
+#ifdef BPQ_ENABLED
+    // Forcibly delete bundle from BPQ cache
+    // The cache list will be there even if it is not being used
+    bpq_cache()->check_and_remove(bundle);
+
+#endif
 
     // delete the bundle from the pending list
     log_debug("pending_bundles size %zd", pending_bundles_->size());
@@ -2806,37 +2821,56 @@ BundleDaemon::handle_bpq_block(Bundle* bundle, BundleReceivedEvent* event)
      * At this point the BPQ Block has been found in the bundle
      */
     ASSERT ( block != NULL );
-    BPQBlock bpq_block( bundle );
+    BPQBlock* bpq_block = dynamic_cast<BPQBlock *>(block->locals());
 
     log_info_p("/dtn/daemon/bpq", "handle_bpq_block: Kind: %d Query: %s",
-        (int)  bpq_block.kind(),
-        (char*)bpq_block.query_val());
+        (int)  bpq_block->kind(),
+        (char*)bpq_block->query_val());
 
-    if (bpq_block.kind() == BPQBlock::KIND_QUERY) {
-    	if (bpq_cache()->answer_query(bundle, &bpq_block)) {
+    if (bpq_block->kind() == BPQBlock::KIND_QUERY) {
+    	if (bpq_cache()->answer_query(bundle, bpq_block)) {
     		log_info_p("/dtn/daemon/bpq", "Query: %s answered completely",
-    				(char*)bpq_block.query_val());
+    				(char*)bpq_block->query_val());
             event->daemon_only_ = true;
         }
 
-    } else if (bpq_block.kind() == BPQBlock::KIND_RESPONSE) {
-    	// don't accept local responses
-    	if (!local_bundle) {
+    } else if (bpq_block->kind() == BPQBlock::KIND_RESPONSE ||
+               bpq_block->kind() == BPQBlock::KIND_PUBLISH) {
+    	// don't accept local responses for KIND_RESPONSE
+    	// This was originally because of a bug in the APIServer that
+    	// didn't send api_blocks in local receives.  Now need to think
+    	// if this results in circularity because cache is being searched
+    	// Leave the special case for the time being.
+        if (!local_bundle || bpq_block->kind() == BPQBlock::KIND_PUBLISH) {
 
-    		if (bpq_cache()->add_response_bundle(bundle, &bpq_block) &&
+
+    		if (bpq_cache()->add_response_bundle(bundle, bpq_block) &&
     			event->source_ != EVENTSRC_STORE) {
+
 
     			bundle->set_in_datastore(true);
 				actions_->store_add(bundle);
+
+				/*
+			     * Send a reception receipt if requested within the primary
+			     * block and this is a locally generated bundle - special case
+			     * as reception reports are not normally generated for bundles
+			     * from local apps but this tells the app that the bundle has
+			     * been cached.
+			     */
+			    if (local_bundle && bundle->receive_rcpt()) {
+			    	 generate_status_report(bundle, BundleStatusReport::STATUS_RECEIVED,
+			                                BundleProtocol::REASON_NO_ADDTL_INFO);
+			    }
     		}
     	}
 
-    } else if (bpq_block.kind() == BPQBlock::KIND_RESPONSE_DO_NOT_CACHE_FRAG) {
+    } else if (bpq_block->kind() == BPQBlock::KIND_RESPONSE_DO_NOT_CACHE_FRAG) {
     	// don't accept local responses
     	if (!local_bundle &&
     		!bundle->is_fragment()	) {
 
-    		if (bpq_cache()->add_response_bundle(bundle, &bpq_block) &&
+    		if (bpq_cache()->add_response_bundle(bundle, bpq_block) &&
     			event->source_ != EVENTSRC_STORE) {
 
     			bundle->set_in_datastore(true);
@@ -2846,7 +2880,7 @@ BundleDaemon::handle_bpq_block(Bundle* bundle, BundleReceivedEvent* event)
 
     } else {
         log_err_p("/dtn/daemon/bpq", "ERROR - BPQ Block: invalid kind %d",
-            bpq_block.kind());
+            bpq_block->kind());
         NOTREACHED;
         return false;
     }

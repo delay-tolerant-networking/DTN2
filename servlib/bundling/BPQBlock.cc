@@ -1,5 +1,6 @@
 /*
  *    Copyright 2010-2011 Trinity College Dublin
+ *    Copyright 2010-2012 Folly Consulting Ltd
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -29,46 +30,132 @@
 namespace dtn {
 
 BPQBlock::BPQBlock(const Bundle* bundle)
-		: Logger("BPQBlock", "/dtn/bundle/bpq"),
-		  fragments_("fragments")
+		: BP_Local(),
+		  Logger("BPQBlock", "/dtn/bundle/bpq"),
+		  query_val_(NULL),
+		  fragments_("fragments"),
+		  validated_(false)
 {
-    log_info("constructor()");
+    log_debug("constructor()");
 
-    //TODO: Handle an initialisation failure
+    // Note validation_ is set to false if the data supplied for initialization is invalid
 
     if( bundle->recv_blocks().
         has_block(BundleProtocol::QUERY_EXTENSION_BLOCK) ) {
 
         log_debug("BPQBlock found in Recv Block Vec => created remotely");
-        initialise( const_cast<BlockInfo*> (bundle->recv_blocks().
-                    find_block(BundleProtocol::QUERY_EXTENSION_BLOCK)),
-        			false, bundle);
+        initialise_from_block( const_cast<BlockInfo*> (bundle->recv_blocks().
+							   find_block(BundleProtocol::QUERY_EXTENSION_BLOCK)),
+							   false, bundle);
 
     } else if( const_cast<Bundle*>(bundle)->api_blocks()->
                has_block(BundleProtocol::QUERY_EXTENSION_BLOCK) ) {
 
         log_debug("BPQBlock found in API Block Vec => created locally");
-        initialise( const_cast<BlockInfo*> (const_cast<Bundle*>(bundle)->api_blocks()->
-                    find_block(BundleProtocol::QUERY_EXTENSION_BLOCK)),
-                    true, bundle);
+        initialise_from_block( const_cast<BlockInfo*> (const_cast<Bundle*>(bundle)->api_blocks()->
+							   find_block(BundleProtocol::QUERY_EXTENSION_BLOCK)),
+							   true, bundle);
 
     } else {
         log_err("BPQ Block not found in bundle");
     }
 
-    log_info("leaving constructor");
+    log_debug("leaving constructor");
+}
+
+//----------------------------------------------------------------------
+BPQBlock::BPQBlock(const u_char* buf, u_int buf_len)
+		: BP_Local(),
+		  Logger("BPQBlock", "/dtn/bundle/bpq"),
+		  query_val_(NULL),
+		  fragments_("fragments"),
+		  validated_(false)
+{
+	log_debug("Creating BPQBlock from data buffer (length %d)", buf_len);
+    // Note validation_ is set to false if the data supplied for initialization is invalid
+
+	initialise_from_buf(buf, buf_len);
 }
 
 //----------------------------------------------------------------------
 BPQBlock::~BPQBlock()
 {
-    log_info("BPQBlock: destructor");
+    log_debug("BPQBlock: destructor");
     if ( query_val_ != NULL ){
         free(query_val_);
         query_val_ = NULL;
     }
 }
 
+//----------------------------------------------------------------------
+bool
+BPQBlock::validate(u_char* buf, size_t len)
+{
+	ASSERT(buf != NULL);
+	ASSERT(len > 0);
+	size_t used_len;
+	int sdnv_len;
+	u_int64_t sdnv_val;
+	u_int64_t frag_count;
+
+#define TEST_ITEM(fn, item_len, msg_item) 								\
+    if(!fn) { 															\
+    	log_err_p("/bundling/BPQBlock", 								\
+				  "Validating BPQBlock buffer failed: %s", msg_item);	\
+        return false; 													\
+    } else if ((used_len + item_len) > len) {							\
+    	log_err_p("/bundling/BPQBlock",									\
+				  "Validating BPQBlock buffer failed: Buffer too short");	\
+    	return false;													\
+	}																	\
+	used_len += item_len;												\
+	buf += item_len;
+
+	// Kind
+	u_int kindv = (u_int)*buf;
+	TEST_ITEM(((kindv == BPQBlock::KIND_QUERY) || (kindv == BPQBlock::KIND_RESPONSE) ||
+			   (kindv == BPQBlock::KIND_RESPONSE_DO_NOT_CACHE_FRAG) ||
+			   (kindv == BPQBlock::KIND_PUBLISH)), 1,
+			   "kind is not a valid value");
+	// Matching rule
+	u_int matching_rule_val = (u_int)*buf;
+	TEST_ITEM((matching_rule_val == 0), 1, "matching rule is not a valid value");
+	// Timestamp - seconds
+	sdnv_len = SDNV::decode(buf, (len - used_len), &sdnv_val);
+	TEST_ITEM((sdnv_len < 0), sdnv_len, "cannot decode SDNV for timestamp seconds");
+	// Timestamp - seqno
+	sdnv_len = SDNV::decode(buf, (len - used_len), &sdnv_val);
+	TEST_ITEM((sdnv_len < 0), sdnv_len, "cannot decode SDNV for timestamp seqno");
+	// Source EID length
+	sdnv_len = SDNV::decode(buf, (len - used_len), &sdnv_val);
+	TEST_ITEM((sdnv_len < 0), sdnv_len, "cannot decode SDNV for source EID length");
+	// Source EID buffer
+	TEST_ITEM((((u_int64_t)used_len + sdnv_val) > len), (int)sdnv_val,
+			   "source EID longer than remaining buffer");
+	// Query length
+	sdnv_len = SDNV::decode(buf, (len - used_len), &sdnv_val);
+	TEST_ITEM((sdnv_len < 0), sdnv_len, "cannot decode SDNV for query length");
+	// Query value buffer
+	TEST_ITEM((((u_int64_t)used_len + sdnv_val) > len), (int)sdnv_val,
+			   "query value longer than remaining buffer");
+	// Fragment count
+	sdnv_len = SDNV::decode(buf, (len - used_len), &frag_count);
+	TEST_ITEM((sdnv_len < 0), sdnv_len, "cannot decode SDNV for fragment count");
+	// Fragment specifiers
+	while (frag_count-- > 0) {
+		// Fragment offset
+		sdnv_len = SDNV::decode(buf, (len - used_len), &sdnv_val);
+		TEST_ITEM((sdnv_len < 0), sdnv_len, "cannot decode SDNV for fragment offset");
+		// Fragment offset
+		sdnv_len = SDNV::decode(buf, (len - used_len), &sdnv_val);
+		TEST_ITEM((sdnv_len < 0), sdnv_len, "cannot decode SDNV for fragment offset");
+	}
+	if (used_len != len) {
+		log_err_p("/bundling/BPQBlock", "Validating BPQBlock buffer failed: buffer too long");
+		return false;
+	}
+	return true;
+}
 //----------------------------------------------------------------------
 int
 BPQBlock::write_to_buffer(u_char* buf, size_t len)
@@ -221,29 +308,53 @@ BPQBlock::add_fragment(BPQFragment* new_fragment)
 
 //----------------------------------------------------------------------
 int
-BPQBlock::initialise(BlockInfo* block, bool created_locally, const Bundle* bundle)
+BPQBlock::initialise_from_block(BlockInfo* block, bool created_locally, const Bundle* bundle)
 {
-#define TRY(fn) 		\
-    if(fn != BP_SUCCESS) { 			\
-        return BP_FAIL; \
-    }
-
 	ASSERT ( block != NULL);
-
-	u_int buf_index = 0;
-	u_int buf_length = block->data_length();
-	const u_char* buf = block->data();
-
+	ASSERT ( !created_locally || (bundle != NULL));
+	int ret;
 	log_block_info(block);
-	TRY (extract_kind(buf, &buf_index, buf_length));
-	TRY (extract_matching_rule(buf, &buf_index, buf_length));
+	ret = initialise_from_buf(block->data(), block->data_length());
 
-	TRY (extract_creation_ts(buf, &buf_index, buf_length, created_locally, bundle));
-	TRY (extract_source(buf, &buf_index, buf_length, created_locally, bundle));
+	// Overwrite values (usually read in from API) if bundle created locally
+	if ((ret == BP_SUCCESS) && created_locally) {
+		log_debug("BPQBlock::initialise_from_block: bundle was locally created");
+		log_debug("\t timestamp seconds = %llu", creation_ts_.seconds_);
+		log_debug("\t timestamp sequence number = %llu", creation_ts_.seqno_);
+		log_debug("\t Source EID length = %u", source_.length());
+		log_debug("\t Source EID = %s", source_.c_str());
 
-	TRY (extract_query(buf, &buf_index, buf_length));
-	TRY (extract_fragments(buf, &buf_index, buf_length));
+		creation_ts_.seconds_ 	= bundle->creation_ts().seconds_;
+		creation_ts_.seqno_		= bundle->creation_ts().seqno_;
+		source_.assign(bundle->source());
+	}
 
+	return ret;
+
+}
+
+//----------------------------------------------------------------------
+int
+BPQBlock::initialise_from_buf(const u_char* buf, u_int buf_length)
+{
+	validated_ = false;
+#define TRY(fn, msg) 									\
+    if(fn != BP_SUCCESS) { 								\
+    	log_err("Decoding BPQBlock buffer failed: %s", msg);	\
+        return BP_FAIL; 								\
+    }
+	u_int buf_index = 0;
+
+	TRY (extract_kind(buf, &buf_index, buf_length), "Error in 'kind'");
+	TRY (extract_matching_rule(buf, &buf_index, buf_length), "Error in 'matching rule'");
+
+	TRY (extract_creation_ts(buf, &buf_index, buf_length),"Error in 'creation_ts'");
+	TRY (extract_source(buf, &buf_index, buf_length), "Error in 'Source EID'");
+
+	TRY (extract_query(buf, &buf_index, buf_length), "Error in 'Query'");
+	TRY (extract_fragments(buf, &buf_index, buf_length), "Error in 'Fragment specifiers'");
+
+	validated_ = true;
 	return BP_SUCCESS;
 
 #undef TRY
@@ -289,8 +400,9 @@ BPQBlock::log_block_info(BlockInfo* block)
 
     if ( *(block->data()) != KIND_QUERY 		&&
     	 *(block->data()) != KIND_RESPONSE 		&&
-    	 *(block->data()) != KIND_RESPONSE_DO_NOT_CACHE_FRAG ) {
-        log_err("BPQBlock: block->data() = %d (should be 0|1|2)",
+    	 *(block->data()) != KIND_RESPONSE_DO_NOT_CACHE_FRAG &&
+    	 *(block->data()) != KIND_PUBLISH ) {
+        log_err("BPQBlock: block->data() = %d (should be 0|1|2|3)",
             *(block->data()));
     }
 }
@@ -329,47 +441,9 @@ BPQBlock::extract_matching_rule (const u_char* buf, u_int* buf_index, u_int buf_
 int
 BPQBlock::extract_creation_ts (	const u_char* buf,
 								u_int* buf_index,
-								u_int buf_length,
-								bool local,
-								const Bundle* bundle)
+								u_int buf_length)
 {
 	int decoding_len = 0;
-
-	if (local) {
-		u_int temp;
-
-		creation_ts_.seconds_ 	= bundle->creation_ts().seconds_;
-		creation_ts_.seqno_		= bundle->creation_ts().seqno_;
-
-		log_debug("BPQBlock::extract_creation_ts: bundle was locally created");
-		log_debug("\t timestamp seconds = %llu", creation_ts_.seconds_);
-		log_debug("\t timestamp sequence number = %llu", creation_ts_.seqno_);
-
-		// increment buf_index accordingly
-		if (*buf_index < buf_length &&
-			(decoding_len = SDNV::decode(	&(buf[*buf_index]),
-											buf_length - (*buf_index),
-											&temp)) >= 0) {
-			(*buf_index) += decoding_len;
-		} else {
-			log_err("Error decoding timestamp seconds");
-			return BP_FAIL;
-		}
-
-
-		// increment buf_index accordingly
-		if (*buf_index < buf_length &&
-			(decoding_len = SDNV::decode(	&(buf[*buf_index]),
-											buf_length - (*buf_index),
-											&temp)) >= 0) {
-			(*buf_index) += decoding_len;
-		} else {
-			log_err("Error decoding timestamp sequence number");
-			return BP_FAIL;
-		}
-
-		return BP_SUCCESS;
-	}
 
 	if (*buf_index < buf_length &&
 		(decoding_len = SDNV::decode(	&(buf[*buf_index]),
@@ -403,34 +477,10 @@ BPQBlock::extract_creation_ts (	const u_char* buf,
 int
 BPQBlock::extract_source (	const u_char* buf,
 							u_int* buf_index,
-							u_int buf_length,
-							bool local,
-							const Bundle* bundle)
+							u_int buf_length)
 {
 	int decoding_len = 0;
 	u_int src_eid_len = 0;
-
-	if (local) {
-		source_.assign(bundle->source());
-
-		log_debug("BPQBlock::extract_source: bundle was locally created");
-		log_debug("\t Source EID length = %u", source_.length());
-		log_debug("\t Source EID = %s", source_.c_str());
-
-		// increment buf_index accordingly
-		if (*buf_index < buf_length &&
-			(decoding_len = SDNV::decode(	&(buf[*buf_index]),
-											buf_length - (*buf_index),
-											&src_eid_len)) >= 0) {
-			(*buf_index) += decoding_len;
-			(*buf_index) += src_eid_len;
-		} else {
-			log_err("Error decoding Source EID length");
-			return BP_FAIL;
-		}
-
-		return BP_SUCCESS;
-	}
 
 	if (*buf_index < buf_length &&
 		(decoding_len = SDNV::decode(	&(buf[*buf_index]),

@@ -1,5 +1,5 @@
 /*
- *    Copyright 2010-2011 Trinity College Dublin
+ *    Copyright 2010-2012 Trinity College Dublin
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -58,6 +58,24 @@ public:
 	 */
 	int reassemble_fragments(Bundle* new_bundle, Bundle* meta_bundle);
 
+	/**
+	 * Delete a bundle (which might be a fragment) from the cache entry
+	 * if it actually exists - may not have been inserted
+	 * @return true if bundle deleted, false otherwise
+	 */
+	bool remove_bundle(Bundle* bundle);
+
+	/**
+	 * Report if entry has any contents
+	 * @return true if entry has no bundles, false otherwise
+	 */
+	bool is_empty(void);
+
+	/**
+	 * Report if entry contains a particular bundle
+	 * @return true if entry has bundle, false otherwise
+	 */
+	bool is_bundle_in_entry(Bundle* bundle);
 
 	bool 					is_complete()	const;
 	bool 					is_fragmented()	const;

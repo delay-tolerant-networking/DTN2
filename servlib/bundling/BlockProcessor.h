@@ -226,13 +226,19 @@ public:
 
     /**
      * General hook to set up a block with the given contents. Used
-     * for testing generic extension blocks.
+     * for creating generic extension blocks coming from the API.
+     * Can be specialized for specific block types.
+     * Also used when testing bundle protocol routines.
+     * If the block has a list of EIDs, the list should be attached
+     * to the block before calling this routine. The EIDs will be
+     * incorporated in the dictionary in the block_list object.
      */
-    void init_block(BlockInfo*    block,
-                    BlockInfoVec* block_list,
-                    u_int8_t      type,
-                    u_int8_t      flags,
-                    const u_char* bp,
+    virtual void init_block(BlockInfo*    block,
+                            BlockInfoVec* block_list,
+                            Bundle*		  bundle,
+                            u_int8_t      type,
+                            u_int8_t      flags,
+                            const u_char* bp,
                     size_t        len);
     
     /**

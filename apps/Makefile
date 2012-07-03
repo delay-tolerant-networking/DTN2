@@ -31,10 +31,11 @@ SINGLE_SOURCE_APPS := 			\
 	dtnping/dtntraceroute		\
 	dtnping/dtnreporter		\
 	dtnperf/dtnperf-server		\
+	dtnpublish/dtnpublish		\
 	dtnrecv/dtnrecv			\
 	dtnpeek/dtnpeek			\
-	dtnquery/dtnquery   	\
-	dtnrespond/dtnrespond  	\
+	dtnquery/dtnquery   		\
+	dtnrespond/dtnrespond  		\
 	dtnsink/dtnsink			\
 	num2sdnv/num2sdnv		\
 

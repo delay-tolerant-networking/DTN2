@@ -1,5 +1,5 @@
 /*
- *    Copyright 2010-2011 Trinity College Dublin
+ *    Copyright 2010-2012 Trinity College Dublin
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -192,6 +192,39 @@ BPQCacheEntry::is_complete() const
                   done_up_to, total_len_);
         return false;
     }
+}
+
+//----------------------------------------------------------------------
+
+bool
+BPQCacheEntry::remove_bundle(Bundle* bundle)
+{
+    oasys::ScopeLock l(fragments_.lock(),
+                       "BPQCacheEntry::remove_bundle");
+	if (fragments_.contains(bundle)) {
+		return fragments_.erase(bundle);
+	}
+	return false;
+}
+
+//----------------------------------------------------------------------
+
+bool
+BPQCacheEntry::is_empty(void)
+{
+    oasys::ScopeLock l(fragments_.lock(),
+                       "BPQCacheEntry::is_empty");
+	return fragments_.empty();
+}
+
+//----------------------------------------------------------------------
+
+bool
+BPQCacheEntry::is_bundle_in_entry(Bundle* bundle)
+{
+    oasys::ScopeLock l(fragments_.lock(),
+                       "BPQCacheEntry::is_bundle_in_entry");
+	return fragments_.contains(bundle);
 }
 
 //----------------------------------------------------------------------

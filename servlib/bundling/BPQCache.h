@@ -26,6 +26,7 @@
 #include "Bundle.h"
 #include <oasys/debug/Log.h>
 #include <oasys/util/StringUtils.h>
+#include <oasys/thread/SpinLock.h>
 #include "../reg/Registration.h"
 #include "../reg/RegistrationTable.h"
 
@@ -47,6 +48,8 @@ public:
 
 	/**
 	 * Add a new BPQ response to the to the cache
+	 * @return true if entry successfully added to cache,
+	 *         false otherwise.
 	 */
     bool add_response_bundle(Bundle* bundle, BPQBlock* block);
 
@@ -56,6 +59,28 @@ public:
      * 			false otherwise
      */
     bool answer_query(Bundle* bundle, BPQBlock* block);
+
+    /**
+     * Check if a bundle is in the cache and remove it if so
+     * Delete the cache entry altogether if no relevant bundle (fragments) left.
+     */
+    void check_and_remove(Bundle* bundle);
+
+    /**
+     * Check if a bundle is in the cache
+     * @return true if in cache, false otherwise
+     */
+   bool bundle_in_bpq_cache(Bundle* bundle);
+
+    /**
+     * Display keys in cache
+     */
+    void get_keys(oasys::StringBuffer* buf);
+
+    /**
+     * Display ordered list of keys in LRU list
+     */
+    void get_lru_list(oasys::StringBuffer* buf);
 
     /**
      * Number of bundles in the cache
@@ -115,6 +140,11 @@ protected:
      */
     typedef oasys::StringHashMap<BPQCacheEntry*> Cache;
     Cache bpq_table_;
+
+    /**
+     * Lock for bpq_table_
+     */
+    oasys::SpinLock lock_;
 
     std::list<std::string> lru_keys_;
     size_t cache_size_;

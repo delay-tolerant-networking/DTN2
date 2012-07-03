@@ -385,23 +385,23 @@ Bundle* init_UnknownBlocks()
     unknown1 = recv_blocks->append_block(unknown1_bp);
     const char* contents = "this is an extension block";
     UnknownBlockProcessor::instance()->
-        init_block(unknown1, recv_blocks, 0xaa, 0x0,
+        init_block(unknown1, recv_blocks, NULL, 0xaa, 0x0,
                    (const u_char*)contents, strlen(contents));
     
     unknown2 = recv_blocks->append_block(unknown2_bp);
     UnknownBlockProcessor::instance()->
-        init_block(unknown2, recv_blocks, 0xbb,
+        init_block(unknown2, recv_blocks, NULL, 0xbb,
                    BundleProtocol::BLOCK_FLAG_REPLICATE, 0, 0);
     
     payload  = recv_blocks->append_block(payload_bp);
     UnknownBlockProcessor::instance()->
-        init_block(payload, recv_blocks,
+        init_block(payload, recv_blocks, NULL,
                    BundleProtocol::PAYLOAD_BLOCK,
                    0, (const u_char*)"test payload", strlen("test payload"));
 
     unknown3 = recv_blocks->append_block(unknown3_bp);
     UnknownBlockProcessor::instance()->
-        init_block(unknown3, recv_blocks, 0xcc,
+        init_block(unknown3, recv_blocks, NULL, 0xcc,
                    BundleProtocol::BLOCK_FLAG_REPLICATE |
                    BundleProtocol::BLOCK_FLAG_LAST_BLOCK,
                    (const u_char*)contents, strlen(contents));
@@ -451,13 +451,13 @@ Bundle* init_BigDictionary()
     
     const char* contents = "this is an extension block";
     UnknownBlockProcessor::instance()->
-        init_block(unknown, recv_blocks, 0xaa,
+        init_block(unknown, recv_blocks, NULL, 0xaa,
                    BundleProtocol::BLOCK_FLAG_EID_REFS,
                    (const u_char*)contents, strlen(contents));
 
     payload  = recv_blocks->append_block(payload_bp);
     UnknownBlockProcessor::instance()->
-        init_block(payload, recv_blocks,
+        init_block(payload, recv_blocks, NULL,
                    BundleProtocol::PAYLOAD_BLOCK,
                    BundleProtocol::BLOCK_FLAG_LAST_BLOCK,
                    (const u_char*)"test payload", strlen("test payload"));

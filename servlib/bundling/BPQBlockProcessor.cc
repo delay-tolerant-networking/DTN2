@@ -1,5 +1,5 @@
 /*
- *    Copyright 2010-2011 Trinity College Dublin
+ *    Copyright 2010-2012 Trinity College Dublin
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,7 +20,10 @@
 
 #ifdef BPQ_ENABLED
 
+#include <oasys/util/ScratchBuffer.h>
+
 #include "BPQBlockProcessor.h"
+#include "SDNV.h"
 
 namespace dtn {
 
@@ -63,13 +66,17 @@ BPQBlockProcessor::consume(Bundle* bundle,
         return cc;
     }
 
-    BPQBlock* bpq_block = new BPQBlock(bundle);
+    BPQBlock* bpq_block = new BPQBlock(block->writable_contents()->buf() +
+									   block->data_offset(),
+									   block->data_length());
     log_info_p(LOG, "     BPQBlock:");
     log_info_p(LOG, "         kind: %d", bpq_block->kind());
     log_info_p(LOG, "matching rule: %d", bpq_block->matching_rule());
     log_info_p(LOG, "    query_len: %d", bpq_block->query_len());
     log_info_p(LOG, "    query_val: %s", bpq_block->query_val());
-    delete bpq_block;
+
+    // record bpq_block in BlockInfo for future use
+    block->set_locals(bpq_block);
 
     log_info_p(LOG, "BPQBlockProcessor::consume() end");
     
@@ -139,46 +146,24 @@ BPQBlockProcessor::generate(const Bundle*  bundle,
 
     (void)xmit_blocks;    
     (void)link;
+    (void)bundle;
 
     ASSERT (block->type() == BundleProtocol::QUERY_EXTENSION_BLOCK);
 
     // set flags
-    u_int8_t flags = BundleProtocol::BLOCK_FLAG_REPLICATE |
-                     (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0);
-                     //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
-
-    BlockInfo* bpq_info;
-
-    if ( (const_cast<Bundle*>(bundle))->api_blocks()->
-            has_block(BundleProtocol::QUERY_EXTENSION_BLOCK) ) {
-
-        bpq_info = const_cast<BlockInfo*>((const_cast<Bundle*>(bundle))->
-                   api_blocks()->find_block(BundleProtocol::QUERY_EXTENSION_BLOCK));
-        log_info_p(LOG, "BPQBlock found in API Block Vec => created locally");
-        
-    } else if ( (const_cast<Bundle*>(bundle))->recv_blocks().
-                has_block(BundleProtocol::QUERY_EXTENSION_BLOCK) ) {
-
-
-        bpq_info = const_cast<BlockInfo*>((const_cast<Bundle*>(bundle))->
-                   recv_blocks().find_block(BundleProtocol::QUERY_EXTENSION_BLOCK));
-        log_info_p(LOG, "BPQBlock found in Recv Block Vec => created remotly");
-
+    u_int8_t flags = block->source()->flags();
+    if (last) {
+        flags |= BundleProtocol::BLOCK_FLAG_LAST_BLOCK;
     } else {
-        log_err_p(LOG, "Cannot find BPQ block");
-        return BP_FAIL;
+        flags &= ~BundleProtocol::BLOCK_FLAG_LAST_BLOCK;
     }
 
-    BPQBlock* bpq_block = new BPQBlock(bundle);
-
-    int length = bpq_block->length();
-  //int length = bpq_info->data_length();
-
+    size_t length = block->source()->data_length();
     generate_preamble(xmit_blocks,
                       block,
                       BundleProtocol::QUERY_EXTENSION_BLOCK,
                       flags,
-                      length ); 
+                      length );
 
 
     // The process of storing the value into the block. We'll create a
@@ -192,13 +177,13 @@ BPQBlockProcessor::generate(const Bundle*  bundle,
     // Set our pointer to the right offset.
     u_char* buf = contents->buf() + block->data_offset();
     
-    // now write contents of BPQ block into the block
-    if ( bpq_block->write_to_buffer(buf, length) == -1 ) {
-        log_err_p(LOG, "Error writing BPQ block to buffer");
-        return BP_FAIL;
-    }
+    // Copy across the data
+    memcpy(buf, block->source()->contents().buf() +
+    		    block->source()->data_offset(),
+    		    length);
 
-    delete bpq_block;
+    // Don't need to make a BPQBlock and store it in block locals for xmit blocks.
+
     log_info_p(LOG, "BPQBlockProcessor::generate() ending");
     return BP_SUCCESS;
 }
@@ -234,16 +219,270 @@ BPQBlockProcessor::validate(const Bundle*           bundle,
         return false;
     }
 
-    if ( *(block->data()) != 0 && *(block->data()) != 1 ) {
+    BPQBlock* bpq_block = dynamic_cast<BPQBlock *>(block->locals());
 
-        log_err_p(LOG, "invalid kind - should be query (0) or response (1) but is: %u",
-                  (u_int) *block->data() );
+    if (!bpq_block->validated()) {
+        log_err_p(LOG, "BPQ extension blocks contents are invalid");
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
     }
 
     return true;
 }
+
+//----------------------------------------------------------------------
+int
+BPQBlockProcessor::reload_post_process(Bundle*       bundle,
+                                    BlockInfoVec* block_list,
+                                    BlockInfo*    block)
+{
+    (void)bundle;
+    (void)block_list;
+
+    BPQBlock* bpq_block = new BPQBlock(block->writable_contents()->buf() +
+									   block->data_offset(),
+									   block->data_length());
+
+    block->set_locals(bpq_block);
+
+    block->set_reloaded(true);
+    return 0;
+}
+
+//----------------------------------------------------------------------
+void
+BPQBlockProcessor::init_block(BlockInfo*    block,
+                              BlockInfoVec* block_list,
+                              Bundle*       bundle,
+                              u_int8_t      type,
+                              u_int8_t      flags,
+                              const u_char* bp,
+                              size_t        len)
+{
+	BPQBlock* bpq_block = new BPQBlock(bp, len);
+	if (!bpq_block->validated()) {
+		log_err_p("/bundling/extblock/BPQBlockProcessor",
+				  "Supplied BPQ block data was invalid");
+	}
+	// If a bundle is supplied as a parameter use its creation_ts and source as the
+	// original values for this BPQBlock - otherwise assume they are right already.
+	if (bundle != NULL) {
+		bpq_block->set_creation_ts(bundle->creation_ts());
+		bpq_block->set_source(bundle->source());
+	}
+	size_t new_len= bpq_block->length();
+	typedef oasys::ScratchBuffer<u_char*, 128> local_buf_t;
+	local_buf_t *temp_buf = new local_buf_t();
+	temp_buf->reserve(new_len);
+	bpq_block->write_to_buffer(temp_buf->buf(), new_len);
+
+	// Hand off to base class to initialize block
+	BlockProcessor::init_block(block, block_list, bundle, type,
+							   flags, temp_buf->buf(), new_len);
+
+	// Remember BPQBlock in BP_Locals for block
+	block->set_locals(bpq_block);
+
+	delete temp_buf;
+}
+
+//----------------------------------------------------------------------
+int
+BPQBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *block)
+{
+	u_char* content = NULL;
+	int len = 0;
+	BundleTimestamp creation_ts;
+	u_int64_t item_len;
+	u_int64_t frag_count;
+	u_int64_t frag_offset;
+	u_int64_t frag_len;
+
+	if (block!=NULL) {
+		content = block->data();
+		len = block->data_length();
+	}
+
+	buf->append("Query Extension (BPQ):\n");
+	int i=0;
+	u_int j=0;
+	int k;
+	int q_decoding_len, f_decoding_len, decoding_len;
+
+	// BPQ-kind             1-byte
+	if (i < len) {
+		buf->append("    Kind: ");
+		j = (u_int)(content[i++]);
+		switch ((BPQBlock::kind_t)j) {
+		case BPQBlock::KIND_QUERY:
+			buf->append("query\n");
+			break;
+		case BPQBlock::KIND_RESPONSE:
+			buf->append("response\n");
+			break;
+		case BPQBlock::KIND_RESPONSE_DO_NOT_CACHE_FRAG:
+			buf->append("response (do not cache fragments)\n");
+			break;
+		case BPQBlock::KIND_PUBLISH:
+			buf->append("publish\n");
+			break;
+		default:
+			buf->appendf("Unknown kind: %u\n", j);
+			break;
+		}
+	} else {
+		buf->append("Block too short");
+		return 0;
+	}
+
+	// matching rule type   1-byte
+	if (i < len) {
+		buf->appendf("    Matching rule: %d\n",(int) (content[i++]));
+	} else {
+		buf->append("Block too short\n");
+		return 0;
+	}
+
+	// Creation time-stamp sec     SDNV
+	if ( (q_decoding_len = SDNV::decode (&(content[i]),
+										len - i,
+										&(creation_ts.seconds_))) == -1 ) {
+		buf->append("Error decoding creation time-stamp sec\n");
+		return 0;
+	}
+	i += q_decoding_len;
+	if (i > len) {
+		buf->append("Block too short\n");
+		return 0;
+	}
+
+	// Creation time-stamp seq     SDNV
+	if ( (q_decoding_len = SDNV::decode (&(content[i]),
+										len - i,
+										&(creation_ts.seqno_))) == -1 ) {
+		buf->append("Error decoding creation time-stamp seqno\n");
+		return 0;
+	}
+	i += q_decoding_len;
+	if (i > len) {
+		buf->append("Block too short\n");
+		return 0;
+	}
+	buf->appendf("    Original creation ts: %llu.%llu\n", creation_ts.seconds_, creation_ts.seqno_);
+
+	// Source EID length     SDNV
+	if ( (q_decoding_len = SDNV::decode (&(content[i]),
+										len - i,
+										&item_len)) == -1 ) {
+		buf->append("Error decoding source EID length\n");
+		return 0;
+	}
+	i += q_decoding_len;
+	if (i > len) {
+		buf->append("Block too short\n");
+		return 0;
+	}
+
+	// Source EID            n-bytes
+	if (i < len) {
+		buf->append("    Source EID: ");
+		buf->append((char*)&(content[i]), item_len);
+		buf->appendf(" (length %llu)\n", item_len);
+		i += item_len;
+	} else {
+		buf->append("Error copying source EID\n");
+		return 0;
+	}
+	if (i > len) {
+		buf->append("Block too short\n");
+		return 0;
+	}
+
+	// BPQ query value length     SDNV
+	if ( (q_decoding_len = SDNV::decode (&(content[i]),
+										len - i,
+										&item_len)) == -1 ) {
+		buf->append("Error decoding BPQ query value length\n");
+		return 0;
+	}
+	i += q_decoding_len;
+	if (i > len) {
+		buf->append("Block too short\n");
+		return 0;
+	}
+
+	// BPQ query value            n-bytes
+	if (i < len) {
+		buf->append("    Query value: ");
+		buf->append((char*)&(content[i]), item_len - 1);
+		if (content[i+item_len] == '\0') {
+			buf->append("<nul>");
+		} else {
+			buf->appendf("<0x%x>", (unsigned int)(content[i+item_len]));
+		}
+		buf->appendf(" (length %llu)\n", item_len);
+		i += item_len;
+	} else {
+		buf->append("Error copying BPQ query value \n");
+		return 0;
+	}
+	if (i > len) {
+		buf->append("Block too short\n");
+		return 0;
+	}
+
+	// number of fragments  SDNV
+	if ( (f_decoding_len = SDNV::decode (&(content[i]),
+										len - i,
+										&frag_count)) == -1 ) {
+		buf->append("Error decoding number of fragments\n");
+		return 0;
+	}
+	i += f_decoding_len;
+	if (i > len) {
+		buf->append("Block too short\n");
+		return 0;
+	}
+	buf->appendf("    Number of fragments: %llu\n", frag_count);
+
+	for (k = 0; k < len && (u_int64_t)k < frag_count; ++k) {
+
+		// fragment offset     SDNV
+		if ( (decoding_len = SDNV::decode (&(content[i]),
+										  len - i,
+										  &frag_offset)) == -1 ) {
+			buf->appendf("Error decoding fragment offset for fragment #%d\n", k);
+			return 0;
+		}
+		i += decoding_len;
+		if (i > len) {
+			buf->append("Block too short\n");
+			return 0;
+		}
+
+		// fragment offsets     SDNV
+		if ( (decoding_len = SDNV::decode (&(content[i]),
+										  len - i,
+										  &frag_len)) == -1 ) {
+			buf->appendf("Error decoding fragment offset for fragment #%u\n", j);
+			return 0;
+		}
+		i += decoding_len;
+		if (i > len) {
+			buf->append("Block too short\n");
+			return 0;
+		}
+		buf->appendf("      [%d] Offset: %llu, Length: %llu\n", k, frag_offset, frag_len);
+	}
+
+	if (i != len) {
+		buf->appendf("Block is too long - expected %u, actual %u\n", i, len);
+		return 0;
+	}
+	buf->append("\n");
+	return(0);
+}
+
 
 } // namespace dtn
 
