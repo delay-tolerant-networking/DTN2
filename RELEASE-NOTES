@@ -1,5 +1,226 @@
 Release Notes for DTN2
 ----------------------
+2.9.0 (July 2012)
+
+Note: DTN2 Release 2.9.0 requires Oasys Release 1.6.0.
+
+New features:
+=============
+- Added new API functions to support dtn_peek and dtn_open_with_IP. Added 
+  new application dtnpeek to exploit dtn_peek.  Added options to various
+  applications to allow use of dtn_open_with_IP.
+
+    * dtn_peek allows applications to inspect bundles intended for
+      a registration but without deleting from the queues in the 
+      daemon.
+
+    * dtn_open_with_IP allows an application to access a dtnd 
+      via its IP address and port.
+
+- Added configuration option (--enable-scriptapis) to control whether 
+  PERL, PYTHON and TCL APIs are built.
+
+- Added configuration options to allow use of MySQL and SQLite storage
+  options via ODBC using new capabilities in Oasys 1.6.0.
+
+- Added support for the Bundle Protocol Query (BPQ) block, enabled 
+  with --with-bpq configure option and including:
+
+    * Block processor chain for BPQ blocks
+
+    * Provision of and management of a cache of bundles and bundle
+      fragments containing BPQ blocks where the value of the query 
+      string in the BPQ block is used to identify bundles.
+
+    * Management of the BPQ cache using a least recently used (LRU)
+      algorithm and potentially a limited size for the cache.
+
+    * Handling of four types of BPQ blocks (QUERY, RESPONSE,
+      RESPONSE_DO_NOT_FRAGMENT, PUBLISH) in bundles:
+
+        + PUBLISH blocks: bundles entered into cache when received
+          and possibly forwarded further depending on destination EID
+
+        + RESPONSE blocks (both kinds): bundles generated as responses to
+          QUERY blocks when query string matches a cached bundle's string
+          and directed to source of bundle with QUERY block.
+          May be cached by any node through which they pass.
+
+        + QUERY block: usually with an empty payload.  Query string is
+          compared to query strings in cached bundles and a RESPONSE
+          bundle generated if there is a match. The bundle is not further
+          forwarded if a complete RESPONSE bundle canbe found, but will be
+          forwarded if only incomplete fragements are found or there is no
+          match at all.
+
+    * Flexible matching algorithm (only exact match currently implemented)
+
+    * New applications supporting BPQ blocks:
+
+        + dtnquery - generates bundles with BPQ QUERY block and a query 
+          string.  Can also act as receiver for any responses generated.
+
+        + dtnrespond - fields any bundles arriving at an endpoint with a BPQ
+          QUERY block that have not triggered a RESPONSE from an 
+          intermediate node and generates bundles with BPQ RESPONSE block 
+          and payload.  Intended to be used with an external list of 
+          potential matching strings that can be used to generate responses.
+
+        + dtnpublish - generates bundles with BPQ PUBLISH block and a payload.
+          Intended to populate the caches of nodes that forward the bundle.
+
+    * Bundles inserted into the cache are held until either their expiry time
+      is reached or they are expelled from the cache because capacity has been
+      reached. The LRU list is used to identify the candidates to be expelled
+      if the cache overflows its size limit.
+
+    * Response bundles carry their original source EID and creation timestamp
+      as well as the identifier and timestamp of the node that created the 
+      response.
+
+    * Provide configuration commands to control BPQ processing and caching:
+        + bpq enabled [true|false] - turn BPQ caching mechanisms on/off
+        + bpq cache_size <# of octets> - select size of cache (0 => infinite)
+        + bpq list - list bundles in BPQ cache with their keys
+        + bpq lru - list keys in BPQ in (reversed) LRU order
+
+- Added various features to LTP (Licklider transmission protocol) convergence
+  layer:
+
+    * Setup for LTPlib red/green separation ("rg" parameter).
+
+    * Added ION compatibility mode parameter ("ion_mode"). Uses LTP_SO_ION 
+      socket option for ltplib.
+
+    * Allow sending and receiving of more than one bundle in an LTP block.
+
+    * Move rg and ion_mode LTP convergence layer parameters to their rightful
+      place in the convergence layer data structure:
+
+        + These parameters were initially placed in the Link parameters 
+          structure.  Since they are LTP specific this is inappropriate.  
+          The reason for this was essentially that the 'link set_cl_defaults' 
+          command was not implemented for the LTP convergence layer (the method 
+          set_link_defaults was not implemented).
+
+        + This method has now been implemented and the parameters moved 
+          to the convergence layer specific parameters area.
+
+- Improved help text for convergence layer parameter setting commands.
+
+- Added configuration commands to allow use of ODBC-based SQL storage 
+  capabilities added in Oasys release 1.6.0:
+
+    * Storage types odbc-mysql and odbc-sqlite added
+
+    * Storage types odbc, mysql and postgres removed
+
+    * Storage configuration commands odbc_schema_pre_creation and 
+      odbc_schema_post_creation specifying file names with SQL schema
+      creation commands to be run pre and post main table creation.
+
+    * Storage configuration command odbc_mysql_keep_alive_interval 
+      specifies time in seconds between refreshes of connection to
+      MySQL database server.
+
+    * See also configuration commands for ODBC specified with Oasys.
+
+- Added support for bundles_aux table in SQL storage database:
+
+    * Uses BundleDetail class.
+
+    * Schema for bundles_aux table specified in odbc_schema_pre_creation
+      file, with triggers in odbc_schema_post_creation.
+
+    * Relationship between bundle class data fields and columns
+      in bundles_aux specified by calls of BundleDetail::add_detail 
+      in BundleStorage.cc.
+
+    * Use of bundles_aux is turned on by storage set odbc_use_aux_tables.
+
+    * SQL triggers ensure that there is a strict one-to-one relationship
+      between rows in bundles and bundles_aux with the same key.
+
+- Added support for persistent link names:
+
+    * Turned on storage names of link instances in links table of database.
+      The keys for this table are the (string) names of the links.
+
+    * On restart of the daemon read the link instances back into a list of
+      previous links.  
+
+    * When new links are created check that if the link has a name that 
+      is already in the previous links list then the new version is 
+      consistent with the old version.  
+
+        + For links other than OPPORTUNISTIC type this means that they 
+          must have the same nexthop, type and convergence layer.  
+
+        + For OPPORTUNISTIC links the remote_eid must be the same.  
+
+    * Links created by the DTN configuration file are tested for 
+      consistency during startup of the Bundle daemon as the link 
+      information cannot be read in until the storage configuration
+      has been established. 
+
+    * Thereafter consistency is tested as the link is created.  
+
+    * The treatment of convergence layer link parameters has
+      been made consistent so that they can be properly 
+      serialized and deserialized into a new parameter structure 
+      of the appropriate type.  This included the pseudo-links 
+      created in the DTN2 simulator. In future this will allow 
+      the previous links to be used to reincarnate any links 
+      that were manually configured during a run of the daemon.
+
+    * Once a link name has been used in a bundle forwarding log (whether
+      or not the bundle is still present in the cache) the persistent link
+      information cannot be deleted.  
+
+    * However up to that time links can be fully deleted.  
+
+        + This allows the user to recover from finger trouble
+          when a link is created incorrectly.  
+
+    * The 'link dump' command has been enhanced so that both current 
+      and previous links are shown:
+
+        + For individual links, if a name is used in both current and 
+          previous lists the information for the current link will be displayed. 
+
+- Completed support for Bundle Security Protocol (BSP):
+    * Implemented remaining security block types (other than Bundle Integrity Block)
+
+Bug Fixes:
+==========
+
+- Corrected replay_action parameter on internal ping and dtlsr registrations 
+  so that bundles deferred are NOT passed to registration when dtnd is
+  restarted.
+
+- Corrected link to paper by Michael Demmer et al describing DTN2 implementation
+  in manual.
+
+- Several minor bugs in LTP CL fixed.
+
+- Various improvements to tests of LTP CL, dtnping and dtnperf.
+
+- Stopped dtnping requesting bundle expiration deletion reports.
+
+- Rejuvenated DTN2 simulator (now works again after several years).
+
+- Corrected API server treatment of API blocks and locally generated 
+  metadata blocks: previously these blocks were not included in data 
+  passed to applications by dtn_recv method.
+
+- Fixed race condition in which newly received bundles were interleaved
+  with previously received but deferred bundles when restarting a link, 
+  resulting in misordering of bundle transmission.
+
+- Corrected inadvertant change to dbdir value in default dtn.conf file.
+
+- Fixed compilation error in servlib/prophet/PointerList.h.
+
 
 2.8.0 (August 2011)
 -----------------
