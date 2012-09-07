@@ -500,7 +500,7 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
                                                &complete);
 
 	log_debug("LTP send_bundle, sending %d bytes to %s",
-			total_len,ltpaddr2str(&dest));
+			(int) total_len,ltpaddr2str(&dest));
 	
 	///code below is a simple test to check ltplib api calls
 
@@ -578,7 +578,7 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 	}
 	rv = ltp_sendto(sock,inbuf,total_len,flags,(ltpaddr*)&dest,sizeof(dest));
 	if (rv!=total_len) {
-		log_err("LTP ltp_sendto failed: %d\n",rv);
+		log_err("LTP ltp_sendto failed: %d\n",(int)rv);
 		free(inbuf);
 		return(-1);
 	}
@@ -757,7 +757,7 @@ LTPConvergenceLayer::Receiver::run()
 		}
 		cmlock.unlock();
 		// now check if something's arrived for me
-		int flags;
+		int flags=0;
 		ltpaddr from;
 		ltpaddr_len fromlen;
 		ret=ltp_recvfrom(s_sock,buf,rxbufsize,flags,(ltpaddr*)&from,(ltpaddr_len*)&fromlen);
@@ -855,9 +855,11 @@ LTPConvergenceLayer::Receiver::run()
         			delete bundle;
 					problem=true;
     			} else {
+					log_debug("LTP sending a bundle up %d bytes remaining, %d consumed block\n",
+							(int)(remaining-tmp),(int)tmp);
 					BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_PEER, ret, EndpointID::NULL_EID()));
-					bufp+=(remaining-tmp);
-					remaining=tmp;
+					bufp+=tmp;
+					remaining=(remaining-tmp);
 				}
 			} 
 			// need to close that socket since its now bound to that
