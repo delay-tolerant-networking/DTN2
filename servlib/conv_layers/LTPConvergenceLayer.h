@@ -83,6 +83,8 @@ public:
 		u_int16_t mtu_; // outbound MTU for link
 		int32_t rg_; // red/green setting, missing or -1 is allred, 0=allgreen, otherwise #red bytes
 		bool ion_mode_; // whether this is an outbound link to an ION instance, needed to force LTPlib to use short values
+		in_addr_t nh_addr_;			// next hop address to force for LTP responses
+		u_int16_t nh_port_;			// next hop port to force for LTP responses
 	};
 	//struct to hold our default parameters
 	static Params defaults_;
@@ -130,6 +132,8 @@ protected:
 
 		bool lion_mode;
 
+		ltpaddr lnh;
+
 	protected:
 		//lets process our incoming ltp segment
 		void process_data(u_char* bp, size_t len);
@@ -171,6 +175,9 @@ protected:
 		int lmtu;
 		int lrg;
 		bool lion_mode;
+
+		// ltp next hop, if forced
+		ltpaddr lnh;
 		
 		//our receive buffer size
 		int rxbufsize;

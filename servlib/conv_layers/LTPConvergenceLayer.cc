@@ -62,6 +62,8 @@ LTPConvergenceLayer::LTPConvergenceLayer() : IPConvergenceLayer("LTPConvergenceL
     defaults_.mtu_              		= 0;
     defaults_.rg_              			= LTP_ALLRED;
     defaults_.ion_mode_              	= false;
+    defaults_.nh_addr_               = INADDR_ANY;
+    defaults_.nh_port_               = LTPCL_DEFAULT_PORT;
 
 	ltp_inited=false;
 
@@ -78,6 +80,8 @@ LTPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 	a->process("mtu",&mtu_);
 	a->process("rg",&rg_);
 	a->process("ion_mode",&ion_mode_);
+    a->process("nh_addr", oasys::InAddrPtr(&nh_addr_));
+    a->process("nh_port", &nh_port_);
 }
 
 //----------------------------------------------------------------------
@@ -102,6 +106,8 @@ LTPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UInt16Opt("mtu", &params->mtu_));
     p.addopt(new oasys::IntOpt("rg", &params->rg_));
     p.addopt(new oasys::BoolOpt("ion_mode", &params->ion_mode_));
+    p.addopt(new oasys::InAddrOpt("nh_addr", &params->nh_addr_));
+    p.addopt(new oasys::UInt16Opt("nh_port", &params->nh_port_));
 
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -300,6 +306,8 @@ LTPConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
     	buf->appendf("\tRed/Green balance: redlen: %d", params->rg_);
 	}
 	buf->appendf("\tION mode: %s", params->ion_mode_ ? "true" : "false");
+    buf->appendf("\tnh_addr: %s nh_port: %d\n",
+                 intoa(params->nh_addr_), params->nh_port_);
 }
 
 //----------------------------------------------------------------------
@@ -420,6 +428,9 @@ LTPConvergenceLayer::Receiver::Receiver(LTPConvergenceLayer::Params *params)
 	lmtu = params->mtu_;
 	lrg = params->rg_;
 	lion_mode = params->ion_mode_;
+	// set the forced next hop if need be
+	str2ltpaddr((char*)intoa(params->nh_addr_),&lnh);
+	lnh.sock.sin_port=params->nh_port_;
 
     // start our thread
 }
@@ -470,10 +481,17 @@ LTPConvergenceLayer::Sender::init(Params* params,
 	// set the destination 
 	str2ltpaddr((char*)intoa(addr),&dest);
 	dest.sock.sin_port=port;
+	// set the forced next hop if need be
+	str2ltpaddr((char*)intoa(params->nh_addr_),&lnh);
+	lnh.sock.sin_port=params->nh_port_;
 
 	lmtu=params->mtu_;
 	lrg=params->rg_;
 	lion_mode = params->ion_mode_;
+	/// set the forced next hop if needed
+	str2ltpaddr((char*)intoa(params->nh_addr_),&lnh);
+	lnh.sock.sin_port=params->nh_port_;
+	
 
 	char *sstr=strdup(ltpaddr2str(&source));
 	char *dstr=strdup(ltpaddr2str(&dest));
@@ -562,6 +580,25 @@ LTPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
 		log_debug("LTP Tx: not setting SO_ION 'cause its not ION_MODE");
 	}
 
+	// force a next hop if needed
+    in_addr_t tnh_addr_               = INADDR_ANY;
+    u_int16_t tnh_port_               = LTPCL_DEFAULT_PORT;
+	ltpaddr taddr;
+	str2ltpaddr((char*)intoa(tnh_addr_),&taddr);
+	taddr.sock.sin_port=tnh_port_;
+	if (ltpaddr_cmp(&lnh,&taddr,sizeof(taddr))) {
+		// do stuff
+		rv=ltp_setsockopt(sock,SOL_SOCKET,LTP_SO_FORCE,&lnh,sizeof(lnh));
+		if (rv) {
+			log_err("LTP ltp_setsockopt for SO_FORCE failed");
+			free(inbuf);
+			return(-1);
+		}
+		log_debug("LTP Tx: setting SO_FORCE 'cause I was asked");
+	} else {
+		log_debug("LTP Tx: not setting SO_FORCE 'cause I wasn't asked");
+	}
+
 	///bind
 	rv = ltp_bind(sock,(ltpaddr*)&source,sizeof(source));
 	if (rv) { 
@@ -629,6 +666,26 @@ LTPConvergenceLayer::Receiver::run()
 		log_debug("LTP Tx: setting SO_ION 'cause it is ION_MODE");
 	} else {
 		log_debug("LTP Tx: not setting SO_ION 'cause its not ION_MODE");
+	}
+
+	// force a next hop if needed
+    in_addr_t tnh_addr_               = INADDR_ANY;
+    u_int16_t tnh_port_               = LTPCL_DEFAULT_PORT;
+	ltpaddr taddr;
+	str2ltpaddr((char*)intoa(tnh_addr_),&taddr);
+	taddr.sock.sin_port=tnh_port_;
+	if (ltpaddr_cmp(&lnh,&taddr,sizeof(taddr))) {
+		// do stuff
+		rv=ltp_setsockopt(s_sock,SOL_SOCKET,LTP_SO_FORCE,&lnh,sizeof(lnh));
+		if (rv) {
+			log_err("LTP ltp_setsockopt for SO_FORCE failed");
+			return;
+		}
+		log_debug("LTP Rx: setting SO_FORCE 'cause I was asked");
+	} else {
+		log_debug("LTP Tx: not setting SO_FORCE 'cause I wasn't asked");
+		log_debug("LTP nh: %s",ltpaddr2str(&lnh));
+		log_debug("LTP any: %s",ltpaddr2str(&taddr));
 	}
 
 	rv=ltp_bind(s_sock,&listener,sizeof(ltpaddr));
