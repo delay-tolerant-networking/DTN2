@@ -78,6 +78,7 @@ Optional Internal Packages
 NORM convergence layer support
 Bundle Security Protocol support (see Note BSP)
 LTP convergence layer support via TCD's LTPlib
+Internet Draft Compliant IP Neighbor Discovery (see README.IPND)
 
 
 Note - Oasys

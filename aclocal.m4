@@ -95,6 +95,26 @@ AC_DEFUN(AC_CONFIG_EXTERNAL_DP, [
     fi # EXTERNAL_DP_ENABLED
 ])
 dnl
+dnl Autoconf support for BBN IPND
+dnl
+
+AC_DEFUN(AC_CONFIG_BBN_IPND, [
+    ac_bbn_ipnd='no'
+    AC_ARG_WITH(bbn-ipnd,
+        AC_HELP_STRING([--with-bbn-ipnd],
+                [enable BBN IPND discovery protocol (EXPERIMENTAL)]),
+        ac_bbn_ipnd=$withval)
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test "$ac_bbn_ipnd" = no; then
+        BBN_IPND_ENABLED=0
+    else
+        BBN_IPND_ENABLED=1
+        AC_DEFINE_UNQUOTED(BBN_IPND_ENABLED, 1, [whether BBN IPND discovery protocol is enabled])
+    fi # BBN_IPND_ENABLED
+])
+dnl
 dnl    Copyright 2005-2006 Intel Corporation
 dnl 
 dnl    Licensed under the Apache License, Version 2.0 (the "License");

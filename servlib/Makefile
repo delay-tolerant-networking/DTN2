@@ -112,6 +112,15 @@ DISCOVERY_SRCS :=				\
 	discovery/DiscoveryTable.cc		\
 	discovery/IPAnnounce.cc			\
 	discovery/IPDiscovery.cc		\
+	discovery/IPNDDiscovery.cc		\
+	discovery/IPNDService.cc		\
+	discovery/IPNDAnnouncement.cc   \
+	discovery/ipnd_sd_tlv/IPNDSDTLV.cc	\
+	discovery/ipnd_sd_tlv/PrimitiveType.cc	\
+	discovery/ipnd_sd_tlv/Primitives.cc	\
+	discovery/ipnd_sd_tlv/ConstructedType.cc	\
+	discovery/ipnd_srvc/IPClaService.cc	\
+	discovery/ipnd_srvc/IPNDServiceFactory.cc	\
 
 CMD_SRCS :=					\
 	cmd/APICommand.cc			\

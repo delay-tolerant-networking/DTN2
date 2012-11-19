@@ -74,7 +74,7 @@ public:
     /**
      * Append snapshot of object state to StringBuffer
      */
-    void dump(oasys::StringBuffer* buf);
+    virtual void dump(oasys::StringBuffer* buf);
 
     /**
      * Close down listening socket and stop the thread.  Derived classes
@@ -86,12 +86,12 @@ public:
      * Register an Announce to advertise a local convergence
      * layer and to respond to advertisements from neighbors
      */
-    bool announce(const char* name, int argc, const char* argv[]);
+    virtual bool announce(const char* name, int argc, const char* argv[]);
 
     /**
      * Remove registration for named announce object 
      */
-    bool remove(const char* name);
+    virtual bool remove(const char* name);
 
     /**
      * Handle neighbor discovery out to registered DiscoveryInfo objects

@@ -1,5 +1,8 @@
 /* dtn-config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* whether BBN IPND discovery protocol is enabled */
+#undef BBN_IPND_ENABLED
+
 /* whether Bundle Protocol Query Extension support is enabled */
 #undef BPQ_ENABLED
 

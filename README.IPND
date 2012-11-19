@@ -1,0 +1,260 @@
+DTN2 IPND Reference Implementation
+==================================
+
+This version of DTN2 includes a reference implementation of DTN IP Neighbor
+Discovery (IPND) as described in the IRTF Internet Draft
+(draft-irtf-dtnrg-ipnd-02). This implementation is a feature separate from the
+IP Discovery functionality that is included by default in DTN2, and must be
+enabled as an experimental feature by configure.
+
+Compilation Instructions
+------------------------
+
+In order to compile DTN2 with support for IPND, you must specify a flag for
+configure:
+
+./configure --with-bbn-ipnd
+make
+
+Unit Test Instructions
+----------------------
+
+A set of unit tests have been created for testing the IPND implementation. In
+order to compile and run the tests:
+
+./configure --with-bbn-ipnd
+make test
+cd test/unit_tests
+./ipnd-sb-tlv-test
+
+Usage
+-----
+
+IPND makes some changes to the usual discovery commands found in DTN2. With DTN2
+compiled with IPND, run the 'help discovery' command to see the changes (most
+notably to the 'discovery announce' command).
+
+To add an IPND discovery agent:
+
+dtn% discovery add ipnd-agent ip port=40000
+
+This will create an IPND agent bound to the given port on the default broadcast
+address (255.255.255.255) with the default beacon period (10 seconds). You may
+add parameters to the add command in order to specify non-default values.
+
+To add an entry to the Service Block:
+
+dtn% discovery announce tcp-svc ipnd-agent cla-tcp-v4 addr=<tcp cla IPv4> port=<tcp cla port>
+
+This will add a cla-tcp-v4 service entry into each IPND beacon sent by the given
+agent. The given CLA address and port should match those of an active CLA in the
+DTN2 daemon (note that IPND does not check the validity of the given address and
+port number for the CLA).
+
+DTN2 IPND Directory Structure
+-----------------------------
+
+The following directories are applicable to the IPND implementation:
+
+servlib/
+|-- cmd                 DiscoveryCommand changes for IPND
+|-- discovery           Base IPND classes (IPND*.h/.cc)
+    |-- ipnd_sd_tlv     IPND Service Block TLV encoding implementation
+    |-- ipnd_srvc       IPND Service Definition implementations
+test/
+|-- unit_tests          Added unit tests for IPND
+
+TODO List/Desired Enhancements
+------------------------------
+1.  Change DiscoveryCommand to add a new 'announce-svc' command if IPND is 
+    enabled.
+2.  Add infrastructure to allow Service Factory plugins to provide help text
+    that can be used by DiscoveryCommand.
+3.  Implement "discovery dump" functionality.
+4.  Restore backward-compatibility with older IPND beacon versions.
+5.  Implement other optional services (e.g. IPv6, hostname CLAs; NBF).
+
+
+Custom Service Implementation User Guide
+========================================
+
+This section will briefly describe how a developer can implement a custom
+service definition on top of the IPND reference implementation. A general
+understanding of draft-irtf-dtnrg-ipnd-02 is assumed. A more complete version
+of the fake service defined in the section is included in the IPND unit test
+code (test/unit_tests/ipnd-sb-tlv-test.cc).
+
+1.  Service definitions
+-----------------------
+
+New services must be defined in such a way that external users may implement the
+same services if they wish to interoperate. Service definitions should mirror
+those found in the IPND draft; that is, they should clearly define the set of
+child components that construct the service. For example:
+
+128 FooService {
+    Key (string),
+    Timeout (fixed16),
+    Extra (BarType)
+}
+
+129 BarType {
+    Age (uint64),
+    Hash (bytes)
+}
+
+Note that the component names (e.g. "Key", "Timeout", and "Age") have no meaning
+outside of this service definition; they serve for the edification of the
+developers implementing the service only. Most important are the component types
+("string", "fixed16", "BarType", "bytes", "uint64") as these define the
+structure of the service definition. These types must map either to a primitive
+type listed in the draft or another constructed type defined alongside the
+service definition (e.g. "BarType").
+
+Also note the number preceding the type names (128 and 129). These numbers
+define the tag numbers that will be assigned to the respective types. Any
+implementation wishing to interoperate must use identical tag numbers (within
+the private range).
+
+2.  Service Implementation
+--------------------------
+
+The IPND reference implementation was designed to be highly extensible.
+Implementing custom types and services requires little more than mirroring
+your definitions in code. The existing IPND Service Block TLV encoding
+infrastructure handles almost all of the heavy lifting when it comes to reading
+and writing raw byte streams.
+
+Top-level services (i.e. those types which are expected to be top-level entries
+within the IPND beacon Service Block) should always be subclasses of
+dtn::IPNDService. This allows them to be manipulated by IPNDDiscovery. Types not
+expected to be top-level Service Block entries should always be subclasses of
+ipndtlv::ConstructedType. This ensures that they cannot be directly manipulated
+by IPNDDiscovery. For example:
+
+// BarType implementation snippet:
+class BarType: public ipndtlv::ConstructedType {
+// ...
+};
+
+// FooService implementation snippet:
+class FooService: public dtn::IPNDService {
+// ...
+};
+
+Defining the construction of types and services in code is accomplished by
+calling the 'addChild(ipndtlv::IPNDSBTLV::BaseDataType*)' function which is
+inherited from ipndtlv::ConstructedType. The argument passed to this function is
+a pointer to an allocated datatype (be it a primitive or another constructed
+type defined elsewhere). The best place to do this is usually in a constructor;
+for examle:
+
+// BarType implementation snippet:
+BarType::BarType() : ipndtlv::ConstructedType(129, "bartype") {
+    addChild(new ipndtlv::Primitives::UInt64());
+    addChild(new ipndtlv::Primitives::Bytes());
+}
+
+// FooService implementation snippet:
+FooService::FooService() : dtn::IPNDService(128, "fooservice") {
+    addChild(new ipndtlv::Primitives::String());
+    addChild(new ipndtlv::Primitives::Fixed16());
+    addChild(new BarType());
+}
+
+Some things to note in the previous examples:
+  - The calls to the superclass constructors include the previously defined tag
+    numbers (probably good to store as a public static constant) and an
+    arbitrary name used for logging.
+  - The order in which child types are added does not matter (as described in
+    the draft).
+
+Finally, users of the implemented types and services usually do not need to know
+anything about the underlying types of the child components. The use of more
+generic accessors is recommended; for example:
+
+// FooService implementation snippet:
+std::string FooService::getKey() const {
+    ipndtlv::Primitives::String *key =
+            static_cast<ipndtlv::Primitives::String*>(
+                    getChild(ipndtlv::IPNDSBTLV::P_STRING));
+    
+    return key->getValue();
+}
+
+What's happening here is a retrieval of a generic child (using a constant for
+the primitive type's tag value) which is then cast to the proper datatype. Once
+this is done, the actual value can be accessed and returned. This "masking" of
+underlying datatypes prevents users from having to understand anything about
+tag values, etc.
+
+3.  Service Factory Plugin Implementation
+-----------------------------------------
+
+The final requirement for implementing a custom service definition is to define
+a subclass of dtn::IPNDServiceFactory::Plugin which understands how to configure
+new instances of the custom service and recognize instances of the custom
+service in a raw byte stream. Note that the plugin only has to be able to
+configure and recognize custom service definitions, not custom constructed types
+which are contained within a service. Only two functions must be implemented in
+order to accomplish these goals, for example:
+
+// FooPlugin implementation snippet:
+class FooPlugin: public dtn::IPNDServiceFactory::Plugin {
+// ...
+
+IPNDService *configureService(const std::string &type, const int argc,
+        const char *argv[]) const {
+    // check service type for one we recognize
+    if(type == "foo-svc") {
+        // extract other params from argv
+        
+        // in reality, this would call a constructor with the params extracted
+        // from argv
+        return new FooService();
+    } else {
+        return NULL;
+    }
+}
+
+IPNDService *readService(const uint8_t tag, const u_char **buf,
+        const unsigned int len_remain, int *num_read) const {
+    // check the tag for one we recognize
+    if(tag == 128) {
+        FooService *fs = new FooService();
+        *num_read = fs->read(buf, len_remain);
+        
+        // in reality you'd want to check *num_read for errors first
+        return fs;
+    } else {
+        *num_read = 0;
+        return NULL;
+    }
+}
+
+};
+
+Note that a single plugin class may implement configuration for--and recognition
+of--multiple service types, not necessarily just one. For a concrete example,
+see the implementation of the DefaultIpndServicePlugin in IPNDServiceFactory.cc.
+
+Once the implementation of the new plugin is complete, the Service Factory must
+be made aware of the new plugin. This should be done early in the initialization
+of the DTN2 daemon, preferably before all of the daemon's internal threads are
+allowed to start. The new plugin is revealed to the factory with a single call:
+
+// DTN2 daemon initialization snippet:
+dtn::IPNDServiceFactory::instance()->addPlugin(new FooPlugin());
+
+4.  Usage
+---------
+
+In order to utilize the new service definition, the discovery command is invoked
+to 'announce' the new service:
+
+// first add the discovery agent
+dtn% discovery add ipnd-agent ip port=40000 beacon_period=60
+
+// next announce a new FooService (in reality there'd be extra params)
+dtn% discovery announce my-foo ipnd-agent foo-svc
+

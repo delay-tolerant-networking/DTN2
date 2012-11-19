@@ -30,60 +30,79 @@ namespace dtn {
 DiscoveryCommand::DiscoveryCommand()
     : TclCommand("discovery")
 {
-    add_to_help("add <discovery_name> <cl_type> [ <port=val> "
-                "<continue_on_error=val> <addr=val> <local_addr=val> "
-		"<multicast_ttl=val> <unicast=val> ]",
+    add_to_help("add <discovery_name> <cl_type> [ options ]",
                 "add a discovery agent\n"
-	"	valid options:\n"
-	"		<discovery_name>\n"
-	"			A string to define agent name\n"
-	"		<cl_type>\n"
-	"			The CLA type\n"
-	"				    bt\n"
-	"				    ip\n"
-	"				    bonjour\n"
-        "		[ CLA specific options ]\n"
-	"			<port=port>\n"
-	"			<continue_on_error=true or false>\n"
-	"			<addr=A.B.C.D>\n"
-	"			<local_addr=A.B.C.D>\n"
-	"			<multicast_ttl=TTL number>\n"
-	"			<unicast=true or false>\n");
+                "    valid options:\n"
+                "        <discovery_name>\n"
+                "            A string to define agent name\n"
+                "        <cl_type>\n"
+                "            The CLA type [bt, ip, bonjour]\n"
+                "        [ CLA specific options ]\n"
+                "            <port=port>\n"
+                "            <continue_on_error=true or false>\n"
+                "            <addr=A.B.C.D>\n"
+                "            <local_addr=A.B.C.D>\n"
+                "            <multicast_ttl=TTL number>\n"
+                "            <unicast=true or false>\n"
+#ifdef BBN_IPND_ENABLED
+                "        [ BBN-IPND specific options ]\n"
+                "            <beacon_period=beacon period in seconds>\n"
+                "            <beacon_threshold=tracking accuracy (0 to disable)\n"
+#endif
+                );
 
     add_to_help("del <discovery_name>",
-		"remove discovery agent\n"
-	"	valid options:\n"
-	"		<discovery_name>\n"
-	"			A string to define agent name\n"); 
+                "remove discovery agent\n"
+                "    valid options:\n"
+                "        <discovery_name>\n"
+                "            A string defining the agent to delete\n");
 
+#ifdef BBN_IPND_ENABLED
+    add_to_help("announce <svc_name> <discovery_name> <svc_type> [ options ]",
+                "Announce a service in the IPND service block\n"
+                "Required options:\n"
+                "    <svc_name>\n"
+                "        Arbitrary name for the service\n"
+                "    <discovery_name>\n"
+                "        The discovery agent in which to add the service\n"
+                "    <svc_type>\n"
+                "        The identifier of the service type to add\n"
+                "Available service type identifiers (with options):\n"
+                "    cla-tcp-v4 [TCP convergence layer with IPv4 address]\n"
+                "        <addr>\n"
+                "            IPv4 address of the convergence layer\n"
+                "        <port>\n"
+                "            TCP port of the convergence layer\n"
+                "    cla-udp-v4 [UDP convergence layer with IPv4 address]\n"
+                "        <addr>\n"
+                "            IPv4 address of the convergence layer\n"
+                "        <port>\n"
+                "            TCP port of the convergence layer\n");
+#else
     add_to_help("announce <cl_name> <discovery_name> <cl_type> "
-		"<interval=val> [ <cl_addr=val> <cl_port=val> ]",
-		"announce the address of a local interface (convergence "
-		"layer)\n"
-	"	valid options:\n"
-	"		<cl_name>\n"
-	"			The CLA name\n"
-	"		<discovery_name>\n"
-	"                       An agent name string\n"
-	"		<cl_type>\n"
-	"			The CLA type\n"
-	"                                   bt\n"
-	"                                   ip\n"
-	"		<interval=val>\n"
-	"			Periodic announcement interval\n"
-	"				    <interval=number>\n"
-        "               [ CLA specific options ]\n"
-	"			<cl_addr=A.B.C.D>\n"
-	"			<cl_port=port number>\n");
-
+                "<interval=val> [ options ]",
+                "announce the address of a local interface (convergence "
+                "layer)\n"
+                "    valid options:\n"
+                "        <cl_name>\n"
+                "            The CLA name\n"
+                "        <discovery_name>\n"
+                "            An agent name string\n"
+                "        <cl_type>\n"
+                "            The CLA type [bt, ip, bonjour]\n"
+                "        <interval=val>\n"
+                "            Periodic announcement interval\n"
+                "        [ CLA specific options ]\n"
+                "            <cl_addr=A.B.C.D>\n"
+                "            <cl_port=port number>\n");
+#endif
     add_to_help("remove <cl_name>",
-		"remove announcement for local interface\n"
-	"	valid options:\n"
-	"		<cl_name>\n"
-	"			The CLA name\n");
+                "remove announcement for local interface\n"
+                "    valid options:\n"
+                "        <cl_name>\n"
+                "            The CLA name\n");
 
-    add_to_help("list",
-		"list all discovery agents and announcements\n");
+    add_to_help("list", "list all discovery agents and announcements\n");
 }
 
 int
@@ -152,11 +171,19 @@ DiscoveryCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     else
     if (strncasecmp("announce",argv[1],8) == 0)
     {
+#ifdef BBN_IPND_ENABLED
+        if (argc < 5)
+        {
+            wrong_num_args(argc,argv,2,5,INT_MAX);
+            return TCL_ERROR;
+        }
+#else
         if (argc < 6)
         {
             wrong_num_args(argc,argv,2,6,INT_MAX);
             return TCL_ERROR;
         }
+#endif
 
         const char* name = argv[2];
         const char* dname = argv[3];

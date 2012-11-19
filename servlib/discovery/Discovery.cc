@@ -24,7 +24,11 @@
 #include "BluetoothDiscovery.h"
 #include "BonjourDiscovery.h"
 #include "Discovery.h"
+#ifdef BBN_IPND_ENABLED
+#include "IPNDDiscovery.h"
+#else
 #include "IPDiscovery.h"
+#endif
 #include "contacts/ContactManager.h"
 #include "bundling/BundleDaemon.h"
 
@@ -48,7 +52,11 @@ Discovery::create_discovery(const std::string& name,
     Discovery* disc = NULL;
     if (af == "ip")
     {
+#ifdef BBN_IPND_ENABLED
+        disc = new IPNDDiscovery(name);
+#else
         disc = new IPDiscovery(name);
+#endif
     }
 #ifdef OASYS_BONJOUR_ENABLED
     else if (af == "bonjour")
