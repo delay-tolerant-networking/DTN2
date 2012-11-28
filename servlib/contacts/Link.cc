@@ -413,7 +413,10 @@ Link::~Link()
     log_debug("destroying link %s", name());
         
     ASSERT(!isopen());
-    ASSERT(cl_info_ == NULL);
+    if(cl_info_ !=NULL) {
+        delete cl_info_;
+        cl_info_ = NULL;
+    }
     ASSERT(router_info_ == NULL);
 }
 

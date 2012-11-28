@@ -47,6 +47,7 @@ protected:
      * Destructor.
      */
     virtual ~TableBasedRouter();
+    virtual void shutdown();
 
     /**
      * Event handler overridden from BundleRouter / BundleEventHandler

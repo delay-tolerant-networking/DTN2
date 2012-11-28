@@ -280,8 +280,10 @@ DTNServer::close_datastore()
     ProphetStore::instance()->close();
     BundleStore::instance()->close();
     GlobalStore::instance()->close();
-
+    
+    if(!getenv("OASYS_CLEANUP_SINGLETONS")) {
     delete_z(store_);
+    }
 }
 
 void
@@ -303,6 +305,7 @@ DTNServer::shutdown()
     BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
 
     DiscoveryTable::instance()->shutdown();
+    InterfaceTable::shutdown();
     close_datastore();
 }
 

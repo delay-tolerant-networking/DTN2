@@ -31,6 +31,11 @@
 
 namespace dtn {
 
+void table_based_router_shutdown(void*)
+{
+    BundleDaemon::instance()->router()->shutdown();
+}
+
 //----------------------------------------------------------------------
 TableBasedRouter::TableBasedRouter(const char* classname,
                                    const std::string& name)
@@ -39,12 +44,28 @@ TableBasedRouter::TableBasedRouter(const char* classname,
                        1024) // XXX/demmer configurable??
 {
     route_table_ = new RouteTable(name);
+
+    // register the global shutdown function
+    BundleDaemon::instance()->set_rtr_shutdown(
+            table_based_router_shutdown, (void *) 0);
+
 }
 
 //----------------------------------------------------------------------
 TableBasedRouter::~TableBasedRouter()
 {
-    delete route_table_;
+    if(route_table_ != NULL) {
+        delete route_table_;
+        route_table_ = NULL;
+        printf("Deleting route table\n");
+    } 
+}
+void TableBasedRouter::shutdown() {
+    if(route_table_ != NULL) {
+        delete route_table_;
+        route_table_ = NULL;
+        printf("Deleting route table\n");
+    }
 }
 
 //----------------------------------------------------------------------

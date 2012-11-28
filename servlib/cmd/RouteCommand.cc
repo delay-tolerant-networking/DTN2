@@ -251,6 +251,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         if (argc != 0 && (entry->parse_options(argc, argv) != argc))
         {
             resultf("invalid argument '%s'", argv[0]);
+            delete entry;
             return TCL_ERROR;
         }
         

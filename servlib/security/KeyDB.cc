@@ -67,6 +67,15 @@ void KeyDB::shutdown()
     }
 }
 
+void KeyDB::shutdown()
+{
+    if(instance_ != NULL && !getenv("OASYS_CLEANUP_SINGLETONS")) 
+    {
+        delete instance_;
+        log_debug_p(log, "KeyDB::shutdown() completed");
+    }
+}
+
 void
 KeyDB::set_key(Entry& entry)
 {

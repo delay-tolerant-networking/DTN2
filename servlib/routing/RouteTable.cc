@@ -32,6 +32,10 @@ RouteTable::RouteTable(const std::string& router_name)
 //----------------------------------------------------------------------
 RouteTable::~RouteTable()
 {
+    RouteEntryVec::iterator iter;
+    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+        delete *iter;
+    }
 }
 
 //----------------------------------------------------------------------

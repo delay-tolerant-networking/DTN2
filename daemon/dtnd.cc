@@ -250,6 +250,7 @@ DTND::main(int argc, char* argv[])
     
     // kill logging
     oasys::Log::shutdown();
+    delete apiserver;
     
     return 0;
 }

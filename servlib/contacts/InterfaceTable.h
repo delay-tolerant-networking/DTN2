@@ -46,6 +46,7 @@ public:
         }
         return instance_;
     }
+    static void shutdown();
 
     /**
      * Boot time initializer that takes as a parameter the actual

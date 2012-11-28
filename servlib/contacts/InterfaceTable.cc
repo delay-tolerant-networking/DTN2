@@ -33,7 +33,18 @@ InterfaceTable::InterfaceTable()
 
 InterfaceTable::~InterfaceTable()
 {
-    NOTREACHED;
+    //NOTREACHED;
+    printf("Deleting InterfaceTable\n");
+    InterfaceList::iterator iter;
+    for(iter = iflist_.begin();iter != iflist_.end(); iter++) {
+        (*iter)->clayer()->interface_down(*iter);
+        delete *iter;
+    }
+
+}
+void InterfaceTable::shutdown() {
+    printf("In InterfaceTable::shutdown\n");
+    delete instance_;
 }
 
 /**

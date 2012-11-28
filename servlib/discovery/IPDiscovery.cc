@@ -35,7 +35,7 @@ const u_int IPDiscovery::DEFAULT_MCAST_TTL = 1;
 
 IPDiscovery::IPDiscovery(const std::string& name)
     : Discovery(name,"ip"),
-      oasys::Thread("IPDiscovery"),
+      oasys::Thread("IPDiscovery", DELETE_ON_EXIT),
       socket_("/dtn/discovery/ip/sock")
 {
     remote_addr_ = DEFAULT_DST_ADDR;

@@ -112,6 +112,7 @@ BundleDaemon::BundleDaemon()
 //----------------------------------------------------------------------
 BundleDaemon::~BundleDaemon()
 {
+    delete all_bundles_;
     delete pending_bundles_;
     delete custody_bundles_;
 
@@ -2380,6 +2381,7 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 
     // fall through -- the DTNServer will close and flush all the data
     // stores
+    BundleProtocol::delete_block_processors();
 #ifdef BSP_ENABLED
     Ciphersuite::shutdown();
     KeyDB::shutdown();

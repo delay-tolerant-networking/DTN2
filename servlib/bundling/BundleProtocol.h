@@ -45,6 +45,8 @@ public:
      */
     static void register_processor(BlockProcessor* bp);
 
+    static void delete_block_processors();
+
     /**
      * Find the appropriate BlockProcessor for the given block type
      * code.

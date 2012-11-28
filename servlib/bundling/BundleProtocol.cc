@@ -110,6 +110,15 @@ BundleProtocol::init_default_processors()
     BundleProtocol::register_processor(new AgeBlockProcessor());
 }
 
+void BundleProtocol::delete_block_processors() {
+    for(int i=0;i<256;i++) {
+        if(processors_[i]!=NULL) {
+        delete processors_[i];
+        processors_[i] = NULL;
+        }
+    }
+}
+
 //----------------------------------------------------------------------
 void
 BundleProtocol::reload_post_process(Bundle* bundle)

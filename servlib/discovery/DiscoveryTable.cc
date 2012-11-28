@@ -45,7 +45,7 @@ DiscoveryTable::shutdown()
     {
         Discovery* d = *i;
         d->shutdown();
-        delete d;
+        //delete d;
     }
     dlist_.clear();
 }

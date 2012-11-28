@@ -31,7 +31,7 @@ namespace dtn {
 //----------------------------------------------------------------------
 BonjourDiscovery::BonjourDiscovery(const std::string& name)
     : Discovery(name, "bonjour"),
-      oasys::Thread("BonjourDiscovery"),
+      oasys::Thread("BonjourDiscovery", DELETE_ON_EXIT),
       notifier_("/dtn/discovery/bonjour"),
       shutdown_(false)
 {

@@ -42,7 +42,7 @@ BluetoothDiscovery::shutdown()
 
 BluetoothDiscovery::BluetoothDiscovery(const std::string& name)
     : Discovery(name,"bt"),
-      oasys::Thread("BluetoothDiscovery"),
+      oasys::Thread("BluetoothDiscovery", DELETE_ON_EXIT),
       notifier_("/dtn/discovery/bt")
 {
     oasys::Bluetooth::hci_get_bdaddr(&local_addr_);
