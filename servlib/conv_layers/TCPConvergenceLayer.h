@@ -61,7 +61,7 @@ public:
         /**
          * Virtual from SerializableObject
          */
-        virtual void serialize( oasys::SerializeAction *);
+        void serialize( oasys::SerializeAction *);
 
         bool      hexdump_;		///< Log a hexdump of all traffic
         in_addr_t local_addr_;		///< Local address to bind to
@@ -83,6 +83,7 @@ protected:
     friend class IPAnnounce;
 
     /// @{ Virtual from ConvergenceLayer
+    bool init_link(const LinkRef& link, int argc, const char* argv[]);
     bool set_link_defaults(int argc, const char* argv[],
                            const char** invalidp);
     void dump_link(const LinkRef& link, oasys::StringBuffer* buf);

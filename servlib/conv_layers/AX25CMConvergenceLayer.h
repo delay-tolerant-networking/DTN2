@@ -85,6 +85,7 @@ protected:
     friend class AX25Announce;
 
     /// @{ Virtual from ConvergenceLayer
+    bool init_link(const LinkRef& link, int argc, const char* argv[]);
     bool set_link_defaults(int argc, const char* argv[],
                            const char** invalidp);
     void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
@@ -97,7 +98,7 @@ protected:
                                    const char** invalidp);
     virtual bool parse_nexthop(const LinkRef& link, LinkParams* params);
     virtual CLConnection* new_connection(const LinkRef& link,
-                                         LinkParams* params);
+										 LinkParams* params);
     /// @}
 
     /**

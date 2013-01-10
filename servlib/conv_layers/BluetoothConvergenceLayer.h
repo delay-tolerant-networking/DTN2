@@ -92,6 +92,7 @@ protected:
     friend class BluetoothAnnounce;
 
     /// @{ virtual from ConvergenceLayer
+    bool init_link(const LinkRef& link, int argc, const char* argv[]);
     bool set_link_defaults(int argc, const char* argv[],
                            const char** invalidp);
     void dump_link(const LinkRef& link, oasys::StringBuffer* buf);

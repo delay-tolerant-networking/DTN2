@@ -53,8 +53,10 @@ Discovery::create_discovery(const std::string& name,
     if (af == "ip")
     {
 #ifdef BBN_IPND_ENABLED
+    	log_debug_p("/dtn/discovery", "IPND discovery selected for ip");
         disc = new IPNDDiscovery(name);
 #else
+    	log_debug_p("/dtn/discovery", "Original IP discovery selected for ip");
         disc = new IPDiscovery(name);
 #endif
     }

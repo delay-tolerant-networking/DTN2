@@ -281,6 +281,13 @@ NORMConvergenceLayer::NORMConvergenceLayer()
 }
 
 //----------------------------------------------------------------------
+CLInfo*
+NORMConvergenceLayer::new_link_params()
+{
+    return new NORMParameters(defaults_);
+}
+
+//----------------------------------------------------------------------
 bool
 NORMConvergenceLayer::set_link_defaults(int argc, const char* argv[],
                                         const char** invalidp)

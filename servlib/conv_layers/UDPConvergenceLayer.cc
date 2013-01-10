@@ -49,13 +49,6 @@ UDPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 }
 
 //----------------------------------------------------------------------
-CLInfo*
-UDPConvergenceLayer::new_link_params()
-{
-    return new UDPConvergenceLayer::Params(UDPConvergenceLayer::defaults_);
-}
-
-//----------------------------------------------------------------------
 UDPConvergenceLayer::UDPConvergenceLayer()
     : IPConvergenceLayer("UDPConvergenceLayer", "udp")
 {
@@ -65,6 +58,21 @@ UDPConvergenceLayer::UDPConvergenceLayer()
     defaults_.remote_port_              = 0;
     defaults_.rate_                     = 0; // unlimited
     defaults_.bucket_depth_             = 0; // default
+}
+
+//----------------------------------------------------------------------
+CLInfo*
+UDPConvergenceLayer::new_link_params()
+{
+    return new UDPConvergenceLayer::Params(UDPConvergenceLayer::defaults_);
+}
+
+//----------------------------------------------------------------------
+bool
+UDPConvergenceLayer::set_link_defaults(int argc, const char* argv[],
+                                       const char** invalidp)
+{
+    return parse_params(&UDPConvergenceLayer::defaults_, argc, argv, invalidp);
 }
 
 //----------------------------------------------------------------------
@@ -253,6 +261,8 @@ UDPConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 
     buf->appendf("\tremote_addr: %s remote_port: %d\n",
                  intoa(params->remote_addr_), params->remote_port_);
+    buf->appendf("rate: %u\n", params->rate_);
+    buf->appendf("bucket_depth: %u\n", params->bucket_depth_);
 }
 
 //----------------------------------------------------------------------

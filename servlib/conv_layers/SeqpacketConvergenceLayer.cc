@@ -137,6 +137,7 @@ SeqpacketConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* b
     buf->appendf("keepalive_interval: %u\n", params->keepalive_interval_);
     buf->appendf("segment_length: %u\n", params->segment_length_);
     buf->appendf("ack_window: %u\n", params->ack_window_);
+    buf->appendf("cl_version: %u\n", cl_version_);
 }
 
 //----------------------------------------------------------------------

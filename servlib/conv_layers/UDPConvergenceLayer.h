@@ -63,6 +63,12 @@ public:
     bool init_link(const LinkRef& link, int argc, const char* argv[]);
 
     /**
+     * Set default link options.
+     */
+    bool set_link_defaults(int argc, const char* argv[],
+                           const char** invalidp);
+
+    /**
      * Delete any CL-specific components of the Link.
      */
     void delete_link(const LinkRef& link);

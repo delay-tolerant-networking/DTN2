@@ -169,7 +169,7 @@ protected:
         /**
          * Virtual from SerializableObject
          */
-        virtual void serialize( oasys::SerializeAction *);
+        void serialize( oasys::SerializeAction *);
 
         bool  segment_ack_enabled_;	///< Use per-segment acks
         bool  negative_ack_enabled_;	///< Enable negative acks

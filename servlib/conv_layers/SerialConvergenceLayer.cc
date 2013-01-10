@@ -74,6 +74,47 @@ SerialConvergenceLayer::new_link_params()
 
 //----------------------------------------------------------------------
 bool
+SerialConvergenceLayer::init_link(const LinkRef& link,
+                                  int argc, const char* argv[])
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
+
+    log_debug("adding %s link %s", link->type_str(), link->nexthop());
+
+    // Create a new parameters structure, parse the options, and store
+    // them in the link's cl info slot.
+    SerialLinkParams* params = dynamic_cast<SerialLinkParams *>(new_link_params());
+    ASSERT(params != NULL);
+
+    // Try to parse the link's next hop, but continue on even if the
+    // parse fails since the hostname may not be resolvable when we
+    // initialize the link. Each subclass is responsible for
+    // re-checking when opening the link.
+    parse_nexthop(link, params);
+
+    const char* invalid;
+    if (! parse_link_params(params, argc, argv, &invalid)) {
+        log_err("error parsing link options: invalid option '%s'", invalid);
+        delete params;
+        return false;
+    }
+
+	// Calls the StreamConvergenceLayer method
+    if (! finish_init_link(link, params)) {
+        log_err("error in finish_init_link");
+        delete params;
+        return false;
+    }
+
+    link->set_cl_info(params);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
 SerialConvergenceLayer::parse_link_params(LinkParams* lparams,
                                        int argc, const char** argv,
                                        const char** invalidp)
@@ -85,6 +126,8 @@ SerialConvergenceLayer::parse_link_params(LinkParams* lparams,
     
     p.addopt(new oasys::BoolOpt("hexdump", &params->hexdump_));
     p.addopt(new oasys::StringOpt("initstr", &params->initstr_));
+    p.addopt(new oasys::UIntOpt("ispeed", &params->ispeed_));
+    p.addopt(new oasys::UIntOpt("ospeed", &params->ospeed_));
     p.addopt(new oasys::UIntOpt("sync_interval", &params->sync_interval_));
     
     int count = p.parse_and_shift(argc, argv, invalidp);
@@ -111,7 +154,11 @@ SerialConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
     SerialLinkParams* params = dynamic_cast<SerialLinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
+    buf->appendf("hexdump: %s\n", params->hexdump_ ? "enabled" : "disabled");
     buf->appendf("initstr: %s\n", params->initstr_.c_str());
+    buf->appendf("ispeed: %d bps\n", params->ispeed_);
+    buf->appendf("ospeed: %d bps\n", params->ospeed_);
+    buf->appendf("sync_interval: %d\n", params->sync_interval_);
 }
 
 //----------------------------------------------------------------------

@@ -81,6 +81,14 @@ EthConvergenceLayer::new_link_params()
 }
 
 //----------------------------------------------------------------------
+bool
+EthConvergenceLayer::set_link_defaults(int argc, const char* argv[],
+                                       const char** invalidp)
+{
+    return parse_params(&EthConvergenceLayer::defaults_, argc, argv, invalidp);
+}
+
+//----------------------------------------------------------------------
 /**
  * Parse variable args into a parameter structure.
  */
@@ -215,6 +223,48 @@ EthConvergenceLayer::close_contact(const ContactRef& contact)
     }
     
     return true;
+}
+
+//----------------------------------------------------------------------
+bool
+EthConvergenceLayer::init_link(const LinkRef& link,
+                               int argc, const char* argv[])
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
+
+    log_debug("adding %s link %s", link->type_str(), link->nexthop());
+
+    // Create a new parameters structure, parse the options, and store
+    // them in the link's cl info slot.
+    Params* params = dynamic_cast<Params *>(new_link_params());
+    ASSERT(params != NULL);
+
+    const char* invalid;
+    if (! parse_params(params, argc, argv, &invalid)) {
+        log_err("error parsing link options: invalid option '%s'", invalid);
+        delete params;
+        return false;
+    }
+
+    link->set_cl_info(params);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+void
+EthConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
+    Params* params = dynamic_cast<Params*>(link->cl_info());
+    ASSERT(params != NULL);
+
+    buf->appendf("beacon_interval: %u\n", params->beacon_interval_);
 }
 
 //----------------------------------------------------------------------

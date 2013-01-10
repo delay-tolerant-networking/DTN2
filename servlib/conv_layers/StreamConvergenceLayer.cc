@@ -130,6 +130,7 @@ StreamConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
     buf->appendf("negative_ack_enabled: %u\n", params->negative_ack_enabled_);
     buf->appendf("keepalive_interval: %u\n", params->keepalive_interval_);
     buf->appendf("segment_length: %u\n", params->segment_length_);
+    buf->appendf("cl_version: %u\n", cl_version_);
 }
 
 //----------------------------------------------------------------------

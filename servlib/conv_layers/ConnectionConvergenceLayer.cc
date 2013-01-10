@@ -125,7 +125,8 @@ ConnectionConvergenceLayer::dump_link(const LinkRef& link,
     buf->appendf("data_timeout: %u\n", params->data_timeout_);
     buf->appendf("test_read_delay: %u\n", params->test_read_delay_);
     buf->appendf("test_write_delay: %u\n", params->test_write_delay_);
-    buf->appendf("test_recv_delay: %u\n",params->test_recv_delay_);
+    buf->appendf("test_read_limit: %u\n",params->test_read_limit_);
+    buf->appendf("test_write_limit: %u\n",params->test_write_limit_);
 }
 
 //----------------------------------------------------------------------

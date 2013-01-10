@@ -86,6 +86,47 @@ AX25CMConvergenceLayer::new_link_params()
 
 //----------------------------------------------------------------------
 bool
+AX25CMConvergenceLayer::init_link(const LinkRef& link,
+                                  int argc, const char* argv[])
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
+
+    log_debug("adding %s link %s", link->type_str(), link->nexthop());
+
+    // Create a new parameters structure, parse the options, and store
+    // them in the link's cl info slot.
+    AX25CMLinkParams* params = dynamic_cast<AX25CMLinkParams *>(new_link_params());
+    ASSERT(params != NULL);
+
+    // Try to parse the link's next hop, but continue on even if the
+    // parse fails since the hostname may not be resolvable when we
+    // initialize the link. Each subclass is responsible for
+    // re-checking when opening the link.
+    parse_nexthop(link, params);
+
+    const char* invalid;
+    if (! parse_link_params(params, argc, argv, &invalid)) {
+        log_err("error parsing link options: invalid option '%s'", invalid);
+        delete params;
+        return false;
+    }
+
+	// Calls the SeqpacketConvergenceLayer method
+    if (! finish_init_link(link, params)) {
+        log_err("error in finish_init_link");
+        delete params;
+        return false;
+    }
+
+    link->set_cl_info(params);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
 AX25CMConvergenceLayer::parse_link_params(LinkParams* lparams,
                                         int argc, const char** argv,
                                         const char** invalidp)
@@ -122,7 +163,6 @@ AX25CMConvergenceLayer::parse_link_params(LinkParams* lparams,
         return false;
     }
 
-
     // continue up to parse the parent class
     return SeqpacketConvergenceLayer::parse_link_params(lparams, argc, argv,
                                                      invalidp);
@@ -141,6 +181,7 @@ AX25CMConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
     AX25CMLinkParams* params = dynamic_cast<AX25CMLinkParams*>(link->cl_info());
     ASSERT(params != NULL);
 
+    buf->appendf("hexdump: %s\n", params->hexdump_ ? "enabled" : "disabled");
     buf->appendf("local_call: %s\n", params->local_call_.c_str());
     buf->appendf("remote_call: %s\n", params->remote_call_.c_str());
     buf->appendf("digipeater: %s\n", params->digipeater_.c_str());

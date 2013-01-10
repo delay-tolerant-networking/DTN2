@@ -277,6 +277,11 @@ public:
      * Destructor.
      */
     virtual ~NORMConvergenceLayer() {}
+
+    /**
+     * Create a new LinkParams structure.
+     */
+    virtual CLInfo* new_link_params();
  
     /*
      * Set default link options.

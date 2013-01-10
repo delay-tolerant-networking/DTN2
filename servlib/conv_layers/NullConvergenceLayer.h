@@ -44,7 +44,10 @@ public:
 
     /// @{ Virtual from ConvergenceLayer
     bool init_link(const LinkRef& link, int argc, const char* argv[]);
+    bool set_link_defaults(int argc, const char* argv[],
+                           const char** invalidp);
     bool reconfigure_link(const LinkRef& link, int argc, const char* argv[]);
+    void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     void delete_link(const LinkRef& link);
     bool open_contact(const ContactRef& contact);
     void bundle_queued(const LinkRef& link, const BundleRef& bundle);

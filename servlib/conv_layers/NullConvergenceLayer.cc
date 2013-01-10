@@ -49,6 +49,14 @@ NullConvergenceLayer::new_link_params()
 
 //----------------------------------------------------------------------
 bool
+NullConvergenceLayer::set_link_defaults(int argc, const char* argv[],
+                                       const char** invalidp)
+{
+    return parse_link_params(&NullConvergenceLayer::defaults_, argc, argv, invalidp);
+}
+
+//----------------------------------------------------------------------
+bool
 NullConvergenceLayer::parse_link_params(Params* params,
                                         int argc, const char** argv,
                                         const char** invalidp)
@@ -102,6 +110,20 @@ NullConvergenceLayer::reconfigure_link(const LinkRef& link,
     }
 
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+NullConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
+    Params* params = dynamic_cast<Params*>(link->cl_info());
+    ASSERT(params != NULL);
+
+    buf->appendf("can_transmit: %s\n", params->can_transmit_ ? "yes" : "no");
 }
 
 //----------------------------------------------------------------------

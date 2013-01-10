@@ -59,6 +59,47 @@ BluetoothConvergenceLayer::new_link_params()
 
 //----------------------------------------------------------------------
 bool
+BluetoothConvergenceLayer::init_link(const LinkRef& link,
+                                     int argc, const char* argv[])
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
+
+    log_debug("adding %s link %s", link->type_str(), link->nexthop());
+
+    // Create a new parameters structure, parse the options, and store
+    // them in the link's cl info slot.
+    BluetoothLinkParams* params = dynamic_cast<BluetoothLinkParams *>(new_link_params());
+    ASSERT(params != NULL);
+
+    // Try to parse the link's next hop, but continue on even if the
+    // parse fails since the hostname may not be resolvable when we
+    // initialize the link. Each subclass is responsible for
+    // re-checking when opening the link.
+    parse_nexthop(link, params);
+
+    const char* invalid;
+    if (! parse_link_params(params, argc, argv, &invalid)) {
+        log_err("error parsing link options: invalid option '%s'", invalid);
+        delete params;
+        return false;
+    }
+
+	// Calls the StreamConvergenceLayer method
+    if (! finish_init_link(link, params)) {
+        log_err("error in finish_init_link");
+        delete params;
+        return false;
+    }
+
+    link->set_cl_info(params);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
 BluetoothConvergenceLayer::parse_link_params(LinkParams* lparams,
                                               int argc, const char** argv,
                                               const char** invalidp)
@@ -70,6 +111,8 @@ BluetoothConvergenceLayer::parse_link_params(LinkParams* lparams,
     oasys::OptParser p;
 
     p.addopt(new oasys::BdAddrOpt("local_addr",&params->local_addr_));
+    p.addopt(new oasys::BdAddrOpt("remote_addr",&params->remote_addr_));
+    p.addopt(new oasys::UInt8Opt("channel",&params->channel_));
 
     int count = p.parse_and_shift(argc, argv, invalidp);
     if (count == -1) {

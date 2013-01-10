@@ -131,6 +131,22 @@ public:
     bool close_contact(const ContactRef& contact);
 
     /**
+     * Initialize any CL-specific components of the Link.
+     */
+    bool init_link(const LinkRef& link, int argc, const char* argv[]);
+
+    /**
+     * Set default link options.
+     */
+    bool set_link_defaults(int argc, const char* argv[],
+                           const char** invalidp);
+
+    /**
+     * Dump out CL specific link information.
+     */
+    void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
+
+    /**
      * Delete any CL-specific components of the Link.
      */
     void delete_link(const LinkRef& link);

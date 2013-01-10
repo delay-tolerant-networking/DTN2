@@ -72,6 +72,47 @@ TCPConvergenceLayer::new_link_params()
 
 //----------------------------------------------------------------------
 bool
+TCPConvergenceLayer::init_link(const LinkRef& link,
+                               int argc, const char* argv[])
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
+
+    log_debug("adding %s link %s", link->type_str(), link->nexthop());
+
+    // Create a new parameters structure, parse the options, and store
+    // them in the link's cl info slot.
+    TCPLinkParams* params = dynamic_cast<TCPLinkParams *>(new_link_params());
+    ASSERT(params != NULL);
+
+    // Try to parse the link's next hop, but continue on even if the
+    // parse fails since the hostname may not be resolvable when we
+    // initialize the link. Each subclass is responsible for
+    // re-checking when opening the link.
+    parse_nexthop(link, params);
+
+    const char* invalid;
+    if (! parse_link_params(params, argc, argv, &invalid)) {
+        log_err("error parsing link options: invalid option '%s'", invalid);
+        delete params;
+        return false;
+    }
+
+	// Calls the StreamConvergenceLayer method
+    if (! finish_init_link(link, params)) {
+        log_err("error in finish_init_link");
+        delete params;
+        return false;
+    }
+
+    link->set_cl_info(params);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
 TCPConvergenceLayer::parse_link_params(LinkParams* lparams,
                                        int argc, const char** argv,
                                        const char** invalidp)
@@ -83,6 +124,8 @@ TCPConvergenceLayer::parse_link_params(LinkParams* lparams,
     
     p.addopt(new oasys::BoolOpt("hexdump", &params->hexdump_));
     p.addopt(new oasys::InAddrOpt("local_addr", &params->local_addr_));
+    p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
+    p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
     
     int count = p.parse_and_shift(argc, argv, invalidp);
     if (count == -1) {
@@ -113,9 +156,10 @@ TCPConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
     TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
+    buf->appendf("hexdump: %s\n", params->hexdump_ ? "enabled" : "disabled");
     buf->appendf("local_addr: %s\n", intoa(params->local_addr_));
     buf->appendf("remote_addr: %s\n", intoa(params->remote_addr_));
-    buf->appendf("remote_port: %d\n", params->remote_port_);
+    buf->appendf("remote_port: %u\n", params->remote_port_);
 }
 
 //----------------------------------------------------------------------
