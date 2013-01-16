@@ -120,13 +120,18 @@ set tests(ltp) {
 # with no added delay and no imposed errors
 set tests(ltp_WP4200) {
     "dtn-ping.tcl"              "-n 1 -e 30 -cl tcp -t 999"
-    "send-one-bundle.tcl"       "-cl tcp -length 10"
-    "send-one-bundle.tcl"       "-cl tcp -length 100"
     "send-one-bundle.tcl"       "-cl tcp -length 1000"
+    "send-one-bundle.tcl"       "-cl tcp -length 10000"
+    "send-one-bundle.tcl"       "-cl tcp -length 100000"
     "dtn-ping.tcl"              "-n 1 -e 30 -cl ltp -t 999"
-    "send-one-bundle.tcl"       "-cl ltp -length 10"
-    "send-one-bundle.tcl"       "-cl ltp -length 100"
     "send-one-bundle.tcl"       "-cl ltp -length 1000"
+    "send-one-bundle.tcl"       "-cl ltp -length 10000"
+    "send-one-bundle.tcl"       "-cl ltp -length 100000"
+}
+
+# check out send-one-bundle.tcl - getting an error when run from above
+set tests(tsob) {
+    "send-one-bundle.tcl"       "-cl tcp -length 1000"
 }
 
 
