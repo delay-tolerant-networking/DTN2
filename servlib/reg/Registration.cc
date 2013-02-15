@@ -90,6 +90,9 @@ Registration::Registration(const oasys::Builder&)
       regid_(0),
       endpoint_(),
       failure_action_(DEFER),
+      replay_action_(NEW),
+      session_flags_(0),
+      delivery_acking_(false),
       script_(),
       expiration_(0),
       creation_time_(0),
@@ -165,7 +168,9 @@ Registration::serialize(oasys::SerializeAction* a)
     a->process("endpoint", &endpoint_);
     a->process("regid", &regid_);
     a->process("failure_action", &failure_action_);
+    a->process("replay_action", &replay_action_);
     a->process("session_flags", &session_flags_);
+    a->process("delivery_acking", &delivery_acking_);
     a->process("script", &script_);
     a->process("creation_time", &creation_time_);
     a->process("expiration", &expiration_);
