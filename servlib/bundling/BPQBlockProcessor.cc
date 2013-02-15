@@ -98,9 +98,11 @@ BPQBlockProcessor::prepare(const Bundle*    bundle,
     (void)link;
     (void)list; 
 
-    log_debug_p(LOG, "prepare(): data_length() = %u", source->data_length());
-    log_debug_p(LOG, "prepare(): data_offset() = %u", source->data_offset());
-    log_debug_p(LOG, "prepare(): full_length() = %u", source->full_length());
+    if (source != NULL) {
+        log_debug_p(LOG, "prepare(): data_length() = %u", source->data_length());
+        log_debug_p(LOG, "prepare(): data_offset() = %u", source->data_offset());
+        log_debug_p(LOG, "prepare(): full_length() = %u", source->full_length());
+    }
 
     // Received blocks are added to the end of the list (which
     // maintains the order they arrived in) but API blocks 

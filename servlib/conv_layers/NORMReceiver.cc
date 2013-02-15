@@ -394,9 +394,11 @@ ReceiveWatermark::run(NORMReceiver *receiver)
         case NORM_TX_OBJECT_SENT:
         case NORM_TX_QUEUE_VACANCY:
         case NORM_TX_CMD_SENT:
+        case NORM_TX_RATE_CHANGED:
         case NORM_EVENT_INVALID: // trigger to unblock and exit
             break;
         default: {
+            log_err("NOTREACHED: %d", event.type);
             NOTREACHED;
             break;
         }

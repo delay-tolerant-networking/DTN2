@@ -112,6 +112,11 @@ NORMSessionManager::run() {
                  break;
             }
 
+            case NORM_TX_RATE_CHANGED: {
+            	log_info("Rate changed to %f", NormGetTxRate(event.session));
+            	break;
+            }
+
             CASE(NORM_TX_CMD_SENT)
             CASE(NORM_RX_CMD_NEW)
             CASE(NORM_RX_OBJECT_ABORTED)
