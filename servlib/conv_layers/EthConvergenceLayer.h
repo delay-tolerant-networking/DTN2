@@ -82,29 +82,6 @@ public:
     } __attribute__((packed));
 
     /**
-     * Data state of a Eth cl
-     *
-     */
-    class EthCLInfo : public CLInfo {
-      public:
-        EthCLInfo(char* if_name) {
-            memset(if_name_,0,IFNAMSIZ);
-            strcpy(if_name_,if_name);
-            timer    = NULL;
-        }
-
-        ~EthCLInfo() {
-          if(timer)
-              delete timer;
-        }
-
-        // Name of the device 
-        char if_name_[IFNAMSIZ];
-
-        BeaconTimer* timer;
-    };
-
-    /**
      * Constructor.
      */
     EthConvergenceLayer();
@@ -177,7 +154,15 @@ public:
          */
         virtual void serialize(oasys::SerializeAction *a);
 
+        ~Params() {
+            if(timer)
+                delete timer;
+        }
+
         u_int32_t beacon_interval_;       ///< Beacon Interval
+        std::string if_name_;             ///< Interface name to bind sender to
+        
+        BeaconTimer *timer;               ///< XXX this should be moved somewhere else
     };
     
     /**
@@ -241,7 +226,7 @@ public:
         /**
          * Constructor for the active connection side of a connection.
          */
-        Sender(char* if_name, const ContactRef& contact);
+        Sender(const char* if_name, const ContactRef& contact);
 
         /**
          * Destructor.

@@ -23,12 +23,14 @@
 
 #include <sys/poll.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/ethernet.h>
 #include <netpacket/packet.h>
 #include <sys/ioctl.h>
+#include <errno.h>
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/io/IO.h>
@@ -59,6 +61,7 @@ void
 EthConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 {
 	a->process("beacon_interval", &beacon_interval_);
+	a->process("interface", &if_name_);
 }
 
 /******************************************************************************
@@ -100,6 +103,7 @@ EthConvergenceLayer::parse_params(Params* params,
     oasys::OptParser p;
 
     p.addopt(new oasys::UIntOpt("beacon_interval", &params->beacon_interval_));
+    p.addopt(new oasys::StringOpt("interface", &params->if_name_));
 
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -169,7 +173,7 @@ EthConvergenceLayer::interface_down(Interface* iface)
 
     Receiver *receiver = (Receiver *)iface->cl_info();
     receiver->set_should_stop();
-    // receiver->interrupt_from_io();
+    //receiver->interrupt();
     while (! receiver->is_stopped()) {
         oasys::Thread::yield();
     }
@@ -186,6 +190,7 @@ EthConvergenceLayer::open_contact(const ContactRef& contact)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
+    Params* link_params = dynamic_cast<Params*>(link->cl_info());
 
     log_debug("EthConvergenceLayer::open_contact: "
               "opening contact to link *%p", link.object());
@@ -199,7 +204,7 @@ EthConvergenceLayer::open_contact(const ContactRef& contact)
     }
     
     // create a new connection for the contact
-    Sender* sender = new Sender(((EthCLInfo*)link->cl_info())->if_name_,
+    Sender* sender = new Sender(link_params->if_name_.c_str(),
                                 link->contact());
     contact->set_cl_info(sender);
 
@@ -265,6 +270,7 @@ EthConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
     ASSERT(params != NULL);
 
     buf->appendf("beacon_interval: %u\n", params->beacon_interval_);
+    buf->appendf("interface: %s\n", params->if_name_.c_str());
 }
 
 //----------------------------------------------------------------------
@@ -403,8 +409,9 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
                          link->name());
                 return;
             }
-            ASSERT(link->cl_info() == NULL);
-            link->set_cl_info(new EthCLInfo(if_name_));
+            ASSERT(link->cl_info() != NULL);
+            Params *params = dynamic_cast<Params*>(link->cl_info());
+            params->if_name_ = if_name_;
             l.unlock();
         }
 
@@ -418,15 +425,16 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         }
 
         ASSERT(link->cl_info() != NULL);
-        ASSERT(strcmp(((EthCLInfo*)link->cl_info())->if_name_, if_name_) == 0);
+        ASSERT(dynamic_cast<Params*>(link->cl_info())->if_name_ == if_name_);
 
         if(!link->isavailable()) {
             log_info("EthConvergenceLayer::Receiver::process_data: "
                      "Got beacon for previously unavailable link %s",
                      link->name());
             
-            // XXX/demmer something should be done here to kick the link...
-            log_err("XXX/demmer do something about link availability");
+            // Kicking the link available here
+            BundleDaemon::post(
+                    new LinkStateChangeRequest(link, Link::OPEN, ContactUpEvent::DISCOVERY));
         }
         
         /**
@@ -434,14 +442,14 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
          * will delete it when it bubbles to the top of the timer
          * queue. Then create a new timer.
          */
-        BeaconTimer *timer = ((EthCLInfo*)link->cl_info())->timer;
+        BeaconTimer *timer = ((Params*)link->cl_info())->timer;
         if (timer)
             timer->cancel();
 
         timer = new BeaconTimer(next_hop_string); 
         timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
         
-        ((EthCLInfo*)link->cl_info())->timer = timer;
+        ((Params*)link->cl_info())->timer = timer;
 
         l.unlock();
     }
@@ -488,6 +496,7 @@ EthConvergenceLayer::Receiver::run()
 {
     int sock;
     int cc;
+    int flags;
     struct sockaddr_ll iface;
     unsigned char buffer[MAX_ETHER_PACKET];
 
@@ -497,6 +506,16 @@ EthConvergenceLayer::Receiver::run()
                 "Couldn't open socket.");       
         exit(1);
     }
+
+    // Make the socket non-blocking
+    flags = fcntl(sock, F_GETFL, 0);
+    if(flags == -1) {
+        perror("fcntl");
+        log_err("EthConvergenceLayer::Receiver::run() "
+                "Couldn't get socket flags.");
+        exit(1);
+    }
+    fcntl(sock, F_SETFL, flags | O_NONBLOCK);
    
     // figure out the interface index of the device with name if_name_
     struct ifreq req;
@@ -517,19 +536,23 @@ EthConvergenceLayer::Receiver::run()
     while(true) {
         cc=read (sock, buffer, MAX_ETHER_PACKET);
         if(cc<=0) {
-            perror("EthConvergenceLayer::Receiver::run()");
-            exit(1);
-        }
-        struct ether_header* hdr=(struct ether_header*)buffer;
+            // EAGAIN means we haven't received anything yet
+            if(errno != EAGAIN) {
+                perror("EthConvergenceLayer::Receiver::run()");
+                exit(1);
+            }
+        } else {
+            struct ether_header* hdr=(struct ether_header*)buffer;
   
-        if(ntohs(hdr->ether_type)==ETHERTYPE_DTN) {
-            process_data(buffer, cc);
-        }
-        else if(ntohs(hdr->ether_type)!=0x800)
-        {
-            log_err("Got non-DTN packet in Receiver, type %4X.",
-                    ntohs(hdr->ether_type));
-            // exit(1);
+            if(ntohs(hdr->ether_type)==ETHERTYPE_DTN) {
+                process_data(buffer, cc);
+            }
+            else if(ntohs(hdr->ether_type)!=0x800)
+            {
+                log_err("Got non-DTN packet in Receiver, type %4X.",
+                        ntohs(hdr->ether_type));
+                // exit(1);
+            }
         }
 
         if(should_stop())
@@ -546,11 +569,13 @@ EthConvergenceLayer::Receiver::run()
 /**
  * Constructor for the active connection side of a connection.
  */
-EthConvergenceLayer::Sender::Sender(char* if_name,
+EthConvergenceLayer::Sender::Sender(const char* if_name,
                                     const ContactRef& contact)
     : Logger("EthConvergenceLayer::Sender", "/dtn/cl/eth/sender"),
       contact_(contact.object(), "EthConvergenceLayer::Sender")
 {
+    ASSERT(strlen(if_name) > 0);
+
     struct ifreq req;
     struct sockaddr_ll iface;
     LinkRef link = contact->link();
