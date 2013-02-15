@@ -55,6 +55,7 @@ BINFILES :=					\
 	unit_tests/route-table-test		\
 	unit_tests/sdnv-test			\
 	unit_tests/sequence-id-test		\
+	unit_tests/ipnd-sb-tlv-test		\
 
 unit_tests: $(BINFILES)
 

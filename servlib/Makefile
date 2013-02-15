@@ -22,6 +22,8 @@
 # Source and object rules
 #
 
+include $(CURDIR)/../servlib/ipnd.make
+
 BUNDLING_SRCS := 				\
         bundling/AgeBlockProcessor.cc           \
         bundling/APIBlockProcessor.cc           \
@@ -103,15 +105,7 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/CLEventHandler.cc \
 	conv_layers/clevent.cc \
 
-DISCOVERY_SRCS :=				\
-	discovery/Announce.cc			\
-	discovery/BluetoothAnnounce.cc		\
-	discovery/BluetoothDiscovery.cc		\
-	discovery/BonjourDiscovery.cc		\
-	discovery/Discovery.cc			\
-	discovery/DiscoveryTable.cc		\
-	discovery/IPAnnounce.cc			\
-	discovery/IPDiscovery.cc		\
+IPND_DISCOVERY_SRCS :=	\
 	discovery/IPNDDiscovery.cc		\
 	discovery/IPNDService.cc		\
 	discovery/IPNDAnnouncement.cc   \
@@ -120,7 +114,24 @@ DISCOVERY_SRCS :=				\
 	discovery/ipnd_sd_tlv/Primitives.cc	\
 	discovery/ipnd_sd_tlv/ConstructedType.cc	\
 	discovery/ipnd_srvc/IPClaService.cc	\
-	discovery/ipnd_srvc/IPNDServiceFactory.cc	\
+	discovery/ipnd_srvc/IPNDServiceFactory.cc
+	
+DISCOVERY_SRCS :=				\
+	discovery/Announce.cc			\
+	discovery/BluetoothAnnounce.cc		\
+	discovery/BluetoothDiscovery.cc		\
+	discovery/BonjourDiscovery.cc		\
+	discovery/Discovery.cc			\
+	discovery/DiscoveryTable.cc		\
+	discovery/IPAnnounce.cc			\
+	discovery/IPDiscovery.cc
+
+# Check if we should include IPND sources
+ifeq ($(BBN_IPND_ENABLED),1)
+DISCOVERY_SRCS :=			\
+	$(DISCOVERY_SRCS)		\
+	$(IPND_DISCOVERY_SRCS)
+endif
 
 CMD_SRCS :=					\
 	cmd/APICommand.cc			\

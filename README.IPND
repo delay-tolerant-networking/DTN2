@@ -36,7 +36,7 @@ notably to the 'discovery announce' command).
 
 To add an IPND discovery agent:
 
-dtn% discovery add ipnd-agent ip port=40000
+dtn% discovery add ipnd-agent ipnd port=40000
 
 This will create an IPND agent bound to the given port on the default broadcast
 address (255.255.255.255) with the default beacon period (10 seconds). You may
@@ -44,12 +44,23 @@ add parameters to the add command in order to specify non-default values.
 
 To add an entry to the Service Block:
 
-dtn% discovery announce tcp-svc ipnd-agent cla-tcp-v4 addr=<tcp cla IPv4> port=<tcp cla port>
+dtn% discovery announce-svc tcp-svc ipnd-agent cla-tcp-v4 addr=<tcp cla IPv4> port=<tcp cla port>
 
 This will add a cla-tcp-v4 service entry into each IPND beacon sent by the given
 agent. The given CLA address and port should match those of an active CLA in the
 DTN2 daemon (note that IPND does not check the validity of the given address and
-port number for the CLA).
+port number for the CLA). Note that the IPND implementation does not use the
+default Discovery "announce" command; instead, use the new "announce-svc"
+command as shown above.
+
+Logging
+-------
+
+The IPND implementation provides logging under three high-level tags:
+
+/dtn/discovery/ipnd
+/ipnd-srvc
+/ipnd-tlv
 
 DTN2 IPND Directory Structure
 -----------------------------
@@ -66,13 +77,10 @@ test/
 
 TODO List/Desired Enhancements
 ------------------------------
-1.  Change DiscoveryCommand to add a new 'announce-svc' command if IPND is 
-    enabled.
-2.  Add infrastructure to allow Service Factory plugins to provide help text
+1.  Add infrastructure to allow Service Factory plugins to provide help text
     that can be used by DiscoveryCommand.
-3.  Implement "discovery dump" functionality.
-4.  Restore backward-compatibility with older IPND beacon versions.
-5.  Implement other optional services (e.g. IPv6, hostname CLAs; NBF).
+2.  Implement "discovery dump" functionality.
+3.  Implement other optional services (e.g. IPv6, hostname CLAs; NBF).
 
 
 Custom Service Implementation User Guide

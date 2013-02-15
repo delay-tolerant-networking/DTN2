@@ -26,9 +26,8 @@
 #include "Discovery.h"
 #ifdef BBN_IPND_ENABLED
 #include "IPNDDiscovery.h"
-#else
-#include "IPDiscovery.h"
 #endif
+#include "IPDiscovery.h"
 #include "contacts/ContactManager.h"
 #include "bundling/BundleDaemon.h"
 
@@ -52,14 +51,14 @@ Discovery::create_discovery(const std::string& name,
     Discovery* disc = NULL;
     if (af == "ip")
     {
-#ifdef BBN_IPND_ENABLED
-    	log_debug_p("/dtn/discovery", "IPND discovery selected for ip");
-        disc = new IPNDDiscovery(name);
-#else
-    	log_debug_p("/dtn/discovery", "Original IP discovery selected for ip");
         disc = new IPDiscovery(name);
-#endif
     }
+#ifdef BBN_IPND_ENABLED
+    else if (af == "ipnd")
+    {
+        disc = new IPNDDiscovery(name);
+    }
+#endif
 #ifdef OASYS_BONJOUR_ENABLED
     else if (af == "bonjour")
     {

@@ -219,7 +219,7 @@ public:
     static const uint8_t PRIMITIVE_MASK = 0x40;
 
     /**
-     * Quick check to determine if they datatype defined by the given tag is a
+     * Quick check to determine if the datatype defined by the given tag is a
      * reserved type.
      *
      * @return True if the tag represents a reserved type; false otherwise.
@@ -227,7 +227,7 @@ public:
     static bool isReservedType(const uint8_t &tag);
 
     /**
-     * Quick check to determine if they datatype defined by the given tag is a
+     * Quick check to determine if the datatype defined by the given tag is a
      * reserved primitive type.
      *
      * @return True if the tag represents a reserved primitive type; false
@@ -236,7 +236,7 @@ public:
     static bool isReservedPrimitive(const uint8_t &tag);
 
     /**
-     * Quick check to determine if they datatype defined by the given tag is a
+     * Quick check to determine if the datatype defined by the given tag is a
      * reserved constructed type.
      *
      * @return True if the tag represents a reserved constructed type; false

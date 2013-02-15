@@ -46,9 +46,9 @@ const u_int32_t IPNDDiscovery::DEFAULT_BEACON_PERIOD = 10; // 10 seconds
 const double IPNDDiscovery::DEFAULT_BEACON_THRESHOLD = 0.0; // no tracking
 
 IPNDDiscovery::IPNDDiscovery(const std::string& name)
-    : Discovery(name,"ip"),
+    : Discovery(name,"ipnd"),
       oasys::Thread("IPNDDiscovery"),
-      socket_("/dtn/discovery/ip/sock")
+      socket_("/dtn/discovery/ipnd/sock")
 {
     remote_addr_ = DEFAULT_DST_ADDR;
     local_addr_ = DEFAULT_SRC_ADDR;
@@ -77,6 +77,14 @@ IPNDDiscovery::~IPNDDiscovery() {
 
 bool
 IPNDDiscovery::announce(const char* name, int argc, const char* argv[]) {
+    // we don't use this call for announcements anymore
+    log_err("IPND Discovery uses the 'announce-svc' command instead of "
+            "'announce'");
+    return false;
+}
+
+bool
+IPNDDiscovery::svc_announce(const char* name, int argc, const char* argv[]) {
     // make sure the requested name isn't already in use
     std::string name_str(name);
     ServicesIter iter = services_.find(name_str);

@@ -112,6 +112,7 @@ AC_DEFUN(AC_CONFIG_BBN_IPND, [
     else
         BBN_IPND_ENABLED=1
         AC_DEFINE_UNQUOTED(BBN_IPND_ENABLED, 1, [whether BBN IPND discovery protocol is enabled])
+        AC_SUBST(BBN_IPND_ENABLED)
     fi # BBN_IPND_ENABLED
 ])
 dnl

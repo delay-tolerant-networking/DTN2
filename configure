@@ -622,6 +622,7 @@ ac_includes_default="\
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 INCFLAGS
+BBN_IPND_ENABLED
 BUILD_SYSTEM
 EXTRA_LDFLAGS
 EXTRA_CFLAGS
@@ -6764,6 +6765,7 @@ cat >>confdefs.h <<_ACEOF
 #define BBN_IPND_ENABLED 1
 _ACEOF
 
+
     fi # BBN_IPND_ENABLED
 
 
@@ -6777,6 +6779,8 @@ INCFLAGS="-I\$(OASYS_INCDIR)/oasys/ext -I\$(SRCDIR)/servlib"
 ac_config_files="$ac_config_files Rules.make:$OASYS_ETCDIR/Rules.make.in"
 
 ac_config_files="$ac_config_files System.make:$OASYS_ETCDIR/System.make:System.make.in"
+
+ac_config_files="$ac_config_files servlib/ipnd.make:servlib/ipnd.make.in"
 
 
 if test ! $SRCDIR = `pwd` ; then
@@ -7500,6 +7504,7 @@ do
     "dtn-config.h") CONFIG_HEADERS="$CONFIG_HEADERS dtn-config.h" ;;
     "Rules.make") CONFIG_FILES="$CONFIG_FILES Rules.make:$OASYS_ETCDIR/Rules.make.in" ;;
     "System.make") CONFIG_FILES="$CONFIG_FILES System.make:$OASYS_ETCDIR/System.make:System.make.in" ;;
+    "servlib/ipnd.make") CONFIG_FILES="$CONFIG_FILES servlib/ipnd.make:servlib/ipnd.make.in" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile:Makefile-Builddir.in" ;;
     "applib/Makefile") CONFIG_FILES="$CONFIG_FILES applib/Makefile:applib/Makefile-Builddir.in" ;;
     "servlib/Makefile") CONFIG_FILES="$CONFIG_FILES servlib/Makefile:servlib/Makefile-Builddir.in" ;;

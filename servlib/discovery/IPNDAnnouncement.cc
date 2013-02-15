@@ -38,7 +38,7 @@ namespace dtn {
 
 IPNDAnnouncement::IPNDAnnouncement(const DiscoveryVersion version,
         dtn::EndpointID eid, const bool remote)
-    : Logger("IPNDAnnouncement","/dtn/discovery/ip/beacon"),
+    : Logger("IPNDAnnouncement","/dtn/discovery/ipnd/beacon"),
       remote_(remote), version_(version), canonical_eid_(eid),
       beacon_period_(0) {
 }
@@ -190,7 +190,7 @@ size_t IPNDAnnouncement::format(u_char* bp, size_t len)
                 continue;
             } else {
                 // good
-                log_info("Writing raw service to buffer [len=%u]", req_len);
+                log_debug("Writing raw service to buffer [len=%u]", req_len);
                 buf.write((const char*)s_buf, req_len);
                 length += req_len;
                 delete s_buf;
@@ -324,7 +324,7 @@ bool IPNDAnnouncement::parse(u_char* bp, size_t len)
                      return false;
                  } else {
                      // all good
-                     log_info("Processed %i bytes of services successfully and "
+                     log_debug("Processed %i bytes of services successfully and "
                              "recognized %u services", result,
                              services_.size());
                  }

@@ -22,6 +22,9 @@
 #include "DiscoveryCommand.h"
 #include "discovery/Discovery.h"
 #include "discovery/DiscoveryTable.h"
+#ifdef BBN_IPND_ENABLED
+#include "discovery/IPNDDiscovery.h"
+#endif
 #include "conv_layers/ConvergenceLayer.h"
 #include <oasys/util/StringBuffer.h>
 
@@ -36,7 +39,11 @@ DiscoveryCommand::DiscoveryCommand()
                 "        <discovery_name>\n"
                 "            A string to define agent name\n"
                 "        <cl_type>\n"
+#ifdef BBN_IPND_ENABLED
+                "            The CLA type [bt, ip, ipnd, bonjour]\n"
+#else
                 "            The CLA type [bt, ip, bonjour]\n"
+#endif
                 "        [ CLA specific options ]\n"
                 "            <port=port>\n"
                 "            <continue_on_error=true or false>\n"
@@ -45,7 +52,7 @@ DiscoveryCommand::DiscoveryCommand()
                 "            <multicast_ttl=TTL number>\n"
                 "            <unicast=true or false>\n"
 #ifdef BBN_IPND_ENABLED
-                "        [ BBN-IPND specific options ]\n"
+                "        [ BBN-IPND specific options (CLA type \"ipnd\")]\n"
                 "            <beacon_period=beacon period in seconds>\n"
                 "            <beacon_threshold=tracking accuracy (0 to disable)\n"
 #endif
@@ -57,28 +64,6 @@ DiscoveryCommand::DiscoveryCommand()
                 "        <discovery_name>\n"
                 "            A string defining the agent to delete\n");
 
-#ifdef BBN_IPND_ENABLED
-    add_to_help("announce <svc_name> <discovery_name> <svc_type> [ options ]",
-                "Announce a service in the IPND service block\n"
-                "Required options:\n"
-                "    <svc_name>\n"
-                "        Arbitrary name for the service\n"
-                "    <discovery_name>\n"
-                "        The discovery agent in which to add the service\n"
-                "    <svc_type>\n"
-                "        The identifier of the service type to add\n"
-                "Available service type identifiers (with options):\n"
-                "    cla-tcp-v4 [TCP convergence layer with IPv4 address]\n"
-                "        <addr>\n"
-                "            IPv4 address of the convergence layer\n"
-                "        <port>\n"
-                "            TCP port of the convergence layer\n"
-                "    cla-udp-v4 [UDP convergence layer with IPv4 address]\n"
-                "        <addr>\n"
-                "            IPv4 address of the convergence layer\n"
-                "        <port>\n"
-                "            TCP port of the convergence layer\n");
-#else
     add_to_help("announce <cl_name> <discovery_name> <cl_type> "
                 "<interval=val> [ options ]",
                 "announce the address of a local interface (convergence "
@@ -95,7 +80,31 @@ DiscoveryCommand::DiscoveryCommand()
                 "        [ CLA specific options ]\n"
                 "            <cl_addr=A.B.C.D>\n"
                 "            <cl_port=port number>\n");
+
+#ifdef BBN_IPND_ENABLED
+    add_to_help("announce-svc <svc_name> <discovery_name> <svc_type> [ options ]",
+                "Announce a service in the IPND service block (only for CLA type "
+                "\"ipnd\")\n"
+                "    Required options:\n"
+                "        <svc_name>\n"
+                "            Arbitrary name for the service\n"
+                "        <discovery_name>\n"
+                "            The discovery agent in which to add the service\n"
+                "        <svc_type>\n"
+                "            The identifier of the service type to add\n"
+                "    Available service type identifiers (with options):\n"
+                "        cla-tcp-v4 [TCP convergence layer with IPv4 address]\n"
+                "            <addr=inet4-addr>\n"
+                "                IPv4 address of the convergence layer\n"
+                "            <port=portnum>\n"
+                "                TCP port of the convergence layer\n"
+                "        cla-udp-v4 [UDP convergence layer with IPv4 address]\n"
+                "            <addr=inet6-addr>\n"
+                "                IPv4 address of the convergence layer\n"
+                "            <port=portnum>\n"
+                "                TCP port of the convergence layer\n");
 #endif
+
     add_to_help("remove <cl_name>",
                 "remove announcement for local interface\n"
                 "    valid options:\n"
@@ -166,24 +175,56 @@ DiscoveryCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         return TCL_OK;
     }
-    // discovery announce <name> <discovery name> <cl type> <interval> 
-    //                    [<cl_addr> <cl_port>]
-    else
-    if (strncasecmp("announce",argv[1],8) == 0)
-    {
 #ifdef BBN_IPND_ENABLED
+    // discovery announce-svc ... (BBN IPND only)
+    else if (strncasecmp("announce-svc", argv[1], 12) == 0) {
         if (argc < 5)
         {
             wrong_num_args(argc,argv,2,5,INT_MAX);
             return TCL_ERROR;
         }
-#else
+
+        const char *sname = argv[2];
+        const char *dname = argv[3];
+
+        DiscoveryList::iterator iter;
+        if (! DiscoveryTable::instance()->find(dname,&iter))
+        {
+            resultf("error adding announce %s to %s: "
+                    "no such discovery agent",
+                    sname, dname);
+            return TCL_ERROR;
+        }
+
+        IPNDDiscovery *ipnd = dynamic_cast<IPNDDiscovery*>(*iter);
+        if (ipnd == 0)
+        {
+            // cast failure
+            resultf("discovery agent %s is not an implementation of IPND "
+                    "Discovery", dname);
+            return TCL_ERROR;
+        }
+        else if (! ipnd->svc_announce(sname, argc - 4, argv + 4))
+        {
+            resultf("error adding service announcement %s to %s", sname, dname);
+            return TCL_ERROR;
+        }
+        else
+        {
+            return TCL_OK;
+        }
+    }
+#endif
+    // discovery announce <name> <discovery name> <cl type> <interval>
+    //                    [<cl_addr> <cl_port>]
+    else
+    if (strncasecmp("announce",argv[1],8) == 0)
+    {
         if (argc < 6)
         {
             wrong_num_args(argc,argv,2,6,INT_MAX);
             return TCL_ERROR;
         }
-#endif
 
         const char* name = argv[2];
         const char* dname = argv[3];

@@ -156,6 +156,7 @@ AC_SUBST(INCFLAGS)
 
 AC_CONFIG_FILES([Rules.make:$OASYS_ETCDIR/Rules.make.in])
 AC_CONFIG_FILES([System.make:$OASYS_ETCDIR/System.make:System.make.in])
+AC_CONFIG_FILES([servlib/ipnd.make:servlib/ipnd.make.in])
 
 if test ! $SRCDIR = `pwd` ; then
    AC_CONFIG_FILES([Makefile:Makefile-Builddir.in])

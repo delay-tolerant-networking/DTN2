@@ -134,6 +134,17 @@ public:
     }
 
     /**
+     * XXX (agladd): THIS VERSION OF ANNOUNCE IS NOT USED FOR IPND.
+     *
+     * ALWAYS RETURNS FALSE.
+     *
+     * @param name An arbitrary name to identify the service
+     * @param argc The number of additional parameters
+     * @param argv The array of additional parameters
+     */
+    bool announce(const char* name, int argc, const char* argv[]);
+
+    /**
      * XXX (agladd): IPND uses a slightly different implementation of
      * announce, since we are supposed to handle any arbitrary "service"
      * advertisement, not just convergence layer advertisements.
@@ -142,7 +153,7 @@ public:
      * @param argc The number of additional parameters
      * @param argv The array of additional parameters
      */
-    bool announce(const char* name, int argc, const char* argv[]);
+    bool svc_announce(const char* name, int argc, const char* argv[]);
 
     /**
      * Close main socket, causing thread to exit
