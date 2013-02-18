@@ -2927,7 +2927,7 @@ dnl
 dnl Main macro for finding a usable tcl installation 
 dnl
 AC_DEFUN(AC_CONFIG_TCL, [
-    ac_tclvers='8.5 8.4 8.3'
+    ac_tclvers='8.6 8.5 8.4 8.3'
     ac_tcldir='system'
 
     AC_ARG_WITH(tcl,
@@ -2988,6 +2988,12 @@ AC_DEFUN(AC_CONFIG_TCL, [
 
     EXTLIB_LDFLAGS="$EXTLIB_LDFLAGS $TCL_LDFLAGS"
     AC_SUBST(TCL_LDFLAGS)
+
+    dnl
+    dnl Check for some APIs
+    dnl
+    AC_SEARCH_LIBS(Tcl_GetErrorLine, tcl,
+            [AC_DEFINE([HAVE_TCL_GETERRORLINE], [1], [Define if Tcl has Tcl_GetErrorLine function.])])
 ])
 
 dnl
