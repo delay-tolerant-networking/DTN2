@@ -333,6 +333,7 @@ TCPTunnel::Connection::run()
                 tcptun_->kill_connection(this);
                 exit(1);
             }
+            delete b;
             goto done;
         }
     }
@@ -422,6 +423,7 @@ TCPTunnel::Connection::run()
                 total_sent += len;
                 log_debug("sent %zu byte payload #%u to dtn (%u total)",
                           len, send_seqno, total_sent);
+                delete b_xmit;
                 b_xmit = NULL;
                 tbegin.sec_ = 0;
                 tbegin.usec_ = 0;
@@ -481,9 +483,34 @@ TCPTunnel::Connection::run()
             }
             
 
+            //if (recv_hdr->eof_) {
+            //    log_info("bundle had eof bit set... closing connection");
+            //    sock_.close();
+            //}
+
+
             if (recv_hdr->eof_) {
                 log_info("bundle had eof bit set... closing connection");
+
+                if ( !sock_eof ) {
+                    sock_eof = true;
+
+                    dtn::APIBundle* b = new dtn::APIBundle();
+                    hdr.eof_ = 1;
+                    hdr.seqno_ = ntohl(send_seqno++);
+                    memcpy(b->payload_.buf(sizeof(hdr)), &hdr, sizeof(hdr));
+                    b->payload_.set_len(sizeof(hdr));
+                    int err;
+                    if ((err = tunnel->send_bundle(b, &dest_eid_)) != DTN_SUCCESS) {
+                        log_err("error sending final socket closed packet bundle: %s",
+                                dtn_strerror(err));
+                        tcptun_->kill_connection(this);
+                        exit(1);
+                    }
+                    delete b;
+                }
                 sock_.close();
+                goto done;
             }
             
             delete b_recv;

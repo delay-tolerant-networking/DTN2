@@ -105,6 +105,8 @@ public:
     /// Accessors
     u_int max_size()              { return max_size_; }
     u_int delay()                 { return delay_; }
+    u_int delay_set()             { return delay_set_; }
+    bool reorder_udp()            { return reorder_udp_; }
     dtn_endpoint_id_t* dest_eid() { return &dest_eid_; }
 
 protected:
@@ -121,11 +123,13 @@ protected:
     u_int		expiration_;
     bool                tcp_;
     bool                udp_;
+    bool                reorder_udp_;
     in_addr_t		local_addr_;
     u_int16_t		local_port_;
     in_addr_t		remote_addr_;
     u_int16_t		remote_port_;
     u_int		delay_;
+    bool		delay_set_;
     u_int		max_size_;
     std::string	        tunnel_spec_;
     bool	        tunnel_spec_set_;

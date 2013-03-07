@@ -53,11 +53,13 @@ DTNTunnel::DTNTunnel()
       expiration_(600),
       tcp_(true),
       udp_(false),
+      reorder_udp_(false),
       local_addr_(htonl(INADDR_ANY)),
       local_port_(0),
       remote_addr_(htonl(INADDR_NONE)),
       remote_port_(0),
       delay_(0),
+      delay_set_(false),
       max_size_(32 * 1024),
       tunnel_spec_(""),
       tunnel_spec_set_(false)
@@ -101,7 +103,8 @@ DTNTunnel::fill_options()
 
     opts_.addopt(
         new oasys::UIntOpt('D', "delay", &delay_, "<millisecs>",
-                           "nagle delay in msecs for stream transports (e.g. tcp)"));
+                           "nagle delay in msecs for stream transports (e.g. tcp)",
+                           &delay_set_));
     
     opts_.addopt(
         new oasys::UIntOpt('z', "max_size", &max_size_, "<bytes>",
@@ -111,6 +114,10 @@ DTNTunnel::fill_options()
         new oasys::StringOpt('T', "tunnel", &tunnel_spec_, "<spec>",
                              "tunnel specification [lhost:]lport:rhost:rport",
                              &tunnel_spec_set_));
+    opts_.addopt(
+        new oasys::BoolOpt('r', "reorder_udp", &reorder_udp_,
+                           "udp bundles received out of order will buffer until in-order deliver can be made"));
+    
 }
 
 //----------------------------------------------------------------------
