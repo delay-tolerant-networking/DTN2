@@ -23,11 +23,11 @@
 #include "BlockInfo.h"
 #include "BundleProtocol.h"
 
+template <> dtn::APIBlockProcessor*
+oasys::Singleton<dtn::APIBlockProcessor>::instance_ = NULL;
+
 namespace dtn {
 
-template <> APIBlockProcessor*
-oasys::Singleton<APIBlockProcessor>::instance_ = NULL;
-        
 //----------------------------------------------------------------------
 APIBlockProcessor::APIBlockProcessor() :
         BlockProcessor(BundleProtocol::API_EXTENSION_BLOCK)

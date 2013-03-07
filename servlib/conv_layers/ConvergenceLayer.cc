@@ -32,10 +32,10 @@
 
 #include "bundling/BundleDaemon.h"
 
-namespace dtn {
-
 template<>
-CLVector* oasys::Singleton<CLVector>::instance_ = NULL;
+dtn::CLVector* oasys::Singleton<dtn::CLVector>::instance_ = NULL;
+
+namespace dtn {
 
 //----------------------------------------------------------------------
 ConvergenceLayer::~ConvergenceLayer()

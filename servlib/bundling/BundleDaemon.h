@@ -88,16 +88,7 @@ public:
     /**
      * Boot time initializer.
      */
-    static void init()
-    {       
-        if (instance_ != NULL) 
-        {
-            PANIC("BundleDaemon already initialized");
-        }
-
-        instance_ = new BundleDaemon();     
-        instance_->do_init();
-    }
+    static void init();
     
     /**
      * Return the number of events currently waiting for processing.

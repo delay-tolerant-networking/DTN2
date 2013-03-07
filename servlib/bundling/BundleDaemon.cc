@@ -54,10 +54,10 @@
 #  include "security/KeyDB.h"
 #endif
 
-namespace dtn {
-
 template <>
-BundleDaemon* oasys::Singleton<BundleDaemon, false>::instance_ = NULL;
+dtn::BundleDaemon* oasys::Singleton<dtn::BundleDaemon, false>::instance_ = NULL;
+
+namespace dtn {
 
 BundleDaemon::Params::Params()
     :  early_deletion_(true),
@@ -142,6 +142,19 @@ BundleDaemon::do_init()
     SPD::init();
     KeyDB::init();
 #endif
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::init()
+{       
+    if (instance_ != NULL) 
+    {
+        PANIC("BundleDaemon already initialized");
+    }
+
+    instance_ = new BundleDaemon();     
+    instance_->do_init();
 }
 
 //----------------------------------------------------------------------

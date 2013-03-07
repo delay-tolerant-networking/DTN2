@@ -21,15 +21,30 @@
 #include "RegistrationStore.h"
 #include "reg/Registration.h"
 
-namespace dtn {
-
 template<>
-RegistrationStore* oasys::Singleton<RegistrationStore, false>::instance_ = NULL;
+dtn::RegistrationStore* oasys::Singleton<dtn::RegistrationStore, false>::instance_ = NULL;
+
+namespace dtn {
 
 RegistrationStore::RegistrationStore()
     : RegistrationStoreImpl("RegistrationStore", "/dtn/storage/registrations",
                             "registration", "registrations")
 {
+}
+
+/**
+ * Boot time initializer that takes as a parameter the storage
+ * configuration to use.
+ */
+int
+RegistrationStore::init(const oasys::StorageConfig& cfg,
+                        oasys::DurableStore*        store) 
+{
+    if (instance_ != NULL) {
+        PANIC("RegistrationStore::init called multiple times");
+    }
+    instance_ = new RegistrationStore();
+    return instance_->do_init(cfg, store);
 }
 
 

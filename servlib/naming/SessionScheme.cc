@@ -25,10 +25,10 @@
 #include "SessionScheme.h"
 #include "EndpointID.h"
 
-namespace dtn {
-
 template <>
-SessionScheme* oasys::Singleton<SessionScheme>::instance_ = 0;
+dtn::SessionScheme* oasys::Singleton<dtn::SessionScheme>::instance_ = 0;
+
+namespace dtn {
 
 //----------------------------------------------------------------------
 bool

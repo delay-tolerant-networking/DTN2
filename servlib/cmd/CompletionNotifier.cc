@@ -20,9 +20,6 @@
 
 #include "CompletionNotifier.h"
 
-namespace dtn {
-
 template <>
-CompletionNotifier* oasys::Singleton<CompletionNotifier>::instance_ = 0;
+dtn::CompletionNotifier* oasys::Singleton<dtn::CompletionNotifier>::instance_ = 0;
 
-} // namespace dtn

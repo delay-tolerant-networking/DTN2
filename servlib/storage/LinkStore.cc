@@ -21,14 +21,29 @@
 #include "LinkStore.h"
 #include "contacts/Link.h"
 
-namespace dtn {
-
 template<>
-LinkStore* oasys::Singleton<LinkStore, false>::instance_ = NULL;
+dtn::LinkStore* oasys::Singleton<dtn::LinkStore, false>::instance_ = NULL;
+
+namespace dtn {
 
 LinkStore::LinkStore()
     : LinkStoreImpl("LinkStore", "/dtn/storage/links", "link", "links")
 {
+}
+
+/**
+ * Boot time initializer that takes as a parameter the storage
+ * configuration to use.
+ */
+int
+LinkStore::init(const oasys::StorageConfig& cfg,
+                oasys::DurableStore*        store) 
+{
+    if (instance_ != NULL) {
+        PANIC("LinkStore::init called multiple times");
+    }
+    instance_ = new LinkStore();
+    return instance_->do_init(cfg, store);
 }
 
 

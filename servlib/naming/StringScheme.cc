@@ -21,10 +21,10 @@
 #include "StringScheme.h"
 #include "EndpointID.h"
 
-namespace dtn {
-
 template <>
-StringScheme* oasys::Singleton<StringScheme>::instance_ = 0;
+dtn::StringScheme* oasys::Singleton<dtn::StringScheme>::instance_ = 0;
+
+namespace dtn {
 
 //----------------------------------------------------------------------
 bool

@@ -24,10 +24,10 @@
 #include "BundleProtocol.h"
 #include "Bundle.h"
 
-namespace dtn {
+template <> dtn::UnknownBlockProcessor*
+oasys::Singleton<dtn::UnknownBlockProcessor>::instance_ = NULL;
 
-template <> UnknownBlockProcessor*
-oasys::Singleton<UnknownBlockProcessor>::instance_ = NULL;
+namespace dtn {
 
 //----------------------------------------------------------------------
 UnknownBlockProcessor::UnknownBlockProcessor()

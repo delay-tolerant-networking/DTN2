@@ -24,11 +24,10 @@
 #include "SimLog.h"
 #include "Simulator.h"
 
-namespace dtnsim {
-
 template <>
-SimLog* oasys::Singleton<SimLog>::instance_ = NULL;
+dtnsim::SimLog* oasys::Singleton<dtnsim::SimLog>::instance_ = NULL;
 
+namespace dtnsim {
 
 //----------------------------------------------------------------------
 SimLog::SimLog()

@@ -21,11 +21,10 @@
 #include "WildcardScheme.h"
 #include "EndpointID.h"
 
-namespace dtn {
-
-//----------------------------------------------------------------------
 template <>
-WildcardScheme* oasys::Singleton<WildcardScheme>::instance_ = 0;
+dtn::WildcardScheme* oasys::Singleton<dtn::WildcardScheme>::instance_ = 0;
+
+namespace dtn {
 
 //----------------------------------------------------------------------
 bool

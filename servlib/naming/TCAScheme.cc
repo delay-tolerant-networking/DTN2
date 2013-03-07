@@ -24,10 +24,10 @@
 #include "TCAScheme.h"
 #include "EndpointID.h"
 
-namespace dtn {
-
 template <>
-TCAScheme* oasys::Singleton<TCAScheme>::instance_ = 0;
+dtn::TCAScheme* oasys::Singleton<dtn::TCAScheme>::instance_ = 0;
+
+namespace dtn {
 
 /**
  * Validate that the SSP in the given URI is legitimate for

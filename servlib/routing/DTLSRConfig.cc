@@ -20,11 +20,10 @@
 
 #include "DTLSRConfig.h"
 
-namespace dtn {
-
-//----------------------------------------------------------------------
 template <>
-DTLSRConfig* oasys::Singleton<DTLSRConfig>::instance_ = NULL;
+dtn::DTLSRConfig* oasys::Singleton<dtn::DTLSRConfig>::instance_ = NULL;
+
+namespace dtn {
 
 //----------------------------------------------------------------------
 DTLSRConfig::DTLSRConfig()

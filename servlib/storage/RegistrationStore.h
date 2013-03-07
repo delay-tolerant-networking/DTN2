@@ -44,15 +44,8 @@ public:
      * configuration to use.
      */
     static int init(const oasys::StorageConfig& cfg,
-                    oasys::DurableStore*        store) 
-    {
-        if (instance_ != NULL) {
-            PANIC("RegistrationStore::init called multiple times");
-        }
-        instance_ = new RegistrationStore();
-        return instance_->do_init(cfg, store);
-    }
-    
+                    oasys::DurableStore*        store);
+        
     /**
      * Constructor.
      */

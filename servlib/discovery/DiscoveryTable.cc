@@ -22,10 +22,10 @@
 #include "DiscoveryTable.h"
 #include "conv_layers/ConvergenceLayer.h"
 
-namespace dtn {
-
 template<>
-DiscoveryTable* oasys::Singleton<DiscoveryTable,false>::instance_ = NULL;
+dtn::DiscoveryTable* oasys::Singleton<dtn::DiscoveryTable,false>::instance_ = NULL;
+
+namespace dtn {
 
 DiscoveryTable::DiscoveryTable()
     : Logger("DiscoveryTable","/dtn/discovery/table")
@@ -35,6 +35,17 @@ DiscoveryTable::DiscoveryTable()
 DiscoveryTable::~DiscoveryTable()
 {
 }
+
+void
+DiscoveryTable::init()
+{
+    if (instance_ != NULL)
+    {
+        PANIC("DiscoveryTable already initialized");
+    }
+    instance_ = new DiscoveryTable();
+}
+
 
 void
 DiscoveryTable::shutdown()

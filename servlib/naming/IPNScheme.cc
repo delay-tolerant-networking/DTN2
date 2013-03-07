@@ -8,10 +8,10 @@
 #include "IPNScheme.h"
 #include "EndpointID.h"
 
-namespace dtn {
+template <>
+dtn::IPNScheme* oasys::Singleton<dtn::IPNScheme>::instance_ = 0;
 
-        template <>
-        IPNScheme* oasys::Singleton<IPNScheme>::instance_ = 0;
+namespace dtn {
 
         bool
         IPNScheme::validate(const URI& uri, bool is_pattern)

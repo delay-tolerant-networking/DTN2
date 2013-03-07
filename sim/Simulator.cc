@@ -28,10 +28,10 @@
 
 using namespace dtn;
 
-namespace dtnsim {
-
 template<>
-Simulator* oasys::Singleton<Simulator, false>::instance_ = NULL;
+dtnsim::Simulator* oasys::Singleton<dtnsim::Simulator, false>::instance_ = NULL;
+
+namespace dtnsim {
 
 //----------------------------------------------------------------------
 

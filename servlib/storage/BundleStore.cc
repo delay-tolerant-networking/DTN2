@@ -23,10 +23,10 @@
 
 #include <oasys/storage/DurableStore.h>
 
-namespace dtn {
-
 template <>
-BundleStore* oasys::Singleton<BundleStore, false>::instance_ = 0;
+dtn::BundleStore* oasys::Singleton<dtn::BundleStore, false>::instance_ = 0;
+
+namespace dtn {
 
 bool BundleStore::using_aux_table_ = false;
 

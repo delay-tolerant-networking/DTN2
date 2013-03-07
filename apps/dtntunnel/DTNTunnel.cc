@@ -39,10 +39,10 @@
 #include "TCPTunnel.h"
 #include "UDPTunnel.h"
 
-namespace dtntunnel {
-
 template <>
-DTNTunnel* oasys::Singleton<DTNTunnel>::instance_ = 0;
+dtntunnel::DTNTunnel* oasys::Singleton<dtntunnel::DTNTunnel>::instance_ = 0;
+
+namespace dtntunnel {
 
 //----------------------------------------------------------------------
 DTNTunnel::DTNTunnel()

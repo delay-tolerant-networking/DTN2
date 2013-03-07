@@ -27,10 +27,10 @@
 #include "WildcardScheme.h"
 #include "TCAScheme.h"
 
-namespace dtn {
-
 template <>
-SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
+dtn::SchemeTable* oasys::Singleton<dtn::SchemeTable>::instance_ = 0;
+
+namespace dtn {
 
 //----------------------------------------------------------------------
 SchemeTable::SchemeTable()

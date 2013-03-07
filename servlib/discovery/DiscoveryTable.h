@@ -34,14 +34,7 @@ class DiscoveryTable : public oasys::Singleton<DiscoveryTable,false>,
 public:
     virtual ~DiscoveryTable();
 
-    static void init()
-    {
-        if (instance_ != NULL)
-        {
-            PANIC("DiscoveryTable already initialized");
-        }
-        instance_ = new DiscoveryTable();
-    }
+    static void init();
 
     bool add(const std::string& name, const char* addr_family,
              int argc, const char* argv[], const char** error);

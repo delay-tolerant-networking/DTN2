@@ -44,14 +44,7 @@ public:
      * configuration to use.
      */
     static int init(const oasys::StorageConfig& cfg,
-                    oasys::DurableStore*        store) 
-    {
-        if (instance_ != NULL) {
-            PANIC("LinkStore::init called multiple times");
-        }
-        instance_ = new LinkStore();
-        return instance_->do_init(cfg, store);
-    }
+                    oasys::DurableStore*        store); 
     
     /**
      * Constructor.

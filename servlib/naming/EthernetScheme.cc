@@ -26,10 +26,10 @@
 #include "EthernetScheme.h"
 #include "EndpointID.h"
 
-namespace dtn {
-
 template <>
-EthernetScheme* oasys::Singleton<EthernetScheme>::instance_ = 0;
+dtn::EthernetScheme* oasys::Singleton<dtn::EthernetScheme>::instance_ = 0;
+
+namespace dtn {
 
 /*
  * Parse out an ethernet address from the ssp.

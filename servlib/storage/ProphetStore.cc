@@ -21,10 +21,10 @@
 #include <oasys/debug/Log.h>
 #include "ProphetStore.h"
 
-namespace dtn {
-
 template <>
-ProphetStore* oasys::Singleton<ProphetStore,false>::instance_ = 0;
+dtn::ProphetStore* oasys::Singleton<dtn::ProphetStore,false>::instance_ = 0;
+
+namespace dtn {
 
 //----------------------------------------------------------------------
 ProphetStore::ProphetStore(const oasys::StorageConfig& cfg)

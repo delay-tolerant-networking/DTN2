@@ -25,10 +25,10 @@
 #include "DTNScheme.h"
 #include "EndpointID.h"
 
-namespace dtn {
-
 template <>
-DTNScheme* oasys::Singleton<DTNScheme>::instance_ = 0;
+dtn::DTNScheme* oasys::Singleton<dtn::DTNScheme>::instance_ = 0;
+
+namespace dtn {
 
 //----------------------------------------------------------------------
 bool
