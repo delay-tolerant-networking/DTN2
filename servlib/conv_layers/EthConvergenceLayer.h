@@ -155,8 +155,9 @@ public:
         virtual void serialize(oasys::SerializeAction *a);
 
         ~Params() {
-            if(timer)
-                delete timer;
+            if(timer) {
+                timer->cancel();
+            }
         }
 
         u_int32_t beacon_interval_;       ///< Beacon Interval

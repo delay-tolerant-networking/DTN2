@@ -31,6 +31,7 @@
 #include <netpacket/packet.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <time.h>
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/io/IO.h>
@@ -557,6 +558,9 @@ EthConvergenceLayer::Receiver::run()
 
         if(should_stop())
             break;
+
+        struct timespec ts = { 0, 1*1000*1000 };  // 1 msec
+        nanosleep(&ts, NULL);
     }
 }
 
