@@ -68,6 +68,10 @@ protected:
 
         /// Receiver socket
         oasys::UDPClient sock_;
+        
+        /// Transparent socket
+        /// for sending replies from the remote side to the application on the local side
+        oasys::UDPClient tsock_;
 
         /// Static receiving buffer
         char recv_buf_[65536];
@@ -81,7 +85,9 @@ protected:
         in_addr_t remote_addr_;
         u_int16_t remote_port_;
         /// @}
-        
+
+        /// Proxy application traffic transparently (Linux only)
+	bool transparent_;
        
         /// Helper struct used as the index key into the listener_seqno table
         struct LConnKey {
@@ -176,6 +182,9 @@ protected:
 
         /// flag to deliver UDP bundles in order
         bool reorder_udp_;
+
+        /// Proxy application traffic transparently (Linux only)
+	bool transparent_;
     };
 
     /// Return the next connection id

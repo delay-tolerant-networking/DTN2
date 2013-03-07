@@ -17,6 +17,8 @@
 #ifndef _DTNTUNNEL_H_
 #define _DTNTUNNEL_H_
 
+#include <map>
+
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -102,11 +104,15 @@ public:
     void fill_options();
     void validate_options(int argc, char* const argv[], int remainder);
 
+    /// Get destination eid from the dest_eid_table
+    void get_dest_eid(in_addr_t remote_addr, dtn_endpoint_id_t* dest_eid);
+
     /// Accessors
     u_int max_size()              { return max_size_; }
     u_int delay()                 { return delay_; }
     u_int delay_set()             { return delay_set_; }
     bool reorder_udp()            { return reorder_udp_; }
+    bool transparent()            { return transparent_; }
     dtn_endpoint_id_t* dest_eid() { return &dest_eid_; }
 
 protected:
@@ -133,9 +139,38 @@ protected:
     u_int		max_size_;
     std::string	        tunnel_spec_;
     bool	        tunnel_spec_set_;
+    bool		transparent_;
+
+    /// Helper struct for network IP address in CIDR notation
+    struct CIDR {
+	CIDR()
+	    : addr_(0),
+	      bits_(0) {}
+	
+	CIDR(u_int32_t addr, u_int16_t bits)
+	    : addr_(addr),
+	      bits_(bits) {}
+
+        bool operator<(const CIDR& other) const
+        {
+            #define COMPARE(_x) if (_x != other._x) return _x < other._x;
+            COMPARE(addr_);
+            #undef COMPARE
+
+	    return bits_ < other.bits_;
+        }
+
+	u_int32_t addr_;
+	u_int16_t bits_;
+    };
+
+    /// Table for IP network address <-> EID matching
+    typedef std::map<DTNTunnel::CIDR, char*> NetworkEidTable;
+    NetworkEidTable dest_eid_table_;
 
     void init_tunnel();
     void init_registration();
+    void load_dest_eid_table(char* filename);
 };
 
 } // namespace dtntunnel

@@ -23,6 +23,9 @@
 #include "DTNTunnel.h"
 #include "TCPTunnel.h"
 
+#include <linux/netfilter_ipv4.h>	// for SO_ORIGINAL_DST
+#include <netinet/tcp.h>		// for SOL_TCP
+
 namespace dtntunnel {
 
 //----------------------------------------------------------------------
@@ -102,6 +105,7 @@ TCPTunnel::kill_connection(Connection* c)
     // restarted one, in which case we leave the existing one in the
     // table and don't want to blow it away
     if (i->second == c) {
+	log_debug("erasing connection from table *%p", c);
         connections_.erase(i);
     } else {
         log_notice("not erasing connection in table since already replaced");
@@ -204,6 +208,24 @@ TCPTunnel::Listener::Listener(TCPTunnel* t,
       remote_addr_(remote_addr),
       remote_port_(remote_port)
 {
+    transparent_ = DTNTunnel::instance()->transparent();
+    
+    // set IP_TRANSPARENT socket option in order to be able to intercept traffic
+    // with the help of TProxy
+    if (transparent_) {
+#ifdef __linux__
+	this->init_socket();
+        int on, err;
+        on = 1;
+        err = setsockopt(this->fd(), SOL_IP, IP_TRANSPARENT, &on, sizeof(on));
+    	if (err) {
+    	    log_err("setsockopt(IP_TRANSPARENT) error: %d, %s", err, strerror(errno));
+    	} else {
+	    log_debug("set IP_TRANSPARENT on listener socket");
+	}
+#endif
+    }
+
     if (bind_listen_start(listen_addr, listen_port) != 0) {
         log_err("can't initialize listener socket, bailing");
         exit(1);
@@ -212,9 +234,69 @@ TCPTunnel::Listener::Listener(TCPTunnel* t,
 
 //----------------------------------------------------------------------
 void
+TCPTunnel::Listener::force_close_socket(int fd)
+{
+    struct linger l;
+    int off = 0;
+    l.l_onoff = 1;
+    l.l_linger = 0;
+    int err;
+
+    err = setsockopt(fd, SOL_SOCKET, SO_LINGER, &l, sizeof(l));
+    if (err) {
+    	log_err("setsockopt(SO_LINGER) error: %d, %s", err, strerror(errno));
+    }
+    err = setsockopt(fd, SOL_TCP, TCP_NODELAY, &off, sizeof(off));
+    if (err) {
+    	log_err("setsockopt(TCP_NODELAY) error: %d, %s", err, strerror(errno));
+    }
+    ::write(fd, "", 1);
+    ::close(fd);
+}
+
+//----------------------------------------------------------------------
+void
 TCPTunnel::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
 {
-    Connection* c = new Connection(tcptun_, DTNTunnel::instance()->dest_eid(),
+    // store original destination address and port
+    if (transparent_) {
+#ifdef __linux__
+        int rc;
+        socklen_t socksize;
+	struct sockaddr_in sock;
+    
+	// prepare socket for getting original destination address and port
+        socksize = sizeof(sock);
+        rc = getsockopt(fd, SOL_IP, SO_ORIGINAL_DST, &sock, &socksize);
+
+        if (rc != 0) {
+    	    log_err("getting original destination failed, getsockopt(SO_ORIGINAL_DST) error: %s", 
+		    strerror(errno));
+        }
+        else 
+        if ((sock.sin_addr.s_addr != remote_addr_) || 
+    	    (ntohs(sock.sin_port) != remote_port_)) {
+	    // set remote address and port in TCPTunnel to their original values
+	    remote_addr_ = sock.sin_addr.s_addr;
+            remote_port_ = ntohs(sock.sin_port);
+	    log_debug("connection redirected, original destination: %s:%u", 
+			intoa(remote_addr_), remote_port_);
+	}
+#endif
+    }
+
+    dtn_endpoint_id_t dest_eid;
+    dtn_copy_eid(&dest_eid, DTNTunnel::instance()->dest_eid());
+    DTNTunnel::instance()->get_dest_eid(remote_addr_, &dest_eid);
+    if (dest_eid.uri[0] == '\0') {
+	log_warn("cannot find destination eid for address %s, ignoring connection", 
+		 intoa(remote_addr_));
+	// Notify sending application that the connection can not be established
+	force_close_socket(fd);
+	return;
+    }
+
+    Connection* c = new Connection(tcptun_, &dest_eid,
                                    fd, addr, port, remote_addr_, remote_port_,
                                    tcptun_->next_connection_id());
     tcptun_->new_connection(c);
@@ -295,6 +377,8 @@ TCPTunnel::Connection::run()
     bool sock_eof = false;
     bool dtn_blocked = false;
     bool first = true;
+    
+    transparent_ = tunnel->transparent();
 
     // outgoing (tcp -> dtn) / incoming (dtn -> tcp) bundles
     dtn::APIBundle* b_xmit = NULL;
@@ -316,6 +400,28 @@ TCPTunnel::Connection::run()
     hdr.remote_port_   = htons(remote_port_);
     
     if (sock_.state() != oasys::IPSocket::ESTABLISHED) {
+	// bind socket to non-local address of the sending tcp application 
+	// in order to transmit data to the receiving tcp application transparrently
+	if (transparent_) {
+#ifdef __linux__
+	    sock_.init_socket();
+    	    int on, err;
+            on = 1;
+	    err = setsockopt(sock_.fd(), SOL_IP, IP_TRANSPARENT, &on, sizeof(on));
+    	    if (err) {
+        	log_err("setsockopt(IP_TRANSPARENT) error: %d, %s", err, strerror(errno));
+    	    } else {
+		log_debug("set IP_TRANSPARENT on connection socket");
+	    }
+            err = sock_.bind(client_addr_, client_port_);
+    	    if (err != 0) {
+    	        log_err("can't bind to %s:%u, error: %d (%s)", intoa(client_addr_), client_port_, 
+    	    		err, strerror(errno));
+	        goto done;
+    	    }
+#endif
+        }
+        
         int err = sock_.connect(remote_addr_, remote_port_);
         if (err != 0) {
             log_err("error connecting to %s:%d",
@@ -471,6 +577,7 @@ TCPTunnel::Connection::run()
 
             u_int len = b_recv->payload_.len() - sizeof(hdr);
 
+	    // send data to the receiving application
             if (len != 0) {
                 int cc = sock_.writeall(b_recv->payload_.buf() + sizeof(hdr), len);
                 if (cc != (int)len) {
@@ -481,13 +588,6 @@ TCPTunnel::Connection::run()
 
                 log_debug("sent %d byte payload to client", len);
             }
-            
-
-            //if (recv_hdr->eof_) {
-            //    log_info("bundle had eof bit set... closing connection");
-            //    sock_.close();
-            //}
-
 
             if (recv_hdr->eof_) {
                 log_info("bundle had eof bit set... closing connection");

@@ -109,12 +109,10 @@ UDPTunnel::handle_bundle(dtn::APIBundle* bundle)
               hdr.connection_id_,
               hdr.seqno_);
 
-
     if (NULL != listener_) {
         listener_->handle_bundle(bundle);
         return;
     }
-
     
     Connection* conn = NULL;
     ConnTable::iterator i;
@@ -167,9 +165,11 @@ UDPTunnel::Connection::Connection(UDPTunnel* t, dtn_endpoint_id_t* dest_eid,
       client_port_(client_port),
       remote_addr_(remote_addr),
       remote_port_(remote_port),
-      connection_id_(connection_id)
+      connection_id_(connection_id),
+      transparent_(false)
 {
     dtn_copy_eid(&dest_eid_, dest_eid);
+
     reorder_udp_ = DTNTunnel::instance()->reorder_udp();
 }
 
@@ -203,7 +203,9 @@ UDPTunnel::Connection::run()
     u_int32_t send_seqno = 0;
     u_int32_t next_recv_seqno = 0;
 
-    // XXX/dz in iperf test with 10 parallel connections, using timeout=0 
+    transparent_ = tunnel->transparent();
+
+    // XXX/dz in iperf test with 10 parallel connections, using timeout=0
     // doubles the time needed for the server to finish
     int timeout = 1;
     if (tunnel->delay_set()) timeout = tunnel->delay();
@@ -228,8 +230,28 @@ UDPTunnel::Connection::run()
     hdr.client_port_   = htons(client_port_);
     hdr.remote_addr_   = remote_addr_;
     hdr.remote_port_   = htons(remote_port_);
-    
+
     sock_.init_socket();
+
+    if (transparent_) {
+#ifdef __linux__
+    	// bind socket to the non-local address of the sending udp application
+    	// in order to transmit data to the receiving udp application transparrently
+    	int on, err;
+        on = 1;
+	err = setsockopt(sock_.fd(), SOL_IP, IP_TRANSPARENT, &on, sizeof(on));
+        if (err) {
+	    log_err("setsockopt(IP_TRANSPARENT) error: %d, %s", err, strerror(errno));
+    	} else {
+            log_debug("set IP_TRANSPARENT on connection socket");
+        }
+        err = sock_.bind(client_addr_, client_port_);
+	if (err != 0) {
+    	    log_err("can't bind to %s:%u, error: %d (%s)", intoa(client_addr_), client_port_,
+        	    err, strerror(errno));
+        }
+#endif
+    }
 
     while (1) {
         struct pollfd pollfds[2];
@@ -246,8 +268,8 @@ UDPTunnel::Connection::run()
 
         // if the socket already had an eof or if dtn is write
         // blocked, we just poll for activity on the message queue to
-        // look for data that needs to be returned out the TCP socket
-        //int nfds = (sock_eof || dtn_blocked) ? 1 : 2;
+        // look for data that needs to be returned out the UDP socket
+        // int nfds = (sock_eof || dtn_blocked) ? 1 : 2;
         int nfds = 2;
 
         int nready = oasys::IO::poll_multiple(pollfds, nfds, timeout,
@@ -334,7 +356,7 @@ UDPTunnel::Connection::run()
                             intoa(client_addr_), client_port_,
                             strerror(errno));
                 } else {
-                    log_debug("sent %zu byte payload to %s:%d for client %s:%d",
+                    log_debug("sent %d byte payload to %s:%d for client %s:%d",
                               len,
                               intoa(hdr.remote_addr_), hdr.remote_port_,
                               intoa(client_addr_), client_port_);
@@ -425,11 +447,13 @@ UDPTunnel::Listener::Listener(UDPTunnel* t,
     : Thread("UDPTunnel::Listener", DELETE_ON_EXIT),
       Logger("UDPTunnel::Listener", "/dtntunnel/udp/listener"), 
       sock_("/dtntunnel/udp/listener/sock"),
+      tsock_("/dtntunnel/udp/listener/tsock"),
       udptun_(t),
       listen_addr_(listen_addr),
       listen_port_(listen_port),
       remote_addr_(remote_addr),
-      remote_port_(remote_port)
+      remote_port_(remote_port),
+      transparent_(false)
 {
     start();
 }
@@ -439,11 +463,7 @@ void
 UDPTunnel::Listener::run()
 {
     DTNTunnel* tunnel = DTNTunnel::instance();
-    int ret = sock_.bind(listen_addr_, listen_port_);
-    if (ret != 0) {
-        log_err("can't bind to %s:%u", intoa(listen_addr_), listen_port_);
-        return; // die
-    }
+    transparent_ = tunnel->transparent();
 
     DTNTunnel::BundleHeader hdr;
     hdr.protocol_         = IPPROTO_UDP;
@@ -451,16 +471,113 @@ UDPTunnel::Listener::run()
     hdr.seqno_            = 0;
     hdr.remote_addr_      = remote_addr_;
     hdr.remote_port_      = htons(remote_port_);
-   
+
+    dtn_endpoint_id_t dest_eid;
+    dtn_copy_eid(&dest_eid, DTNTunnel::instance()->dest_eid());
+
+    if (transparent_) {
+#ifdef __linux__
+	// prepare socket to getting original destination address and port
+        log_debug("initializing socket");
+        sock_.init_socket();
+        int on, ret;
+        on = 1;
+        ret = setsockopt(sock_.fd(), SOL_IP, IP_TRANSPARENT, &on, sizeof(on));
+        if (ret) {
+            log_err("setsockopt(IP_TRANSPARENT) error: %d, %s", ret, strerror(errno));
+        } else {
+            log_debug("set IP_TRANSPARENT on listener socket");
+        }
+        on = 1;
+        ret = setsockopt(sock_.fd(), SOL_IP, IP_RECVORIGDSTADDR, &on, sizeof(on));
+        if (ret) {
+            log_err("getting original destination failed, setsockopt(IP_RECVORIGDSTADDR) error: %s", 
+		    strerror(errno));
+        }
+#endif
+    }
+
+    int ret = sock_.bind(listen_addr_, listen_port_);
+    if (ret != 0) {
+        log_err("can't bind to %s:%u", intoa(listen_addr_), listen_port_);
+        return; // die
+    }
+
     while (1) {
-        int len = sock_.recvfrom(recv_buf_, sizeof(recv_buf_), 0, &hdr.client_addr_, &hdr.client_port_);
+        int len;
+        
+        if (transparent_) {
+#ifdef __linux__
+            // get original destination address and port and put them to the bundle header
+            char cmbuf[64];
+            struct sockaddr_in from;
+            struct iovec io;
+            struct msghdr msg;
+            bool found_origdst = false;
+
+            memset(&msg, 0, sizeof(msg));
+            msg.msg_name = &from;
+            msg.msg_namelen = sizeof(from);
+            msg.msg_control = cmbuf;
+            msg.msg_controllen = sizeof(cmbuf);
+            msg.msg_iov = &io;
+            msg.msg_iovlen = 1;
+            io.iov_base = recv_buf_;
+            io.iov_len = sizeof(recv_buf_);
+
+            len = sock_.recvmsg(&msg, 0);
+
+            hdr.client_addr_ = from.sin_addr.s_addr;
+            hdr.client_port_ = ntohs(from.sin_port);
+
+            // iterate through all the control headers
+            for (
+                struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+                cmsg != NULL;
+                cmsg = CMSG_NXTHDR(&msg, cmsg))
+            {
+                // ignore the control headers that don't match what we need
+                if (cmsg->cmsg_level != SOL_IP || cmsg->cmsg_type != IP_ORIGDSTADDR) {
+                    continue;
+                }
+                found_origdst = true;
+                struct sockaddr_in* orig = (struct sockaddr_in*)CMSG_DATA(cmsg);
+
+                if ((remote_addr_ != orig->sin_addr.s_addr) ||
+                    (remote_port_ != ntohs(orig->sin_port)))
+                {
+                    log_debug("connection redirected, original destination: %s:%u",
+                                intoa(orig->sin_addr.s_addr), ntohs(orig->sin_port));
+                    remote_addr_ = orig->sin_addr.s_addr;
+                    remote_port_ = ntohs(orig->sin_port);
+                    hdr.remote_addr_ = remote_addr_;
+                    hdr.remote_port_ = htons(remote_port_);
+                }
+            }
+            if (!found_origdst) {
+                log_err("getting original destination failed, (cmsg->cmsg_type==IP_ORIGDSTADDR) not found");
+            }
+
+	    DTNTunnel::instance()->get_dest_eid(remote_addr_, &dest_eid);
+    	    if (dest_eid.uri[0] == '\0') {
+		log_warn("cannot find destination eid for address %s, ignoring connection",
+        	         intoa(remote_addr_));
+		continue;
+        	// SS TODO: find a way to gracefully notify application that the connection
+		// can not be established by sending ICMP port unreachable or something 
+		// equivalent. Possibly send a hand-crafted packet with raw sockets.
+    	    }
+
+#endif
+        } else {        
+    	    len = sock_.recvfrom(recv_buf_, sizeof(recv_buf_), 0, &hdr.client_addr_, &hdr.client_port_);
+    	}
 
         if (len <= 0) {
             log_err("error reading from socket: %s", strerror(errno));
             return; // die
         }
         
-
         log_debug("got %d byte packet from <udp src: %s:%d>", len, intoa(hdr.client_addr_), hdr.client_port_);
 
         hdr.seqno_ = next_seqno(hdr.client_addr_, hdr.client_port_, &hdr.connection_id_);
@@ -474,8 +591,8 @@ UDPTunnel::Listener::run()
         memcpy(bp + sizeof(hdr), recv_buf_, len);
         b->payload_.set_len(sizeof(hdr) + len);
         
-        if (tunnel->send_bundle(b, tunnel->dest_eid()) != DTN_SUCCESS)
-            exit(1);
+        if (tunnel->send_bundle(b, &dest_eid) != DTN_SUCCESS)
+    	    exit(1);
 
         delete b;
     }
@@ -530,20 +647,56 @@ UDPTunnel::Listener::handle_bundle(dtn::APIBundle* bundle)
     char* bp = bundle->payload_.buf() + sizeof(hdr);
     int  len = bundle->payload_.len() - sizeof(hdr);
 
-    // transmit packet to the socket that initiated the connection
-    int cc = sock_.sendto(bp, len,
-                           0, hdr.client_addr_, hdr.client_port_);
-    if (cc != len) {
-        log_err("error sending packet to %s:%d: %s",
-                intoa(hdr.client_addr_), hdr.client_port_, strerror(errno));
-    } else {
-        log_debug("sent %zu byte packet to %s:%d",
-                  bundle->payload_.len() - sizeof(hdr),
-                  intoa(hdr.client_addr_), hdr.client_port_);
+    if (transparent_) {
+#ifdef __linux__
+	// transparrently transmit packet to the socket that initiated the connection
+        tsock_.init_socket();
+
+        int on, ret;
+        on = 1;
+        ret = setsockopt(tsock_.fd(), SOL_IP, IP_TRANSPARENT, &on, sizeof(on));
+        if (ret) {
+            log_err("setsockopt(IP_TRANSPARENT) error: %d, %s", ret, strerror(errno));
+        } else {
+            log_debug("set IP_TRANSPARENT on listener reply socket");
+        }
+
+        ret = tsock_.bind(remote_addr_, remote_port_);
+        if (ret != 0) {
+            log_err("can't bind to %s:%u, error: %d (%s)", 
+		    intoa(remote_addr_), remote_port_, ret, strerror(errno));
+            delete bundle;
+            return; // die
+        }
+
+        int cc = tsock_.sendto(bp, len, 0, hdr.client_addr_, hdr.client_port_);
+        if (cc != len) {
+            log_err("error sending packet to %s:%d: %s",
+                    intoa(hdr.client_addr_), hdr.client_port_, strerror(errno));
+        } else {
+            log_debug("sent %zu byte packet to %s:%d",
+                      bundle->payload_.len() - sizeof(hdr),
+                      intoa(hdr.client_addr_), hdr.client_port_);
+        }
+
+        tsock_.close();
+#endif
+    }
+    else {
+	// transmit packet to the socket that initiated the connection
+        int cc = sock_.sendto(bp, len,
+	                       0, hdr.client_addr_, hdr.client_port_);
+        if (cc != len) {
+	    log_err("error sending packet to %s:%d: %s",
+    		    intoa(hdr.client_addr_), hdr.client_port_, strerror(errno));
+        } else {
+	    log_debug("sent %zu byte packet to %s:%d",
+    	              bundle->payload_.len() - sizeof(hdr),
+            	      intoa(hdr.client_addr_), hdr.client_port_);
+        }
     }
 
     delete bundle;
 }
 
 } // namespace dtntunnel
-

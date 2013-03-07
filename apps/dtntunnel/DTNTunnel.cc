@@ -62,7 +62,8 @@ DTNTunnel::DTNTunnel()
       delay_set_(false),
       max_size_(32 * 1024),
       tunnel_spec_(""),
-      tunnel_spec_set_(false)
+      tunnel_spec_set_(false),
+      transparent_(false)
 {
     // override default logging setting
     loglevel_ = oasys::LOG_NOTICE;
@@ -76,7 +77,7 @@ void
 DTNTunnel::fill_options()
 {
     App::fill_default_options(DAEMONIZE_OPT);
-    App::set_extra_usage("<destination_eid>");
+    App::set_extra_usage("<destination_eid|destination eid table file name>");
     
     opts_.addopt(
         new oasys::BoolOpt('L', "listen", &listen_,
@@ -114,10 +115,15 @@ DTNTunnel::fill_options()
         new oasys::StringOpt('T', "tunnel", &tunnel_spec_, "<spec>",
                              "tunnel specification [lhost:]lport:rhost:rport",
                              &tunnel_spec_set_));
+
     opts_.addopt(
         new oasys::BoolOpt('r', "reorder_udp", &reorder_udp_,
                            "udp bundles received out of order will buffer until in-order deliver can be made"));
-    
+#ifdef __linux__
+    opts_.addopt(
+        new oasys::BoolOpt('p', "transparent_proxy", &transparent_, 
+    			    "proxy application traffic transparently"));
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -130,14 +136,22 @@ DTNTunnel::validate_options(int argc, char* const argv[], int remainder)
     
     bool dest_eid_set = false;
     if (remainder == argc - 1) {
-        if (dtn_parse_eid_string(&dest_eid_, argv[argc-1]) == -1) {
-            fprintf(stderr, "invalid destination endpoint id '%s'\n",
-                    argv[argc - 1]);
-            print_usage_and_exit();
-        } else {
-            dest_eid_set = true;
-        }
-        
+	// check if a destination eid table file name is given
+	char token[4] = "://";
+	if (strstr(argv[argc-1], token) != NULL) {
+	    // have "://" in the arg => got a eid string
+            if (dtn_parse_eid_string(&dest_eid_, argv[argc-1]) == -1) {
+	        fprintf(stderr, "invalid destination endpoint id '%s'\n", 
+			argv[argc - 1]);
+        	print_usage_and_exit();
+    	    } else {
+        	dest_eid_set = true;
+    	    }
+	} else {
+	    // no "://" in the arg => got a file path
+	    load_dest_eid_table(argv[argc-1]);
+	    dest_eid_set = true;
+	}
     } else if (remainder != argc) {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
         print_usage_and_exit();
@@ -203,9 +217,110 @@ DTNTunnel::validate_options(int argc, char* const argv[], int remainder)
         CHECK_OPT(local_addr_  == INADDR_NONE, "local addr is invalid");
         CHECK_OPT(local_port_  == 0,  "must set local port");
         CHECK_OPT(remote_port_ == 0,  "must set remote port");
+	if (!dest_eid_table_.empty()) {
+	    CHECK_OPT(transparent_ == false,
+                  "destination eid table is supported "
+		  "only in transparent_proxy mode");
+	}
     }
     
 #undef CHECK_OPT
+}
+
+//----------------------------------------------------------------------
+void
+DTNTunnel::load_dest_eid_table(char* filename)
+{
+    FILE* ifile;
+    char line[512];
+
+    ifile = fopen(filename, "r");
+    if (ifile == NULL) {
+	fprintf(stderr, "error opening destination eid table file '%s' for reading\n", filename);
+        print_usage_and_exit();
+    }
+
+    int lnum = 0;
+    while(!feof(ifile)) {
+	if (fgets(line, sizeof(line), ifile) != NULL) {
+	    int a, b, c, d, bits;
+	    char* eid_str;
+	    char addr_str[16];
+	    u_int32_t addr;
+	    dtn_endpoint_id_t* eid = new dtn_endpoint_id_t();
+
+	    lnum++;
+	    eid_str = (char*)calloc(DTN_MAX_ENDPOINT_ID, sizeof(char));
+	    int n = sscanf(line, "%d.%d.%d.%d/%d %s", &a, &b, &c, &d, &bits, eid_str);
+	    if (n < 6) {
+    		if (errno != 0) {
+		    fprintf(stderr, "error parsing destination eid table file at line %d: %s\n", 
+			    lnum, strerror(errno));
+		    exit(1);
+		} else {
+		    fprintf(stderr, "error parsing destination eid table file at line %d\n", lnum);
+		    exit(1);
+	    	}
+	    }
+    	    // fprintf(stderr, "DEBUG: %d.%d.%d.%d/%d %s\n", a, b, c, d, bits, eid_str);
+
+	    sprintf(addr_str, "%d.%d.%d.%d", a, b, c, d);
+	    addr = inet_addr(addr_str);
+	    if (addr == INADDR_NONE) {
+		fprintf(stderr, "error parsing network address in destination eid table at line %d\n", lnum);
+		exit(1);
+	    }
+
+	    if ((bits < 0) || (bits > 32)) {
+		fprintf(stderr, "error parsing network mask in destination eid table at line %d\n", lnum);
+		exit(1);
+	    }
+
+    	    if (dtn_parse_eid_string(eid, eid_str) == -1) {
+		fprintf(stderr, "invalid endpoint id in destination eid table '%s' at line %d\n", 
+			eid_str, lnum);
+    		exit(1);
+    	    }
+
+            NetworkEidTable::iterator i;
+            CIDR key(addr, bits);
+
+            i = dest_eid_table_.find(key);
+	    if (i != dest_eid_table_.end()) {
+    	        fprintf(stderr, "duplicate network address in destination eid table %s/%d at line %d\n", 
+			addr_str, bits, lnum);
+    		exit(1);
+    	    }
+
+            dest_eid_table_[key] = eid_str;
+	}
+    }
+    fclose(ifile);
+}
+
+//----------------------------------------------------------------------
+void
+DTNTunnel::get_dest_eid(in_addr_t remote_addr, dtn_endpoint_id_t* dest_eid)
+{
+    // if we don't have dest_eid_table, return
+    if (dest_eid_table_.empty())
+        return;
+
+    memset(dest_eid->uri, 0, sizeof(dest_eid->uri));
+    for (NetworkEidTable::iterator i = dest_eid_table_.begin();
+         i != dest_eid_table_.end(); i++)
+    {
+        CIDR net = i->first;
+        u_int32_t mask = ~(~u_int32_t(0) << net.bits_);
+        //log_debug("remote_addr=%s, addr=%s, bits=%d, mask=%s",
+        //        intoa(remote_addr), intoa(net.addr_), net.bits_, intoa(mask));
+        if ((remote_addr & mask) == (net.addr_ & mask)) {
+	    memcpy(dest_eid->uri, dest_eid_table_[i->first], DTN_MAX_ENDPOINT_ID);
+            log_debug("found dest_eid=%s for address=%s", 
+		      dest_eid->uri, intoa(remote_addr));
+            break;
+        }
+    }
 }
 
 //----------------------------------------------------------------------

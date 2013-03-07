@@ -36,7 +36,7 @@ namespace dtntunnel {
  */
 class TCPTunnel : public IPTunnel {
 public:
-    /// Constructor
+    /// Constructor for the bundle receiving side of the TCPTunnel
     TCPTunnel();
     
     /// Add a new listening to from the given listening
@@ -67,6 +67,12 @@ protected:
         in_addr_t remote_addr_;
         u_int16_t remote_port_;
         /// @}
+
+        /// Proxy application traffic transparently (Linux only)
+        bool transparent_;
+
+	/// Force close a TCP socket
+	void force_close_socket(int fd);
     };
 
     /// Helper class to handle an actively proxied connection
@@ -126,6 +132,9 @@ protected:
         in_addr_t         remote_addr_;
         u_int16_t         remote_port_;
         u_int32_t         connection_id_;
+
+        /// Proxy application traffic transparently (Linux only)
+        bool transparent_;
     };
 
     /// Return the next connection id
