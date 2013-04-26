@@ -19,6 +19,7 @@
 #endif
 
 #include "IPAnnounce.h"
+#include "EthAnnounce.h"
 #include "BluetoothAnnounce.h"
 #include "Announce.h"
 
@@ -46,8 +47,9 @@ Announce::create_announce(const std::string& name, ConvergenceLayer* cl,
         announce = new BluetoothAnnounce();
     }
 #endif
-    else
-    {
+    else if(strncmp(cl->name(), "eth", 3) == 0) {
+        announce = new EthAnnounce();
+    } else {
         //no announce implemented for CL type
         return NULL;
     }

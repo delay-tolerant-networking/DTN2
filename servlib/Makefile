@@ -123,6 +123,8 @@ DISCOVERY_SRCS :=				\
 	discovery/BonjourDiscovery.cc		\
 	discovery/Discovery.cc			\
 	discovery/DiscoveryTable.cc		\
+	discovery/EthAnnounce.cc 		\
+	discovery/EthDiscovery.cc 		\
 	discovery/IPAnnounce.cc			\
 	discovery/IPDiscovery.cc
 

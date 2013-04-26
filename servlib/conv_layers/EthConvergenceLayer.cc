@@ -61,7 +61,6 @@ struct EthConvergenceLayer::Params EthConvergenceLayer::defaults_;
 void
 EthConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 {
-	a->process("beacon_interval", &beacon_interval_);
 	a->process("interface", &if_name_);
 }
 
@@ -74,7 +73,7 @@ EthConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 EthConvergenceLayer::EthConvergenceLayer()
     : ConvergenceLayer("EthConvergenceLayer", "eth")
 {
-    defaults_.beacon_interval_          = 1;
+    defaults_.if_name_ = "";
 }
 
 //----------------------------------------------------------------------
@@ -103,7 +102,6 @@ EthConvergenceLayer::parse_params(Params* params,
 {
     oasys::OptParser p;
 
-    p.addopt(new oasys::UIntOpt("beacon_interval", &params->beacon_interval_));
     p.addopt(new oasys::StringOpt("interface", &params->if_name_));
 
     if (! p.parse(argc, argv, invalidp)) {
@@ -149,11 +147,6 @@ EthConvergenceLayer::interface_up(Interface* iface,
     receiver->start();
     iface->set_cl_info(receiver);
 
-    // remembers the interface beacon object
-    if_beacon_ = new Beacon(if_name, params.beacon_interval_);
-    if_beacon_->logpathf("/cl/eth");
-    if_beacon_->start();
-    
     return true;
 }
 
@@ -164,13 +157,6 @@ EthConvergenceLayer::interface_down(Interface* iface)
   // XXX/jakob - need to keep track of the Beacon and Receiver threads for each 
   //             interface and kill them.
   // NOTIMPLEMENTED;
-
-    // xxx/shawn needs to find a way to delete beacon;
-    if_beacon_->set_should_stop();
-    while (! if_beacon_->is_stopped()) {
-        oasys::Thread::yield();
-    }
-    delete if_beacon_;
 
     Receiver *receiver = (Receiver *)iface->cl_info();
     receiver->set_should_stop();
@@ -270,7 +256,6 @@ EthConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
     Params* params = dynamic_cast<Params*>(link->cl_info());
     ASSERT(params != NULL);
 
-    buf->appendf("beacon_interval: %u\n", params->beacon_interval_);
     buf->appendf("interface: %s\n", params->if_name_.c_str());
 }
 
@@ -365,96 +350,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         return;
     }
 
-    if(ethclhdr.type == ETHCL_BEACON) {
-        ContactManager* cm = BundleDaemon::instance()->contactmgr();
-
-        char bundles_string[60];
-        memset(bundles_string,0,60);
-        EthernetScheme::to_string(&ethhdr->ether_shost[0],
-                                  bundles_string);
-        char next_hop_string[50], *ptr;
-        memset(next_hop_string,0,50);
-        ptr = strrchr(bundles_string, '/');
-        strcpy(next_hop_string, ptr+1);
-        
-        ConvergenceLayer* cl = ConvergenceLayer::find_clayer("eth");
-        EndpointID remote_eid(bundles_string);
-
-        LinkRef link = cm->find_link_to(cl,
-                                        next_hop_string,
-                                        remote_eid,
-                                        Link::OPPORTUNISTIC);
-        
-        if(link == NULL) {
-            log_info("EthConvergenceLayer::Receiver::process_data: "
-                     "Discovered next_hop %s on interface %s.",
-                     next_hop_string, if_name_);
-            
-            // registers a new contact with the routing layer
-            link = cm->new_opportunistic_link(cl,
-                                              next_hop_string,
-                                              EndpointID(bundles_string));
-
-            if (link == NULL) {
-                log_debug("EthConvergenceLayer::Receiver::process_data: "
-                          "failed to create new opportunistic link");
-                return;
-            }
-
-            oasys::ScopeLock l(link->lock(), "EthConvergenceLayer::Receiver");
-            // It is doubtful that the link would be deleted already,
-            // but check just in case.
-            if (link->isdeleted()) {
-                log_warn("EthConvergenceLayer::Receiver::process_data: "
-                         "link %s deleted before fully initialized",
-                         link->name());
-                return;
-            }
-            ASSERT(link->cl_info() != NULL);
-            Params *params = dynamic_cast<Params*>(link->cl_info());
-            params->if_name_ = if_name_;
-            l.unlock();
-        }
-
-        ASSERT(link != NULL);
-        oasys::ScopeLock l(link->lock(), "EthConvergenceLayer::Receiver");
-
-        if (link->isdeleted()) {
-            log_warn("EthConvergenceLayer::Receiver::process_data: "
-                     "link %s already deleted", link->name());
-            return;
-        }
-
-        ASSERT(link->cl_info() != NULL);
-        ASSERT(dynamic_cast<Params*>(link->cl_info())->if_name_ == if_name_);
-
-        if(!link->isavailable()) {
-            log_info("EthConvergenceLayer::Receiver::process_data: "
-                     "Got beacon for previously unavailable link %s",
-                     link->name());
-            
-            // Kicking the link available here
-            BundleDaemon::post(
-                    new LinkStateChangeRequest(link, Link::OPEN, ContactUpEvent::DISCOVERY));
-        }
-        
-        /**
-         * If there already is a timer for this link, cancel it, which
-         * will delete it when it bubbles to the top of the timer
-         * queue. Then create a new timer.
-         */
-        BeaconTimer *timer = ((Params*)link->cl_info())->timer;
-        if (timer)
-            timer->cancel();
-
-        timer = new BeaconTimer(next_hop_string); 
-        timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
-        
-        ((Params*)link->cl_info())->timer = timer;
-
-        l.unlock();
-    }
-    else if(ethclhdr.type == ETHCL_BUNDLE) {
+    if(ethclhdr.type == ETHCL_BUNDLE) {
         // infer the bundle length based on the packet length minus the
         // eth cl header
         bundle_len = len - sizeof(EthCLHeader) - sizeof(struct ether_header);
@@ -713,150 +609,6 @@ EthConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
     }
 
     return ok;
-}
-
-//----------------------------------------------------------------------
-EthConvergenceLayer::Beacon::Beacon(const char* if_name,
-                                    unsigned int beacon_interval)
-  : Logger("EthConvergenceLayer::Beacon", "/dtn/cl/eth/beacon"),
-    Thread("EthConvergenceLayer::Beacon")
-{
-    Thread::flags_ |= INTERRUPTABLE;
-    memset(if_name_, 0, IFNAMSIZ);
-    strcpy(if_name_, if_name);
-    beacon_interval_ = beacon_interval;
-}
-
-//----------------------------------------------------------------------
-void EthConvergenceLayer::Beacon::run()
-{
-    // ethernet broadcast address
-    char bcast_mac_addr[6]={0xff,0xff,0xff,0xff,0xff,0xff};
-    
-    struct ether_header hdr;
-    struct sockaddr_ll iface;
-    EthCLHeader ethclhdr;
-    
-    int sock,cc;
-    struct iovec iov[2];
-    
-    memset(&hdr,0,sizeof(hdr));
-    memset(&ethclhdr,0,sizeof(ethclhdr));
-    memset(&iface,0,sizeof(iface));
-
-    ethclhdr.version = ETHCL_VERSION;
-    ethclhdr.type    = ETHCL_BEACON;
-    
-    hdr.ether_type=htons(ETHERTYPE_DTN);
-    
-    // iovec slot 0 holds the ethernet header
-    iov[0].iov_base = (char*)&hdr;
-    iov[0].iov_len = sizeof(struct ether_header);
-    
-    // use iovec slot 1 for the eth cl header
-    iov[1].iov_base = (char*)&ethclhdr;
-    iov[1].iov_len  = sizeof(EthCLHeader); 
-    
-    /* 
-       Get ourselves a raw socket, and configure it.
-    */
-    if((sock = socket(AF_PACKET,SOCK_RAW, htons(ETHERTYPE_DTN))) < 0) { 
-        perror("socket");
-        exit(1);
-    }
-
-    struct ifreq req;
-    strcpy(req.ifr_name, if_name_);
-    if(ioctl(sock, SIOCGIFINDEX, &req))
-    {
-        perror("ioctl");
-        exit(1);
-    }    
-
-    iface.sll_ifindex=req.ifr_ifindex;
-
-    if(ioctl(sock, SIOCGIFHWADDR, &req))
-    {
-        perror("ioctl");
-        exit(1);
-    } 
-    
-    memcpy(hdr.ether_dhost,bcast_mac_addr,6);
-    memcpy(hdr.ether_shost,req.ifr_hwaddr.sa_data,6);
-    
-    log_info("Interface %s has interface number %d.",if_name_,req.ifr_ifindex);
-    
-    iface.sll_family=AF_PACKET;
-    iface.sll_protocol=htons(ETHERTYPE_DTN);
-    
-    if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
-        perror("bind");
-        exit(1);
-    }
-
-    /*
-     * Send the beacon on the socket every beacon_interval_ second.
-     */
-    while(1) {
-        sleep(beacon_interval_);
-
-        if (should_stop())
-            break;
-
-        log_debug("Sent beacon out interface %s.\n",if_name_ );
-        
-        cc=IO::writevall(sock, iov, 2);
-        if(cc<0) {
-            perror("send beacon");
-            log_err("Send beacon failed!\n");
-        }
-    }
-}
-
-//----------------------------------------------------------------------
-EthConvergenceLayer::BeaconTimer::BeaconTimer(char * next_hop)
-    :  Logger("EthConvergenceLayer::BeaconTimer", "/dtn/cl/eth/beacontimer")
-{
-    next_hop_=(char*)malloc(strlen(next_hop)+1);
-    strcpy(next_hop_, next_hop);
-}
-
-//----------------------------------------------------------------------
-EthConvergenceLayer::BeaconTimer::~BeaconTimer()
-{
-    free(next_hop_);
-}
-
-//----------------------------------------------------------------------
-void
-EthConvergenceLayer::BeaconTimer::timeout(const struct timeval& now)
-{
-    ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    ConvergenceLayer* cl = ConvergenceLayer::find_clayer("eth");
-    LinkRef link = cm->find_link_to(cl, next_hop_);
-
-    (void)now;
-
-    log_info("Neighbor %s timer expired.",next_hop_);
-
-    if(link == NULL) {
-      log_warn("No link for next_hop %s.",next_hop_);
-    }
-    else if(link->isopen()) {
-        BundleDaemon::post(
-            new LinkStateChangeRequest(link, Link::CLOSED,
-                                       ContactDownEvent::BROKEN));
-    }
-    else {
-        log_warn("next_hop %s unexpectedly not open",next_hop_);
-    }
-}
-
-//----------------------------------------------------------------------
-Timer *
-EthConvergenceLayer::BeaconTimer::copy()
-{
-    return new BeaconTimer(*this);
 }
 
 } // namespace dtn

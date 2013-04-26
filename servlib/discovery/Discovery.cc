@@ -28,6 +28,7 @@
 #include "IPNDDiscovery.h"
 #endif
 #include "IPDiscovery.h"
+#include "EthDiscovery.h"
 #include "contacts/ContactManager.h"
 #include "bundling/BundleDaemon.h"
 
@@ -71,6 +72,10 @@ Discovery::create_discovery(const std::string& name,
         disc = new BluetoothDiscovery(name);
     }
 #endif
+    else if (af == "eth")
+    {
+        disc = new EthDiscovery(name);
+    }
     else
     {
         // not a recognized address family

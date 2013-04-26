@@ -22,7 +22,7 @@
 
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <linux/if.h>
+#include <net/if.h>
 
 #include <oasys/thread/Thread.h>
 #include <oasys/thread/Timer.h>
@@ -61,8 +61,6 @@ public:
 
     static const u_int8_t  ETHCL_BEACON = 0x01;
     static const u_int8_t  ETHCL_BUNDLE = 0x02;
-
-    static const u_int32_t ETHCL_BEACON_TIMEOUT_INTERVAL = 2500; // 2.5 seconds
 
     static const u_int16_t MAX_ETHER_PACKET = 1518;
 
@@ -154,16 +152,7 @@ public:
          */
         virtual void serialize(oasys::SerializeAction *a);
 
-        ~Params() {
-            if(timer) {
-                timer->cancel();
-            }
-        }
-
-        u_int32_t beacon_interval_;       ///< Beacon Interval
         std::string if_name_;             ///< Interface name to bind sender to
-        
-        BeaconTimer *timer;               ///< XXX this should be moved somewhere else
     };
     
     /**
@@ -265,36 +254,6 @@ public:
         u_char buf_[EthConvergenceLayer::MAX_BUNDLE_LEN];
     };
 
-    /** 
-     *  helper class (and thread) that periodically sends beacon messages
-     *  over the specified ethernet interface.
-     */
-    class Beacon : public oasys::Logger,
-                   public oasys::Thread
-    {
-    public:
-        Beacon(const char* if_name, unsigned int beacon_interval);
-
-        virtual ~Beacon() {};
-
-    private:
-        virtual void run();
-        char if_name_[IFNAMSIZ];
-        unsigned int beacon_interval_;
-    };
-
-    class BeaconTimer : public oasys::Logger, public oasys::Timer, public CLInfo {
-    public:
-        char * next_hop_;
-
-        BeaconTimer(char * next_hop);
-        ~BeaconTimer();
-
-        void timeout(const struct timeval& now);
-
-        Timer* copy();
-    };    
-
 protected:
     /**
      * Parses parameters during EthConvegenceLayer initialization
@@ -303,10 +262,6 @@ protected:
                       const char** invalidp);
 
     virtual CLInfo* new_link_params();
-
-
-private:
-    Beacon *if_beacon_;
 };
 
 
