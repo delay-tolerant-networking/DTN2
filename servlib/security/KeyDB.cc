@@ -31,10 +31,10 @@
 #include "KeyDB.h"
 #include "Ciphersuite.h"
 
-namespace dtn {
-
 template <>
-KeyDB* oasys::Singleton<KeyDB, false>::instance_ = NULL;
+dtn::KeyDB* oasys::Singleton<dtn::KeyDB, false>::instance_ = NULL;
+
+namespace dtn {
 
 static const char * log = "/dtn/bundle/security";
 
@@ -56,15 +56,6 @@ KeyDB::init()
     
     instance_ = new KeyDB();
 	log_debug_p(log, "KeyDB::init() done");
-}
-
-void KeyDB::shutdown()
-{
-    if(instance_ != NULL) 
-    {
-        delete instance_;
-        log_debug_p(log, "KeyDB::shutdown() completed");
-    }
 }
 
 void KeyDB::shutdown()

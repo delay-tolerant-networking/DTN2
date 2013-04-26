@@ -28,10 +28,10 @@
 #include "Ciphersuite_ES4.h"
 #include "SecurityPolicy.h"
 
-namespace dtn {
-
 template <>
-SPD* oasys::Singleton<SPD, false>::instance_ = NULL;
+dtn::SPD* oasys::Singleton<dtn::SPD, false>::instance_ = NULL;
+
+namespace dtn {
 
 static const char * log = "/dtn/bundle/security";
 
