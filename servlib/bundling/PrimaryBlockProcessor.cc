@@ -528,6 +528,7 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
         }
         
         bundle->set_frag_offset(sdnv_buf);
+        log_debug_p(log, "PrimaryBlockProcessor::consume: setting frag_offset to %d", sdnv_buf);
         sdnv_buf = 0;
         
         PBP_READ_SDNV(&sdnv_buf);
@@ -538,6 +539,7 @@ PrimaryBlockProcessor::consume(Bundle*    bundle,
         }
         
         bundle->set_orig_length(sdnv_buf);
+        log_debug_p(log, "PrimaryBlockProcessor::consume: setting orig_len to %d", sdnv_buf);
 
         log_debug_p(log, "parsed fragmentation info: offset %u orig_len %u",
                     bundle->frag_offset(), bundle->orig_length());
@@ -721,6 +723,7 @@ PrimaryBlockProcessor::generate_primary(const Bundle* bundle,
      * offset and original length.
      */
     if (bundle->is_fragment()) {
+        log_debug_p(log,"PrimaryBlockProcessor::generate_primary: bundle is a fragment with frag_offset=%d orig_length=%d", bundle->frag_offset(), bundle->orig_length());
         PBP_WRITE_SDNV(bundle->frag_offset());
         PBP_WRITE_SDNV(bundle->orig_length());
     }

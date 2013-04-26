@@ -972,7 +972,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         /*
          * Re-assemble bundle fragments that are destined to the local node.
          */
-        if (bundle->is_fragment() && is_local) {
+        if (event->source_ != EVENTSRC_FRAGMENTATION && bundle->is_fragment() && is_local) {
             log_debug("deferring delivery of bundle *%p "
                       "since bundle is a fragment", bundle);
             fragmentmgr_->process_for_reassembly(bundle);
@@ -1485,7 +1485,7 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
     /*
      * Re-assemble bundle fragments that are destined to the local node.
      */
-    if (bundle->is_fragment() && is_local) {
+    if (bundle->is_fragment() && is_local ) {
         log_debug("deferring delivery of injected bundle *%p "
                   "since bundle is a fragment", bundle);
         fragmentmgr_->process_for_reassembly(bundle);
@@ -2679,6 +2679,7 @@ BundleDaemon::delete_bundle(const BundleRef& bundleref,
 
     // check if bundle is a fragment, if so, remove any fragmentation state
     if (bundle->is_fragment()) {
+        log_debug("Calling fragmentmgr_->delete_fragment");
         fragmentmgr_->delete_fragment(bundle);
     }
 

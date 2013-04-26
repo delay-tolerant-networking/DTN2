@@ -73,18 +73,12 @@ public:
      *   pointer to the newly created bundle
      */
     Bundle* create_fragment(Bundle* bundle,
-                            BlockInfoVec* blocks,
+                            const BlockInfoVec &blocks,
+                            const BlockInfoVec *xmit_blocks,
                             size_t offset,
-                            size_t length);
-
-    /**
-     * Create a fragment to be sent out on a particular link.
-     */
-    Bundle* create_fragment(Bundle* bundle,
-                            const LinkRef& link,
-                            const BlockInfoPointerList& blocks_to_copy,
-                            size_t offset, 
-                            size_t length);
+                            size_t length,
+                            bool first=false,
+                            bool last=false);
 
     /**
      * Turn a bundle into a fragment. Note this is used just for

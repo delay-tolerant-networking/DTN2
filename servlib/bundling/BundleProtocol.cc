@@ -169,6 +169,7 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
     if (recv_blocks->size() > 0) {
         // if there is a received block, the first one better be the primary
         ASSERT(recv_blocks->front().type() == PRIMARY_BLOCK);
+        log_debug_p(LOG, "BundleProtocol::prepare_blocks: about to check that the first block is the primary block(it is of type=%d)", recv_blocks->front().type());
     
         for (citer = recv_blocks->begin();
              citer != recv_blocks->end();
@@ -181,6 +182,7 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
             // XXX/demmer it seems to me like this should just break
             // out of the loop once it's processed the PAYLOAD_BLOCK
             // if fragmented_incoming_ is true
+        log_debug_p(LOG, "BundleProtocol::prepare_blocks: about to check whether this is a reactively fragmented bundle.");
             if (bundle->fragmented_incoming()
                 && xmit_blocks->find_block(BundleProtocol::PAYLOAD_BLOCK)) {
                 continue;

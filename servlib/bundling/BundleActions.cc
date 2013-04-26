@@ -25,6 +25,8 @@
 #include "conv_layers/ConvergenceLayer.h"
 #include "contacts/Link.h"
 #include "storage/BundleStore.h"
+#include "FragmentManager.h"
+#include "FragmentState.h"
 
 namespace dtn {
 
@@ -79,6 +81,8 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
                             ForwardingInfo::action_t action,
                             const CustodyTimerSpec& custody_timer)
 {
+    size_t total_len=0;
+  
     BundleRef bref(bundle, "BundleActions::queue_bundle");
     
     ASSERT(link != NULL);
@@ -97,7 +101,7 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
                 "link not ready to handle bundle (block vector already exists), "
                 "dropping send request");
         return false;
-    }
+    } 
 
     // XXX/demmer this should be moved somewhere in the router
     // interface so it can select options for the outgoing bundle
@@ -114,12 +118,12 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
         log_err("BundleActions::queue_bundle: prepare_blocks returned NULL on bundle %d", bundle->bundleid());
         return false;
     }
-    size_t total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
+    total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
     if(total_len == 0) {
         log_err("BundleActions::queue_bundle: generate_blocks returned 0 on bundle %d", bundle->bundleid());
         return false;
     }
-
+    log_debug("BundleActions::queue_bundle: total_len=%d", total_len);
     log_debug("queue bundle *%p on %s link %s (%s) (total len %zu)",
               bundle, link->type_str(), link->name(), link->nexthop(),
               total_len);
@@ -138,12 +142,38 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
 	// this and perhaps others, so I shouldn't move it just yet. But
 	// properly speaking I think this should be a CL specific check to
 	// make or not make -- Stephen Farrell
-	if(link->clayer()->name()=="ltp") {
+	if(link->clayer()->name()!="ltp") {
 #endif
     if ((link->params().mtu_ != 0) && (total_len > link->params().mtu_)) {
         log_err("queue bundle *%p on %s link %s (%s): length %zu > mtu %u",
                 bundle, link->type_str(), link->name(), link->nexthop(),
                 total_len, link->params().mtu_);
+        FragmentState *fs = BundleDaemon::instance()->fragmentmgr()->proactively_fragment(bundle, link, link->params().mtu_);
+        log_debug("BundleActions::queue_bundle: bundle->payload().length()=%d", bundle->payload().length());
+        if(fs != 0) {
+            //BundleDaemon::instance()->delete_bundle(bref, BundleProtocol::REASON_NO_ADDTL_INFO);
+            log_debug("BundleActions::queue_bundle forcing fragmentation because TestParameters (the twiddle command) says we should");
+            oasys::ScopeLock l(fs->fragment_list().lock(), "BundleActions::queue_bundle");
+            for(BundleList::iterator it=fs->fragment_list().begin();it!= fs->fragment_list().end();it++) {
+                BundleDaemon::post_at_head(
+                                new BundleReceivedEvent(*it, EVENTSRC_FRAGMENTATION));
+                
+            }
+            //if(fs->check_completed(true)) {
+            //    for(BundleList::iterator it=fs->fragment_list().begin();it!= fs->fragment_list().end();it++) {
+            //        fs->erase_fragment(*it);
+            //    }
+            //}
+            // We need to eliminate the original bundle in this case,
+            // because we've already sent it.
+            bundle->fwdlog()->add_entry(link, action, ForwardingInfo::SUPPRESSED);
+            BundleDaemon::post_at_head(
+                  new BundleDeleteRequest(bundle, BundleProtocol::REASON_NO_ADDTL_INFO));
+            //BundleDaemon::instance()->delete_bundle(bref, BundleProtocol::REASON_NO_ADDTL_INFO);
+            return true;
+
+        }
+ 
         return false;
     }
 #ifdef LTP_ENABLED
