@@ -120,7 +120,6 @@ DiscoveryTable::del(const std::string& name)
     disc = *iter;
     dlist_.erase(iter);
     disc->shutdown(); 
-    delete disc;
 
     return true;
 }
