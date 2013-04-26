@@ -50,7 +50,6 @@
 
 #ifdef BSP_ENABLED
 #  include "security/Ciphersuite.h"
-#  include "security/SPD.h"
 #  include "security/KeyDB.h"
 #endif
 
@@ -139,7 +138,6 @@ BundleDaemon::do_init()
     BundleProtocol::init_default_processors();
 #ifdef BSP_ENABLED
     Ciphersuite::init_default_ciphersuites();
-    SPD::init();
     KeyDB::init();
 #endif
 }
@@ -2397,7 +2395,6 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
     BundleProtocol::delete_block_processors();
 #ifdef BSP_ENABLED
     Ciphersuite::shutdown();
-    KeyDB::shutdown();
 #endif
 
 }

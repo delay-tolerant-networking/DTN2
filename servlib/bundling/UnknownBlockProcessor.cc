@@ -56,9 +56,12 @@ UnknownBlockProcessor::prepare(const Bundle*    bundle,
 
     // If we're called for this type then security is not enabled
     // and we should NEVER forward BAB
-    if (source->type() == BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK) {
-        return BP_FAIL;
-    }
+    // WRONG: non-security aware nodes can forward BAB blocks.  BAB is
+    // explicitly hop-by-hop, but the hops are between security aware
+    // nodes.
+    //if (source->type() == BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK) {
+    //    return BP_FAIL;
+    //}
 
     return BlockProcessor::prepare(bundle, xmit_blocks, source, link, list);
 }

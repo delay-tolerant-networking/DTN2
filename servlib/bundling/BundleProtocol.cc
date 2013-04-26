@@ -40,7 +40,7 @@
 #include "UnknownBlockProcessor.h"
 
 #ifdef BSP_ENABLED
-#  include "security/SPD.h"
+#include "security/SecurityConfig.h"
 #endif
 
 #ifdef BPQ_ENABLED
@@ -192,6 +192,8 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
                                    BlockInfo::LIST_RECEIVED)) {
                 log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare returned BP_FAIL on bundle %d", citer->owner()->block_type(), bundle->bundleid());
                 goto fail;
+        }else{
+            log_debug_p(LOG, "BundleProtocol::prepare_block %d->prepare returned BP_SUCCESS on  bundle %d when run on a received block", citer->owner()->block_type(), bundle->bundleid());
             }
         }
     }
@@ -282,8 +284,8 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
 
 #ifdef BSP_ENABLED
     // Finally add security blocks
-    if(BP_FAIL == SPD::prepare_out_blocks(bundle, link, xmit_blocks)) {
-        log_err_p(LOG,"BundleProtocol::prepare_blocks: SPD::prepare_out_blocks returned BP_FAIL on bundle %d", bundle->bundleid());
+    if(BP_FAIL == SecurityConfig::prepare_out_blocks(bundle, link, xmit_blocks)) {
+        log_err_p(LOG,"BundleProtocol::prepare_blocks: SecurityConfig::prepare_out_blocks returned BP_FAIL on bundle %d", bundle->bundleid());
         goto fail;
     }
 #endif
@@ -368,6 +370,7 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
          iter != blocks->rend();
          ++iter)
     {
+        log_debug_p(LOG, "BundleProtocol::generate_blocks considering block of type %d", iter->type());
         if(BP_FAIL == iter->owner()->finalize(bundle, blocks, &*iter, link)) {
             log_err_p(LOG, "BundleProtocol::generate_blocks had %d->finalize() return BP_FAIL", iter->owner()->block_type());
             goto fail;
@@ -704,7 +707,7 @@ BundleProtocol::validate(Bundle* bundle,
 #ifdef BSP_ENABLED
     // verify that bundle matches inbound security policy
     // XXX also need to verify that block order is sane!
-    if (! SPD::verify_in_policy(bundle)) {
+    if (! SecurityConfig::verify_in_policy(bundle)) {
         log_err_p(LOG, "bundle failed security policy verification");
         *deletion_reason = BundleProtocol::REASON_SECURITY_FAILED;
         return false;

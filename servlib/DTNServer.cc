@@ -282,8 +282,11 @@ DTNServer::close_datastore()
     GlobalStore::instance()->close();
     
     if(!getenv("OASYS_CLEANUP_SINGLETONS")) {
-    delete_z(store_);
+    // and this will cause a double delete
+    if(!getenv("OASYS_CLEANUP_SINGLETONS")) {
+       delete_z(store_);
     }
+}
 }
 
 void

@@ -21,104 +21,24 @@
 
 #include "bundling/BlockProcessor.h"
 #include "Ciphersuite.h"
+#include "AS_BlockProcessor.h"
 
 namespace dtn {
 
 /**
- * Block processor implementation for the bundle authentication block.
+ * Block processor implementation for the Payload Confidentiality
+ * Block
  */
-class PC_BlockProcessor : public BlockProcessor {
+class PC_BlockProcessor : public AS_BlockProcessor {
 public:
-    /// Constructor
     PC_BlockProcessor();
+
+    virtual int format(oasys::StringBuffer* buf, BlockInfo *block);
     
-    /// @{ Virtual from BlockProcessor
-    /**
-     * First callback for parsing blocks that is expected to append a
-     * chunk of the given data to the given block. When the block is
-     * completely received, this should also parse the block into any
-     * fields in the bundle class.
-     *
-     * The base class implementation parses the block preamble fields
-     * to find the length of the block and copies the preamble and the
-     * data in the block's contents buffer.
-     *
-     * This and all derived implementations must be able to handle a
-     * block that is received in chunks, including cases where the
-     * preamble is split into multiple chunks.
-     *
-     * @return the amount of data consumed or -1 on error
-     */
-    virtual int consume(Bundle*    bundle,
-                        BlockInfo* block,
-                        u_char*    buf,
-                        size_t     len);
-
-    /**
-     * Perform any needed action in the case where a block/bundle
-     * has been reloaded from store
-     */
-    virtual int reload_post_process(Bundle*       bundle,
-                                    BlockInfoVec* block_list,
-                                    BlockInfo*    block);
-
-    /**
-     * Validate the block. This is called after all blocks in the
-     * bundle have been fully received.
-     *
-     * @return true if the block passes validation
-     */
-    virtual bool validate(const Bundle*           bundle,
-                          BlockInfoVec*           block_list,
-                          BlockInfo*              block,
-                          status_report_reason_t* reception_reason,
-                          status_report_reason_t* deletion_reason);
-
-    /**
-     * First callback to generate blocks for the output pass. The
-     * function is expected to initialize an appropriate BlockInfo
-     * structure in the given BlockInfoVec.
-     *
-     * The base class simply initializes an empty BlockInfo with the
-     * appropriate owner_ pointer.
-     */
-    virtual int prepare(const Bundle*    bundle,
-                        BlockInfoVec*    xmit_blocks,
-                        const BlockInfo* source,
-                        const LinkRef&   link,
-                        list_owner_t     list);
-    
-    /**
-     * Second callback for transmitting a bundle. This pass should
-     * generate any data for the block that does not depend on other
-     * blocks' contents.  It MUST add any EID references it needs by
-     * calling block->add_eid(), then call generate_preamble(), which
-     * will add the EIDs to the primary block's dictionary and write
-     * their offsets to this block's preamble.
-     */
-    virtual int generate(const Bundle*  bundle,
-                         BlockInfoVec*  xmit_blocks,
-                         BlockInfo*     block,
-                         const LinkRef& link,
-                         bool           last);
-    
-    /**
-     * Third callback for transmitting a bundle. This pass should
-     * generate any data (such as security signatures) for the block
-     * that may depend on other blocks' contents.
-     *
-     * The base class implementation does nothing. 
-     */
-    virtual int finalize(const Bundle*  bundle, 
-                         BlockInfoVec*  xmit_blocks, 
-                         BlockInfo*     block, 
-                         const LinkRef& link);
-
-    /// @}
 };
 
 } // namespace dtn
 
 #endif /* BSP_ENABLED */
 
-#endif /* _C_BLOCK_PROCESSOR_H_ */
+#endif /* _PC_BLOCK_PROCESSOR_H_ */

@@ -242,18 +242,37 @@ STORAGE_SRCS :=					\
 
 SECURITY_SRCS :=				\
 	security/Ciphersuite.cc			\
+	security/BP_Local_CS.cc			\
+        security/BSPProtectionInfo.cc           \
+	security/AS_BlockProcessor.cc		\
 	security/BA_BlockProcessor.cc		\
 	security/PI_BlockProcessor.cc		\
 	security/PC_BlockProcessor.cc		\
 	security/ES_BlockProcessor.cc		\
+	security/Ciphersuite_PI.cc		\
+	security/Ciphersuite_PC.cc		\
+	security/Ciphersuite_BA.cc		\
+	security/Ciphersuite_ES.cc		\
+	security/Ciphersuite_enc.cc		\
+	security/Ciphersuite_integ.cc		\
 	security/Ciphersuite_BA1.cc		\
 	security/Ciphersuite_PI2.cc		\
 	security/Ciphersuite_PC3.cc		\
 	security/Ciphersuite_ES4.cc		\
-	security/BP_Tag.cc			\
+	security/Ciphersuite_BA5.cc		\
+	security/Ciphersuite_PI6.cc		\
+	security/Ciphersuite_PC7.cc		\
+	security/Ciphersuite_ES8.cc		\
+	security/Ciphersuite_BA9.cc		\
+	security/Ciphersuite_PI10.cc		\
+	security/Ciphersuite_PC11.cc		\
+	security/Ciphersuite_ES12.cc		\
+	security/ECDH.cc			\
+	security/cms_structs.cc			\
 	security/KeyDB.cc			\
-	security/SPD.cc				\
-	security/KeySteward.cc			\
+	security/EVP_PK.cc			\
+	security/SecurityConfig.cc		\
+	security/BundleSecurityConfig.cc	\
 	gcm/gcm_aes.c				\
 	gcm/gcm.cc				\
 	gcm/gf128mul.cc				\

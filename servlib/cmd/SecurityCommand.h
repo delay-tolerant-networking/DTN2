@@ -41,6 +41,7 @@ private:
     bool is_a_pib(int num);
     bool is_a_pcb(int num);
     bool is_a_esb(int num);
+    bool is_a_eib(int num);
 };
 
 } // namespace dtn

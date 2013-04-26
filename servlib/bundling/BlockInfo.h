@@ -22,9 +22,12 @@
 #include <oasys/serialize/SerializableVector.h>
 #include <oasys/util/ScratchBuffer.h>
 
+#include "security/BSPProtectionInfo.h"
+
 #include "BP_Local.h"
 #include "Dictionary.h"
 #include "contacts/Link.h"
+#include <string>
 
 namespace dtn {
 
@@ -107,6 +110,10 @@ public:
     /// Virtual from SerializableObject
     virtual void serialize(oasys::SerializeAction* action);
 
+#ifdef BSP_ENABLED
+    oasys::SerializableVector<BSPProtectionInfo> bsp;
+    uint8_t original_block_type;
+#endif
 protected:
     BlockProcessor*  owner_;       ///< Owner of this block
     u_int16_t        owner_type_;  ///< Extracted from owner

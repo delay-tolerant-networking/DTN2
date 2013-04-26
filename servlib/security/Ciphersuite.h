@@ -24,14 +24,19 @@
 
 namespace dtn {
 
+struct PrimaryBlock_ex;
+
 class BP_Local_CS;
 
 /**
  * Block processor superclass for ciphersutes
  * This level handles suite registration and
- * similar activities but no specific work
+ * similar activities.  It provides code to check whether a bundle
+ * satisifes a rule, and various helper methods for the individual
+ * ciphersuites.
  */
     class Ciphersuite {
+        friend class BP_Local_CS;
 public:
     /// For local binary (non-string) stuff we use
     /// a scratch buffer but with minimal initial allocation
@@ -54,20 +59,7 @@ public:
         CS_BLOCK_HAS_RESULT      = 0x01
     } ciphersuite_flags_t;
     
-    /**
-     * Values for flags that appear in the 
-     * proc_flags_ field.
-     */
-    typedef enum {
-        CS_BLOCK_RESERVED0                      = 0x01,
-        CS_BLOCK_PROCESSED                      = 0x02,
-        CS_BLOCK_DID_NOT_FAIL                   = 0x04,
-        CS_BLOCK_FAILED_VALIDATION              = 0x08,
-        CS_BLOCK_PASSED_VALIDATION              = 0x10,
-        CS_BLOCK_COMPLETED_DO_NOT_FORWARD       = 0x20,
-        CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND  = 0x40
-    } proc_flags_t;
-    
+   
     /**
      * Values for security types that appear in the 
      * ciphersuite parameters and results fields.
@@ -80,126 +72,98 @@ public:
         CS_fragment_offset_and_length_field =  4,
         CS_signature_field                  =  5,
         CS_reserved6                        =  6,
-        CS_PC_block_salt                    =  7,
+        CS_salt_field                       =  7,
         CS_PC_block_ICV_field               =  8,
         CS_reserved9                        =  9,
         CS_encap_block_field                = 10,
         CS_reserved11                       = 11
     } ciphersuite_fields_t;
     
-    /// Constructor
     Ciphersuite();
     Ciphersuite(SecurityConfig *config);
-
-    /**
-     * Virtual destructor.
-     */
     virtual ~Ciphersuite();
 
+    // This deletes the security config, to avoid
+    // memory leaks on shutdown.  These are unimportant, but make
+    // using valgrind to locate important ones harder.
+    static void shutdown(void);
+   
+    // Add a ciphersuite to the list of registered ciphersuites.
     static void register_ciphersuite(Ciphersuite* cs);
 
+    // Return a pointer to a ciphersuite (assuming it is registered)
+    // given its ciphersuite number.  This is how the block processors
+    // locate the ciphersuites at each stage of processing.
     static Ciphersuite* find_suite(u_int16_t num);
 
+    // Register all the ciphersuites we know about.
     static void init_default_ciphersuites(void);
 
-    static void shutdown(void);
-    
-    virtual u_int16_t cs_num();
+    // This allows helper methods (either declared here or in abstract
+    // children of this class) to refer to the ciphersuite number of
+    // the current ciphersuite calling them.
+    virtual u_int16_t cs_num() = 0;
 
-    virtual size_t    result_len()  { return 0; }
-    
+    // Create a BP_Local_CS locals value for the block, given the raw
+    // contents (for blocks we've received).  
     static void parse(BlockInfo* block);
-    
+
     /**
-     * First callback for parsing blocks that is expected to append a
-     * chunk of the given data to the given block. When the block is
-     * completely received, this should also parse the block into any
-     * fields in the bundle class.
-     *
-     * The base class implementation parses the block preamble fields
-     * to find the length of the block and copies the preamble and the
-     * data in the block's contents buffer.
-     *
-     * This and all derived implementations must be able to handle a
-     * block that is received in chunks, including cases where the
-     * preamble is split into multiple chunks.
-     *
-     * @return the amount of data consumed or -1 on error
-     */
+     * The following methods correspond to the callback methods that 
+     * block processors define.  The security block processors will call 
+     * the ciphersuite's version of these methods if the block has a known
+     * ciphersuite type.
+     */ 
+    
     virtual int consume(Bundle* bundle, BlockInfo* block,
-                        u_char* buf, size_t len) = 0;
+                        u_char* buf, size_t len);
 
     virtual int reload_post_process(Bundle*       bundle,
                                     BlockInfoVec* block_list,
                                     BlockInfo*    block);
 
-    /**
-     * Validate the block. This is called after all blocks in the
-     * bundle have been fully received.
-     *
-     * @return true if the block passes validation
-     */
     virtual bool validate(const Bundle*           bundle,
                           BlockInfoVec*           block_list,
                           BlockInfo*              block,
                           status_report_reason_t* reception_reason,
                           status_report_reason_t* deletion_reason) = 0;
 
-    /**
-     * First callback to generate blocks for the output pass. The
-     * function is expected to initialize an appropriate BlockInfo
-     * structure in the given BlockInfoVec.
-     *
-     * The base class simply initializes an empty BlockInfo with the
-     * appropriate owner_ pointer.
-     */
     virtual int prepare(const Bundle*    bundle,
                         BlockInfoVec*    xmit_blocks,
                         const BlockInfo* source,
                         const LinkRef&   link,
                         list_owner_t     list) = 0;
     
-    /**
-     * Second callback for transmitting a bundle. This pass should
-     * generate any data for the block that does not depend on other
-     * blocks' contents.  It MUST add any EID references it needs by
-     * calling block->add_eid(), then call generate_preamble(), which
-     * will add the EIDs to the primary block's dictionary and write
-     * their offsets to this block's preamble.
-     */
     virtual int generate(const Bundle*  bundle,
                          BlockInfoVec*  xmit_blocks,
                          BlockInfo*     block,
                          const LinkRef& link,
                          bool           last) = 0;
     
-    /**
-     * Third callback for transmitting a bundle. This pass should
-     * generate any data (such as security signatures) for the block
-     * that may depend on other blocks' contents.
-     *
-     * The base class implementation does nothing. 
-     * 
-     * We pass xmit_blocks explicitly to indicate that ALL blocks
-     * might be changed by finalize, typically by being encrypted.
-     * Parameters such as length might also change due to padding
-     * and encapsulation.
-     */
     virtual int finalize(const Bundle*  bundle, 
                          BlockInfoVec*  xmit_blocks, 
                          BlockInfo*     block, 
                          const LinkRef& link) = 0;
+    /** 
+      * End of the methods that correpsond to block processor callbacks
+      */
 
     /**
-     * Check the block list for validation flags for the
-     * specified ciphersuite
-     */
+      * Given a ciphersuite number, a security source, and a security
+      * destination, this checks whether the bundle has a BSP block
+      * with that ciphersuite number, security source, and security
+      * destination.  The security source/destination can be
+      * wildcarded, or NULL.  These correspond to the security rules
+      * that can be set in TCL and the meanings are the same.
+      */
     static bool check_validation(const Bundle*        bundle, 
                                  const BlockInfoVec*  block_list, 
-                                 u_int16_t            num);
+                                 u_int16_t            num,
+                                 EndpointIDPatternNULL &src,
+                                 EndpointIDPatternNULL &dest);
                                  
     /**
-     * Ccreate a correlator for this block-list. Include part
+     * Create a correlator for this block-list. Include part
      * of the fragment-offset is this bundle is a fragment.
      */
     static u_int64_t create_correlator(const Bundle*        bundle, 
@@ -214,23 +178,76 @@ public:
 
     static bool destination_is_local_node(const Bundle*    bundle,
                                           const BlockInfo* block);
+
+    // SecurityConfig uses these in deciding whether a bundle's
+    // security configuration is "consistent."  These find the
+    // outermost security destination when there are layers of
+    // encapsulated payloads or encapsulted extension blocks.
+    // find_last_secdeste is conceptually broken, because each
+    // extension block may have its own outermost destination.  We
+    // actually need to run this per extension block we intend to
+    // encapsulate.
+    static EndpointID find_last_secdestp(const Bundle *bundle);
+    static EndpointID find_last_secdeste(const Bundle *bundle);
     
-    
+    // Creates a new locals variable for the block if it doesn't
+    // currently have one. 
     virtual void init_locals(BlockInfo* block);
 
+    // Convenience method for the individual ciphersuites.  This is
+    // used to create a new outgoing block from an incoming block by
+    // copying block->source() to block.  
+    // It calls generate preamble using values from block->source() and
+    // copies the contents buffer from block->source();
+    // This is called in ciphersuites' generate methods on blocks with
+    // list type LIST_RECEIVED.  It pays no attention to BP_Local_CS
+    // values, it just copies the block as opaque data.
+    static int copy_block_untouched(BlockInfo *block, BlockInfoVec *xmit_blocks, bool last);
+
+    // Convenience method that checks whether the block's security
+    // destination matches our local eid.
+    static bool we_are_block_sec_dest(const BlockInfo *source);
+
+    // Convenience method for the ciphersuites and block processors.
+    // This sets the csnum, eid_list, list_owner, and security
+    // src/dest of bi from source, csnum, and list.   This is normally used in
+    // block processors or ciphersuites prepare methods.
+    static int create_bsp_block_from_source(BlockInfo &bi,const Bundle *bundle, const BlockInfo *source, BlockInfo::list_owner_t list, int csnum);
+
+
+    // Convenience methods to produce a string representation of a
+    // memory buffer as a string of hex digits.  These are used for
+    // logging.
+    static string buf2str(const u_char *buf, size_t len);
+    static string buf2str(const LocalBuffer buf);
+    static string buf2str(const BlockInfo::DataBuffer buf);
+
+
+    // The global security config (anyone who wants it refers to it
+    // through us).
     static SecurityConfig *config;
     
 protected:
     
     /**
      * Generate the standard preamble for the given block type, flags,
-     * EID-list and content length.
+     * EID-list and content length.  This is a convenience method that
+     * calls the block processor generate_preamble method under the
+     * hood.
      */
-    void generate_preamble(BlockInfoVec*  xmit_blocks, 
+    static void generate_preamble(BlockInfoVec*  xmit_blocks, 
                            BlockInfo* block,
                            u_int8_t type,
                            u_int64_t flags,
                            u_int64_t data_length);
+
+
+    // this is a very clunky way to get the "base" portion of the eid.
+    static EndpointID base_portion(const EndpointID &in);
+private:
+    // Helper functions for check_validation (only called from there)
+    static bool check_esb_metadata(BlockInfoVec::const_iterator iter, EndpointIDPatternNULL src, EndpointIDPatternNULL dest, const Bundle *b, int csnum);
+    static bool check_src_dest_match(BP_Local_CS* locals, EndpointIDPatternNULL src, EndpointIDPatternNULL dest, const Bundle *bundle);
 
 
 private:
@@ -243,86 +260,6 @@ private:
     
     static bool inited;
 };
-
-class BP_Local_CS : public BP_Local {
-public:
-    /// Use the same LocalBuffer type as Ciphersuite
-    typedef Ciphersuite::LocalBuffer LocalBuffer;
-    
-    /**
-     * Constructor.
-     */
-    BP_Local_CS();
-    
-    /**
-     * Copy constructor.
-     */
-    BP_Local_CS(const BP_Local_CS&);
-    
-    /**
-     * Virtual destructor.
-     */
-    virtual ~BP_Local_CS();
-    
-    /// @{ Accessors
-    // need to think about which ones map to the locals and which
-    // are derived
-      
-    u_int16_t           cs_flags()               const { return cs_flags_; }
-    u_int16_t           owner_cs_num()           const { return owner_cs_num_; }
-    u_int32_t           security_result_offset() const { return security_result_offset_; }
-    u_int64_t           correlator()             const { return correlator_; }
-    u_int16_t           correlator_sequence()    const { return correlator_sequence_; }
-    const LocalBuffer&  key()                    const { return key_; }
-    const LocalBuffer&  salt()                   const { return salt_; }
-    const LocalBuffer&  iv()                     const { return iv_; }
-    const LocalBuffer&  security_params()        const { return security_params_; }
-    std::string         security_src()           const { return security_src_; }
-    std::string         security_dest()          const { return security_dest_; }
-    const LocalBuffer&  security_result()        const { return security_result_; }
-    BlockInfo::list_owner_t list_owner()         const { return list_owner_; }
-    u_int16_t           proc_flags()             const { return proc_flags_; }
-    bool                proc_flag(u_int16_t f)   const { return (proc_flags_ & f) != 0; }
-    /// @}
-
-
-    /// @{ Mutating accessors
-    void         set_cs_flags(u_int16_t f)            { cs_flags_ = f; }
-    void         set_owner_cs_num(u_int16_t n)        { owner_cs_num_ = n; }
-    void         set_security_result_offset(u_int64_t o){ security_result_offset_ = o; }
-    void         set_key(u_char* k, size_t len);
-    void         set_salt(u_char* s, size_t len);
-    void         set_iv(u_char* iv, size_t len);
-    void         set_correlator(u_int64_t c)          { correlator_ = c; }
-    void         set_correlator_sequence(u_int16_t c) { correlator_sequence_ = c; }
-    LocalBuffer* writable_security_params()           { return &security_params_; }    
-    void         set_security_src(std::string s)      { security_src_ = s; }
-    void         set_security_dest(std::string d)     { security_dest_ = d; }
-    LocalBuffer* writable_security_result()           { return &security_result_; }  
-    void         set_list_owner(BlockInfo::list_owner_t o) { list_owner_ = o; }
-    void         set_proc_flags(u_int16_t f)          { proc_flags_ = f; }
-    void         set_proc_flag(u_int16_t f)           { proc_flags_ |= f; }
-    /// @}
-
-    
-protected:
-    
-    u_int16_t               cs_flags_;
-    u_int16_t               correlator_sequence_;
-    u_int32_t               security_result_offset_;
-    u_int64_t               correlator_;
-    LocalBuffer             key_;    
-    LocalBuffer             iv_;    
-    LocalBuffer             salt_;    
-    LocalBuffer             security_params_;    
-    std::string             security_src_;
-    std::string             security_dest_;
-    LocalBuffer             security_result_;    
-    BlockInfo::list_owner_t list_owner_;
-    u_int16_t               owner_cs_num_; 
-    u_int16_t               proc_flags_;  ///< Flags tracking processing status etc
-
-};  /* BP_Local_CS */
 
 } // namespace dtn
 

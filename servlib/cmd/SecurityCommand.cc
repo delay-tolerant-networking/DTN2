@@ -28,36 +28,15 @@
 #include <oasys/util/Base16.h>
 
 #include "SecurityCommand.h"
-#include "security/SPD.h"
 #include "security/KeyDB.h"
 #include "security/Ciphersuite.h"
-#include "security/Ciphersuite_PI2.h"
-#include "security/Ciphersuite_PC3.h"
+
 
 namespace dtn {
 
 SecurityCommand::SecurityCommand()
     : TclCommand("security")
 {
-    add_to_help("outgoing <bab|pib|pcb|esb> <num>",
-    		    "Set the ciphersuites to use for each security block type.  Use 0 for none.");
-    add_to_help("outgoing reset",
-    		    "Turn off all outgoing BSP");
-    add_to_help("incoming <bab|pib|pcb> [allowed value 1] [allowed value 2] [etc]",
-    		    "Set the allowable incoming ciphersuites.  Use 0 to allow bundles without any BSP.");
-    add_to_help("incoming reset",
-    		    "Don't require any incoming BSP");
-    add_to_help("listpolicy",
-    		    "Display infomation on the incoming and outgoing ciphersuites");
-    add_to_help("listpaths",
-                "List the paths for the RSA private keys and public key certificates");
-    add_to_help("certdir <directory>",
-                "Set the directory where RSA certificates are stored");
-    add_to_help("privdir <directory>",
-                "Set the directory where RSA private keys are stored");
-    add_to_help("keypaths [ pub_keys_enc | priv_keys_dec | priv_keys_sig | pub_keys_ver ] <csnum> <filename> ",
-                "Set the filenames for RSA private keys and public key certificates. <NODE> may be used\n"
-    		    "in the filename and will be replaced with the EID.");
     add_to_help("setkey <host> <cs_num> <key>",
                 "Set the symmetric key to use for the specified host and ciphersuite\n"
                 "number.  <host> may also be the wildcard symbol \"*\".");
@@ -65,35 +44,29 @@ SecurityCommand::SecurityCommand()
                 "Dump the symmetric keys to the screen.");
     add_to_help("flushkeys",
                 "Erase all the symmetric keys.");
-}
-
-bool SecurityCommand::is_a_bab(int num) {
-            if(num != 1 && num != 0) {
-                resultf("%d must be one of 0, 1", num);
-                return false;
-            }
-            return true;
-}
-bool SecurityCommand::is_a_pcb(int num) {
-            if(num != 3 && num != 0) {
-                resultf("%d must be one of 0, 3", num);
-                return false;
-            }
-            return true;
-}
-bool SecurityCommand::is_a_pib(int num) {
-            if(num != 2 && num != 0) {
-                resultf("%d must be one of 0, 2", num);
-                return false;
-            }
-            return true;
-}
-bool SecurityCommand::is_a_esb(int num) {
-            if(num != 4 && num != 0) {
-                resultf("%d must be one of 0, 4", num);
-                return false;
-            }
-            return true;
+    add_to_help("certdir <directory>",
+                "Set the directory where RSA/EC certificates are stored");
+    add_to_help("privdir <directory>",
+                "Set the directory where RSA private keys are stored");
+    add_to_help("keypaths [ pub_keys_enc | priv_keys_dec | priv_keys_sig | pub_keys_ver ] <csnum> <filename> ",
+                "Set the filenames for RSA/EC private keys and public key certificates. <NODE> may be used\n"
+    		    "in the filename and will be replaced with the EID.");
+    add_to_help("listpaths",
+                "List the paths for the RSA private keys and public key certificates");
+    add_to_help("outgoing add <src id pattern> <dest id pattern> <sec dest> <csnum>",
+    		    "Add an outgoing rule");
+    add_to_help("outgoing reset",
+    		    "Turn off all outgoing BSP");
+    add_to_help("incoming add <src id pattern> <dest id pattern> <sec src pattern> <sec dest pattern> <csnum> [csnum] [csnum] ...",
+    		    "Add an incoming rule.");
+    add_to_help("outgoing del <rulenum>",
+                "Delete an outgoing rule");
+    add_to_help("incoming del <rulenum>",
+                "Delete an incoming rule");
+    add_to_help("incoming reset",
+    		    "Don't require any incoming BSP");
+    add_to_help("listpolicy",
+    		    "Display infomation on the incoming and outgoing ciphersuites");
 }
 
 int
@@ -109,82 +82,77 @@ SecurityCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     const char* cmd = argv[1];
 
    if(strcmp(cmd, "outgoing") == 0) {
-        if(argc == 3) {
-        	// this must be the command "security outgoing reset"
-        	if(strcmp(argv[2], "reset") != 0) {
-                wrong_num_args(argc, argv, 2, 4, 4);
-                return TCL_ERROR;
-        	} else { // turn off all outgoing security
-        		Ciphersuite::config->bab_out = 0;
-        		Ciphersuite::config->pib_out = 0;
-        		Ciphersuite::config->pcb_out = 0;
-        		Ciphersuite::config->esb_out = 0;
-                return TCL_OK;
-        	}
-        } else if(argc != 4) {
-            wrong_num_args(argc, argv, 2, 4, 4);
-            return TCL_ERROR;
-        }
-        int num = atoi(argv[3]);
-        if(strcmp(argv[2], "bab") == 0) {
-            if(!is_a_bab(num)) return TCL_ERROR;
-            Ciphersuite::config->bab_out = num;
-        } else if(strcmp(argv[2], "pib") == 0) {
-            if(!is_a_pib(num)) return TCL_ERROR;
-            Ciphersuite::config->pib_out = num;
-        } else if(strcmp(argv[2], "pcb") == 0) {
-            if(!is_a_pcb(num)) return TCL_ERROR;
-            Ciphersuite::config->pcb_out = num;
-        } else if(strcmp(argv[2], "esb") == 0) {
-            if(!is_a_esb(num)) return TCL_ERROR;
-            Ciphersuite::config->esb_out = num;
-        } else {
-            resultf("%s must be one of bab, pib, pcb, esb, or reset", argv[2]);
-            return TCL_ERROR;
-        }
+       if(argc < 3) {
+           wrong_num_args(argc, argv, 2, 3, 7);
+           return TCL_ERROR;
+       }
+       if(strcmp(argv[2], "reset") == 0) {
+           Ciphersuite::config->outgoing.clear();
+           return TCL_OK;
+       }
+       if(strcmp(argv[2], "del") == 0) {
+           if(argc != 4) {
+               wrong_num_args(argc, argv, 3, 4, 4);
+               return TCL_ERROR;
+            }
+            int num = atoi(argv[3]);
+            Ciphersuite::config->outgoing.erase(Ciphersuite::config->outgoing.begin()+num);
+            return TCL_OK;
+       }
+       if(strcmp(argv[2], "add") == 0) {
+           if(argc != 7) {
+               wrong_num_args(argc, argv, 3, 7, 7);
+               return TCL_ERROR;
+           }
+            OutgoingRule rule;
+            rule.src = EndpointIDPattern(argv[3]);
+            rule.dest = EndpointIDPattern(argv[4]);
+            rule.secdest = EndpointIDNULL(string(argv[5]));
+            rule.csnum = atoi(argv[6]);
+            Ciphersuite::config->outgoing.push_back(rule);
+            return TCL_OK;
+       }
+       resultf("subcommand must be one of add, del, reset");
+       return TCL_ERROR;
     } else if(strcmp(cmd, "incoming") == 0) {
-    	if(argc == 3) {
-    		// this must be the command "security incoming reset"
-    		if(strcmp(argv[2], "reset") != 0) {
-    			wrong_num_args(argc, argv, 2, 3, 0);
-    			return TCL_ERROR;
-    		} else { // turn off all incoming security
-                Ciphersuite::config->allowed_babs_in.clear();
-                Ciphersuite::config->allowed_babs_in.insert(0);
-                Ciphersuite::config->allowed_pcbs_in.clear();
-                Ciphersuite::config->allowed_pcbs_in.insert(0);
-                Ciphersuite::config->allowed_pibs_in.clear();
-                Ciphersuite::config->allowed_pibs_in.insert(0);
-                return TCL_OK;
-    		}
-    	} else if(argc < 4) {
-            wrong_num_args(argc, argv, 2, 3, 0);
-            return TCL_ERROR;
-        }
-        set<int> *numbers;
-        if(strcmp(argv[2], "bab") == 0) {
-            numbers = &Ciphersuite::config->allowed_babs_in;
-            for(int i=3;i<argc;i++) {
-                if(!is_a_bab(atoi(argv[i]))) return TCL_ERROR;
+       if(argc < 3) {
+           wrong_num_args(argc, argv, 2, 3, 7);
+           return TCL_ERROR;
+       }
+       if(strcmp(argv[2], "reset") == 0) {
+           Ciphersuite::config->incoming.clear();
+           return TCL_OK;
+       }
+       if(strcmp(argv[2], "del") == 0) {
+           if(argc != 4) {
+               wrong_num_args(argc, argv, 3, 4, 4);
+               return TCL_ERROR;
             }
-        } else if(strcmp(argv[2], "pib") == 0){
-            numbers = &Ciphersuite::config->allowed_pibs_in;
-            for(int i=3;i<argc;i++) {
-                if(!is_a_pib(atoi(argv[i]))) return TCL_ERROR;
+            int num = atoi(argv[3]);
+            Ciphersuite::config->incoming.erase(Ciphersuite::config->incoming.begin()+num);
+            return TCL_OK;
+       }
+       if(strcmp(argv[2], "add") == 0) {
+           if(argc < 7) {
+               wrong_num_args(argc, argv, 3, 8, 0);
+               return TCL_ERROR;
+           }
+            IncomingRule rule;
+            rule.src = EndpointIDPattern(argv[3]);
+            rule.dest = EndpointIDPattern(argv[4]);
+            rule.secsrc = EndpointIDPatternNULL(string(argv[5]));
+            rule.secdest = EndpointIDPatternNULL(string(argv[6]));
+            set<int> csnums;
+            for(int i=7;i<argc;i++) {
+                csnums.insert(atoi(argv[i]));
             }
-        } else if(strcmp(argv[2], "pcb") == 0){
-            for(int i=3;i<argc;i++) {
-                if(!is_a_pcb(atoi(argv[i]))) return TCL_ERROR;
-            }
-            numbers = &Ciphersuite::config->allowed_pcbs_in;
-        } else {
-            resultf("%s must be one of bab, pib, pcb, reset", argv[2]);
-            return TCL_ERROR;
-        }
-        numbers->clear();
-        for(int i=3;i<argc;i++) {
-            numbers->insert(atoi(argv[i]));
-        }
+            rule.csnums = csnums;
+            Ciphersuite::config->incoming.push_back(rule);
+            return TCL_OK;
+       }
+       resultf("subcommand must be one of add, del, reset");
+       return TCL_ERROR;
+ 
     } else if(strcmp(cmd, "listpolicy") == 0) {
         set_result(Ciphersuite::config->list_policy().c_str());
 
@@ -306,7 +274,7 @@ SecurityCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     	 map<int, string> pub_keys_ver;
     	 map<int, string> priv_keys_sig;
     	 map<int, string> priv_keys_dec;
-         */
+            */
         if(strcmp(map, "priv_keys_dec")==0) {
         	Ciphersuite::config->priv_keys_dec[csnum] = string(filename);
         } else if(strcmp(map, "pub_keys_ver")==0) {

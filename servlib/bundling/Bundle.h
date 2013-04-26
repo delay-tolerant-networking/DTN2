@@ -35,7 +35,7 @@
 #include "MetadataBlock.h"
 #include "SequenceID.h"
 #include "naming/EndpointID.h"
-#include "security/SecurityPolicy.h"
+#include "security/BundleSecurityConfig.h"
 #include "security/Ciphersuite.h"
 
 typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
@@ -244,7 +244,7 @@ public:
     const MetadataVec& recv_metadata()    const { return recv_metadata_; }
     const LinkMetadataSet& generated_metadata() const { return generated_metadata_; }
 #ifdef BSP_ENABLED
-    const SecurityPolicy& security_policy() const {return security_policy_;}
+    const BundleSecurityConfig& security_config() const {return security_config_;}
     const u_char *payload_bek() const {return payload_bek_;}
     const u_char * payload_iv() const {return payload_iv_;}
     const u_char * payload_salt() const {return payload_salt_;}
@@ -308,6 +308,9 @@ public:
     }
 #ifdef BSP_ENABLED
     void set_payload_bek(u_char *bek, u_int32_t bek_len, u_char *iv, u_char *salt) {
+        if(payload_bek_!=NULL) {
+            free(payload_bek_);
+        }
         payload_bek_ = (u_char *)malloc(bek_len);
         payload_bek_len_ = bek_len;
         memcpy(payload_bek_, bek, bek_len);
@@ -321,6 +324,10 @@ public:
     void set_payload_tag(u_char *tag) {
         memcpy(payload_tag_, tag, 16);
     }
+    BundleSecurityConfig* mutable_security_config() {
+        return &security_config_;
+    }
+
 #endif
 
     void set_age(u_int64_t a)          { age_ = a; } ///< [AEB] set age
@@ -366,7 +373,7 @@ private:
     u_char payload_tag_[16];
     bool payload_encrypted_;
     bool payload_bek_set_;
-    SecurityPolicy security_policy_; ///The security policy that applies to this particular bundle
+    BundleSecurityConfig security_config_; ///The security config that applies to this particular bundle
 #endif
     
     u_int64_t age_;             ///< Age of our bundle [AEB]

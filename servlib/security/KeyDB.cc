@@ -30,6 +30,7 @@
 
 #include "KeyDB.h"
 #include "Ciphersuite.h"
+#include "Ciphersuite_BA.h"
 
 template <>
 dtn::KeyDB* oasys::Singleton<dtn::KeyDB, false>::instance_ = NULL;
@@ -101,8 +102,14 @@ KeyDB::find_key(const char* host, u_int16_t cs_num)
 
     for (iter = keys.begin(); iter != keys.end(); iter++)
     {
-        if (iter->match_wildcard(host, cs_num))
+        if (iter->match_wildcard(host, cs_num)) {
+            oasys::StringBuffer *buf;
+            buf = new oasys::StringBuffer();
+            iter->dump(buf);
+            log_debug_p(log, "KeyDB::find_key returning %s",buf->c_str());
+            delete buf;
             return &(*iter);
+        }
     }
     
     // not found
@@ -153,25 +160,27 @@ KeyDB::dump_header(oasys::StringBuffer* buf)
 }
 
 /// Validate the specified ciphersuite number (see if it corresponds
-/// to a registered ciphersuite).
+/// to a registered BAB ciphersuite).
 bool
 KeyDB::validate_cs_num(u_int16_t cs_num)
 {
-    return (Ciphersuite::find_suite(cs_num) != NULL);
+    return (Ciphersuite::find_suite(cs_num) != NULL) && (Ciphersuite::config->get_block_type(cs_num) == BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK);
 }
 
 bool
 KeyDB::validate_key_len(u_int16_t cs_num, size_t* key_len)
 {
-    Ciphersuite* cs =
-        dynamic_cast<Ciphersuite*>(Ciphersuite::find_suite(cs_num));
+    if(Ciphersuite::config->get_block_type(cs_num) != BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK) {
+        return false;
+    }
+    Ciphersuite_BA* cs =
+        dynamic_cast<Ciphersuite_BA*>(Ciphersuite::find_suite(cs_num));
     if (cs == NULL)
         return false;
     if (*key_len != cs->result_len()) {
         *key_len = cs->result_len();
         return false;
     }
-
     return true;
 }
 

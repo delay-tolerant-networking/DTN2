@@ -22,6 +22,7 @@
 #include "BlockInfo.h"
 #include "BlockProcessor.h"
 #include "APIBlockProcessor.h"
+#include "UnknownBlockProcessor.h"
 #include "BundleProtocol.h"
 #include "SDNV.h"
 
@@ -30,6 +31,9 @@ namespace dtn {
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
     : SerializableObject(),
+#ifdef BSP_ENABLED
+      original_block_type(0),
+#endif
       owner_(owner),
       owner_type_(owner->block_type()),
       source_(source),
@@ -40,13 +44,22 @@ BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
       data_offset_(0),
       complete_(false),
       reloaded_(false)
+
 {
     eid_list_.clear();
+#ifdef BSP_ENABLED
+    if(source != NULL) {
+        bsp = source->bsp;
+    }
+#endif
 }
 
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(oasys::Builder& builder)
     : SerializableObject(),
+#ifdef BSP_ENABLED
+      original_block_type(0),
+#endif
       owner_(NULL),
       owner_type_(0),
       source_(NULL),
@@ -64,6 +77,10 @@ BlockInfo::BlockInfo(oasys::Builder& builder)
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(const BlockInfo &bi)
     : SerializableObject(),
+#ifdef BSP_ENABLED
+      bsp(bi.bsp),
+      original_block_type(bi.original_block_type),
+#endif
       owner_(bi.owner_),
       owner_type_(bi.owner_type_),
       source_(bi.source_),
@@ -108,9 +125,9 @@ BlockInfo::type() const
     (void)data;
     if (owner_ != NULL)
         ASSERT(contents_.buf()[0] == owner_->block_type()
-                || owner_->block_type() == BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK
-                || owner_->block_type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK
-				|| owner_->block_type() == BundleProtocol::CONFIDENTIALITY_BLOCK
+      //         || owner_->block_type() == BundleProtocol::CONFIDENTIALITY_BLOCK
+      //         || owner_->block_type() == BundleProtocol::PAYLOAD_SECURITY_BLOCK
+      //         || owner_->block_type() == BundleProtocol::EXTENSION_SECURITY_BLOCK
                 || owner_->block_type() == BundleProtocol::PREVIOUS_HOP_BLOCK
                 || owner_->block_type() == BundleProtocol::METADATA_BLOCK
                 || owner_->block_type() == BundleProtocol::EXTENSION_SECURITY_BLOCK
@@ -170,6 +187,8 @@ BlockInfo::serialize(oasys::SerializeAction* a)
         // need to re-assign the owner
         if (owner_type_ == BundleProtocol::API_EXTENSION_BLOCK) {
             owner_ = APIBlockProcessor::instance();
+        } else if(owner_type_ == BundleProtocol::UNKNOWN_BLOCK) {
+            owner_ = UnknownBlockProcessor::instance();
         } else {
             owner_ = BundleProtocol::find_processor(owner_type_);
         }
@@ -190,6 +209,10 @@ BlockInfo::serialize(oasys::SerializeAction* a)
     a->process("data_offset", &data_offset_);
     a->process("complete", &complete_);
     a->process("eid_list", &eid_list_);
+#ifdef BSP_ENABLED
+    a->process("bsp", &bsp);
+    a->process("original_block_type", &original_block_type);
+#endif
 }
 
 //----------------------------------------------------------------------

@@ -174,6 +174,7 @@ Registration::serialize(oasys::SerializeAction* a)
     a->process("script", &script_);
     a->process("creation_time", &creation_time_);
     a->process("expiration", &expiration_);
+    a->process("delivery_acking", &delivery_acking_);
 
     // finish constructing the object after unserialization
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {

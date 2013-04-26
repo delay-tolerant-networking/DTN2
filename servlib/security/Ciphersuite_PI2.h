@@ -22,126 +22,32 @@
 #include <oasys/util/ScratchBuffer.h>
 #include "bundling/BlockProcessor.h"
 #include "PI_BlockProcessor.h"
+#include "Ciphersuite_PI.h"
 
 namespace dtn {
-
-struct PrimaryBlock_ex;
 
 /**
  * Block processor implementation for the bundle authentication block.
  */
-class Ciphersuite_PI2 : public Ciphersuite {
+class Ciphersuite_PI2 : public Ciphersuite_PI {
 public:
-    typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
+    typedef Ciphersuite::LocalBuffer LocalBuffer;
 
-    /// Constructor
-    Ciphersuite_PI2();
-    
-    virtual u_int16_t cs_num();
-    
-    /// @{ Virtual from BlockProcessor
-    /**
-     * First callback for parsing blocks that is expected to append a
-     * chunk of the given data to the given block. When the block is
-     * completely received, this should also parse the block into any
-     * fields in the bundle class.
-     *
-     * The base class implementation parses the block preamble fields
-     * to find the length of the block and copies the preamble and the
-     * data in the block's contents buffer.
-     *
-     * This and all derived implementations must be able to handle a
-     * block that is received in chunks, including cases where the
-     * preamble is split into multiple chunks.
-     *
-     * @return the amount of data consumed or -1 on error
-     */
-    virtual int consume(Bundle*    bundle,
-                        BlockInfo* block,
-                        u_char*    buf,
-                        size_t     len);
+    const static int CSNUM_PI = 2;      
 
-    /**
-     * Validate the block. This is called after all blocks in the
-     * bundle have been fully received.
-     *
-     * @return true if the block passes validation
-     */
-    virtual bool validate(const Bundle*           bundle,
-                          BlockInfoVec*           block_list,
-                          BlockInfo*              block,
-                          status_report_reason_t* reception_reason,
-                          status_report_reason_t* deletion_reason);
+    virtual u_int16_t cs_num() {
+        return CSNUM_PI;
+    };
 
-    /**
-     * First callback to generate blocks for the output pass. The
-     * function is expected to initialize an appropriate BlockInfo
-     * structure in the given BlockInfoVec.
-     *
-     * The base class simply initializes an empty BlockInfo with the
-     * appropriate owner_ pointer.
-     */
-    virtual int prepare(const Bundle*    bundle,
-                        BlockInfoVec*    xmit_blocks,
-                        const BlockInfo* source,
-                        const LinkRef&   link,
-                        list_owner_t     list);
-    
-    /**
-     * Second callback for transmitting a bundle. This pass should
-     * generate any data for the block that does not depend on other
-     * blocks' contents.
-     */
-    virtual int generate(const Bundle*  bundle,
-                         BlockInfoVec*  xmit_blocks,
-                         BlockInfo*     block,
-                         const LinkRef& link,
-                         bool           last);
-    
-    /**
-     * Third callback for transmitting a bundle. This pass should
-     * generate any data (such as security signatures) for the block
-     * that may depend on other blocks' contents.
-     *
-     * The base class implementation does nothing. 
-     */
-    virtual int finalize(const Bundle*  bundle, 
-                         BlockInfoVec*  xmit_blocks, 
-                         BlockInfo*     block, 
-                         const LinkRef& link);
+    virtual u_int16_t hash_len() { 
+        return 256;
+    };
 
-    /**
-     * Callback for digesting data. 
-     */
-    static void digest(const Bundle*    bundle,
-                       const BlockInfo* caller_block,
-                       const BlockInfo* target_block,
-                       const void*      buf,
-                       size_t           len,
-                       OpaqueContext*   r);
+private:
+    virtual int calculate_signature_length(std::string sec_src,
+                             	 	 	size_t          digest_len);
 
-    /**
-     * Internal call for digesting data. 
-     */
-    static void create_digest(const Bundle* bundle,
-                              BlockInfoVec* block_list,
-                              BlockInfo*    block,
-                              DataBuffer&   db);
-
-    /**
-     * Internal call to interpret primary block fields
-     */
-    static int read_primary(const Bundle*     bundle,
-                            BlockInfo*        block,
-                            PrimaryBlock_ex&  primary,
-                            char**            dict);
-    
-    /**
-     * Ciphersuite number
-     */
-    enum { CSNUM_PI2 = 2 };      
-    
-    /// @}
+   
 };
 
 } // namespace dtn

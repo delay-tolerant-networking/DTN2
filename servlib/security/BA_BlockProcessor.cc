@@ -28,80 +28,19 @@
 
 namespace dtn {
 
-static const char * log = "/dtn/bundle/ciphersuite";
+static const char* log = "/dtn/bundle/ciphersuite";
 
 //----------------------------------------------------------------------
 BA_BlockProcessor::BA_BlockProcessor()
-    : BlockProcessor(BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK)
+    : AS_BlockProcessor(BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK)
 {
 }
 
 //----------------------------------------------------------------------
-int
-BA_BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
-                           u_char* buf, size_t len)
-{
-    int cc = BlockProcessor::consume(bundle, block, buf, len);
-
-    if (cc == -1) {
-        return -1; // protocol error
-    }
-    
-    
-    // in on-the-fly scenario, process this data for those interested
-    
-    if (! block->complete()) {
-        ASSERT(cc == (int)len);
-        return cc;
-    }
-
-    if ( block->locals() == NULL ) {      // then we need to parse it
-        Ciphersuite::parse(block);
-    }
-    
-    return cc;
+int BA_BlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *block) {
+    buf->append("BAB ");
+    return AS_BlockProcessor::format(buf, block);
 }
-
-//----------------------------------------------------------------------
-int
-BA_BlockProcessor::reload_post_process(Bundle*       bundle,
-                                       BlockInfoVec* block_list,
-                                       BlockInfo*    block)
-{
-
-    // Received blocks might be stored and reloaded and
-    // some fields aren't reset.
-    // This allows BlockProcessors to reestablish what they
-    // need
-    
-    Ciphersuite*    p = NULL;
-    int     err = 0;
-    int     type = 0;
-    BP_Local_CS*    locals;
-    
-    if ( ! block->reloaded() )
-        return 0;
-        
-    type = block->type();
-    log_debug_p(log, "BA_BlockProcessor::reload block type %d", type);
-    
-    Ciphersuite::parse(block);
-    locals = dynamic_cast<BP_Local_CS*>(block->locals());
-    CS_FAIL_IF_NULL(locals);
-
-    p = Ciphersuite::find_suite( locals->owner_cs_num() );
-    if ( p != NULL ) 
-        err = p->reload_post_process(bundle, block_list, block);
-    
-    block->set_reloaded(false);
-    return err;
-
- fail:
-    if ( locals !=  NULL )
-        locals->set_proc_flag(Ciphersuite::CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
-    return BP_FAIL;
-}
-
 //----------------------------------------------------------------------
 bool
 BA_BlockProcessor::validate(const Bundle*           bundle,
@@ -116,23 +55,21 @@ BA_BlockProcessor::validate(const Bundle*           bundle,
     (void)reception_reason;
 
     Ciphersuite*    p = NULL;
-    u_int16_t       cs_flags = 0;
     EndpointID        local_eid = BundleDaemon::instance()->local_eid();
     BP_Local_CS*    locals = dynamic_cast<BP_Local_CS*>(block->locals());
     bool            result = false;
 
     CS_FAIL_IF_NULL(locals);
 
-    log_debug_p(log, "BA_BlockProcessor::validate() %p ciphersuite %d",
+    log_debug_p(log, "BA_BlockProcessor::validate: %p ciphersuite %d",
                 block, locals->owner_cs_num());
-    cs_flags = locals->cs_flags();
     
     p = Ciphersuite::find_suite( locals->owner_cs_num() );
     if ( p != NULL ) {
         result = p->validate(bundle, block_list, block,
                              reception_reason, deletion_reason);
     } else {
-        log_err_p(log, "block failed security validation BA_BlockProcessor");
+        log_err_p(log, "BA_BlockProcessor::validate: block failed security validation BA_BlockProcessor");
         *deletion_reason = BundleProtocol::REASON_SECURITY_FAILED;
     }
 
@@ -140,9 +77,6 @@ BA_BlockProcessor::validate(const Bundle*           bundle,
 
 
  fail:
-    if ( locals !=  NULL )
-        locals->set_proc_flag(Ciphersuite::CS_BLOCK_FAILED_VALIDATION |
-                              Ciphersuite::CS_BLOCK_COMPLETED_DO_NOT_FORWARD);
     
     *deletion_reason = BundleProtocol::REASON_SECURITY_FAILED;
     return false;
@@ -162,14 +96,16 @@ BA_BlockProcessor::prepare(const Bundle*    bundle,
 
     Ciphersuite*    p = NULL;
     int             result = BP_FAIL;
-    
-    if ( list == BlockInfo::LIST_NONE || source == NULL )
-        return BP_SUCCESS;
+
+
+    if ( list == BlockInfo::LIST_NONE || source == NULL ) {
+    	return BP_SUCCESS;
+    }
     
     BP_Local_CS*    locals = dynamic_cast<BP_Local_CS*>(source->locals());
     CS_FAIL_IF_NULL(locals);
-        
-    log_debug_p(log, "BA_BlockProcessor::prepare() ciphersuite %d",
+
+    log_debug_p(log, "BA_BlockProcessor::prepare: ciphersuite %d",
                 locals->owner_cs_num());
 
     switch ( list ) {
@@ -192,21 +128,18 @@ BA_BlockProcessor::prepare(const Bundle*    bundle,
         }
         break;
         
-//        case BlockInfo::LIST_NONE:       //can't handle this as generic BA
-//        case BlockInfo::LIST_RECEIVED:   //don't forward received BA blocks
     default:
-        log_debug_p(log, "BA_BlockProcessor::prepare: We landed in the defaiult case");
+        log_debug_p(log, "BA_BlockProcessor::prepare: We landed in the default case");
         return BP_SUCCESS;
         break;
             
     }
     
     
+    
     return result;
 
  fail:
-    if ( locals !=  NULL )
-        locals->set_proc_flag(Ciphersuite::CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
     return BP_FAIL;
 }
 
@@ -233,48 +166,14 @@ BA_BlockProcessor::generate(const Bundle*  bundle,
     p = Ciphersuite::find_suite( locals->owner_cs_num() );
     if ( p != NULL ) {
         result = p->generate(bundle, xmit_blocks, block, link, last);
-    } else 
-        log_err_p(log, "BA_BlockProcessor::generate() - ciphersuite %d is missing",
+    } else {
+        log_err_p(log, "BA_BlockProcessor::generate: - ciphersuite %d is missing",
                   locals->owner_cs_num());
+    }
     
     return result;
 
  fail:
-    if ( locals !=  NULL )
-        locals->set_proc_flag(Ciphersuite::CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
-    return BP_FAIL;
-}
-
-//----------------------------------------------------------------------
-int
-BA_BlockProcessor::finalize(const Bundle*  bundle, 
-                            BlockInfoVec*  xmit_blocks,
-                            BlockInfo*     block, 
-                            const LinkRef& link)
-{
-    (void)bundle;
-    (void)xmit_blocks;
-    (void)link;
-    (void)block;
-    
-    Ciphersuite* p = NULL;
-    int          result = BP_FAIL;
-    
-    BP_Local_CS*    locals = dynamic_cast<BP_Local_CS*>(block->locals());
-    CS_FAIL_IF_NULL(locals);
-
-    p = Ciphersuite::find_suite( locals->owner_cs_num() );
-    if ( p != NULL ) {
-        result = p->finalize(bundle, xmit_blocks, block, link);
-    } else 
-        log_err_p(log, "BA_BlockProcessor::finalize() - ciphersuite %d is missing",
-                  locals->owner_cs_num());
-    
-    return result;
-
- fail:
-    if ( locals !=  NULL )
-        locals->set_proc_flag(Ciphersuite::CS_BLOCK_PROCESSING_FAILED_DO_NOT_SEND);
     return BP_FAIL;
 }
 

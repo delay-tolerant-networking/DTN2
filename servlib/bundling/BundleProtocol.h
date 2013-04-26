@@ -183,10 +183,10 @@ public:
         CONFIDENTIALITY_BLOCK       = 0x004, ///< Defined in RFC6257
         PREVIOUS_HOP_BLOCK          = 0x005, ///< Defined in RFC6259
         METADATA_BLOCK              = 0x008, ///< Defined in RFC6258
-        EXTENSION_SECURITY_BLOCK    = 0x009, ///< Defined in RFC6257
-        SESSION_BLOCK               = 0x00c, ///< NOT IN SPEC YET
+        EXTENSION_SECURITY_BLOCK    = 0x009, /// Defined in RFC6257        
         AGE_BLOCK                   = 0x00a, ///< draft-irtf-dtnrg-bundle-age-block-01
         QUERY_EXTENSION_BLOCK       = 0x00b, ///< draft-irtf-dtnrg-bpq-00
+	SESSION_BLOCK               = 0x00c, ///< NOT IN SPEC YET
         SEQUENCE_ID_BLOCK           = 0x010, ///< NOT IN SPEC YET
         OBSOLETES_ID_BLOCK          = 0x011, ///< NOT IN SPEC YET
         API_EXTENSION_BLOCK         = 0x100, ///< INTERNAL ONLY -- NOT IN SPEC

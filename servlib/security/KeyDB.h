@@ -52,8 +52,9 @@ public:
      * Startup-time initializer.
      */
     static void init();
-    static void shutdown();
 
+
+    static void shutdown();
     /**
      * Set the key for a given host and ciphersuite type.  This will
      * overwrite any existing entry for the same host/ciphersuite.
@@ -94,7 +95,7 @@ public:
 
     /**
      * Validate the specified ciphersuite number (see if it
-     * corresponds to a registered ciphersuite).
+     * corresponds to a registered BAB ciphersuite).
      */
     static bool validate_cs_num(u_int16_t cs_num);
 

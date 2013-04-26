@@ -1489,6 +1489,7 @@ APIClient::handle_recv()
                                data_len;
         void * buf = malloc(buf_len);
         memset(buf, 0, buf_len);
+        log_debug("Block found on recv_blocks");
 
         dtn_extension_block_t * bp = (dtn_extension_block_t *)buf;
         char * dp = (char*)buf + (blocks_found * sizeof(dtn_extension_block_t));
@@ -1504,6 +1505,11 @@ APIClient::handle_recv()
             bp->data.data_len = b->recv_blocks()[i].data_length();
             bp->data.data_val = dp;
             memcpy(dp, b->recv_blocks()[i].data(), bp->data.data_len);
+            if(bp->data.data_len < 120) {
+                log_debug("Extension block data = %s", bp->data.data_val);
+            } else {
+                log_debug("Extension block data is longer than 120 bytes");
+            }
 
             // These 2 lines were swapped before, causing problems with multiple extension blocks
             dp += bp->data.data_len;
@@ -1814,8 +1820,15 @@ APIClient::handle_peek()
             bp->data.data_val = dp;
             memcpy(dp, b->recv_blocks()[i].data(), bp->data.data_len);
 
-            bp++;
+            if(bp->data.data_len < 120) {
+                log_debug("Extension block data = %s", bp->data.data_val);
+            } else {
+                log_debug("Extension block data is longer than 120 bytes");
+            }
+
+            // These 2 lines were swapped before, causing problems with multiple extension blocks
             dp += bp->data.data_len;
+            bp++;
         }
 
         spec.blocks.blocks_len = blocks_found;

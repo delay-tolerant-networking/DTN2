@@ -59,7 +59,7 @@ Bundle::init(u_int32_t id)
     session_flags_      = 0;
     freed_          = false;
 #ifdef BSP_ENABLED
-    security_policy_ = SecurityPolicy(Ciphersuite::config);
+    security_config_ = BundleSecurityConfig(Ciphersuite::config);
     payload_bek_ = NULL;
     payload_bek_len_ = 0;
     payload_bek_set_ = false;
@@ -133,7 +133,7 @@ Bundle::~Bundle()
     
     ASSERT(mappings_.size() == 0);
 #ifdef BSP_ENABLED
-    if(payload_bek_set_) {
+    if(payload_bek_ != NULL) {
         free(payload_bek_);
     }
 #endif
@@ -293,7 +293,7 @@ Bundle::serialize(oasys::SerializeAction* a)
 
     a->process("age", &age_); // [AEB]
 #ifdef BSP_ENABLED
-    a->process("security_policy", &security_policy_);
+    a->process("security_config", &security_config_);
     a->process("payload_bek_len", &payload_bek_len_);
     if(a->action_code() == oasys::Serialize::UNMARSHAL) {
         if(payload_bek_!= NULL) {

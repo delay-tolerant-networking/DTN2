@@ -110,7 +110,7 @@ DECLARE_TEST(CleanErUpper)
     return UNIT_TEST_PASSED;
 }
 
-DECLARE_TESTER(ProphetBundleCore)
+DECLARE_TESTER(ProphetBundleCoreTester)
 {
     ADD_TEST(ProphetBundleCore);
     ADD_TEST(ProphetBundleWrapper);
@@ -120,4 +120,4 @@ DECLARE_TESTER(ProphetBundleCore)
     ADD_TEST(CleanErUpper);
 }
 
-DECLARE_TEST_FILE(ProphetBundleCore, "prophet bundle core test");
+DECLARE_TEST_FILE(ProphetBundleCoreTester, "prophet bundle core test");

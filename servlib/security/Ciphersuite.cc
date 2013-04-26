@@ -21,14 +21,23 @@
 #ifdef BSP_ENABLED
 
 #include "Ciphersuite.h"
+#include "BP_Local_CS.h"
 #include "BA_BlockProcessor.h"
 #include "Ciphersuite_BA1.h"
+#include "Ciphersuite_BA5.h"
+#include "Ciphersuite_BA9.h"
 #include "PI_BlockProcessor.h"
 #include "Ciphersuite_PI2.h"
+#include "Ciphersuite_PI6.h"
+#include "Ciphersuite_PI10.h"
 #include "PC_BlockProcessor.h"
 #include "Ciphersuite_PC3.h"
+#include "Ciphersuite_PC7.h"
+#include "Ciphersuite_PC11.h"
 #include "ES_BlockProcessor.h"
 #include "Ciphersuite_ES4.h"
+#include "Ciphersuite_ES8.h"
+#include "Ciphersuite_ES12.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
@@ -36,7 +45,6 @@
 #include "bundling/SDNV.h"
 
 namespace dtn {
-
 
 #define CS_MAX 1024
 Ciphersuite* Ciphersuite::ciphersuites_[CS_MAX];
@@ -48,9 +56,10 @@ bool Ciphersuite::inited = false;
 
 //----------------------------------------------------------------------
 Ciphersuite::Ciphersuite()
-//    : BlockProcessor(block_type)
 {
 }
+
+//----------------------------------------------------------------------
 Ciphersuite::Ciphersuite(SecurityConfig *c) {
     config = c;
 }
@@ -59,7 +68,15 @@ Ciphersuite::Ciphersuite(SecurityConfig *c) {
 Ciphersuite::~Ciphersuite()
 { 
 }
+
+//----------------------------------------------------------------------
 void Ciphersuite::shutdown() {
+    for(int i=0;i<CS_MAX;i++) {
+        if(ciphersuites_[i] != 0) {
+            delete ciphersuites_[i];
+            ciphersuites_[i] = NULL;
+        }
+    }
     delete config;
 }
 
@@ -83,8 +100,9 @@ Ciphersuite*
 Ciphersuite::find_suite(u_int16_t num)
 {
     Ciphersuite* ret = NULL;
-    log_debug_p(log, "Ciphersuite::find_suite()");
+    log_debug_p(log, "Ciphersuite::find_suite() ciphersuite number: %d", num);
     
+
     if ( num > 0 && num < CS_MAX )  // entry for element zero is illegal
         ret = ciphersuites_[num];
 
@@ -103,13 +121,21 @@ Ciphersuite::init_default_ciphersuites()
         BundleProtocol::register_processor(new PI_BlockProcessor());
         BundleProtocol::register_processor(new PC_BlockProcessor());
         BundleProtocol::register_processor(new ES_BlockProcessor());
-        
+
         // register mandatory ciphersuites
         register_ciphersuite(new Ciphersuite_BA1());
         register_ciphersuite(new Ciphersuite_PI2());
         register_ciphersuite(new Ciphersuite_PC3());
         register_ciphersuite(new Ciphersuite_ES4());
-        
+        register_ciphersuite(new Ciphersuite_BA5());
+        register_ciphersuite(new Ciphersuite_PI6());
+        register_ciphersuite(new Ciphersuite_PC7());
+        register_ciphersuite(new Ciphersuite_ES8());
+        register_ciphersuite(new Ciphersuite_BA9());
+        register_ciphersuite(new Ciphersuite_PI10());
+        register_ciphersuite(new Ciphersuite_PC11());
+        register_ciphersuite(new Ciphersuite_ES12());
+
         inited = true;
     }
 }
@@ -121,6 +147,33 @@ Ciphersuite::cs_num(void)
 
     return 0;
 }
+
+
+//----------------------------------------------------------------------
+int
+Ciphersuite::consume(Bundle* bundle, BlockInfo* block,
+                        u_char* buf, size_t len)
+{
+    log_debug_p(log, "Ciphersuite::consume()");
+    int cc = block->owner()->consume(bundle, block, buf, len);
+
+    if (cc == -1) {
+        return -1; // protocol error
+    }
+    
+    // in on-the-fly scenario, process this data for those interested
+    if (! block->complete()) {
+        ASSERT(cc == (int)len);
+        return cc;
+    }
+
+    if ( block->locals() == NULL ) {      // then we need to parse it
+        parse(block);
+    }
+    
+    return cc;
+}
+
 
 //----------------------------------------------------------------------
 void
@@ -144,7 +197,7 @@ Ciphersuite::parse(BlockInfo* block)
     
 // XXX/pl todo  think about a "const" version of parse() since there
 //              are several callers who need parsing but have a const block
-    
+
     log_debug_p(log, "Ciphersuite::parse() block %p", block);
     ASSERT(block != NULL);
     
@@ -172,7 +225,7 @@ Ciphersuite::parse(BlockInfo* block)
     has_result     = (cs_flags & CS_BLOCK_HAS_RESULT)     != 0;
     log_debug_p(log, "Ciphersuite::parse() suite_num %llu cs_flags 0x%llx",
                 U64FMT(suite_num), U64FMT(cs_flags));
-    
+
     cs_owner = dynamic_cast<Ciphersuite*>(find_suite(suite_num));
     
     if ( ciphersuites_[suite_num] != NULL )            // get specific subclass if it's present
@@ -215,10 +268,11 @@ Ciphersuite::parse(BlockInfo* block)
                                 &field_length);
         buf += sdnv_len;
         len -= sdnv_len;
+        BP_Local_CS::parse_params_or_result(locals->security_params_, buf, field_length);
         // make sure the buffer has enough space, copy data in
-        locals->writable_security_params()->reserve(field_length);
-        memcpy( locals->writable_security_params()->end(), buf, field_length);
-        locals->writable_security_params()->set_len(field_length);
+        //locals->writable_security_params()->reserve(field_length);
+        //memcpy( locals->writable_security_params()->end(), buf, field_length);
+        //locals->writable_security_params()->set_len(field_length);
         buf += field_length;
         len -= field_length;
         log_debug_p(log, "Ciphersuite::parse() security_params len %llu",
@@ -253,10 +307,11 @@ Ciphersuite::parse(BlockInfo* block)
                                 &field_length);
         buf += sdnv_len;
         len -= sdnv_len;
+        BP_Local_CS::parse_params_or_result(locals->security_result_, buf, field_length);
         // make sure the buffer has enough space, copy data in
-        locals->writable_security_result()->reserve(field_length);
-        memcpy( locals->writable_security_result()->end(), buf, field_length);
-        locals->writable_security_result()->set_len(field_length);
+        //locals->writable_security_result()->reserve(field_length);
+        //memcpy( locals->writable_security_result()->end(), buf, field_length);
+        //locals->writable_security_result()->set_len(field_length);
         buf += field_length;
         len -= field_length;
         
@@ -304,6 +359,13 @@ Ciphersuite::generate_preamble(BlockInfoVec* xmit_blocks,
                                       flags, data_length);
 }
 
+EndpointID Ciphersuite::base_portion(const EndpointID &in) {
+    // this is a very clunky way to get the "base" portion of the eid
+    std::string the_str = in.uri().scheme() + "://" + in.uri().host();
+    return EndpointID(the_str);
+}
+
+
 //----------------------------------------------------------------------
 bool
 Ciphersuite::destination_is_local_node(const Bundle*    bundle,
@@ -327,10 +389,7 @@ Ciphersuite::destination_is_local_node(const Bundle*    bundle,
 
     cs_flags = locals->cs_flags();
     
-    // this is a very clunky way to get the "base" portion of the bundle destination
-    std::string bundle_dest_str = bundle->dest().uri().scheme() + "://" +
-                                  bundle->dest().uri().host();
-    EndpointID        dest_node(bundle_dest_str);
+    EndpointID        dest_node = base_portion(bundle->dest());
     
     
     // if this is security-dest, or there isn't one and this is bundle dest
@@ -339,8 +398,79 @@ Ciphersuite::destination_is_local_node(const Bundle*    bundle,
     {  //yes - this is ours 
         result = true;
     }
+    log_debug_p(log, "Ciphersuite::destination_is_local_node local_eid=%s\n", local_eid.str().c_str());
+    if( cs_flags & Ciphersuite::CS_BLOCK_HAS_DEST) {
+        log_debug_p(log, "Ciphersuite::destination_is_local_node locals->security_dest()=%s", locals->security_dest().c_str());
+    } else {
+        log_debug_p(log, "Ciphersuite::destination_is_local_node dest_node=%s", dest_node.str().c_str());
+    }
+
+
     
     return result;
+}
+
+EndpointID Ciphersuite::find_last_secdestp(const Bundle *bundle) {
+    EndpointID        dest = base_portion(bundle->dest());
+    u_int16_t       cs_flags = 0;
+    BP_Local_CS*    locals;
+    BlockInfoVec::const_iterator iter;
+    for ( iter = bundle->recv_blocks().begin();
+          iter != bundle->recv_blocks().end();
+          ++iter)
+    {
+        if ( iter->locals() == NULL )       // then of no interest
+            continue;
+        
+        locals = dynamic_cast<BP_Local_CS*>(iter->locals());
+        if ( locals == NULL )
+            continue;
+    
+    cs_flags = locals->cs_flags();
+        if (Ciphersuite::config->get_block_type(locals->owner_cs_num()) == BundleProtocol::PAYLOAD_SECURITY_BLOCK ||
+            Ciphersuite::config->get_block_type(locals->owner_cs_num()) == BundleProtocol::CONFIDENTIALITY_BLOCK ) {
+            
+            continue;
+            if( cs_flags & Ciphersuite::CS_BLOCK_HAS_DEST) {
+                return EndpointID(locals->security_dest());
+            } else {
+                return dest;
+            }
+        }
+    }
+    return dest;
+}
+EndpointID Ciphersuite::find_last_secdeste(const Bundle *bundle) {
+    EndpointID        dest = base_portion(bundle->dest());
+    u_int16_t       cs_flags = 0;
+    BP_Local_CS*    locals;
+    BlockInfoVec::const_iterator iter;
+
+
+    for ( iter = bundle->recv_blocks().begin();
+          iter != bundle->recv_blocks().end();
+          ++iter)
+    {
+        if ( iter->locals() == NULL )       // then of no interest
+            continue;
+        
+        locals = dynamic_cast<BP_Local_CS*>(iter->locals());
+        if ( locals == NULL )
+            continue;
+    
+    cs_flags = locals->cs_flags();
+        if (Ciphersuite::config->get_block_type(locals->owner_cs_num()) == BundleProtocol::EXTENSION_SECURITY_BLOCK ) {
+            
+            continue;
+            if( cs_flags & Ciphersuite::CS_BLOCK_HAS_DEST) {
+                return EndpointID(locals->security_dest());
+            } else {
+                return dest;
+            }
+        }
+    }
+    return dest;
+
 }
 
 //----------------------------------------------------------------------
@@ -365,10 +495,7 @@ Ciphersuite::source_is_local_node(const Bundle* bundle, const BlockInfo* block)
 
     cs_flags = locals->cs_flags();
     
-    // this is a very clunky way to get the "base" portion of the bundle destination
-    std::string bundle_src_str = bundle->source().uri().scheme() + "://" +
-                                 bundle->source().uri().host();
-    EndpointID        src_node(bundle_src_str);
+    EndpointID        src_node= base_portion(bundle->source());
     
     
     // if this is security-src, or there isn't one and this is bundle source
@@ -381,25 +508,99 @@ Ciphersuite::source_is_local_node(const Bundle* bundle, const BlockInfo* block)
     return result;
 }
 
+// Helper to check_validation.  This checks whether the bsp metadata
+// for the block pointed to by iter (which contains information about 
+// esb blocks that were previously encapsulating the one pointed to by
+// iter) match the given security src, dest, and csnum, (passed as src,
+// dest, csnum).
+bool Ciphersuite::check_esb_metadata(BlockInfoVec::const_iterator iter, EndpointIDPatternNULL src, EndpointIDPatternNULL dest, const Bundle *b, int csnum) {
+            oasys::SerializableVector<BSPProtectionInfo>::const_iterator it;
+    for(it=iter->bsp.begin();it!=iter->bsp.end();it++) {
+        log_debug_p(log, "Ciphersuite::check_validation: considering BSP metadata entry");
+        bool esb_block_meets_rule=true;
+        if(!it->src_matches(src, b)) {
+            esb_block_meets_rule= false;
+        }
+        if(!it->dest_matches(dest, b)) {
+            esb_block_meets_rule=false;
+        }
+        if(csnum != it->csnum)
+            esb_block_meets_rule=false;
+        if(esb_block_meets_rule) {
+            return true;
+        }
+
+    }
+    return false;
+}
+// Helper to check_validation.  This checks whether the bsp
+// information in locals match the given security src, dest, (passed as src,
+// dest). 
+bool Ciphersuite::check_src_dest_match(BP_Local_CS* locals, EndpointIDPatternNULL src, EndpointIDPatternNULL dest, const Bundle *bundle) {
+    if(!locals->security_dest_matches(dest, bundle)) {
+        log_debug_p(log, "Ciphersuite::check_validation() security dest doesn't match");
+        return false;
+    }
+    if(!locals->security_src_matches(src, bundle)) {
+        log_debug_p(log, "Ciphersuite::check_validation() security src doesn't match");
+        return false;
+    }
+    return true;
+}
+
+ 
 //----------------------------------------------------------------------
 bool
 Ciphersuite::check_validation(const Bundle*       bundle,
                               const BlockInfoVec* block_list,
-                              u_int16_t           num)
+                              u_int16_t           num,
+                              EndpointIDPatternNULL &src,
+                              EndpointIDPatternNULL &dest)
 {
     (void)bundle;
-    u_int16_t       proc_flags = 0;
     BP_Local_CS*    locals;
     BlockInfoVec::const_iterator iter;
+
+    bool is_esb = (Ciphersuite::config->get_block_type(num) == dtn::BundleProtocol::EXTENSION_SECURITY_BLOCK);
 
     log_debug_p(log, "Ciphersuite::check_validation(%hu)", num);
     if ( block_list == NULL )
         return false;
-        
+
+    if(is_esb) {
+        log_debug_p(log, "Ciphersuite::check_validation: it's an ESB rule, so we'll do different checks!");
+        for ( iter = block_list->begin();
+            iter != block_list->end();
+            ++iter) {
+            log_debug_p(log, "Ciphersuite::check_validation: considering block of type %d", iter->owner()->block_type());
+            bool block_meets_rule=false;
+            if(Ciphersuite_ES::esbable(iter->owner()->block_type())) {
+                log_debug_p(log, "Ciphersuite::check_validation: it's an ESBable block, but not an ESB block");
+                block_meets_rule=check_esb_metadata(iter, src, dest, bundle,num);
+            } else if(iter->owner()->block_type() == BundleProtocol::EXTENSION_SECURITY_BLOCK) {
+                block_meets_rule=check_esb_metadata(iter, src, dest, bundle, num);
+
+                BP_Local_CS *locals = dynamic_cast<BP_Local_CS*>(iter->locals());
+                if(locals != NULL) {
+                    block_meets_rule |= check_src_dest_match(locals, src, dest, bundle);
+                }
+            } else {
+                log_debug_p(log, "Ciphersuite::check_validation: not an ESBable block");
+                block_meets_rule = true;
+            }
+            if(block_meets_rule == false) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+       
     for ( iter = block_list->begin();
           iter != block_list->end();
           ++iter)
     {
+
         if ( iter->locals() == NULL )       // then of no interest
             continue;
         
@@ -407,33 +608,21 @@ Ciphersuite::check_validation(const Bundle*       bundle,
         if ( locals == NULL )
             continue;
     
-        if (locals->owner_cs_num() != num )
+        if (locals->owner_cs_num() != num ) {
+            log_debug_p(log, "Ciphersuite::check_validation: found a block, but the cs_num is wrong (%d)", locals->owner_cs_num());
             continue;
+        }
+
+        // check if src and dest pattern match here
+        if(!check_src_dest_match(locals, src, dest, bundle)) {
+            log_debug_p(log, "Ciphersuite::check_validation: found a block with the right ciphersuite, but the sec src/dest don't match");
+            continue;
+        }
         
-        // OK - this is one of interest
-        proc_flags |= locals->proc_flags();
-    }
-    
-    // Now check what we have collected
-    // If we positively validated, we succeeded
-    if ( proc_flags & CS_BLOCK_PASSED_VALIDATION ) {
-        log_debug_p(log, "Ciphersuite::check_validation(%hu) returning true because CS_BLOCK_PASSED_VALIDATION", num);
         return true;
     }
     
-    // If we had no positives, then any failure is failure
-    if ( proc_flags & CS_BLOCK_FAILED_VALIDATION ) {
-        log_debug_p(log, "Ciphersuite::check_validation(%hu) returning false because CS_BLOCK_FAILED_VALIDATION", num);
-        return false;
-    }
-    
-    // If no positives but no failure, then did we have 
-    // a block which we couldn't test
-    if ( proc_flags & CS_BLOCK_DID_NOT_FAIL ) {
-        log_debug_p(log, "Ciphersuite::check_validation(%hu) returning true because CS_BLOCK_DID_NOT_FAIL", num);
-        return true;
-    }
-    log_debug_p(log, "Ciphersuite::check_validation(%hu) returning false because we didn't find a block at all", num);
+    log_debug_p(log, "Ciphersuite::check_validation(%hu) returning false because we didn't find a matching block", num);
     
     return false;   // no blocks of wanted type
 }
@@ -445,7 +634,7 @@ Ciphersuite::create_correlator(const Bundle*       bundle,
 {
     (void)bundle;
     u_int64_t       result = 0LLU;
-    u_int16_t       high_val = 1;
+    u_int16_t       high_val = 0;
     u_int16_t       value;
     BP_Local_CS*    locals;
     BlockInfoVec::const_iterator iter;
@@ -473,12 +662,14 @@ Ciphersuite::create_correlator(const Bundle*       bundle,
             continue;
     
         value = locals->correlator();       // only low-order 16 bits
+        log_debug_p(log, "Ciphersuite::create_correlator() encoutered an existing correlator with low order 16 bits = 0x%x", value);
         
-        value = value > high_val ? value : high_val;
+        high_val = value > high_val ? value : high_val;
     }
     
-    result |= high_val;     // put high_val into low-order two bytes
-    
+    result |= (high_val+1);     // put high_val into low-order two bytes
+   
+    log_debug_p(log, "Ciphersuite::create_correlator() returning 0x%llx", result); 
     return result;
 }
 
@@ -497,61 +688,105 @@ Ciphersuite::init_locals(BlockInfo* block)
     
 }
 
-//----------------------------------------------------------------------
-BP_Local_CS::BP_Local_CS()
-    : BP_Local(),
-      cs_flags_(0), 
-      security_result_offset_(0), 
-      correlator_(0LL),
-      security_params_(),
-      security_result_(),
-      owner_cs_num_(0)
-{
+int Ciphersuite::copy_block_untouched(BlockInfo *block, BlockInfoVec *xmit_blocks, bool last) {
+        // generate the preamble and copy the data.
+        size_t length = block->source()->data_length();
+        int block_type = block->source()->type();
+        
+        generate_preamble(xmit_blocks, 
+                          block,
+                          block_type,
+                          //BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |  //This causes non-BSP nodes to delete the bundle
+                          (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0),
+                          length);
+
+        BlockInfo::DataBuffer* contents = block->writable_contents();
+        contents->reserve(block->data_offset() + length);
+        contents->set_len(block->data_offset() + length);
+        memcpy(contents->buf() + block->data_offset(),
+               block->source()->data(), length);
+        return BP_SUCCESS;
 }
 
-//----------------------------------------------------------------------
-BP_Local_CS::BP_Local_CS(const BP_Local_CS& b)
-    : BP_Local(),
-      cs_flags_(b.cs_flags_), 
-      security_result_offset_(b.security_result_offset_), 
-      correlator_(b.correlator_),
-      security_params_(b.security_params_),
-      security_result_(b.security_result_),
-      owner_cs_num_(b.owner_cs_num_)
-    //XXX-pl  might need more items copied
-{
+bool Ciphersuite::we_are_block_sec_dest(const BlockInfo *source) {
+    EndpointID      local_eid = BundleDaemon::instance()->local_eid();
+    
+    //XXXpl - fix this test
+    if ( (source != NULL)  &&
+         (dynamic_cast<BP_Local_CS*>(source->locals())->security_dest() == local_eid.data()) ) {
+        log_debug_p(log, "Ciphersuite::we_are_block_set_dest: not being forwarded");
+        return true; 
+    }
+    return false;
 }
 
-//----------------------------------------------------------------------
-BP_Local_CS::~BP_Local_CS()
-{
-}
+int Ciphersuite::create_bsp_block_from_source(BlockInfo &bi,const Bundle *bundle, const BlockInfo *source, BlockInfo::list_owner_t list, int csnum) {
+    EndpointID      local_eid = BundleDaemon::instance()->local_eid();
+    u_int16_t       cs_flags = 0;
+    BP_Local_CS*    locals = NULL;
+    
+    // initialize the block
+    log_debug_p(log, "Ciphersuite::create_bsp_block_from_source: begin");
+    log_debug_p(log, "Ciphersuite::create_bsp_block_from_source: local_eid %s bundle->source_ %s", local_eid.c_str(), bundle->source().c_str());
+    bi.set_locals(new BP_Local_CS);
+    CS_FAIL_IF_NULL(bi.locals());
 
-//----------------------------------------------------------------------
-void
-BP_Local_CS::set_key(u_char* k, size_t len)
-{
-    key_.reserve(len);
-    key_.set_len(len);
-    memcpy(key_.buf(), k, len);
-}
+    if(list == BlockInfo::LIST_RECEIVED) {
+        bi.set_eid_list(source->eid_list());
+    }
+    locals = dynamic_cast<BP_Local_CS*>(bi.locals());
+    CS_FAIL_IF_NULL(locals);
+    locals->set_owner_cs_num(csnum);
+    locals->set_list_owner(list);
+    
+    // if there is a security-src and/or -dest, use it -- might be specified by API
+    if ( source != NULL && source->locals() != NULL)  {
+        locals->set_security_src(dynamic_cast<BP_Local_CS*>(source->locals())->security_src());
+        locals->set_security_dest(dynamic_cast<BP_Local_CS*>(source->locals())->security_dest());
+    }
+    
+    // if not, and we didn't create the bundle, specify ourselves as sec-src
+    if ( list != BlockInfo::LIST_RECEIVED && (locals->security_src().length() == 0) && (local_eid != bundle->source())) {
+        locals->set_security_src(local_eid.str());
+    }
+    
+    // if we now have one, add it to list, etc
+    if ( locals->security_src().length() > 0 ) {
+        log_debug_p(log, "Ciphersuite::create_bsp_block_from_source: add security_src EID %s", locals->security_src().c_str());
+        cs_flags |= CS_BLOCK_HAS_SOURCE;
+        if(list != BlockInfo::LIST_RECEIVED)
+            bi.add_eid(locals->security_src());
+    }
+    
+    if ( locals->security_dest().length() > 0 ) {
+        log_debug_p(log, "Ciphersuite::create_bsp_block_from_source: add security_dest EID %s", locals->security_dest().c_str());
+        cs_flags |= CS_BLOCK_HAS_DEST;
+        if(list != BlockInfo::LIST_RECEIVED)
+            bi.add_eid(locals->security_dest());
+    }
+        
+    locals->set_cs_flags(cs_flags);
+    return BP_SUCCESS;
+  fail:
+    return BP_FAIL;
+} 
 
-//----------------------------------------------------------------------
-void
-BP_Local_CS::set_salt(u_char* s, size_t len)
-{
-    salt_.reserve(len);
-    salt_.set_len(len);
-    memcpy(salt_.buf(), s, len);
+string Ciphersuite::buf2str(const u_char *buf, size_t len) {
+    char *hrbytes = (char *)malloc(len*2+1);
+    for(unsigned int i=0;i<len;i++) {
+        snprintf(hrbytes+2*i, 3, "%02x", ((unsigned char *)buf)[i]);
+    }
+    hrbytes[2*len] = '\0';
+    string foo(hrbytes);
+    free(hrbytes);
+    return foo;
+ 
 }
-
-//----------------------------------------------------------------------
-void
-BP_Local_CS::set_iv(u_char* iv, size_t len)
-{
-    iv_.reserve(len);
-    iv_.set_len(len);
-    memcpy(iv_.buf(), iv, len);
+string Ciphersuite::buf2str(const LocalBuffer buf) {
+    return buf2str(buf.buf(), buf.len());
+}
+string Ciphersuite::buf2str(const BlockInfo::DataBuffer buf) {
+    return buf2str(buf.buf(), buf.len());
 }
 
 
