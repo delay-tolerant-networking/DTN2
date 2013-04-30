@@ -49,6 +49,8 @@ size_t EthAnnounce::format_advertisement(u_char *bp, size_t len)
     beacon->eid_len = htons(eid.length());
     memcpy(beacon->sender_eid, eid.c_str(), eid.length());
 
+    ::gettimeofday(&data_sent_,0);
+
     return sizeof(*beacon) + eid.length();
 }
 
