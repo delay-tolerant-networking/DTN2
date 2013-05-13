@@ -620,51 +620,53 @@ int ECDH::decrypt(LocalBuffer &out,
         shared_key_len = 256/8;
         cek_len = 256/8;
     }
-    unsigned char shared_data[shared_data_len];
-    unsigned char cek[cek_len];
-    memset(shared_data, 0xffff, shared_data_len);
-    memset(cek, 0xffff, cek_len);
+    {
+        unsigned char shared_data[shared_data_len];
+        unsigned char cek[cek_len];
+        memset(shared_data, 0xffff, shared_data_len);
+        memset(cek, 0xffff, cek_len);
 
-    // Retrieve the User Keying Material
-    ukm = ASN1_STRING_data(ri->d.kari->ukm);
-    log_debug_p(log, "ECDH::decrypt: User Keying Material (ukm) :  %s", Ciphersuite::buf2str(ukm, 16).c_str());
+        // Retrieve the User Keying Material
+        ukm = ASN1_STRING_data(ri->d.kari->ukm);
+        log_debug_p(log, "ECDH::decrypt: User Keying Material (ukm) :  %s", Ciphersuite::buf2str(ukm, 16).c_str());
 
-    // Compute the ECDH shared value from the public key and my private key
-    if(!ECDH_compute_key(shared_data, shared_data_len, ephemeral, myKey_ec, NULL)) {
-    	log_err_p(log, "ECDH::decrypt: Error computing ECDH shared value");
-        goto err;
-    }
+        // Compute the ECDH shared value from the public key and my private key
+        if(!ECDH_compute_key(shared_data, shared_data_len, ephemeral, myKey_ec, NULL)) {
+            log_err_p(log, "ECDH::decrypt: Error computing ECDH shared value");
+            goto err;
+        }
 
-    // Derive the shared key from the shared data and the ukm
-    shared_key = derive_key(ukm, shared_data, shared_data_len*4);
-    if(AES_set_decrypt_key(shared_key, shared_key_len*8, &shared_key_aes)<0) {
-    	log_err_p(log, "ECDH::decrypt: Error setting AES decryption key");
-        goto err;
-    }
+        // Derive the shared key from the shared data and the ukm
+        shared_key = derive_key(ukm, shared_data, shared_data_len*4);
+        if(AES_set_decrypt_key(shared_key, shared_key_len*8, &shared_key_aes)<0) {
+            log_err_p(log, "ECDH::decrypt: Error setting AES decryption key");
+            goto err;
+        }
 
-    // iv is the parameter of env->encryptedContentInfo->contentEncryptionAlgorithm
-    void *ivcopy;
-    int len;
-    X509_ALGOR_get0(NULL, &len, &ivcopy,
-    		cms->d.envelopedData->encryptedContentInfo->contentEncryptionAlgorithm);
-    if(!ivcopy) {
-    	log_err_p(log, "ECDH::decrypt: Error extracting IV");
-        goto err;
-    }
-    iv_cbc = ASN1_STRING_data((ASN1_STRING *)ivcopy);
+        // iv is the parameter of env->encryptedContentInfo->contentEncryptionAlgorithm
+        void *ivcopy;
+        int len;
+        X509_ALGOR_get0(NULL, &len, &ivcopy,
+                cms->d.envelopedData->encryptedContentInfo->contentEncryptionAlgorithm);
+        if(!ivcopy) {
+            log_err_p(log, "ECDH::decrypt: Error extracting IV");
+            goto err;
+        }
+        iv_cbc = ASN1_STRING_data((ASN1_STRING *)ivcopy);
 
-    for(int i=0;i<16;i++) {
-        cek[i] = i;
-    }
-    if(!AES_unwrap_key(&shared_key_aes, NULL, cek, ASN1_STRING_data(rek->encryptedKey),
-    		ASN1_STRING_length(rek->encryptedKey))) {
-    	log_err_p(log, "ECDH::decrypt: Error in AES_unwrap_key");
-        goto err;
-    }
+        for(int i=0;i<16;i++) {
+            cek[i] = i;
+        }
+        if(!AES_unwrap_key(&shared_key_aes, NULL, cek, ASN1_STRING_data(rek->encryptedKey),
+                    ASN1_STRING_length(rek->encryptedKey))) {
+            log_err_p(log, "ECDH::decrypt: Error in AES_unwrap_key");
+            goto err;
+        }
 
-    if(AES_set_decrypt_key(cek, cek_len*8, &cek_aes)<0) {
-    	log_err_p(log, "ECDH::decrypt: Error setting AES decryption key");
-        goto err;
+        if(AES_set_decrypt_key(cek, cek_len*8, &cek_aes)<0) {
+            log_err_p(log, "ECDH::decrypt: Error setting AES decryption key");
+            goto err;
+        }
     }
     out.reserve(ASN1_STRING_length(cms->d.envelopedData->encryptedContentInfo->encryptedContent));
     out.set_len(ASN1_STRING_length(cms->d.envelopedData->encryptedContentInfo->encryptedContent));
