@@ -120,7 +120,7 @@ void EthDiscovery::run()
     ifaddr.sll_protocol = htons(ETHERTYPE_DTN_BEACON);
     ifaddr.sll_ifindex = req.ifr_ifindex;
 
-    if(bind(sock_, (struct sockaddr*) &ifaddr, sizeof(ifaddr)) == -1) {
+    if(::bind(sock_, (struct sockaddr*) &ifaddr, sizeof(ifaddr)) == -1) {
         log_err("bind() failed: %s", strerror(errno));
         return;
     }

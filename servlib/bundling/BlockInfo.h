@@ -54,6 +54,15 @@ public:
 
     /// Copy constructor to increment refcount for locals_
     BlockInfo(const BlockInfo& bi);
+
+    BlockInfo operator=(const BlockInfo &bi)
+    {
+        if(this == &bi) {
+            return *this;
+        } else {
+            return BlockInfo(bi);
+        }
+    }
     
     /**
      * Virtual destructor.

@@ -20,9 +20,9 @@
 
 #include <oasys/util/StringBuffer.h>
 
+#include "naming/EndpointID.h"
 #include "SessionTable.h"
 #include "Session.h"
-#include "naming/EndpointID.h"
 
 namespace dtn {
 

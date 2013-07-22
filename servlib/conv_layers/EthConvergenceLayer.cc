@@ -424,7 +424,7 @@ EthConvergenceLayer::Receiver::run()
     iface.sll_protocol=htons(ETHERTYPE_DTN);
     iface.sll_ifindex=req.ifr_ifindex;
    
-    if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
+    if (::bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
         perror("bind");
         exit(1);
     }
@@ -515,7 +515,7 @@ EthConvergenceLayer::Sender::Sender(const char* if_name,
     } 
     memcpy(src_hw_addr_.octet,req.ifr_hwaddr.sa_data,6);    
 
-    if (bind(sock_, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
+    if (::bind(sock_, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
         perror("bind");
         exit(1);
     }

@@ -26,6 +26,7 @@
 #include "Dictionary.h"
 #include "BundleTLVEntryList.h"
 #include "Alarm.h"
+#include <ctime>
 
 namespace prophet
 {
@@ -186,8 +187,8 @@ protected:
     BundleResponseList local_response_; ///< Bundle requests sent to peer
     Table remote_nodes_; ///< in-memory representation of remote's RIB
     u_int hello_rate_; ///< simple flow control for Hello messages (ACK, etc)
-    u_int32_t data_sent_; ///< timestamp of last TLV sent
-    u_int32_t data_rcvd_; ///< timestamp of last TLV received
+    time_t data_sent_; ///< timestamp of last TLV sent
+    time_t data_rcvd_; ///< timestamp of last TLV received
     Alarm* alarm_; ///< callback registration for timeout handler
 }; // class Encounter
 

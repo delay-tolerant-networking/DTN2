@@ -1601,6 +1601,13 @@ AC_DEFUN(AC_OASYS_CONFIG_GCC_OPTS, [
                        EXTRA_CFLAGS=$withval)
     AC_SUBST(EXTRA_CFLAGS)
 
+    EXTRA_CXXFLAGS=""
+    AC_ARG_WITH(extra-cxxflags,
+        AC_HELP_STRING([--with-extra-cxxflags=?],
+                [additional options to pass to the compiler]),
+                        EXTRA_CXXFLAGS=$withval)
+    AC_SUBST(EXTRA_CXXFLAGS)
+
     EXTRA_LDFLAGS=""
     AC_ARG_WITH(extra-ldflags,
         AC_HELP_STRING([--with-extra-ldflags=?],
@@ -2018,39 +2025,6 @@ AC_DEFUN(AC_OASYS_FIND_MYSQL, [
         AC_MSG_ERROR([can't find usable mysql library])
     fi
 ])
-
-dnl
-dnl Check if oasys has support for the given feature. Returns result
-dnl in ac_oasys_supports_result.
-dnl
-AC_DEFUN(AC_OASYS_SUPPORTS, [
-    AC_MSG_CHECKING(whether oasys is configured with $1)
-
-    if test x$cv_oasys_supports_$1 != x ; then
-        ac_oasys_supports_result=$cv_oasys_supports_$1
-        AC_MSG_RESULT($ac_oasys_supports_result (cached))
-    else
-
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
-    AC_LINK_IFELSE(
-      AC_LANG_PROGRAM(
-        [
-            #include <oasys/oasys-config.h>
-            #ifndef $1
-            #error $1 not configured
-            #endif
-        ], [] ),
-      ac_oasys_supports_result=yes,
-      ac_oasys_supports_result=no)
-
-    cv_oasys_supports_$1=$ac_oasys_supports_result
-    
-    AC_MSG_RESULT([$ac_oasys_supports_result])
-    CPPFLAGS=$ac_save_CPPFLAGS
-
-    fi
-])
 dnl
 dnl    Copyright 2007 Intel Corporation
 dnl 
@@ -2247,6 +2221,39 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
 
     AC_SUBST(SYS_EXTLIB_CFLAGS)
     AC_SUBST(SYS_EXTLIB_LDFLAGS)
+])
+
+dnl
+dnl Check if oasys has support for the given feature. Returns result
+dnl in ac_oasys_supports_result.
+dnl
+AC_DEFUN(AC_OASYS_SUPPORTS, [
+    AC_MSG_CHECKING(whether oasys is configured with $1)
+
+    if test x$cv_oasys_supports_$1 != x ; then
+        ac_oasys_supports_result=$cv_oasys_supports_$1
+        AC_MSG_RESULT($ac_oasys_supports_result (cached))
+    else
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
+    AC_LINK_IFELSE(
+      AC_LANG_PROGRAM(
+        [
+            #include <oasys/oasys-config.h>
+            #ifndef $1
+            #error $1 not configured
+            #endif
+        ], [] ),
+      ac_oasys_supports_result=yes,
+      ac_oasys_supports_result=no)
+
+    cv_oasys_supports_$1=$ac_oasys_supports_result
+    
+    AC_MSG_RESULT([$ac_oasys_supports_result])
+    CPPFLAGS=$ac_save_CPPFLAGS
+
+    fi
 ])
 dnl
 dnl    Copyright 2011 Alex McMahon, alex.mcmahon@cs.tcd.ie

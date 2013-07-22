@@ -168,7 +168,7 @@ RouteTable::del_matching_entries(Predicate pred)
     // entries are at the end, then cleans them out with erase()
     RouteEntryVec::iterator new_end =
         std::remove_if(route_table_.begin(), route_table_.end(),
-                       std::bind2nd(std::equal_to<RouteEntry*>(), 0));
+                       std::bind2nd(std::equal_to<RouteEntry*>(), static_cast<RouteEntry*>(NULL)));
     route_table_.erase(new_end, route_table_.end());
     
     return old_size - route_table_.size();

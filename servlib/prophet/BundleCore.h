@@ -23,9 +23,10 @@
 #include "BundleImpl.h"
 #include "BundleList.h"
 #include "Link.h"
-#include <stdio.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <cstdarg>
 #include <string>
+#include <utility>
 #include <list>
 
 #if defined(__GNUC__)
@@ -266,7 +267,7 @@ public:
     bool write_bundle(const Bundle* b,const u_char* buf,size_t len)
     { 
         BundleBuffer bunbuf((char*)buf,len);
-        written_.push_back(std::make_pair<const Bundle*,BundleBuffer>(b,bunbuf));
+        written_.push_back(std::make_pair(b,bunbuf));
         return written_.back().second.size() <= len;
     }
     bool read_bundle(const Bundle* b,u_char* buf,size_t& len) const
