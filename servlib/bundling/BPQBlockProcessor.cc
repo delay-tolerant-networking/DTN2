@@ -25,14 +25,13 @@
 #include "BPQBlockProcessor.h"
 #include "SDNV.h"
 
+template <> dtn::BPQBlockProcessor*
+oasys::Singleton<dtn::BPQBlockProcessor>::instance_ = NULL;
+
 namespace dtn {
 
 // Setup our logging information
 static const char* LOG = "/dtn/bundle/extblock/bpq";
-
-template <> BPQBlockProcessor*
-oasys::Singleton<BPQBlockProcessor>::instance_ = NULL;
-
 
 
 //----------------------------------------------------------------------
