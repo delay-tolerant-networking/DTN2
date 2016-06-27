@@ -1,5 +1,3 @@
-syntax: glob
-
 # some defaults pulled from the CVS manual then modified
 tags
 TAGS
@@ -37,6 +35,11 @@ build-stamp
 configure-stamp
 run-*
 build*
+applib/perl/Makefile
+applib/perl/MYMETA.*
+applib/perl/blib
+applib/perl/dtnapi.bs
+applib/perl/pm_to_blib
 applib/python/build
 applib/python/dtnapi.pyc
 apps/tca_admin/tca_admin
@@ -44,19 +47,26 @@ apps/dtncat/dtncat
 apps/dtncp/dtncp
 apps/dtncpd/dtncpd
 apps/dtnmoteproxy/dtnmoteproxy
+apps/dtnpeek/dtnpeek
 apps/dtnperf/dtnperf-client
 apps/dtnperf/dtnperf-server
 apps/dtnping/dtnping
 apps/dtnping/dtnreporter
 apps/dtnping/dtntraceroute
+apps/dtnpublish/dtnpublish
+apps/dtnquery/dtnquery
 apps/dtnrecv/dtnrecv
+apps/dtnrespond/dtnrespond
 apps/dtnsend/dtnsend
+apps/dtnsink/dtnsink
+apps/dtnsource/dtnsource
 apps/dtntest/dtntest
 apps/dtntunnel/dtntunnel
 apps/num2sdnv/num2sdnv
 apps/num2sdnv/sdnv2num
 daemon/dtnd
 sim/dtnsim
+servlib/ipnd.make
 test/unit_tests/*-test
 oasys
 
