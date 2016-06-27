@@ -184,7 +184,7 @@ perl/Makefile.PL:
 	ln -s $(SRCDIR)/applib/perl/Makefile.PL && \
 	ln -s $(SRCDIR)/applib/perl/dtn_api_wrap_perl.cc
 
-OTHER_FILES += perl/Makefile perl/Makefile.old perl/blib perl/dtnapi.bs perl/pm_to_blib
+OTHER_FILES += perl/Makefile perl/Makefile.old perl/blib perl/dtnapi.bs perl/pm_to_blib perl/MYMETA.json perl/MYMETA.yml
 
 #
 # Linking rules for the libraries.
