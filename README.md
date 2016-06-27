@@ -1,0 +1,147 @@
+DTN Reference Implementation
+============================
+
+This is the Delay Tolerant Networking reference implementation.
+
+See the file STATUS for an overview of the state of the code, particularly in reference to the various internet drafts and (someday) RFCs that describe the bundling protocol.
+
+Also, the file RELEASE-NOTES describes major changes in each release.
+
+Compilation / Installation Instructions
+---------------------------------------
+
+```
+./configure -C
+make
+make install
+```
+
+Note that by default, the configure script will also run configure
+inside the oasys/ subdirectory. The -C argument enables the autoconf
+variable cache, which speeds up configuration.
+
+Note that if you need to make changes to the `configure.ac` script or
+one of the helper scripts in `aclocal/*.ac`, run `build-configure.sh` to
+recreate `configure` and then check in both your changes as well as the
+newly generated configure script.
+
+Getting Started
+---------------
+
+A good place to start for playing around with DTN is to look at the
+manual and tutorials (see doc/manual/index.html). This set of
+documentation explains some of the configuration and applications. If
+you find omissions or errors, please feel free to post updates and
+corrections to dtn-users@mailman.dtnrg.org.
+
+Reporting Bugs / Other Help
+---------------------------
+
+Open a Github Issue or Pull Request.
+
+Formerly the bug reports were hosted at sourceforge at: http://sourceforge.net/tracker/?group_id=101657&atid=630167 and/or direct questions to dtn-bugs@mailman.dtnrg.org.
+
+Directory Structure
+------------------------
+
+```
+applib/         application interface library and ipc layer
+apps/           example dtn applications
+doc/            documentation
+daemon/         dtn router daemon sources
+ideas/          temporary code idea repository
+servlib/        dtn router internals
+|-- bundling    bundle management and forwarding logic
+|-- cmd         tcl based command interface
+|-- contacts
+|-- conv_layers convergence layers
+|-- discovery
+|-- gcm
+|-- naming      endpoint identifier schemes
+|-- prophet     prophet router
+|-- reg         local registrations
+|-- routing     bundle routing logic
+|-- security    bundle security protocol
+|-- session     session layer
+`-- storage     persistent storage management
+sim/            simulation framework
+test/           unit tests and other test files
+test-utils/     test scripts and utilities
+
+```
+External Requirements
+---------------------
+
+* oasys-1.3.0+ (see Note - Oasys)
+* gcc/g++
+
+Optional External Packages
+--------------------------
+* bonjour
+
+Optional Internal Packages
+--------------------------
+* NORM convergence layer support
+* Bundle Security Protocol support (see Note BSP)
+* LTP convergence layer support via TCD's LTPlib
+* Internet Draft Compliant IP Neighbor Discovery (see README.IPND)
+
+
+Note - Oasys
+--------------------------
+Before compiling DTN2 please compile Oasys-1.3.0+ (must be installed or located in DTN2 or ../). Support for the following DTN2 options should be specified when configuring oasys:
+
+Required:
+
+* Python
+* tcl
+* google perftools
+* expat
+* xerces-c
+* xsd tool
+* Berkeley DB
+* mysql
+* postgres
+
+Optional dependencies
+
+* bluetooth
+* zlib
+* tclreadline
+* profiling
+* google profiling
+* assembly-based atomic functions
+
+Enable or disable:
+
+* oasys debugging
+* oasys memory debugging
+* oasys lock debugging
+* oasys optimization
+
+
+Note - BSP
+--------------------------
+The standard ciphersuites require, amongst other things, an implementation of sha-256 message digest algorithm.
+
+The DTN reference code uses OpenSSL for cryptographic and related functions. Unfortunately, some versions of OpenSSL do not include sha-256.
+
+The "configure" process checks for the availability of sha-256 and provides an error if it is not found.
+
+If your system's OpenSSL does not have sha-256 then you can either upgrade it or build and use a local version of OpenSSL. OpenSSL can be obtained from http://www.openssl.org
+
+OpenSSL 0.9.8 version include sha-256 by default. If your system uses version 0.9.7 and you do not wish to upgrade then you can enable sha-256 in later versions of 0.9.7, such as 0.9.7l and 0.9.7m. To enable sha-256, specify "fips" when running "Configure".
+
+If you wish to leave you system installation untouched and build against a local version, then configure dtn using ./configure --with-bsp --with-openssl=/path/to/openssl
+
+Mac OS X note: for Mac OS X users ONLY. If you build dtn
+against a local OpenSSL using "--with-openssl=/path/to/openssl"
+you MUST also specify with it LDFLAGS="-Wl,-search_paths_first".
+The configuration for OS X users would then be
+./configure --with-bsp --with-openssl=/path/to/openssl LDFLAGS="-Wl,-search_paths_first"
+Note that the quotes are required for the LDFLAGS argument.
+
+Note - LTP
+----------------------------
+
+This is an initial test of TCD's LTPlib as a CL. To use it go get LTPlib (todo: add URL!) and then ./configure --with-ltp
