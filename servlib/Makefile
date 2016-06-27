@@ -103,7 +103,7 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/ExternalConvergenceLayer.cc	\
 	conv_layers/ECLModule.cc \
 	conv_layers/CLEventHandler.cc \
-	conv_layers/clevent.cc \
+	conv_layers/CLEvent.cc \
 
 IPND_DISCOVERY_SRCS :=	\
 	discovery/IPNDDiscovery.cc		\
