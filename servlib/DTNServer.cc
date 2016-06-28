@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -65,9 +83,24 @@
 #include "storage/DTNStorageConfig.h"
 #include "bundling/S10Logger.h"
 
+#ifdef ACS_ENABLED
+#    include "cmd/AcsCommand.h"
+#    include "storage/PendingAcsStore.h"
+#endif // ACS_ENABLED
+
 #ifdef BPQ_ENABLED
 #include "cmd/BPQCommand.h"
 #endif /* BPQ_ENABLED */
+
+#ifdef DTPC_ENABLED
+#    include "dtpc/DtpcDaemon.h"
+#    include "cmd/DtpcCommand.h"
+#    include "dtpc/DtpcProfileStore.h"
+#    include "dtpc/DtpcTopicStore.h"
+#    include "dtpc/DtpcDataPduCollectorStore.h"
+#    include "dtpc/DtpcPayloadAggregatorStore.h"
+#endif // DTPC_ENABLED
+
 
 //#include <oasys/storage/MySQLStore.h>
 //#include <oasys/storage/PostgresqlStore.h>
@@ -157,6 +190,37 @@ DTNServer::init_datastore()
         log_crit("error initializing data store");
         return false;
     }
+
+#ifdef ACS_ENABLED
+    if (PendingAcsStore::init(*storage_config_, store_)    != 0)  
+    {
+        log_crit("error initializing Pending ACS data store");
+        return false;
+    }
+#endif // ACS_ENABLED
+#ifdef DTPC_ENABLED
+    if ((DtpcProfileStore::init(*storage_config_, store_)    != 0))
+    {
+        log_crit("error initializing DtpcProfile data store");
+        return false;
+    }
+    if ((DtpcTopicStore::init(*storage_config_, store_)    != 0))
+    {
+        log_crit("error initializing DtpcTopic data store");
+        return false;
+    }
+    if ((DtpcDataPduCollectorStore::init(*storage_config_, store_)    != 0))
+    {
+        log_crit("error initializing DtpcDataPduCollector data store");
+        return false;
+    }
+    if ((DtpcPayloadAggregatorStore::init(*storage_config_, store_)    != 0))
+    {
+        log_crit("error initializing DtpcPayloadAggregator data store");
+        return false;
+    }
+
+#endif //DTPC_ENABLED
 
 	if (store_->create_finalize(*storage_config_) != 0)
 	{
@@ -255,6 +319,15 @@ DTNServer::init_commands()
     interp->reg(new BPQCommand());
 #endif /* BPQ_ENABLED */
 
+#ifdef ACS_ENABLED
+    interp->reg(new AcsCommand());
+#endif
+
+#ifdef DTPC_ENABLED
+    log_info_p("/dtpc/cmd", "Adding Dtpc Command");
+    interp->reg(new DtpcCommand());
+#endif
+
     log_debug("registered dtn commands");
 }
 
@@ -266,6 +339,10 @@ DTNServer::init_components()
     InterfaceTable::init();
     BundleDaemon::init();
     DiscoveryTable::init();
+
+#ifdef DTPC_ENABLED
+    DtpcDaemon::init();
+#endif
     
     log_debug("intialized dtn components");
 }
@@ -275,18 +352,27 @@ DTNServer::close_datastore()
 {
     log_notice("closing persistent data store");
     
+#ifdef ACS_ENABLED
+    PendingAcsStore::instance()->close();
+#endif // ACS_ENABLED
+
     RegistrationStore::instance()->close();
     LinkStore::instance()->close();
     ProphetStore::instance()->close();
     BundleStore::instance()->close();
     GlobalStore::instance()->close();
     
-    if(!getenv("OASYS_CLEANUP_SINGLETONS")) {
+#ifdef DTPC_ENABLED
+    DtpcProfileStore::instance()->close();
+    DtpcTopicStore::instance()->close();
+    DtpcDataPduCollectorStore::instance()->close();
+    DtpcPayloadAggregatorStore::instance()->close();
+#endif
+    
     // and this will cause a double delete
     if(!getenv("OASYS_CLEANUP_SINGLETONS")) {
        delete_z(store_);
     }
-}
 }
 
 void

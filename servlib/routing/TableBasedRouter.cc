@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -57,23 +75,23 @@ TableBasedRouter::~TableBasedRouter()
     if(route_table_ != NULL) {
         delete route_table_;
         route_table_ = NULL;
-        printf("Deleting route table\n");
     } 
 }
 void TableBasedRouter::shutdown() {
     if(route_table_ != NULL) {
         delete route_table_;
         route_table_ = NULL;
-        printf("Deleting route table\n");
     }
 }
 
 //----------------------------------------------------------------------
 void
-TableBasedRouter::add_route(RouteEntry *entry)
+TableBasedRouter::add_route(RouteEntry *entry, bool skip_changed_routes)
 {
     route_table_->add_entry(entry);
-    handle_changed_routes();
+    if (!skip_changed_routes) {
+        handle_changed_routes();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -113,7 +131,7 @@ TableBasedRouter::get_session_for_bundle(Bundle* bundle)
 {
     if (bundle->session_flags() != 0)
     {
-        log_debug("get_session_for_bundle: bundle id %d is a subscription msg",
+        log_debug("get_session_for_bundle: bundle id %"PRIbid" is a subscription msg",
                   bundle->bundleid());
         return NULL;
     }
@@ -122,7 +140,7 @@ TableBasedRouter::get_session_for_bundle(Bundle* bundle)
         bundle->obsoletes_id().empty() &&
         bundle->session_eid().length() == 0)
     {
-        log_debug("get_session_for_bundle: bundle id %u not a session bundle",
+        log_debug("get_session_for_bundle: bundle id %"PRIbid" not a session bundle",
                   bundle->bundleid());
         return NULL;
     }
@@ -250,7 +268,7 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
         // as whether the bundle itself is obsolete on arrival.
         should_route = add_bundle_to_session(bundle, session);
         if (! should_route) {
-            log_debug("session bundle %u is DOA", bundle->bundleid());
+            log_debug("session bundle %"PRIbid" is DOA", bundle->bundleid());
             return; // don't route it 
         }
     }
@@ -291,6 +309,11 @@ TableBasedRouter::remove_from_deferred(const BundleRef& bundle, int actions)
         }
         
         DeferredList* deferred = deferred_list(link);
+
+        //dzdebug
+        oasys::ScopeLock l(deferred->list()->lock(), 
+                           "TableBasedRouter::remove_from_deferred");
+
         ForwardingInfo info;
         if (deferred->find(bundle, &info))
         {
@@ -308,11 +331,18 @@ void
 TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
     const BundleRef& bundle = event->bundleref_;
-    log_debug("handle bundle transmitted: *%p", bundle.object());
+    log_debug("handle bundle transmitted (%s): *%p", 
+              event->success_?"success":"failure", bundle.object());
 
-    // if the bundle has a deferred single-copy transmission for
-    // forwarding on any links, then remove the forwarding log entries
-    remove_from_deferred(bundle, ForwardingInfo::FORWARD_ACTION);
+    if (!event->success_) {
+        // try again if not successful the first time 
+        // (only applicable to the LTPUDP CLA as of 2014-12-04)
+        route_bundle(bundle.object());
+    } else {
+        // if the bundle has a deferred single-copy transmission for
+        // forwarding on any links, then remove the forwarding log entries
+        remove_from_deferred(bundle, ForwardingInfo::FORWARD_ACTION);
+    }
 
     // check if the transmission means that we can send another bundle
     // on the link
@@ -331,7 +361,7 @@ TableBasedRouter::can_delete_bundle(const BundleRef& bundle)
     if (bundle->fwdlog()->get_count(ForwardingInfo::TRANSMITTED |
                                     ForwardingInfo::DELIVERED) == 0)
     {
-        log_debug("TableBasedRouter::can_delete_bundle(%u): "
+        log_debug("TableBasedRouter::can_delete_bundle(%"PRIbid"): "
                   "not yet transmitted or delivered",
                   bundle->bundleid());
         return false;
@@ -339,7 +369,7 @@ TableBasedRouter::can_delete_bundle(const BundleRef& bundle)
 
     // check if we have local custody
     if (bundle->local_custody()) {
-        log_debug("TableBasedRouter::can_delete_bundle(%u): "
+        log_debug("TableBasedRouter::can_delete_bundle(%"PRIbid"): "
                   "not deleting because we have custody",
                   bundle->bundleid());
         return false;
@@ -349,7 +379,7 @@ TableBasedRouter::can_delete_bundle(const BundleRef& bundle)
     Session* session = get_session_for_bundle(bundle.object());
     if (session && !session->subscribers().empty())
     {
-        log_debug("TableBasedRouter::can_delete_bundle(%u): "
+        log_debug("TableBasedRouter::can_delete_bundle(%"PRIbid"): "
                   "session has subscribers",
                   bundle->bundleid());
         return false;
@@ -412,7 +442,7 @@ TableBasedRouter::handle_route_del(RouteDelEvent* event)
 
 //----------------------------------------------------------------------
 void
-TableBasedRouter::add_nexthop_route(const LinkRef& link)
+TableBasedRouter::add_nexthop_route(const LinkRef& link, bool skip_changed_routes)
 {
     // If we're configured to do so, create a route entry for the eid
     // specified by the link when it connected, using the
@@ -435,7 +465,7 @@ TableBasedRouter::add_nexthop_route(const LinkRef& link)
         if (route_table_->get_matching(eid_pattern, link, &ignored) == 0) {
             RouteEntry *entry = new RouteEntry(eid_pattern, link);
             entry->set_action(ForwardingInfo::FORWARD_ACTION);
-            add_route(entry);
+            add_route(entry, skip_changed_routes);
         }
     }
 }
@@ -456,7 +486,7 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
         if (prevhop == route->link()->remote_eid() &&
             prevhop != EndpointID::NULL_EID())
         {
-            log_debug("should_fwd bundle %d: "
+            log_debug("should_fwd bundle %"PRIbid": "
                       "skip %s since bundle arrived from the same node",
                       bundle->bundleid(), route->link()->name());
             return false;
@@ -603,7 +633,8 @@ TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
 
     link->set_router_info(new DeferredList(logpath(), link));
                           
-    add_nexthop_route(link);
+    // true=skip changed routes because we are about to call it
+    add_nexthop_route(link, true); 
     handle_changed_routes();
 }
 
@@ -627,6 +658,14 @@ TableBasedRouter::handle_link_deleted(LinkDeletedEvent* event)
 
 //----------------------------------------------------------------------
 void
+TableBasedRouter::handle_link_check_deferred(LinkCheckDeferredEvent* event)
+{
+    log_debug("LinkCheckDeferred event for *%p", event->linkref_.object());
+    check_next_hop(event->linkref_);
+}
+
+//----------------------------------------------------------------------
+void
 TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
     // the bundle daemon should have recorded a new entry in the
@@ -636,7 +675,15 @@ TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
     //
     // therefore, trying again to forward the bundle should match
     // either the previous link or any other route
-    route_bundle(event->bundle_.object());
+
+    
+    // Check to see if the bundle is still pending
+    BundleRef bref("handle_custody_timerout");
+    bref = pending_bundles_->find(event->bundle_id_);
+    
+    if (bref != NULL) {
+        route_bundle(bref.object());
+    }
 }
 
 //----------------------------------------------------------------------
@@ -700,20 +747,9 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
         actions_->open_link(link);
     }
 
-    // XXX/demmer maybe this should queue_bundle immediately instead
-    // of waiting for the first contact_up event??
-    
-    // if the link is open and has space in the queue, then queue the
-    // bundle for transmission there
-    if (link->isopen() && !link->queue_is_full()) {
-        log_debug("queuing *%p on *%p", bundle, link.object());
-        actions_->queue_bundle(bundle, link, route->action(),
-                               route->custody_spec());
-        return true;
-    }
-    
-    // otherwise we can't send the bundle now, so put it on the link's
-    // deferred list and log reason why we can't forward it
+    // always add the bundle to the link's deferred list so that they will
+    // be delivered in the correct order. future calls to check_next_hop
+    // will move the bundle to the transmit queue in due time
     DeferredList* deferred = deferred_list(link);
     if (! bundle->is_queued_on(deferred->list())) {
         BundleRef bref(bundle, "TableBasedRouter::fwd_to_nexthop");
@@ -723,46 +759,41 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
                             0xffffffff,
                             link->remote_eid(),
                             route->custody_spec());
+
+        oasys::ScopeLock l(deferred->list()->lock(), 
+                           "TableBasedRouter::fwd_to_nexthop");
+
         deferred->add(bref, info);
     } else {
         log_warn("bundle *%p already exists on deferred list of link *%p",
                  bundle, link.object());
     }
-    
-    if (!link->isavailable()) {
-        log_debug("can't forward *%p to *%p because link not available",
-                  bundle, link.object());
-    } else if (! link->isopen()) {
-        log_debug("can't forward *%p to *%p because link not open",
-                  bundle, link.object());
-    } else if (link->queue_is_full()) {
-        log_debug("can't forward *%p to *%p because link queue is full",
-                  bundle, link.object());
-    } else {
-        log_debug("can't forward *%p to *%p", bundle, link.object());
-    }
+   
+    // XXX/dz could check to see if there is space available on the queue 
+    // and call check_next_hop here if needed...
 
     return false;
 }
 
 //----------------------------------------------------------------------
 int
-TableBasedRouter::route_bundle(Bundle* bundle)
+TableBasedRouter::route_bundle(Bundle* bundle, bool skip_check_next_hop)
 {
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
 
-    log_debug("route_bundle: checking bundle %d", bundle->bundleid());
+    log_debug("route_bundle: checking bundle %"PRIbid, bundle->bundleid());
 
     // check to see if forwarding is suppressed to all nodes
     if (bundle->fwdlog()->get_count(EndpointIDPattern::WILDCARD_EID(),
                                     ForwardingInfo::SUPPRESSED) > 0)
     {
         log_info("route_bundle: "
-                 "ignoring bundle %d since forwarding is suppressed",
+                 "ignoring bundle %"PRIbid" since forwarding is suppressed",
                  bundle->bundleid());
         return 0;
     }
+
     
     LinkRef null_link("TableBasedRouter::route_bundle");
     route_table_->get_matching(bundle->dest(), null_link, &matches);
@@ -771,9 +802,10 @@ TableBasedRouter::route_bundle(Bundle* bundle)
     // override the way in which the sorting occurs
     sort_routes(bundle, &matches);
 
-    log_debug("route_bundle bundle id %d: checking %zu route entry matches",
+    log_debug("route_bundle bundle id %"PRIbid": checking %zu route entry matches",
               bundle->bundleid(), matches.size());
-    
+
+    bool forwarded;    
     unsigned int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
@@ -790,28 +822,35 @@ TableBasedRouter::route_bundle(Bundle* bundle)
         if (dl == 0)
           continue;
 
-        if (dl->list()->contains(bundle)) {
-            log_debug("route_bundle bundle %d: "
+        if ( bundle->is_queued_on(dl->list()) ) {
+            log_debug("route_bundle bundle %"PRIbid": "
                       "ignoring link *%p since already deferred",
                       bundle->bundleid(), route->link().object());
             continue;
         }
+
+        // this call will add the bundle to the deferred list and should now be  
+        // done before calling check_next_hop to prevent a bundle getting stuck
+        // in the deferred list while a link is open
+        forwarded = fwd_to_nexthop(bundle, *iter);
 
         // because there may be bundles that already have deferred
         // transmission on the link, we first call check_next_hop to
         // get them into the queue before trying to route the new
         // arrival, otherwise it might leapfrog the other deferred
         // bundles
-        check_next_hop(route->link());
-        
-        if (!fwd_to_nexthop(bundle, *iter)) {
-            continue;
+        // XXX/dz bundles are now always added to the deferred list to maintain
+        // the proper ordering and check_next_hop initiates the transmits
+        if (!skip_check_next_hop) {
+            check_next_hop(route->link());
         }
         
-        ++count;
+        if (forwarded ) {
+            ++count;
+        }
     }
 
-    log_debug("route_bundle bundle id %d: forwarded on %u links",
+    log_debug("route_bundle bundle id %"PRIbid": forwarded on %u links",
               bundle->bundleid(), count);
     return count;
 }
@@ -842,7 +881,7 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
                   next_hop->name(), next_hop->nexthop());
         return;
     }
-    
+
     log_debug("check_next_hop %s -> %s: checking deferred bundle list...",
               next_hop->name(), next_hop->nexthop());
 
@@ -851,6 +890,13 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
     // position, make sure to advance the iterator before processing
     // the current bundle
     DeferredList* deferred = deferred_list(next_hop);
+
+    // XXX/dz only move up to the Link high queue limit bundles in any one call
+    // otherwise there is always space available in the queue and this loop
+    // will not end until the entire list of bundles is transmitted.
+    u_int bundles_moved = 0;
+    u_int max_to_move = next_hop->params().qlimit_bundles_high_;
+    BundleRef bundle("TableBasedRouter::check_next_hop");
 
     oasys::ScopeLock l(deferred->list()->lock(), 
                        "TableBasedRouter::check_next_hop");
@@ -863,7 +909,6 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
             break;
         }
         
-        BundleRef bundle("TableBasedRouter::check_next_hop");
         bundle = *iter;
         ++iter;
 
@@ -899,6 +944,13 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
                   bundle.object(), next_hop.object());
         actions_->queue_bundle(bundle.object() , next_hop,
                                info.action(), info.custody_spec());
+
+        // break out if we have now moved the max
+        if (++bundles_moved >= max_to_move) {
+            log_debug("check_next_hop %s: moved max bundles to queue: %u",
+                      next_hop->name(), max_to_move);
+            break;
+        }
     }
 }
 
@@ -906,8 +958,17 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
 void
 TableBasedRouter::reroute_all_bundles()
 {
-    oasys::ScopeLock l(pending_bundles_->lock(), 
-                       "TableBasedRouter::reroute_all_bundles");
+    // XXX/dz Instead of locking the pending_bundles_ during this whole
+    // process, the lock is now only taken when the iterator is being
+    // updated.
+ 
+#ifdef BDSTATS_ENABLED
+    // useful info if working with BD Stats
+    log_crit("reroute_all_bundles - entered");
+    oasys::Time now;
+    now.get_time();
+#endif
+
 
     log_debug("reroute_all_bundles... %zu bundles on pending list",
               pending_bundles_->size());
@@ -915,13 +976,41 @@ TableBasedRouter::reroute_all_bundles()
     // XXX/demmer this should cancel previous scheduled transmissions
     // if any decisions have changed
 
-    BundleList::iterator iter;
-    for (iter = pending_bundles_->begin();
-         iter != pending_bundles_->end();
-         ++iter)
-    {
-        route_bundle(*iter);
+    pending_bundles_->lock()->lock("TableBasedRouter::reroute_all_bundles");
+    pending_bundles_t::iterator iter = pending_bundles_->begin();
+    if ( iter == pending_bundles_->end() ) {
+      pending_bundles_->lock()->unlock();
+      return;
     }
+    pending_bundles_->lock()->unlock();
+
+    bool skip_check_next_hop = false;
+    while (true)
+    {
+        #ifdef PENDING_BUNDLES_IS_MAP
+            route_bundle(iter->second, skip_check_next_hop); // for <map> lists
+        #else
+            route_bundle(*iter, skip_check_next_hop); // for <lists> lists
+        #endif
+
+        // only do the check_next_hop for the first bundle which 
+        // primes the pump for all of the other bundles
+        if (!skip_check_next_hop) {
+            skip_check_next_hop = true;
+        }
+
+        pending_bundles_->lock()->lock("TableBasedRouter::reroute_all_bundles");
+        ++iter;
+        if ( iter == pending_bundles_->end() ) {
+          pending_bundles_->lock()->unlock();
+          break;
+        }
+        pending_bundles_->lock()->unlock();
+    }
+
+#ifdef BDSTATS_ENABLED
+    log_crit("reroute_all_bundles - exit - elapsed: %d", now.elapsed_ms());
+#endif // BDSTATS_ENABLED
 }
 
 //----------------------------------------------------------------------
@@ -975,19 +1064,20 @@ bool
 TableBasedRouter::DeferredList::add(const BundleRef&      bundle,
                                     const ForwardingInfo& info)
 {
-    if (list_.contains(bundle)) {
+    ASSERT(list_.lock()->is_locked_by_me());
+ 
+    if (bundle->is_queued_on(&list_)) {
         log_err("bundle *%p already in deferred list!",
                 bundle.object());
         return false;
     }
-    
-    log_debug("adding *%p to deferred (length %zu)",
-              bundle.object(), count_);
+
+    log_debug("adding *%p to deferred (size: %zu, count: %xu)",
+              bundle.object(), list_.size(), count_);
 
     count_++;
-    list_.push_back(bundle);
-
     info_.insert(InfoMap::value_type(bundle->bundleid(), info));
+    list_.push_back(bundle);
 
     return true;
 }
@@ -996,19 +1086,21 @@ TableBasedRouter::DeferredList::add(const BundleRef&      bundle,
 bool
 TableBasedRouter::DeferredList::del(const BundleRef& bundle)
 {
+    ASSERT(list_.lock()->is_locked_by_me());
+ 
+    size_t n = info_.erase(bundle->bundleid());
+    ASSERT(n == 1);
+    
     if (! list_.erase(bundle)) {
         return false;
     }
     
     ASSERT(count_ > 0);
     count_--;
-    
-    log_debug("removed *%p from deferred (length %zu)",
-              bundle.object(), count_);
+   
+    log_debug("removed *%p from deferred (size: %zu, count: %zu)",
+              bundle.object(), list_.size(), count_);
 
-    size_t n = info_.erase(bundle->bundleid());
-    ASSERT(n == 1);
-    
     return true;
 }
 
@@ -1194,7 +1286,7 @@ TableBasedRouter::handle_session_bundle(BundleReceivedEvent* event)
             const Subscriber& upstream = session->upstream();
             log_debug("handle_session_bundle: "
                       "already subscribed to session through upstream *%p... "
-                      "suppressing subscription bundle %u",
+                      "suppressing subscription bundle %"PRIbid,
                       &upstream, bundle->bundleid());
 
             bundle->fwdlog()->add_entry(EndpointIDPattern::WILDCARD_EID(),
@@ -1346,7 +1438,7 @@ TableBasedRouter::add_subscriber(Session*          session,
         if (! bundle->sequence_id().empty() &&
             bundle->sequence_id() <= known_seqid)
         {
-            log_debug("suppressing transmission of bundle %u (seqid *%p) "
+            log_debug("suppressing transmission of bundle %"PRIbid" (seqid *%p) "
                       "to subscriber %s since covered by seqid *%p",
                       bundle->bundleid(), &bundle->sequence_id(),
                       peer.c_str(), &known_seqid);

@@ -144,7 +144,7 @@ public:
 
 protected:
     const std::string   name_;
-    u_int32_t		next_bundleid_;
+    bundleid_t          next_bundleid_;
     u_int32_t		next_regid_;
     std::queue<BundleEvent*>* eventq_;
     oasys::TimerSystem* timersys_;

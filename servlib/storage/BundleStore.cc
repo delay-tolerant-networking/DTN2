@@ -14,9 +14,29 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
+
+#include <inttypes.h>
 
 #include "BundleStore.h"
 #include "bundling/Bundle.h"
@@ -76,15 +96,25 @@ BundleStore::init(const DTNStorageConfig& cfg,
 bool
 BundleStore::add(Bundle* bundle)
 {
-    bool ret = bundles_.add(bundle);
+    bool ret;
+
+    lock_.lock("BundleStore::add");
+
+    ret = bundles_.add(bundle);
+
+    lock_.unlock();
 
     if (ret) {
-        total_size_ += bundle->durable_size();
+        //total_size_ += bundle->durable_size();
+        reserve_payload_space(bundle);
+
 #ifdef LIBODBC_ENABLED
         if (using_aux_table_) {
-        	BundleDetail *details = new BundleDetail(bundle);
-        	ret = bundle_details_.add(details);
-        	delete details;
+            lock_.lock("BundleStore::add (detail)");   // ?? needed here
+       	    BundleDetail *details = new BundleDetail(bundle);
+       	    ret = bundle_details_.add(details);
+            lock_.unlock();
+       	    delete details;
         }
 #endif
     }
@@ -100,9 +130,10 @@ BundleStore::add(Bundle* bundle)
 // individual bundles, and/or having them delivered.  To this end the auxiliary
 // table is 'write only' as far as DTN2 is concerned at present.
 Bundle*
-BundleStore::get(u_int32_t bundleid)
+BundleStore::get(bundleid_t bundleid)
 {
-	return bundles_.get(bundleid);
+    oasys::ScopeLock l(&lock_, "BundleStore::get");
+    return bundles_.get(bundleid);
 }
     
 //----------------------------------------------------------------------
@@ -114,9 +145,13 @@ BundleStore::get(u_int32_t bundleid)
 bool
 BundleStore::update(Bundle* bundle)
 {
-	int ret;
+    int ret;
 
-	ret = bundles_.update(bundle);
+    lock_.lock("BundleStore::update");
+
+    ret = bundles_.update(bundle);
+
+    lock_.unlock();
 
 #ifdef LIBODBC_ENABLED
 #if 0
@@ -138,18 +173,86 @@ BundleStore::update(Bundle* bundle)
 bool
 BundleStore::del(Bundle* bundle)
 {
-    bool ret = bundles_.del(bundle->bundleid());
+    bool ret;
+
+    lock_.lock("BundleStore::del");
+
+    ret = bundles_.del(bundle->bundleid());
+
+    lock_.unlock();
+
     if (ret) {
+        total_size_lock_.lock("del1");
         ASSERT(total_size_ >= bundle->durable_size());
         total_size_ -= bundle->durable_size();
+        total_size_lock_.unlock();
     }
     return ret;
+}
+
+//----------------------------------------------------------------------
+// When an auxiliary table is configured (only in ODBC/SQL databases), deletion
+// of corresponding rows from the auxiliary table is handled by triggers in the
+// database.  No action is needed here to keep the tables consistent.
+bool
+BundleStore::del(bundleid_t bundleid, u_int64_t durable_size)
+{
+    bool ret;
+
+    lock_.lock("BundleStore::del");
+
+    ret = bundles_.del(bundleid);
+
+    lock_.unlock();
+
+    if (ret) {
+        total_size_lock_.lock("del2");
+        ASSERT(total_size_ >= durable_size);
+        total_size_ -= durable_size;
+        total_size_lock_.unlock();
+    }
+    return ret;
+}
+
+//----------------------------------------------------------------------
+void 
+BundleStore::reserve_payload_space(Bundle* bundle)
+{
+    if (!bundle->payload_space_reserved())
+    {
+        total_size_lock_.lock("reserve_payload_space");
+        total_size_ += bundle->durable_size();
+        total_size_lock_.unlock();
+        bundle->set_payload_space_reserved();
+
+        //dz debug
+//dz debug 		log_always_p("/dtn/storage/bundle",
+//dz debug    				 "BundleStore::reserve %"PRIu64" bytes for bundle %"PRIbid,
+//dz debug                     bundle->durable_size(), bundle->bundleid());
+    }
+}
+
+//----------------------------------------------------------------------
+void
+BundleStore::release_payload_space(u_int64_t durable_size, bundleid_t bundleid)
+{
+    (void) bundleid;
+    total_size_lock_.lock("release_payload_space");
+    ASSERT(total_size_ >= durable_size);
+    total_size_ -= durable_size;
+    total_size_lock_.unlock();
+
+        //dz debug
+//dz debug 		log_always_p("/dtn/storage/bundle",
+//dz debug    				 "BundleStore::release %"PRIu64" bytes for bundle %"PRIbid,
+//dz debug                     durable_size, bundleid);
 }
 
 //----------------------------------------------------------------------
 BundleStore::iterator*
 BundleStore::new_iterator()
 {
+    oasys::ScopeLock l(&lock_, "BundleStore::new_iterator");
     return bundles_.new_iterator();
 }
         
@@ -157,6 +260,7 @@ BundleStore::new_iterator()
 void
 BundleStore::close()
 {
+    oasys::ScopeLock l(&lock_, "BundleStore::close");
     bundles_.close();
 #ifdef LIBODBC_ENABLED
     // Auxiliary tables only available with ODBC/SQL

@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -22,6 +40,7 @@
 #include <oasys/util/UnitTest.h>
 
 #include "naming/EndpointID.h"
+#include "naming/IPNScheme.h"
 
 using namespace dtn;
 using namespace oasys;
@@ -86,6 +105,12 @@ do {                                                                    \
                                                                         \
     CHECK_EQUAL((p.assign(_pattern), eid.assign(_eid), p.match(eid)),   \
                 _match);                                                \
+} while (0);
+
+#define EIDPATTERNCHECK(_valid, _pattern)           \
+do {                                                \
+    EndpointIDPattern p(_pattern);                  \
+    CHECK_EQUAL(p.valid(), _valid);                       \
 } while (0);
 
 DECLARE_TEST(Invalid) {
@@ -605,6 +630,54 @@ DECLARE_TEST(URIEquality) {
     return UNIT_TEST_PASSED;
 }
 
+#define IPNCHECK(ssp, node, service)            \
+{                                               \
+    u_int64_t n, s;                             \
+    CHECK(IPNScheme::parse(ssp, &n, &s));       \
+    CHECK_EQUAL_U64(node, n);                   \
+    CHECK_EQUAL_U64(service, s);                \
+}
+
+DECLARE_TEST(IPN) {
+    EIDCHECK(VALID, KNOWN, "ipn:0.0");
+    EIDCHECK(VALID, KNOWN, "ipn:0.1");
+    EIDCHECK(VALID, KNOWN, "ipn:1.0");
+    EIDCHECK(VALID, KNOWN, "ipn:1.1");
+    EIDCHECK(VALID, KNOWN, "ipn:18446744073709551615.18446744073709551615");
+
+    EIDCHECK(INVALID, KNOWN, "ipn:");
+    EIDCHECK(INVALID, KNOWN, "ipn:.");
+    EIDCHECK(INVALID, KNOWN, "ipn:1.");
+    EIDCHECK(INVALID, KNOWN, "ipn:1.a");
+    EIDCHECK(INVALID, KNOWN, "ipn:a.1");
+    EIDCHECK(INVALID, KNOWN, "ipn:1.1a");
+
+    EIDPATTERNCHECK(VALID, "ipn:*");
+    EIDPATTERNCHECK(VALID, "ipn:1.*");
+    EIDPATTERNCHECK(INVALID, "ipn:*.");
+    EIDPATTERNCHECK(INVALID, "ipn:*a");
+    EIDPATTERNCHECK(INVALID, "ipn:*.*");
+    EIDPATTERNCHECK(INVALID, "ipn:1.*a");
+    EIDPATTERNCHECK(INVALID, "ipn:*.1");
+
+    EIDMATCH(MATCH, "ipn:1.1", "ipn:1.1");
+    EIDMATCH(MATCH, "ipn:1.*", "ipn:1.1");
+    EIDMATCH(MATCH, "ipn:*", "ipn:1.1");
+    EIDMATCH(MATCH, "ipn:*", "ipn:999.999");
+    EIDMATCH(NOMATCH, "ipn:1.1", "ipn:1.2");
+    EIDMATCH(NOMATCH, "ipn:1.2", "ipn:1.1");
+    EIDMATCH(NOMATCH, "ipn:2.1", "ipn:1.1");
+    EIDMATCH(NOMATCH, "ipn:1.1", "ipn:2.1");
+
+    IPNCHECK("1.1", 1, 1);
+    IPNCHECK("0.0", 0, 0);
+    
+    IPNCHECK("999.999", 999, 999);
+    IPNCHECK("18446744073709551615.18446744073709551615",
+             18446744073709551615ULL, 18446744073709551615ULL);
+    return UNIT_TEST_PASSED;
+}    
+
 DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(Invalid);
     ADD_TEST(Unknown);
@@ -622,6 +695,7 @@ DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(SessionMatch);
     ADD_TEST(URIGenericSyntax);
     ADD_TEST(URIEquality);
+    ADD_TEST(IPN);
 }
 
 DECLARE_TEST_FILE(EndpointIDTester, "endpoint id test");

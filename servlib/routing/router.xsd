@@ -141,7 +141,7 @@
     <!-- Bundle Type -->
     
     <xs:attributeGroup name="bundleAttributes">
-        <xs:attribute name="bundleid" type="xs:unsignedInt" use="required">
+        <xs:attribute name="bundleid" type="xs:unsignedLong" use="required">
             <xs:annotation>
                 <xs:documentation xml:lang="en">
 Local bundle identifier.
@@ -278,6 +278,35 @@ Offset of fragment in the original bundle.
             <xs:annotation>
                 <xs:documentation xml:lang="en">
 Declared DTN node that "owns" the bundle (could be empty).
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="custodyid" type="xs:unsignedLong" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+Custody identifier for Aggregate Custody Signals.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+
+        <xs:attribute name="ecos_flags" type="xs:unsignedLong" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+The value of the ECOS block flags byte
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="ecos_ordinal" type="xs:unsignedLong" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+The value of the ECOS block ordinal field
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="ecos_flowlabel" type="xs:unsignedLong" use="optional">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+The value of the ECOS block flow label field
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
@@ -616,6 +645,7 @@ Seconds of idle time before the link is closed. Zero for always on links (i.e. t
         <xs:sequence>
             <xs:element name="clinfo" type="clInfoType" minOccurs="0"/>
             <xs:element name="remote_eid" type="eidType"/>
+            <xs:element name="link_id" type="xs:string"/>
         </xs:sequence>
         <xs:attributeGroup ref="linkAttributes"/>
     </xs:complexType>
@@ -811,7 +841,7 @@ Seconds of idle time before the link is closed. Zero for always on links (i.e. t
     </xs:complexType>
 
     <xs:attributeGroup name="bundleQueriedAttributes">
-        <xs:attribute name="bundleid" type="xs:unsignedInt" use="optional"/>
+        <xs:attribute name="bundleid" type="xs:unsignedLong" use="optional"/>
         <xs:attribute name="is_admin" type="xs:boolean" use="optional"/>
         <xs:attribute name="do_not_fragment" type="xs:boolean" use="optional"/>
         <xs:attribute name="priority" type="bundlePriorityType" use="optional"/>
@@ -862,17 +892,39 @@ Signals a new bundle arrival.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:sequence>
-                <xs:element name="gbof_id" type="gbofIdType"/> 
-                <xs:element name="dest" type="eidType"/>
-                <xs:element name="custodian" type="eidType"/>
-                <xs:element name="replyto" type="eidType"/>
-                <xs:element name="prevhop" type="eidType" minOccurs="0"/>
-            </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+            <xs:attribute name="source" type="xs:string" use="required"/>
+            <xs:attribute name="dest" type="xs:string" use="required"/>
+            <xs:attribute name="custodian" type="xs:string" use="required"/>
+            <xs:attribute name="replyto" type="xs:string" use="required"/>
+            <xs:attribute name="prevhop" type="xs:string" use="required"/>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/>
+            <xs:attribute name="custodyid" type="xs:unsignedLong" use="required"/>
             <xs:attribute name="expiration" type="xs:unsignedInt" use="required"/>
             <xs:attribute name="bytes_received" type="xs:unsignedInt" use="required"/>
+            <xs:attribute name="custody_transfer_requested" type="xs:boolean" use="required"/>
+            <xs:attribute name="link_id" type="xs:string" use="required"/>
+            <xs:attribute name="priority" type="bundlePriorityType" use="required"/>
+            <xs:attribute name="ecos_flags" type="xs:unsignedInt" use="required"/>
+            <xs:attribute name="ecos_ordinal" type="xs:unsignedInt" use="required"/>
+            <xs:attribute name="ecos_flowlabel" type="xs:unsignedInt" use="optional"/>
             <xs:attribute name="num_meta_blocks" type="xs:unsignedInt" use="optional"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Bundle Custody Accepted Event -->
+
+    <xs:element name="bundle_custody_accepted_event">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Signals custody of a bundle was accepted
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+            <xs:attribute name="custodyid" type="xs:unsignedLong" use="required"/>
+            <xs:attribute name="custodian_str" type="xs:string" use="required"/>
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
         </xs:complexType>
     </xs:element>
 
@@ -885,13 +937,17 @@ Signals a bundle or bundle fragment transmission.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
+<!-- dz debug
             <xs:sequence>
                 <xs:element name="gbof_id" type="gbofIdType"/> 
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+dz debug -->
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
             <xs:attribute name="link_id" type="xs:string" use="required"/>
             <xs:attribute name="bytes_sent" type="xs:unsignedInt" use="required"/>
             <xs:attribute name="reliably_sent" type="xs:unsignedInt" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
         </xs:complexType>
     </xs:element>
     
@@ -904,10 +960,14 @@ Signals a new bundle arrival that is destined for this node.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
+<!-- dz debug
             <xs:sequence>
                 <xs:element name="gbof_id" type="gbofIdType"/> 
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+dz debug -->
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
         </xs:complexType>
     </xs:element>
 
@@ -921,10 +981,14 @@ Signals a new bundle arrival that is destined for an external router.  External 
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
+<!-- dz debug
                 <xs:element name="gbof_id" type="gbofIdType"/>
+dz debug -->
                 <xs:element name="bundle" type="bundleType"/>
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
         </xs:complexType>
     </xs:element>
 
@@ -938,10 +1002,14 @@ Signals when a bundle that was previously requested to be sent using RequestSend
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
+<!-- dz debug
                 <xs:element name="gbof_id" type="gbofIdType"/> 
+dz debug -->
                 <xs:element name="link_id" type="xs:string"/>
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
         </xs:complexType>
     </xs:element>
 
@@ -954,10 +1022,14 @@ Signals bundle expiration.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
+<!-- dz debug
             <xs:sequence>
                 <xs:element name="gbof_id" type="gbofIdType"/> 
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+dz debug -->
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
         </xs:complexType>
     </xs:element>
 
@@ -972,9 +1044,13 @@ Signals that a Inject Bundle Request was successful, and correlates the newly ge
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="request_id" type="xs:string"/>
+<!-- dz debug
                 <xs:element name="gbof_id" type="gbofIdType"/> 
+dz debug -->
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
         </xs:complexType>
     </xs:element>
 
@@ -1175,10 +1251,27 @@ Signals a bundle custody transfer.
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
+<!-- dz debug
                 <xs:element name="gbof_id" type="gbofIdType"/> 
+dz debug -->
                 <xs:element name="custody_signal_attr" type="custodySignalType"/>
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
+        </xs:complexType>
+    </xs:element>
+    
+    <!-- Aggreagate Custody Signal Event -->
+    
+    <xs:element name="aggregate_custody_signal_event">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Signals an aggregate bundle custody transfer.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:attribute name="acs_data" type="xs:base64Binary" use="required"/>
         </xs:complexType>
     </xs:element>
     
@@ -1191,10 +1284,14 @@ Signals a bundle custody transfer timeout.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
+<!-- dz debug
             <xs:sequence>
                 <xs:element name="gbof_id" type="gbofIdType"/> 
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+dz debug -->
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> 
         </xs:complexType>
     </xs:element>
 
@@ -1352,16 +1449,20 @@ Request that a bundle with "gbof_id" and "local_id" be sent on "link_id" with a 
         </xs:annotation>
         <xs:complexType>
 	    <xs:sequence>
-                <xs:element name="gbof_id" type="gbofIdType"/> 
+<!-- dz debug
+                <xs:element name="gbof_id" type="gbofIdType"/>   
+dz debug -->
                 <xs:element name="metadata_block" type="metadataBlockType"
                             minOccurs="0" maxOccurs="unbounded"/>
             </xs:sequence>
 
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+        <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
 	    <xs:attribute name="link_id" type="xs:string" use="required"/>
 	    <xs:attribute name="fwd_action" type="bundleForwardActionType" use="required"/>
 	    <xs:attribute name="frag_size" type="xs:unsignedLong" use="optional"/>
 	    <xs:attribute name="frag_offset" type="xs:unsignedLong" use="optional"/>
+
+        <xs:attribute name="gbofid_str" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
 
@@ -1375,15 +1476,19 @@ Request that a bundle with "gbof_id" and "local_id" be broadcasted with a partic
         </xs:annotation>
         <xs:complexType>
 	    <xs:sequence>
-                <xs:element name="gbof_id" type="gbofIdType"/> 
+<!-- dz debug
+            <xs:element name="gbof_id" type="gbofIdType"/>
+dz debug -->
 	        <xs:element name="metadata_block" type="metadataBlockType"
                             minOccurs="0" maxOccurs="unbounded"/>
 	    </xs:sequence>
 
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+        <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
 	    <xs:attribute name="fwd_action" type="bundleForwardActionType" use="required"/>
 	    <xs:attribute name="frag_size" type="xs:unsignedLong" use="optional"/>
 	    <xs:attribute name="frag_offset" type="xs:unsignedLong" use="optional"/>
+
+        <xs:attribute name="gbofid_str" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
 
@@ -1396,12 +1501,14 @@ Request that a bundle transmission be cancelled.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-	    <xs:sequence>
-                <xs:element name="gbof_id" type="gbofIdType"/> 
-	    </xs:sequence>
+<!-- dz	    <xs:sequence>   -->
+<!-- dz                <xs:element name="gbof_id" type="gbofIdType"/>    -->
+<!-- dz	    </xs:sequence>   -->
 
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
             <xs:attribute name="link_id" type="xs:string" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
 
@@ -1414,12 +1521,12 @@ Request that a router generated bundle be sent.  Pay special attention to requir
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-	    <xs:sequence>
-		<xs:element name="source" type="eidType"/>
-		<xs:element name="dest" type="eidType"/>
-		<xs:element name="replyto" type="eidType" minOccurs="0"/>
-		<xs:element name="custodian" type="eidType" minOccurs="0"/>
-	    </xs:sequence>
+	        <xs:sequence>
+		        <xs:element name="source" type="eidType"/>
+		        <xs:element name="dest" type="eidType"/>
+		        <xs:element name="replyto" type="eidType" minOccurs="0"/>
+		        <xs:element name="custodian" type="eidType" minOccurs="0"/>
+	        </xs:sequence>
             <xs:attribute name="request_id" type="xs:string" use="required"/>
             <xs:attribute name="link_id" type="xs:string" use="required"/>
             <xs:attribute name="fwd_action" type="bundleForwardActionType" use="optional"/>
@@ -1438,12 +1545,30 @@ Request that a stored bundle be deleted.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-	    <xs:sequence>
-                <xs:element name="gbof_id" type="gbofIdType"/> 
-	    </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+<!-- dz	    <xs:sequence>  -->
+<!-- dz                <xs:element name="gbof_id" type="gbofIdType"/>  --> 
+<!-- dz	    </xs:sequence>  -->
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
+
+    <!-- Take Custody of Bundle Request -->
+    
+    <xs:element name="take_custody_of_bundle_request">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Request that the local node take custody of a bundle.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
+<!-- dz            <xs:attribute name="gbofid_str" type="xs:string" use="required"/> -->
+            <xs:attribute name="gbofid_str" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
 
     <!-- Set CL Params Request -->
     
@@ -1491,9 +1616,9 @@ Requests delivery of a specific bundle to a specific registration on this node.
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="endpoint" type="eidType"/>
-                <xs:element name="gbof_id" type="gbofIdType"/>
+<!-- dz                <xs:element name="gbof_id" type="gbofIdType"/>   -->
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
         </xs:complexType>
     </xs:element>
 
@@ -1631,10 +1756,10 @@ Query for information on bundles (incl. custody bundles).
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="query_id" type="xs:string"/>
-                <xs:element name="gbof_id" type="gbofIdType"/> 
+<!-- dz                <xs:element name="gbof_id" type="gbofIdType"/>   -->
                 <xs:element name="query_params" type="bundleAttributesQueryType" minOccurs="1" maxOccurs="unbounded"/>
             </xs:sequence>
-            <xs:attribute name="local_id" type="xs:long" use="required"/>
+            <xs:attribute name="local_id" type="xs:unsignedLong" use="required"/>
         </xs:complexType>
     </xs:element>
 
@@ -1652,6 +1777,14 @@ Meta-information on bundles.
         </xs:complexType>
     </xs:element>
 
+    <xs:element name="shutdown_request" type="xs:anyType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Signal DTN2 Server to shutdown
+            </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
     <xs:element name="bpa">
     <xs:annotation>
         <xs:documentation xml:lang="en">
@@ -1661,6 +1794,7 @@ Carry two or more router message on a single packet.
     <xs:complexType>
         <xs:all>
             <xs:element ref="bundle_received_event" minOccurs="0"/>
+            <xs:element ref="bundle_custody_accepted_event" minOccurs="0"/>
             <xs:element ref="data_transmitted_event" minOccurs="0"/>
             <xs:element ref="bundle_delivered_event" minOccurs="0"/>
             <xs:element ref="bundle_delivery_event" minOccurs="0"/>
@@ -1680,6 +1814,7 @@ Carry two or more router message on a single packet.
             <xs:element ref="route_add_event" minOccurs="0"/>
             <xs:element ref="route_delete_event" minOccurs="0"/>
             <xs:element ref="custody_signal_event" minOccurs="0"/>
+            <xs:element ref="aggregate_custody_signal_event" minOccurs="0"/>
             <xs:element ref="custody_timeout_event" minOccurs="0"/>
             <xs:element ref="intentional_name_resolved_event" minOccurs="0"/>
             <xs:element ref="registration_added_event" minOccurs="0"/>
@@ -1695,6 +1830,7 @@ Carry two or more router message on a single packet.
             <xs:element ref="cancel_bundle_request" minOccurs="0"/>
             <xs:element ref="inject_bundle_request" minOccurs="0"/>
             <xs:element ref="delete_bundle_request" minOccurs="0"/>
+            <xs:element ref="take_custody_of_bundle_request" minOccurs="0"/>
             <xs:element ref="set_cl_params_request" minOccurs="0"/>
             <xs:element ref="intentional_name_resolution_request" minOccurs="0"/>
             <xs:element ref="deliver_bundle_to_app_request" minOccurs="0"/>
@@ -1708,12 +1844,16 @@ Carry two or more router message on a single packet.
             <xs:element ref="route_report" minOccurs="0"/>
             <xs:element ref="bundle_query" minOccurs="0"/>
             <xs:element ref="bundle_report" minOccurs="0"/>
+            <xs:element ref="shutdown_request" minOccurs="0"/>
             <xs:element ref="bundle_attributes_query" minOccurs="0"/>
             <xs:element ref="bundle_attributes_report" minOccurs="0"/>
         </xs:all>
         <xs:attribute name="eid" type="xs:string" use="optional"/>
+        <xs:attribute name="eid_ipn" type="xs:string" use="optional"/>
         <xs:attribute name="hello_interval" type="xs:unsignedShort" use="optional"/>
         <xs:attribute name="alert" type="dtnStatusType" use="optional"/>
+        <xs:attribute name="server_eid" type="xs:string" use="optional"/>
+        <xs:attribute name="sequence_ctr" type="xs:unsignedLong" use="required"/>
     </xs:complexType>
 </xs:element>
 

@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef DTN_IPC_H
 #define DTN_IPC_H
 
@@ -98,7 +116,17 @@ typedef enum {
     DTN_CANCEL          	= 15,
     DTN_SESSION_UPDATE         	= 16,
     DTN_FIND_REGISTRATION_WTOKEN= 17,
-    DTN_PEEK                    = 18
+    DTN_PEEK                    = 18,
+    DTN_RECV_RAW		= 19,
+
+#ifdef DTPC_ENABLED
+    DTPC_REGISTER		= 20,
+    DTPC_UNREGISTER		= 21,
+    DTPC_SEND                   = 22,
+    DTPC_RECV                   = 23,
+    DTPC_ELISION_RESPONSE       = 24,
+#endif
+
 } dtnapi_message_type_t;
 
 /**
@@ -147,6 +175,16 @@ int dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type);
  */
 int dtnipc_recv(dtnipc_handle_t* handle, int* status);
 
+/*
+ * Receive a message response on the ipc channel. May block if there
+ * is no pending message.
+ *
+ * Sets status to the server-returned status code and returns the
+ * length of any reply message on success, returns -1 on internal
+ * error.
+ */
+int dtnipc_recv_raw(dtnipc_handle_t* handle, int* status);
+
 /**
  * Send a message and wait for a response over the dtn ipc protocol.
  *
@@ -154,6 +192,12 @@ int dtnipc_recv(dtnipc_handle_t* handle, int* status);
  */
 int dtnipc_send_recv(dtnipc_handle_t* handle, dtnapi_message_type_t type);
 
+/**
+ * Send a message and wait for a response over the dtn ipc protocol.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int dtnipc_send_recv_raw(dtnipc_handle_t* handle, dtnapi_message_type_t type);
 
 #ifdef  __cplusplus
 }

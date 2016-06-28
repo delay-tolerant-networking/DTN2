@@ -15,6 +15,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -160,6 +178,8 @@ SeqpacketConvergenceLayer::Connection::Connection(const char* classname,
 void
 SeqpacketConvergenceLayer::Connection::initiate_contact()
 {
+    size_t local_eid_len;
+
     log_debug("initiate_contact called");
 
     // format the contact header
@@ -192,7 +212,12 @@ SeqpacketConvergenceLayer::Connection::initiate_contact()
     
     // follow up with the local endpoint id length + data
     BundleDaemon* bd = BundleDaemon::instance();
-    size_t local_eid_len = bd->local_eid().length();
+
+    if(!bd->params_.announce_ipn_)
+        local_eid_len = bd->local_eid().length();
+    else 
+        local_eid_len = bd->local_eid_ipn().length();
+
     size_t sdnv_len = SDNV::encoding_len(local_eid_len);
     
     if (sendbuf_.tailbytes() < sdnv_len + local_eid_len) {
@@ -205,8 +230,12 @@ SeqpacketConvergenceLayer::Connection::initiate_contact()
                             (u_char*)sendbuf_.end(),
                             sendbuf_.tailbytes());
     sendbuf_.fill(sdnv_len);
-    
-    memcpy(sendbuf_.end(), bd->local_eid().data(), local_eid_len);
+
+    if(!bd->params_.announce_ipn_)
+        memcpy(sendbuf_.end(), bd->local_eid().data(), local_eid_len);
+    else
+        memcpy(sendbuf_.end(), bd->local_eid_ipn().data(), local_eid_len);
+
     sendbuf_.fill(local_eid_len);
     
     sendbuf_sequence_delimiters_.push(sizeof(ContactHeader) + sdnv_len + local_eid_len); 
@@ -511,8 +540,8 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
         // or set to zero in handle_data_segment().
         if(0 != ack_window_todo_) {
             log_debug("send_pending_acks: "
-                      "waiting to send ack for window %zu segments "
-                      "since need %zu more segments",
+                      "waiting to send ack for window %u segments "
+                      "since need %u more segments",
                       params->ack_window_, ack_window_todo_);
             break;
         }
@@ -584,7 +613,7 @@ SeqpacketConvergenceLayer::Connection::send_pending_acks()
     if ((incoming->total_length_ != 0) &&
         (incoming->total_length_ == incoming->acked_length_))
     {
-        log_debug("send_pending_acks: acked all %u bytes of bundle %d",
+        log_debug("send_pending_acks: acked all %u bytes of bundle %"PRIbid,
                   incoming->total_length_, incoming->bundle_->bundleid());
         
         incoming_.pop_front();
@@ -628,7 +657,7 @@ SeqpacketConvergenceLayer::Connection::start_next_bundle()
     }
 
     InFlightBundle* inflight = new InFlightBundle(bundle.object());
-    log_debug("trying to find xmit blocks for bundle id:%d on link %s",
+    log_debug("trying to find xmit blocks for bundle id:%"PRIbid" on link %s",
               bundle->bundleid(), link->name());
     inflight->blocks_ = bundle->xmit_blocks()->find_blocks(contact_->link());
     ASSERT(inflight->blocks_ != NULL);
@@ -799,20 +828,20 @@ SeqpacketConvergenceLayer::Connection::check_completed(InFlightBundle* inflight)
     // inflight->ack_data_)
 
     if (current_inflight_ == inflight) {
-        log_debug("check_completed: bundle %d still waiting for finish_bundle",
+        log_debug("check_completed: bundle %"PRIbid" still waiting for finish_bundle",
                   inflight->bundle_->bundleid());
         return;
     }
 
     u_int32_t acked_len = inflight->ack_data_.num_contiguous();
     if (acked_len < inflight->total_length_) {
-        log_debug("check_completed: bundle %d only acked %u/%u",
+        log_debug("check_completed: bundle %"PRIbid" only acked %u/%u",
                   inflight->bundle_->bundleid(),
                   acked_len, inflight->total_length_);
         return;
     }
 
-    log_debug("check_completed: bundle %d transmission complete",
+    log_debug("check_completed: bundle %"PRIbid" transmission complete",
               inflight->bundle_->bundleid());
     ASSERT(inflight == inflight_.front());
     inflight_.pop_front();
@@ -874,7 +903,7 @@ SeqpacketConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
                     // data; if so we must send the segment so we can't
                     // cancel the send now
                     if (send_segment_todo_ != 0) {
-                        log_debug("handle_cancel_bundle: bundle %d "
+                        log_debug("handle_cancel_bundle: bundle %"PRIbid" "
                                   "already in flight, can't cancel send",
                                   bundle->bundleid());
                         return;
@@ -883,7 +912,7 @@ SeqpacketConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
                 }
                 
                 log_debug("handle_cancel_bundle: "
-                          "bundle %d not yet in flight, cancelling send",
+                          "bundle %"PRIbid" not yet in flight, cancelling send",
                           bundle->bundleid());
                 inflight_.erase(iter);
                 delete inflight;
@@ -892,7 +921,7 @@ SeqpacketConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
                 return;
             } else {
                 log_debug("handle_cancel_bundle: "
-                          "bundle %d already in flight, can't cancel send",
+                          "bundle %"PRIbid" already in flight, can't cancel send",
                           bundle->bundleid());
                 return;
             }
@@ -900,7 +929,7 @@ SeqpacketConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
     }
 
     log_warn("handle_cancel_bundle: "
-             "can't find bundle %d in the in flight list", bundle->bundleid());
+             "can't find bundle %"PRIbid" in the in flight list", bundle->bundleid());
 }
 
 //----------------------------------------------------------------------
@@ -1576,7 +1605,7 @@ SeqpacketConvergenceLayer::Connection::handle_shutdown(u_int8_t flags)
     shutdown_reason_t reason = SHUTDOWN_NO_REASON;
     if (flags & SHUTDOWN_HAS_REASON)
     {
-        switch (*recvbuf_.start()) {
+        switch ((unsigned char) *recvbuf_.start()) {
         case SHUTDOWN_NO_REASON:
             reason = SHUTDOWN_NO_REASON;
             break;

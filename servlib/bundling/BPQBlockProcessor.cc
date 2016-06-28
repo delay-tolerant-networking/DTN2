@@ -14,24 +14,45 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
 #ifdef BPQ_ENABLED
 
+#include <inttypes.h>
+
 #include <oasys/util/ScratchBuffer.h>
 
 #include "BPQBlockProcessor.h"
 #include "SDNV.h"
 
-template <> dtn::BPQBlockProcessor*
-oasys::Singleton<dtn::BPQBlockProcessor>::instance_ = NULL;
-
 namespace dtn {
 
 // Setup our logging information
 static const char* LOG = "/dtn/bundle/extblock/bpq";
+
+template <> BPQBlockProcessor*
+oasys::Singleton<BPQBlockProcessor>::instance_ = NULL;
+
 
 
 //----------------------------------------------------------------------
@@ -131,7 +152,8 @@ BPQBlockProcessor::prepare(const Bundle*    bundle,
     } else {
 
         log_err_p(LOG, "BPQBlock not found in bundle");
-        return BP_FAIL;
+        //return BP_FAIL;  // fail used to be okay but now aborts
+        return BP_SUCCESS;
     }
 }
 
@@ -214,7 +236,7 @@ BPQBlockProcessor::validate(const Bundle*           bundle,
 
     if ( block->contents().buf_len() < block->full_length() ) {
 
-        log_err_p(LOG, "block buffer len (%u) is less than the full len (%u)",
+        log_err_p(LOG, "block buffer len (%zu) is less than the full len (%u)",
                   block->contents().buf_len(), block->full_length() );
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
@@ -369,7 +391,7 @@ BPQBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *block)
 		buf->append("Block too short\n");
 		return 0;
 	}
-	buf->appendf("    Original creation ts: %llu.%llu\n", creation_ts.seconds_, creation_ts.seqno_);
+	buf->appendf("    Original creation ts: %"PRIu64".%"PRIu64"\n", creation_ts.seconds_, creation_ts.seqno_);
 
 	// Source EID length     SDNV
 	if ( (q_decoding_len = SDNV::decode (&(content[i]),
@@ -388,7 +410,7 @@ BPQBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *block)
 	if (i < len) {
 		buf->append("    Source EID: ");
 		buf->append((char*)&(content[i]), item_len);
-		buf->appendf(" (length %llu)\n", item_len);
+		buf->appendf(" (length %"PRIu64")\n", item_len);
 		i += item_len;
 	} else {
 		buf->append("Error copying source EID\n");
@@ -421,7 +443,7 @@ BPQBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *block)
 		} else {
 			buf->appendf("<0x%x>", (unsigned int)(content[i+item_len]));
 		}
-		buf->appendf(" (length %llu)\n", item_len);
+		buf->appendf(" (length %"PRIu64")\n", item_len);
 		i += item_len;
 	} else {
 		buf->append("Error copying BPQ query value \n");
@@ -444,7 +466,7 @@ BPQBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *block)
 		buf->append("Block too short\n");
 		return 0;
 	}
-	buf->appendf("    Number of fragments: %llu\n", frag_count);
+	buf->appendf("    Number of fragments: %"PRIu64"\n", frag_count);
 
 	for (k = 0; k < len && (u_int64_t)k < frag_count; ++k) {
 
@@ -473,7 +495,7 @@ BPQBlockProcessor::format(oasys::StringBuffer* buf, BlockInfo *block)
 			buf->append("Block too short\n");
 			return 0;
 		}
-		buf->appendf("      [%d] Offset: %llu, Length: %llu\n", k, frag_offset, frag_len);
+		buf->appendf("      [%d] Offset: %"PRIu64", Length: %"PRIu64"\n", k, frag_offset, frag_len);
 	}
 
 	if (i != len) {

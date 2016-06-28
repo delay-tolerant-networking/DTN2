@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -170,7 +188,16 @@ UDPTunnel::Connection::Connection(UDPTunnel* t, dtn_endpoint_id_t* dest_eid,
 {
     dtn_copy_eid(&dest_eid_, dest_eid);
 
-    reorder_udp_ = DTNTunnel::instance()->reorder_udp();
+    DTNTunnel* tunnel = DTNTunnel::instance();
+    reorder_udp_ = tunnel->reorder_udp();
+
+    // override the socket buffer sizes if specified
+    if ( tunnel->recv_bufsize() > 0 ) {
+        sock_.params_.recv_bufsize_ = tunnel->recv_bufsize();
+    }
+    if ( tunnel->send_bufsize() > 0 ) {
+        sock_.params_.send_bufsize_ = tunnel->send_bufsize();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -234,7 +261,7 @@ UDPTunnel::Connection::run()
     sock_.init_socket();
 
     if (transparent_) {
-#ifdef __linux__
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
     	// bind socket to the non-local address of the sending udp application
     	// in order to transmit data to the receiving udp application transparrently
     	int on, err;
@@ -475,8 +502,16 @@ UDPTunnel::Listener::run()
     dtn_endpoint_id_t dest_eid;
     dtn_copy_eid(&dest_eid, DTNTunnel::instance()->dest_eid());
 
+    // override the socket buffer sizes if specified
+    if ( tunnel->recv_bufsize() > 0 ) {
+        sock_.params_.recv_bufsize_ = tunnel->recv_bufsize();
+    }
+    if ( tunnel->send_bufsize() > 0 ) {
+        sock_.params_.send_bufsize_ = tunnel->send_bufsize();
+    }
+
     if (transparent_) {
-#ifdef __linux__
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
 	// prepare socket to getting original destination address and port
         log_debug("initializing socket");
         sock_.init_socket();
@@ -507,7 +542,7 @@ UDPTunnel::Listener::run()
         int len;
         
         if (transparent_) {
-#ifdef __linux__
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
             // get original destination address and port and put them to the bundle header
             char cmbuf[64];
             struct sockaddr_in from;
@@ -648,7 +683,7 @@ UDPTunnel::Listener::handle_bundle(dtn::APIBundle* bundle)
     int  len = bundle->payload_.len() - sizeof(hdr);
 
     if (transparent_) {
-#ifdef __linux__
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
 	// transparrently transmit packet to the socket that initiated the connection
         tsock_.init_socket();
 

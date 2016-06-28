@@ -15,11 +15,31 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
 #ifdef BPQ_ENABLED
+
+#include <inttypes.h>
 
 #include "BPQBlock.h"
 #include "BPQFragmentList.h"
@@ -93,7 +113,7 @@ BPQBlock::validate(u_char* buf, size_t len)
 {
 	ASSERT(buf != NULL);
 	ASSERT(len > 0);
-	size_t used_len;
+	size_t used_len = 0;
 	int sdnv_len;
 	u_int64_t sdnv_val;
 	u_int64_t frag_count;
@@ -319,9 +339,9 @@ BPQBlock::initialise_from_block(BlockInfo* block, bool created_locally, const Bu
 	// Overwrite values (usually read in from API) if bundle created locally
 	if ((ret == BP_SUCCESS) && created_locally) {
 		log_debug("BPQBlock::initialise_from_block: bundle was locally created");
-		log_debug("\t timestamp seconds = %llu", creation_ts_.seconds_);
-		log_debug("\t timestamp sequence number = %llu", creation_ts_.seqno_);
-		log_debug("\t Source EID length = %u", source_.length());
+		log_debug("\t timestamp seconds = %"PRIu64, creation_ts_.seconds_);
+		log_debug("\t timestamp sequence number = %"PRIu64, creation_ts_.seqno_);
+		log_debug("\t Source EID length = %zu", source_.length());
 		log_debug("\t Source EID = %s", source_.c_str());
 
 		creation_ts_.seconds_ 	= bundle->creation_ts().seconds_;
@@ -450,7 +470,7 @@ BPQBlock::extract_creation_ts (	const u_char* buf,
 				 	 	 	 	 	 	buf_length - (*buf_index),
 				 	 	 	 	 	 	&(creation_ts_.seconds_)) ) >= 0 ) {
 		*buf_index += decoding_len;
-		log_debug("BPQBlock::extract_creation_ts: timestamp seconds = %llu",
+		log_debug("BPQBlock::extract_creation_ts: timestamp seconds = %"PRIu64,
 				creation_ts_.seconds_);
 	} else {
 		log_err("Error decoding timestamp seconds");
@@ -463,7 +483,7 @@ BPQBlock::extract_creation_ts (	const u_char* buf,
 										buf_length - (*buf_index),
 										&(creation_ts_.seqno_)) ) >= 0 ) {
 		*buf_index += decoding_len;
-		log_debug("BPQBlock::extract_creation_ts: timestamp sequence number = %llu",
+		log_debug("BPQBlock::extract_creation_ts: timestamp sequence number = %"PRIu64,
 				creation_ts_.seqno_);
 	} else {
 		log_err("Error decoding timestamp sequence number");

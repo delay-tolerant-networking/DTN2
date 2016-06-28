@@ -18,6 +18,7 @@
 #  include <dtn-config.h>
 #endif
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -181,7 +182,7 @@ main(int argc, const char** argv)
 
                 clock = sr_data->delivery_ts.secs + DTNTIME_OFFSET;
                 tm_buf = gmtime(&clock);
-                printf("%s: delivered bundle (%s %llu.%llu) at %.*s UTC\n",
+                printf("%s: delivered bundle (%s %"PRIu64".%"PRIu64") at %.*s UTC\n",
                        reply_spec.source.uri,
 		       theSource->uri, theCreationTimestamp->secs, theCreationTimestamp->seqno,
 		       24, asctime(tm_buf));
@@ -224,6 +225,7 @@ doOptions(int argc, const char **argv)
             api_IP = optarg;
             break;
         case 'B':
+            api_IP_set = 1;
             api_port = atoi(optarg);
             break;    
         case 'e':

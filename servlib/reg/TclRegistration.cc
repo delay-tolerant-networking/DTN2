@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -200,7 +218,7 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
     // and a pretty formatted creation timestamp
     addElement(Tcl_NewStringObj("creation_ts", -1));
-    sprintf(tmp_buf, "%llu.%llu", b->creation_ts().seconds_, b->creation_ts().seqno_);
+    sprintf(tmp_buf, "%"PRIu64".%"PRIu64, b->creation_ts().seconds_, b->creation_ts().seqno_);
     addElement(Tcl_NewStringObj(tmp_buf, -1));
 
     // If we're not an admin bundle, we're done
@@ -242,7 +260,7 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 #define APPEND_TIMESTAMP(_flag, _what, _field)                          \
         if (sr.status_flags_ & BundleStatusReport::_flag) {             \
             addElement(Tcl_NewStringObj(_what, -1));                    \
-            sprintf(tmp_buf, "%llu.%llu",                               \
+            sprintf(tmp_buf, "%"PRIu64".%"PRIu64,                               \
                     sr._field.seconds_, sr._field.seqno_);              \
             addElement(Tcl_NewStringObj(tmp_buf, -1));                  \
         }
@@ -267,7 +285,7 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
         
         // Bundle creation timestamp
         addElement(Tcl_NewStringObj("orig_creation_ts", -1));
-        sprintf(tmp_buf, "%llu.%llu",
+        sprintf(tmp_buf, "%"PRIu64".%"PRIu64,
                 sr.orig_creation_tv_.seconds_,
                 sr.orig_creation_tv_.seqno_);
         addElement(Tcl_NewStringObj(tmp_buf, -1));
@@ -343,14 +361,14 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
         // Custody signal timestamp
         addElement(Tcl_NewStringObj("custody_signal_time", -1));
-        sprintf(tmp_buf, "%llu.%llu",
+        sprintf(tmp_buf, "%"PRIu64".%"PRIu64,
                 cs.custody_signal_tv_.seconds_,
                 cs.custody_signal_tv_.seqno_);
         addElement(Tcl_NewStringObj(tmp_buf, -1));
         
         // Bundle creation timestamp
         addElement(Tcl_NewStringObj("orig_creation_ts", -1));
-        sprintf(tmp_buf, "%llu.%llu",
+        sprintf(tmp_buf, "%"PRIu64".%"PRIu64,
                 cs.orig_creation_tv_.seconds_,
                 cs.orig_creation_tv_.seqno_);
         addElement(Tcl_NewStringObj(tmp_buf, -1));

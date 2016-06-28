@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -108,10 +126,13 @@ TcaController::TcaController(TcaController::Role role,
                              const std::string& link_id,
                              const std::string& ask_addr,
                              const std::string& adv_str,
-                             int registry_ttl, int control_ttl)
+                             int registry_ttl, int control_ttl, 
+                             bool api_ip_set, const std::string& api_ip, 
+                             unsigned int api_prt)
     : role_(role), link_id_(link_id),
       ask_addr_(ask_addr), adv_str_(adv_str),
-      registry_ttl_(registry_ttl), control_ttl_(control_ttl)
+      registry_ttl_(registry_ttl), control_ttl_(control_ttl),
+      api_IP_set(api_ip_set), api_IP(api_ip), api_port(api_prt)
 
 {
 
@@ -156,8 +177,14 @@ TcaController::dtn_reg(dtn_endpoint_id_t& eid, dtn_reg_id_t& id)
 bool
 TcaController::init(bool tidy)
 {
+    int err;
     // open the ipc handle
-    int err = dtn_open(&handle_);
+    if(api_IP_set || api_port != 5010)
+    {
+        err = dtn_open_with_IP((char *) api_IP.c_str(),api_port,&handle_);
+    } else {
+        err = dtn_open(&handle_);
+    }
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));

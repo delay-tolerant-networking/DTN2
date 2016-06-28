@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -79,7 +97,9 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
     // Make sure we have at least one byte of sdnv before trying to
     // parse it.
     if (contents->len() <= BundleProtocol::PREAMBLE_FIXED_LENGTH) {
-        ASSERT(tocopy == len);
+//dz debug        ASSERT(tocopy == len);
+        if (tocopy != len) return -1;
+
         return len;
     }
     
@@ -93,7 +113,8 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
                             contents->len() - buf_offset,
                             &flags);
     if (sdnv_len == -1) {
-        ASSERT(tocopy == len);
+//dz debug        ASSERT(tocopy == len);
+        if (tocopy != len) return -1;
         return len;
     }
     
@@ -124,7 +145,9 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
                                 contents->len() - buf_offset,
                                 &eid_ref_count);
         if (sdnv_len == -1) {
-            ASSERT(tocopy == len);
+//dz debug            ASSERT(tocopy == len);
+            if (tocopy != len) return -1;
+
             return len;
         }
             
@@ -136,7 +159,9 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
                                     contents->len() - buf_offset,
                                     &scheme_offset);
             if (sdnv_len == -1) {
-                ASSERT(tocopy == len);
+//dz debug                ASSERT(tocopy == len);
+                if (tocopy != len) return -1;
+
                 return len;
             }
             buf_offset += sdnv_len;
@@ -145,7 +170,8 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
                                     contents->len() - buf_offset,
                                     &ssp_offset);
             if (sdnv_len == -1) {
-                ASSERT(tocopy == len);
+//dz debug                ASSERT(tocopy == len);
+                if (tocopy != len) return -1;
                 return len;
             }
             buf_offset += sdnv_len;
@@ -164,7 +190,8 @@ BlockProcessor::consume_preamble(BlockInfoVec* recv_blocks,
                             contents->len() - buf_offset,
                             &block_len);
     if (sdnv_len == -1) {
-        ASSERT(tocopy == len);
+//dz debug        ASSERT(tocopy == len);
+                if (tocopy != len) return -1;
         return len;
     }
 
@@ -386,6 +413,20 @@ BlockProcessor::validate(const Bundle*           bundle,
         
     return true;
 }
+
+#ifdef BSP_ENABLED
+//----------------------------------------------------------------------
+bool
+BlockProcessor::validate_security_result(const Bundle*           bundle,
+                                         const BlockInfoVec*     block_list,
+                                         BlockInfo*              block)
+{
+    (void)bundle;
+    (void)block_list;
+    (void)block;
+    return true;
+}
+#endif
 
 //----------------------------------------------------------------------
 int

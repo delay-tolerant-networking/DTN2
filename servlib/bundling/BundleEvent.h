@@ -14,8 +14,30 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_EVENT_H_
 #define _BUNDLE_EVENT_H_
+
+#ifdef ACS_ENABLED
+#include "AggregateCustodySignal.h"
+#endif // ACS_ENABLED
 
 #include "Bundle.h"
 #include "BundleProtocol.h"
@@ -25,6 +47,14 @@
 #include "contacts/Link.h"
 #include "contacts/NamedAttribute.h"
 #include "GbofId.h"
+#include "reg/APIRegistration.h"
+
+#ifdef DTPC_ENABLED
+#    include "dtpc/DtpcApplicationDataItem.h"
+#    include "dtpc/DtpcProtocolDataUnit.h"
+#    include "dtpc/DtpcRegistration.h"
+#endif // DTPC_ENABLED
+
 
 namespace dtn {
 
@@ -39,6 +69,39 @@ class Contact;
 class Interface;
 class Registration;
 class RouteEntry;
+
+/**
+ * Processor codes for events / requests identifies which thread handles the event
+ */
+typedef enum {
+  EVENT_PROCESSOR_MAIN = 0x1,
+  EVENT_PROCESSOR_INPUT,
+  EVENT_PROCESSOR_STORAGE,
+  EVENT_PROCESSOR_ACS,
+  EVENT_PROCESSOR_DTPC,
+  EVENT_PROCESSOR_OUTPUT
+
+} event_processor_t;
+/**
+ * Conversion function from a processor to a string.
+ */
+inline const char*
+event_processor_to_str(event_processor_t proc)
+{
+    switch(proc) {
+
+    case EVENT_PROCESSOR_MAIN:       return "EVENT_PROCESSOR_MAIN";
+    case EVENT_PROCESSOR_INPUT:      return "EVENT_PROCESSOR_INPUT";
+    case EVENT_PROCESSOR_STORAGE:    return "EVENT_PROCESSOR_STORAGE";
+    case EVENT_PROCESSOR_ACS:        return "EVENT_PROCESSOR_ACS";
+    case EVENT_PROCESSOR_DTPC:       return "EVENT_PROCESSOR_DTPC";
+    case EVENT_PROCESSOR_OUTPUT:     return "EVENT_PROCESSOR_OUTPUT";
+
+    default:                   return "(invalid event processor)";
+        
+    }
+}
+
 
 /**
  * Type codes for events / requests.
@@ -64,6 +127,8 @@ typedef enum {
     BUNDLE_ATTRIB_QUERY,        ///< Query for a bundle's attributes
     BUNDLE_ATTRIB_REPORT,       ///< Report with bundle attributes
     BUNDLE_ACK,                 ///< Receipt acked by app
+    BUNDLE_TAKE_CUSTODY,        ///< ExternalRouter request to take custody of a bundle
+    BUNDLE_CUSTODY_ACCEPTED,    ///< Informs ExternalRouter that custody of bundle was accepted
 
     CONTACT_UP,                 ///< Contact is up
     CONTACT_DOWN,               ///< Contact abnormally terminated
@@ -82,6 +147,7 @@ typedef enum {
     LINK_QUERY,                 ///< Link query
     LINK_REPORT,                ///< Response to link query
     LINK_ATTRIB_CHANGED,        ///< An attribute changed
+    LINK_CHECK_DEFERRED,        ///< Link deferred bundles ready to send?
 
     LINK_STATE_CHANGE_REQUEST,  ///< Link state should be changed
 
@@ -96,6 +162,15 @@ typedef enum {
 
     DELIVER_BUNDLE_TO_REG,      ///< Deliver bundle to registation
 
+    STORE_BUNDLE_UPDATE,        ///< Add/Update bundle in BundleStore
+    STORE_BUNDLE_DELETE,        ///< Delete bundle from BundleStore
+    STORE_PENDINGACS_UPDATE,    ///< Add/Update pending ACS in PendingAcsStore
+    STORE_PENDINGACS_DELETE,    ///< Delete pending ACS from PendingAcsStore
+    STORE_REGISTRATION_UPDATE,  ///< Add/Update API Reg in RegistrationStore
+    STORE_REGISTRATION_DELETE,  ///< Delete API Reg from RegistrationStore
+    STORE_LINK_UPDATE,          ///< Add/Update Link in LinkStore
+    STORE_LINK_DELETE,          ///< Delete Link from LinkStore
+
     ROUTE_ADD,                  ///< Add a new entry to the route table
     ROUTE_DEL,                  ///< Remove an entry from the route table
     ROUTE_QUERY,                ///< Static route query
@@ -103,6 +178,10 @@ typedef enum {
 
     CUSTODY_SIGNAL,             ///< Custody transfer signal received
     CUSTODY_TIMEOUT,            ///< Custody transfer timer fired
+    AGGREGATE_CUSTODY_SIGNAL,   ///< Aggregate Custody transfer signal received
+    ISSUE_AGGREGATE_CUSTODY_SIGNAL,  ///< Issue an Aggregate Custody Signal for a bundle
+    ACS_EXPIRED_EVENT,          ///< Aggregate Custody Signal Timer Expired
+    EXTERNAL_ROUTER_ACS,        ///< ACS data to send to an external router
 
     DAEMON_SHUTDOWN,            ///< Shut the daemon down cleanly
     DAEMON_STATUS,              ///< No-op event to check the daemon
@@ -123,6 +202,19 @@ typedef enum {
     CLA_PARAMS_QUERY,           ///< Query CLA for config parameters
     CLA_PARAMS_REPORT,          ///< Report from CLA with config paramters
 
+    DTPC_TOPIC_REGISTRATION,    ///< DTPC Topic Registration request received
+    DTPC_TOPIC_UNREGISTRATION,  ///< DTPC Topic Unregistration requested
+    DTPC_SEND_DATA_ITEM,        ///< Request to send a DTPC data item
+    DTPC_DATA_ITEM_RECEIVED,    ///< DTPC Data Item was received
+    DTPC_PAYLOAD_AGGREGATION_EXPIRED, ///<DTPC Payload Aggregation Timer Expired
+    DTPC_PDU_TRANSMITTED,       ///< DTPC PDU was transmitted
+    DTPC_PDU_DELETE,            ///< DTPC PDU deletion request
+    DTPC_RETRANSMIT_TIMER_EXPIRED, ///<DTPC Retransmit Timer Expired
+    DTPC_ACK_RECEIVED,          ///<DTPC ACK PDU received
+    DTPC_DATA_RECEIVED,         ///<DTPC Data PDU received
+    DTPC_DELIVER_PDU_TIMER_EXPIRED, ///<DTPC Deliver PDU Timer Expired
+    DTPC_TOPIC_EXPIRATION_CHECK, ///<DTPC Topic Expiration Timer Expired
+    DTPC_ELISION_FUNC_RESPONSE,  ///<DTPC Elision Function Response 
 } event_type_t;
 
 /**
@@ -153,6 +245,8 @@ event_to_str(event_type_t event)
     case BUNDLE_ATTRIB_QUERY:   return "BUNDLE_ATTRIB_QUERY";
     case BUNDLE_ATTRIB_REPORT:  return "BUNDLE_ATTRIB_REPORT";
     case BUNDLE_ACK:            return "BUNDLE_ACK_BY_APP";
+    case BUNDLE_TAKE_CUSTODY:   return "BUNDLE_TAKE_CUSTODY";
+    case BUNDLE_CUSTODY_ACCEPTED: return "BUNDLE_CUSTODY_ACCEPTED";
 
     case CONTACT_UP:            return "CONTACT_UP";
     case CONTACT_DOWN:          return "CONTACT_DOWN";
@@ -171,6 +265,7 @@ event_to_str(event_type_t event)
     case LINK_QUERY:            return "LINK_QUERY";
     case LINK_REPORT:           return "LINK_REPORT";
     case LINK_ATTRIB_CHANGED:   return "LINK_ATTRIB_CHANGED";
+    case LINK_CHECK_DEFERRED:   return "LINK_CHECK_DEFERRED";
 
     case LINK_STATE_CHANGE_REQUEST:return "LINK_STATE_CHANGE_REQUEST";
 
@@ -185,6 +280,15 @@ event_to_str(event_type_t event)
 
     case DELIVER_BUNDLE_TO_REG: return "DELIVER_BUNDLE_TO_REG";
 
+    case STORE_BUNDLE_UPDATE:        return "STORE_BUNDLE_UPDATE";
+    case STORE_BUNDLE_DELETE:        return "STORE_BUNDLE_DELETE";
+    case STORE_PENDINGACS_UPDATE:    return "STORE_PENDINGACS_UPDATE";
+    case STORE_PENDINGACS_DELETE:    return "STORE_PENDINGACS_DELETE";
+    case STORE_REGISTRATION_UPDATE:  return "STORE_REGISTRATION_UPDATE";
+    case STORE_REGISTRATION_DELETE:  return "STORE_REGISTRATION_DELETE";
+    case STORE_LINK_UPDATE:          return "STORE_LINK_UPDATE";
+    case STORE_LINK_DELETE:          return "STORE_LINK_DELETE";
+
     case ROUTE_ADD:             return "ROUTE_ADD";
     case ROUTE_DEL:             return "ROUTE_DEL";
     case ROUTE_QUERY:           return "ROUTE_QUERY";
@@ -192,6 +296,10 @@ event_to_str(event_type_t event)
 
     case CUSTODY_SIGNAL:        return "CUSTODY_SIGNAL";
     case CUSTODY_TIMEOUT:       return "CUSTODY_TIMEOUT";
+    case AGGREGATE_CUSTODY_SIGNAL: return "AGGREGATE_CUSTODY_SIGNAL";
+    case ISSUE_AGGREGATE_CUSTODY_SIGNAL: return "ISSUE_AGGREGATE_CUSTODY_SIGNAL";
+    case ACS_EXPIRED_EVENT:     return "ACS_EXPIRED_EVENT";
+    case EXTERNAL_ROUTER_ACS:   return "EXTERNAL_ROUTER_ACS";
     
     case DAEMON_SHUTDOWN:       return "SHUTDOWN";
     case DAEMON_STATUS:         return "DAEMON_STATUS";
@@ -211,6 +319,20 @@ event_to_str(event_type_t event)
     case CLA_IFACE_ATTRIB_REPORT:  return "CLA_IFACE_ATTRIB_REPORT";
     case CLA_PARAMS_QUERY:         return "CLA_PARAMS_QUERY";
     case CLA_PARAMS_REPORT:        return "CLA_PARAMS_REPORT";
+
+    case DTPC_TOPIC_REGISTRATION:  return "DTPC_TOPIC_REGISTRATION";
+    case DTPC_TOPIC_UNREGISTRATION: return "DTPC_TOPIC_UNREGISTRATION";
+    case DTPC_SEND_DATA_ITEM:      return "DTPC_SEND_DATA_ITEM";
+    case DTPC_DATA_ITEM_RECEIVED:  return "DTPC_DATA_ITEM_RECEIVED";
+    case DTPC_PAYLOAD_AGGREGATION_EXPIRED: return "DTPC_PAYLOAD_AGGREGATION_EXPIRED";
+    case DTPC_PDU_TRANSMITTED:     return "DTPC_PDU_TRANSMITTED";
+    case DTPC_PDU_DELETE:          return "DTPC_PDU_DELETE";
+    case DTPC_RETRANSMIT_TIMER_EXPIRED: return "DTPC_RETRANSMIT_TIMER_EXPIRED";
+    case DTPC_ACK_RECEIVED:        return "DTPC_ACK_RECEIVED";
+    case DTPC_DATA_RECEIVED:       return "DTPC_DATA_RECEIVED";
+    case DTPC_DELIVER_PDU_TIMER_EXPIRED: return "DTPC_DELIVER_PDU_TIMER_EXPIRED";
+    case DTPC_TOPIC_EXPIRATION_CHECK: return "DTPC_TOPIC_EXPIRATION_CHECK";
+    case DTPC_ELISION_FUNC_RESPONSE: return "DTPC_ELISION_FUNC_RESPONSE";
 
     default:                   return "(invalid event type)";
         
@@ -278,6 +400,11 @@ public:
     const event_type_t type_;
 
     /**
+     * The processor that needs to process the event
+     */
+    event_processor_t event_processor_;
+
+    /**
      * Bit indicating whether this event is for the daemon only or if
      * it should be propagated to other components (i.e. the various
      * routers).
@@ -312,14 +439,15 @@ protected:
      * Constructor (protected since one of the subclasses should
      * always be that which is actually initialized.
      */
-    BundleEvent(event_type_t type)
+    BundleEvent(event_type_t type, event_processor_t proc)
         : type_(type),
+          event_processor_(proc),
           daemon_only_(false),
           processed_notifier_(NULL) {}
 };
 
 /**
- * Event class for new bundle arrivals.
+ * Event classes for new bundle arrivals.
  */
 class BundleReceivedEvent : public BundleEvent {
 public:
@@ -333,7 +461,7 @@ public:
                         const EndpointID& prevhop,
                         Link*             originator = NULL)
 
-        : BundleEvent(BUNDLE_RECEIVED),
+        : BundleEvent(BUNDLE_RECEIVED, EVENT_PROCESSOR_INPUT),
           bundleref_(bundle, "BundleReceivedEvent"),
           source_(source),
           bytes_received_(bytes_received),
@@ -348,11 +476,11 @@ public:
      * Constructor for bundles arriving from a local application
      * identified by the given Registration.
      */
-    BundleReceivedEvent(Bundle*        bundle,
-                        event_source_t source,
-                        Registration*  registration)
-        : BundleEvent(BUNDLE_RECEIVED),
-          bundleref_(bundle, "BundleReceivedEvent"),
+    BundleReceivedEvent(Bundle*           bundle,
+                        event_source_t    source,
+                        Registration*     registration)
+        : BundleEvent(BUNDLE_RECEIVED, EVENT_PROCESSOR_INPUT),
+          bundleref_(bundle, "BundleReceivedEvent2"),
           source_(source),
           bytes_received_(0),
           link_("BundleReceivedEvent"),
@@ -367,8 +495,8 @@ public:
      */
     BundleReceivedEvent(Bundle*        bundle,
                         event_source_t source)
-        : BundleEvent(BUNDLE_RECEIVED),
-          bundleref_(bundle, "BundleReceivedEvent"),
+        : BundleEvent(BUNDLE_RECEIVED, EVENT_PROCESSOR_INPUT),
+          bundleref_(bundle, "BundleReceivedEvent3"),
           source_(source),
           bytes_received_(0),
           link_("BundleReceivedEvent"),
@@ -394,7 +522,98 @@ public:
 
     /// Registration where the bundle arrived
     Registration* registration_;
+
+    /// Duplicate Bundle
+    Bundle* duplicate_;
 };
+
+// This variant of the class is processed by the BundleDaemonOutput
+class BundleReceivedEvent_OutputProcessor : public BundleReceivedEvent {
+public:
+    /*
+     * Constructor for bundles arriving from a peer, named by the
+     * prevhop and optionally marked with the link it arrived on.
+     */
+    BundleReceivedEvent_OutputProcessor(Bundle*           bundle,
+                                        event_source_t    source,
+                                        u_int32_t         bytes_received,
+                                        const EndpointID& prevhop,
+                                        Link*             originator = NULL)
+
+        : BundleReceivedEvent(bundle, source, bytes_received, prevhop, originator)
+    {
+        event_processor_ = EVENT_PROCESSOR_OUTPUT;
+    }
+
+    /*
+     * Constructor for bundles arriving from a local application
+     * identified by the given Registration.
+     */
+    BundleReceivedEvent_OutputProcessor(Bundle*           bundle,
+                                        event_source_t    source,
+                                        Registration*     registration)
+        : BundleReceivedEvent(bundle, source, registration)
+    {
+        event_processor_ = EVENT_PROCESSOR_OUTPUT;
+    }
+
+    /*
+     * Constructor for other "arriving" bundles, including reloading
+     * from storage and generated signals.
+     */
+    BundleReceivedEvent_OutputProcessor(Bundle*        bundle,
+                                        event_source_t source)
+        : BundleReceivedEvent(bundle, source)
+    {
+        event_processor_ = EVENT_PROCESSOR_OUTPUT;
+    }
+};
+
+// This variant of the class is processed by the BundleDaemon
+class BundleReceivedEvent_MainProcessor : public BundleReceivedEvent {
+public:
+    /*
+     * Constructor for bundles arriving from a peer, named by the
+     * prevhop and optionally marked with the link it arrived on.
+     */
+    BundleReceivedEvent_MainProcessor(Bundle*           bundle,
+                                      event_source_t    source,
+                                      u_int32_t         bytes_received,
+                                      const EndpointID& prevhop,
+                                      Link*             originator = NULL)
+
+        : BundleReceivedEvent(bundle, source, bytes_received, prevhop, originator)
+    {
+        event_processor_ = EVENT_PROCESSOR_MAIN;
+    }
+
+    /*
+     * Constructor for bundles arriving from a local application
+     * identified by the given Registration.
+     */
+    BundleReceivedEvent_MainProcessor(Bundle*           bundle,
+                                      event_source_t    source,
+                                      Registration*     registration)
+        : BundleReceivedEvent(bundle, source, registration)
+    {
+        event_processor_ = EVENT_PROCESSOR_MAIN;
+    }
+
+    /*
+     * Constructor for other "arriving" bundles, including reloading
+     * from storage and generated signals.
+     */
+    BundleReceivedEvent_MainProcessor(Bundle*        bundle,
+                                      event_source_t source)
+        : BundleReceivedEvent(bundle, source)
+    {
+        event_processor_ = EVENT_PROCESSOR_MAIN;
+        daemon_only_ = true;
+    }
+};
+
+
+
 
 /**
  * Event class for bundle or fragment transmission.
@@ -403,13 +622,15 @@ class BundleTransmittedEvent : public BundleEvent {
 public:
     BundleTransmittedEvent(Bundle* bundle, const ContactRef& contact,
                            const LinkRef& link, u_int32_t bytes_sent,
-                           u_int32_t reliably_sent)
-        : BundleEvent(BUNDLE_TRANSMITTED),
+                           u_int32_t reliably_sent,
+                           bool success=true)
+        : BundleEvent(BUNDLE_TRANSMITTED, EVENT_PROCESSOR_MAIN),
           bundleref_(bundle, "BundleTransmittedEvent"),
           contact_(contact.object(), "BundleTransmittedEvent"),
           bytes_sent_(bytes_sent),
           reliably_sent_(reliably_sent),
-          link_(link.object(), "BundleTransmittedEvent") {}
+          link_(link.object(), "BundleTransmittedEvent"),
+          success_(success) {}
 
     /// The transmitted bundle
     BundleRef bundleref_;
@@ -429,6 +650,9 @@ public:
     /// (may not have a contact when the transmission result is reported)
     LinkRef link_;
 
+    /// Flag indicating success or failure
+    bool success_;
+
 };
 
 /**
@@ -437,7 +661,7 @@ public:
 class BundleDeliveredEvent : public BundleEvent {
 public:
     BundleDeliveredEvent(Bundle* bundle, Registration* registration)
-        : BundleEvent(BUNDLE_DELIVERED),
+        : BundleEvent(BUNDLE_DELIVERED, EVENT_PROCESSOR_MAIN),
           bundleref_(bundle, "BundleDeliveredEvent"),
           registration_(registration) {}
 
@@ -454,7 +678,7 @@ public:
 class BundleAckEvent : public BundleEvent {
 public:
     BundleAckEvent(u_int reg, std::string source, u_quad_t secs, u_quad_t seq)
-        : BundleEvent(BUNDLE_ACK),
+        : BundleEvent(BUNDLE_ACK, EVENT_PROCESSOR_MAIN),
           regid_(reg),
           sourceEID_(source),
           creation_ts_(secs, seq) {}
@@ -471,17 +695,9 @@ public:
  */
 class DeliverBundleToRegEvent : public BundleEvent {
 public:
-    //DeliverBundleToRegEvent(Bundle* bundle,
-    //                        u_int32_t regid,
-    //                        Registration* registration)
-    //    : BundleEvent(DELIVER_BUNDLE_TO_REG),
-    //      bundleref_(bundle, "BundleToRegEvent"),
-    //      regid_(regid),
-    //      registration_(registration) { }
-
     DeliverBundleToRegEvent(Bundle* bundle,
                             u_int32_t regid)
-        : BundleEvent(DELIVER_BUNDLE_TO_REG),
+        : BundleEvent(DELIVER_BUNDLE_TO_REG, EVENT_PROCESSOR_MAIN),
           bundleref_(bundle, "BundleToRegEvent"),
           regid_(regid) { }
 
@@ -497,7 +713,7 @@ public:
 class BundleExpiredEvent : public BundleEvent {
 public:
     BundleExpiredEvent(Bundle* bundle)
-        : BundleEvent(BUNDLE_EXPIRED),
+        : BundleEvent(BUNDLE_EXPIRED, EVENT_PROCESSOR_MAIN),
           bundleref_(bundle, "BundleExpiredEvent") {}
 
     /// The expired bundle
@@ -510,7 +726,7 @@ public:
 class BundleFreeEvent : public BundleEvent {
 public:
     BundleFreeEvent(Bundle* bundle)
-        : BundleEvent(BUNDLE_FREE),
+        : BundleEvent(BUNDLE_FREE, EVENT_PROCESSOR_MAIN),
           bundle_(bundle)
     {
         // should be processed only by the daemon
@@ -566,7 +782,7 @@ public:
 
     /// Constructor
     ContactEvent(event_type_t type, reason_t reason = NO_INFO)
-        : BundleEvent(type), reason_(reason) {}
+        : BundleEvent(type, EVENT_PROCESSOR_MAIN), reason_(reason) {}
 
     int reason_;        ///< reason code for the event
 };
@@ -602,7 +818,7 @@ public:
  */
 class ContactQueryRequest: public BundleEvent {
 public:
-    ContactQueryRequest() : BundleEvent(CONTACT_QUERY)
+    ContactQueryRequest() : BundleEvent(CONTACT_QUERY, EVENT_PROCESSOR_MAIN)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -611,7 +827,7 @@ public:
 
 class ContactReportEvent : public BundleEvent {
 public:
-    ContactReportEvent() : BundleEvent(CONTACT_REPORT) {}
+    ContactReportEvent() : BundleEvent(CONTACT_REPORT, EVENT_PROCESSOR_MAIN) {}
 };
 
 /**
@@ -680,6 +896,22 @@ public:
 };
 
 /**
+ * Event class for link unavailable events
+ */
+class LinkCheckDeferredEvent : public BundleEvent {
+public:
+    LinkCheckDeferredEvent(Link* link)
+        : BundleEvent(LINK_CHECK_DEFERRED, EVENT_PROCESSOR_MAIN), 
+          linkref_(link, "LinkCheckDeferredEvent") {}
+
+    /// The link for which to check the deferred bundles
+    LinkRef linkref_;
+};
+
+
+
+
+/**
  * Request class for link state change requests that are sent to the
  * daemon thread for processing. This includes requests to open or
  * close the link, and changing its status to available or
@@ -732,7 +964,7 @@ public:
 class PrivateEvent : public BundleEvent {
  public:
   PrivateEvent(int sub_type, void* context) 
-    :  BundleEvent(PRIVATE), sub_type_(sub_type), context_(context) {}
+    :  BundleEvent(PRIVATE, EVENT_PROCESSOR_MAIN), sub_type_(sub_type), context_(context) {}
 
   int   sub_type_;
   void* context_;
@@ -745,7 +977,7 @@ class PrivateEvent : public BundleEvent {
 class RegistrationAddedEvent : public BundleEvent {
 public:
     RegistrationAddedEvent(Registration* reg, event_source_t source)
-        : BundleEvent(REGISTRATION_ADDED), registration_(reg),
+        : BundleEvent(REGISTRATION_ADDED, EVENT_PROCESSOR_MAIN), registration_(reg),
           source_(source) {}
 
     /// The newly added registration
@@ -761,7 +993,7 @@ public:
 class RegistrationRemovedEvent : public BundleEvent {
 public:
     RegistrationRemovedEvent(Registration* reg)
-        : BundleEvent(REGISTRATION_REMOVED), registration_(reg) {}
+        : BundleEvent(REGISTRATION_REMOVED, EVENT_PROCESSOR_MAIN), registration_(reg) {}
 
     /// The to-be-removed registration
     Registration* registration_;
@@ -773,7 +1005,7 @@ public:
 class RegistrationExpiredEvent : public BundleEvent {
 public:
     RegistrationExpiredEvent(Registration* registration)
-        : BundleEvent(REGISTRATION_EXPIRED),
+        : BundleEvent(REGISTRATION_EXPIRED, EVENT_PROCESSOR_MAIN),
           registration_(registration) {}
     
     /// The to-be-removed registration 
@@ -787,7 +1019,7 @@ public:
 class RegistrationDeleteRequest : public BundleEvent {
 public:
     RegistrationDeleteRequest(Registration* registration)
-        : BundleEvent(REGISTRATION_DELETE),
+        : BundleEvent(REGISTRATION_DELETE, EVENT_PROCESSOR_MAIN),
           registration_(registration)
     {
         daemon_only_ = true;
@@ -798,12 +1030,163 @@ public:
 };
 
 /**
+ * Event class for adding/updating a bundle in the BundleStore
+ */
+class StoreBundleUpdateEvent: public BundleEvent {
+public:
+    StoreBundleUpdateEvent(Bundle* bundle)
+        : BundleEvent(STORE_BUNDLE_UPDATE, EVENT_PROCESSOR_STORAGE),
+//dz debug          bundleref_(bundle, "StoreBundleUpdateEvent")
+          bundleid_(bundle->bundleid())
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+        ASSERT(processed_notifier_ == NULL);
+    }
+
+    /// The Bundle to add or update in the database
+//dz debug    const BundleRef bundleref_;
+    bundleid_t bundleid_;
+};
+
+/**
+ * Event class for deleting a bundle from the BundleStore
+ */
+class StoreBundleDeleteEvent: public BundleEvent {
+public:
+    StoreBundleDeleteEvent(bundleid_t bundleid, int64_t size_and_flag)
+        : BundleEvent(STORE_BUNDLE_DELETE, EVENT_PROCESSOR_STORAGE),
+          bundleid_(bundleid),
+          size_and_flag_(size_and_flag)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+        ASSERT(processed_notifier_ == NULL);
+    }
+
+    /// The freed bundle
+    bundleid_t bundleid_;
+
+    /// Durable size of the bundle being deleted 
+    /// (negative indicates not written to DB yet)
+    int64_t size_and_flag_;
+};
+
+#ifdef ACS_ENABLED
+/**
+ * Event class for adding/updating a pending ACS in the PendingAcsStore
+ */
+class StorePendingAcsUpdateEvent: public BundleEvent {
+public:
+    StorePendingAcsUpdateEvent(PendingAcs* pacs)
+        : BundleEvent(STORE_PENDINGACS_UPDATE, EVENT_PROCESSOR_STORAGE),
+          pacs_(pacs)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    /// The Bundle to add or update in the database
+    PendingAcs* pacs_;
+};
+
+/**
+ * Event class for deleting a pending ACS from the PendingAcsStore
+ */
+class StorePendingAcsDeleteEvent: public BundleEvent {
+public:
+    StorePendingAcsDeleteEvent(PendingAcs* pacs)
+        : BundleEvent(STORE_PENDINGACS_DELETE, EVENT_PROCESSOR_STORAGE),
+          pacs_(pacs)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    /// The freed bundle
+    PendingAcs* pacs_;
+};
+#endif // ACS_ENABLED 
+
+/**
+ * Event class for adding/updating a registration in the RegistrationStore
+ */
+class StoreRegistrationUpdateEvent: public BundleEvent {
+public:
+    StoreRegistrationUpdateEvent(APIRegistration* apireg)
+        : BundleEvent(STORE_REGISTRATION_UPDATE, EVENT_PROCESSOR_STORAGE),
+          apireg_(apireg)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    /// The API Registration to add or update in the database
+    APIRegistration* apireg_;
+};
+
+/**
+ * Event class for deleting a registration from the RegistrationStore
+ */
+class StoreRegistrationDeleteEvent: public BundleEvent {
+public:
+    StoreRegistrationDeleteEvent(u_int32_t regid, APIRegistration* apireg)
+        : BundleEvent(STORE_REGISTRATION_DELETE, EVENT_PROCESSOR_STORAGE),
+          regid_(regid),
+          apireg_(apireg)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    /// The API Registration to delete from the database
+    u_int32_t  regid_;
+
+    /// The API Registration to add or update in the database
+    APIRegistration* apireg_;
+};
+
+/**
+ * Event class for adding/updating a link in the LinkStore
+ */
+class StoreLinkUpdateEvent: public BundleEvent {
+public:
+    StoreLinkUpdateEvent(Link* link)
+        : BundleEvent(STORE_LINK_UPDATE, EVENT_PROCESSOR_STORAGE),
+          linkref_(link, "StoreLinkUpdateEvent")
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    /// The Link to add or update in the database
+    LinkRef linkref_;
+};
+
+/**
+ * Event class for deleting a link from the LinkStore
+ */
+class StoreLinkDeleteEvent: public BundleEvent {
+public:
+    StoreLinkDeleteEvent(const std::string& linkname)
+        : BundleEvent(STORE_LINK_DELETE, EVENT_PROCESSOR_STORAGE),
+          linkname_(linkname)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    /// The Link to delete from the database
+    const std::string linkname_;
+};
+
+/**
  * Event class for route add events
  */
 class RouteAddEvent : public BundleEvent {
 public:
     RouteAddEvent(RouteEntry* entry)
-        : BundleEvent(ROUTE_ADD), entry_(entry) {}
+        : BundleEvent(ROUTE_ADD, EVENT_PROCESSOR_MAIN), entry_(entry) {}
 
     /// The route table entry to be added
     RouteEntry* entry_;
@@ -815,7 +1198,7 @@ public:
 class RouteDelEvent : public BundleEvent {
 public:
     RouteDelEvent(const EndpointIDPattern& dest)
-        : BundleEvent(ROUTE_DEL), dest_(dest) {}
+        : BundleEvent(ROUTE_DEL, EVENT_PROCESSOR_MAIN), dest_(dest) {}
 
     /// The destination eid to be removed
     EndpointIDPattern dest_;
@@ -826,7 +1209,7 @@ public:
  */
 class RouteQueryRequest: public BundleEvent {
 public:
-    RouteQueryRequest() : BundleEvent(ROUTE_QUERY)
+    RouteQueryRequest() : BundleEvent(ROUTE_QUERY, EVENT_PROCESSOR_MAIN)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -835,7 +1218,7 @@ public:
 
 class RouteReportEvent : public BundleEvent {
 public:
-    RouteReportEvent() : BundleEvent(ROUTE_REPORT) {}
+    RouteReportEvent() : BundleEvent(ROUTE_REPORT, EVENT_PROCESSOR_MAIN) {}
 };
 
 /**
@@ -844,7 +1227,7 @@ public:
 class ReassemblyCompletedEvent : public BundleEvent {
 public:
     ReassemblyCompletedEvent(Bundle* bundle, BundleList* fragments)
-        : BundleEvent(REASSEMBLY_COMPLETED),
+        : BundleEvent(REASSEMBLY_COMPLETED, EVENT_PROCESSOR_MAIN),
           bundle_(bundle, "ReassemblyCompletedEvent"),
           fragments_("ReassemblyCompletedEvent")
     {
@@ -863,11 +1246,17 @@ public:
  */
 class CustodySignalEvent : public BundleEvent {
 public:
-    CustodySignalEvent(const CustodySignal::data_t& data)
-        : BundleEvent(CUSTODY_SIGNAL), data_(data) {}
-    
+    CustodySignalEvent(const CustodySignal::data_t& data,
+                       bundleid_t bundle_id)
+        : BundleEvent(CUSTODY_SIGNAL, EVENT_PROCESSOR_MAIN), 
+          data_(data),
+          bundle_id_(bundle_id) {} 
+
     /// The parsed data from the custody transfer signal
     CustodySignal::data_t data_;
+
+    ///< The bundle that was transferred
+    bundleid_t bundle_id_;
 };
 
 /**
@@ -876,16 +1265,32 @@ public:
 class CustodyTimeoutEvent : public BundleEvent {
 public:
     CustodyTimeoutEvent(Bundle* bundle, const LinkRef& link)
-        : BundleEvent(CUSTODY_TIMEOUT),
-          bundle_(bundle, "CustodyTimeoutEvent"),
+        : BundleEvent(CUSTODY_TIMEOUT, EVENT_PROCESSOR_MAIN),
+          bundle_id_(bundle->bundleid()),
           link_(link.object(), "CustodyTimeoutEvent") {}
 
     ///< The bundle whose timer fired
-    BundleRef bundle_;
+    bundleid_t bundle_id_;
 
     ///< The link it was sent on
     LinkRef link_;
 };
+
+//dz debug class CustodyTimeoutEvent : public BundleEvent {
+//dz debug public:
+//dz debug     CustodyTimeoutEvent(Bundle* bundle, const LinkRef& link)
+//dz debug         : BundleEvent(CUSTODY_TIMEOUT, EVENT_PROCESSOR_MAIN),
+//dz debug           bundle_(bundle, "CustodyTimeoutEvent"),
+//dz debug           link_(link.object(), "CustodyTimeoutEvent") {}
+//dz debug 
+//dz debug     ///< The bundle whose timer fired
+//dz debug     BundleRef bundle_;
+//dz debug 
+//dz debug     ///< The link it was sent on
+//dz debug     LinkRef link_;
+//dz debug };
+
+
 
 /**
  * Event class for shutting down a daemon. The daemon closes and
@@ -894,7 +1299,7 @@ public:
  */
 class ShutdownRequest : public BundleEvent {
 public:
-    ShutdownRequest() : BundleEvent(DAEMON_SHUTDOWN)
+    ShutdownRequest() : BundleEvent(DAEMON_SHUTDOWN, EVENT_PROCESSOR_MAIN)
     {
         daemon_only_ = false;
     }
@@ -905,30 +1310,45 @@ public:
  */
 class StatusRequest : public BundleEvent {
 public:
-    StatusRequest() : BundleEvent(DAEMON_STATUS)
+    StatusRequest() : BundleEvent(DAEMON_STATUS, EVENT_PROCESSOR_MAIN)
     {
         daemon_only_ = true;
     }
 };
 
 /**
- * Event class for sending a bundle
+ * Event classes for sending a bundle
  */
 class BundleSendRequest: public BundleEvent {
 public:
-    BundleSendRequest() : BundleEvent(BUNDLE_SEND)
+    BundleSendRequest() : BundleEvent(BUNDLE_SEND, EVENT_PROCESSOR_OUTPUT)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Used by External Router 
+    BundleSendRequest(const BundleRef& bundle,
+                      const std::string& link,
+                      int action)
+        : BundleEvent(BUNDLE_SEND, EVENT_PROCESSOR_OUTPUT),
+          bundle_(bundle.object(), "BundleSendRequest"),
+          link_(link),
+          action_(action)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
     }
  
+
+    // Used internally by LTPConvergenceLayer
     BundleSendRequest(const BundleRef& bundle,
-                      const std::string& link,
-                      int action)
-        : BundleEvent(BUNDLE_SEND),
+                      const LinkRef& linkref)
+        : BundleEvent(BUNDLE_SEND, EVENT_PROCESSOR_OUTPUT),
           bundle_(bundle.object(), "BundleSendRequest"),
-          link_(link),
-          action_(action)
+          link_(""),
+          link_ref_(linkref),
+          action_(0)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -940,23 +1360,55 @@ public:
     ///< Link on which to send the bundle
     std::string link_;
 
+    ///< Link on which to send the bundle
+    LinkRef link_ref_;
+
     ///< Forwarding action to use when sending bundle
     int action_;
 };
+
+//dz class BundleSendRequest_MainProcessor: public BundleSendRequest {
+//dz public:
+//dz     BundleSendRequest_MainProcessor()
+//dz     {
+//dz         // should be processed only by the daemon
+//dz         daemon_only_ = true;
+//dz     }
+//dz 
+//dz     // Used by External Router 
+//dz     BundleSendRequest_MainProcessor(const BundleRef& bundle,
+//dz                       const std::string& link,
+//dz                       int action)
+//dz         : BundleSendRequest(bundle, link, action)
+//dz     {
+//dz         // should be processed only by the daemon
+//dz         daemon_only_ = true;
+//dz     }
+//dz  
+//dz 
+//dz     // Used internally by LTPConvergenceLayer
+//dz     BundleSendRequest_MainProcessor(const BundleRef& bundle,
+//dz                                     const LinkRef& linkref)
+//dz         : BundleSendRequest(bundle, linkref)
+//dz     {
+//dz         // should be processed only by the daemon
+//dz         daemon_only_ = true;
+//dz     }
+//dz };
 
 /**
  * Event class for canceling a bundle transmission
  */
 class BundleCancelRequest: public BundleEvent {
 public:
-    BundleCancelRequest() : BundleEvent(BUNDLE_CANCEL)
+    BundleCancelRequest() : BundleEvent(BUNDLE_CANCEL, EVENT_PROCESSOR_MAIN)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
     }
 
     BundleCancelRequest(const BundleRef& bundle, const std::string& link) 
-        : BundleEvent(BUNDLE_CANCEL),
+        : BundleEvent(BUNDLE_CANCEL, EVENT_PROCESSOR_MAIN),
           bundle_(bundle.object(), "BundleCancelRequest"),
           link_(link)
     {
@@ -977,7 +1429,7 @@ public:
 class BundleSendCancelledEvent : public BundleEvent {
 public:
     BundleSendCancelledEvent(Bundle* bundle, const LinkRef& link)
-        : BundleEvent(BUNDLE_CANCELLED),
+        : BundleEvent(BUNDLE_CANCELLED, EVENT_PROCESSOR_MAIN),
           bundleref_(bundle, "BundleSendCancelledEvent"),
           link_(link.object(), "BundleSendCancelledEvent") {}
 
@@ -993,7 +1445,7 @@ public:
  */
 class BundleInjectRequest: public BundleEvent {
 public:
-    BundleInjectRequest() : BundleEvent(BUNDLE_INJECT)
+    BundleInjectRequest() : BundleEvent(BUNDLE_INJECT, EVENT_PROCESSOR_INPUT)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -1019,12 +1471,12 @@ public:
 };
 
 /**
- * Event class for a succesful bundle injection
+ * Event classes for a succesful bundle injection
  */
 class BundleInjectedEvent: public BundleEvent {
 public:
     BundleInjectedEvent(Bundle *bundle, const std::string &request_id)
-        : BundleEvent(BUNDLE_INJECTED),
+        : BundleEvent(BUNDLE_INJECTED, EVENT_PROCESSOR_OUTPUT),
           bundleref_(bundle, "BundleInjectedEvent"),
           request_id_(request_id)
     {
@@ -1037,12 +1489,22 @@ public:
     std::string request_id_;
 };
 
+class BundleInjectedEvent_MainProcessor: public BundleInjectedEvent {
+public:
+    BundleInjectedEvent_MainProcessor(Bundle *bundle, const std::string &request_id)
+        : BundleInjectedEvent(bundle, request_id)
+    {
+        event_processor_ = EVENT_PROCESSOR_MAIN;
+        daemon_only_ = true;
+    }
+};
+
 /**
  * Event class for requestion deletion of a bundle
  */
 class BundleDeleteRequest: public BundleEvent {
 public:
-    BundleDeleteRequest() : BundleEvent(BUNDLE_DELETE)
+    BundleDeleteRequest() : BundleEvent(BUNDLE_DELETE, EVENT_PROCESSOR_MAIN)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -1050,7 +1512,7 @@ public:
 
     BundleDeleteRequest(Bundle* bundle,
                         BundleProtocol::status_report_reason_t reason)
-        : BundleEvent(BUNDLE_DELETE),
+        : BundleEvent(BUNDLE_DELETE, EVENT_PROCESSOR_MAIN),
           bundle_(bundle, "BundleDeleteRequest"),
           reason_(reason)
     {
@@ -1060,7 +1522,7 @@ public:
 
     BundleDeleteRequest(const BundleRef& bundle,
                         BundleProtocol::status_report_reason_t reason)
-        : BundleEvent(BUNDLE_DELETE),
+        : BundleEvent(BUNDLE_DELETE, EVENT_PROCESSOR_MAIN),
           bundle_(bundle.object(), "BundleDeleteRequest"),
           reason_(reason)
     {
@@ -1073,6 +1535,62 @@ public:
 
     /// The reason code
     BundleProtocol::status_report_reason_t reason_;
+};
+
+/**
+ * Event class for requesting taking custody of a bundle
+ */
+class BundleTakeCustodyRequest: public BundleEvent {
+public:
+    BundleTakeCustodyRequest() : BundleEvent(BUNDLE_TAKE_CUSTODY, EVENT_PROCESSOR_MAIN)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    BundleTakeCustodyRequest(Bundle* bundle)
+        : BundleEvent(BUNDLE_TAKE_CUSTODY, EVENT_PROCESSOR_MAIN),
+          bundleref_(bundle, "BundleTakeCustodyRequest")
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    BundleTakeCustodyRequest(const BundleRef& bref)
+        : BundleEvent(BUNDLE_TAKE_CUSTODY, EVENT_PROCESSOR_MAIN),
+          bundleref_(bref.object(), "BundleTakeCustodyRequest")
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    ///< Bundle to be to take custody of
+    BundleRef bundleref_;
+};
+
+/**
+ * Event class for requesting taking custody of a bundle
+ */
+class BundleCustodyAcceptedEvent: public BundleEvent {
+public:
+    BundleCustodyAcceptedEvent() : BundleEvent(BUNDLE_CUSTODY_ACCEPTED, EVENT_PROCESSOR_MAIN)
+    {
+    }
+
+    BundleCustodyAcceptedEvent(Bundle* bundle)
+        : BundleEvent(BUNDLE_CUSTODY_ACCEPTED, EVENT_PROCESSOR_MAIN),
+          bundleref_(bundle, "BundleCustodyAcceptedEvent")
+    {
+    }
+
+    BundleCustodyAcceptedEvent(const BundleRef& bref)
+        : BundleEvent(BUNDLE_TAKE_CUSTODY, EVENT_PROCESSOR_MAIN),
+          bundleref_(bref.object(), "BundleCustodyAcceptedEvent")
+    {
+    }
+
+    ///< Bundle taken into custody
+    BundleRef bundleref_;
 };
 
 /**
@@ -1092,7 +1610,7 @@ public:
                         event_source_t   source,
                         bool*            result,
                         int*             reason)
-        : BundleEvent(BUNDLE_ACCEPT_REQUEST),
+        : BundleEvent(BUNDLE_ACCEPT_REQUEST, EVENT_PROCESSOR_INPUT),
           bundle_(bundle.object(), "BundleAcceptRequest"),
           source_(source),
           result_(result),
@@ -1118,7 +1636,7 @@ public:
  */
 class BundleQueryRequest: public BundleEvent {
 public:
-    BundleQueryRequest() : BundleEvent(BUNDLE_QUERY)
+    BundleQueryRequest() : BundleEvent(BUNDLE_QUERY, EVENT_PROCESSOR_MAIN)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -1127,7 +1645,7 @@ public:
 
 class BundleReportEvent : public BundleEvent {
 public:
-    BundleReportEvent() : BundleEvent(BUNDLE_REPORT) {}
+    BundleReportEvent() : BundleEvent(BUNDLE_REPORT, EVENT_PROCESSOR_MAIN) {}
 };
 
 class BundleAttributesQueryRequest: public BundleEvent {
@@ -1135,7 +1653,7 @@ public:
     BundleAttributesQueryRequest(const std::string& query_id,
                                  const BundleRef& bundle,
                                  const AttributeNameVector& attribute_names)
-        : BundleEvent(BUNDLE_ATTRIB_QUERY),
+        : BundleEvent(BUNDLE_ATTRIB_QUERY, EVENT_PROCESSOR_MAIN),
           query_id_(query_id),
           bundle_(bundle.object(), "BundleAttributesQueryRequest"),
           attribute_names_(attribute_names) {}
@@ -1159,7 +1677,7 @@ public:
                                 const BundleRef& bundle,
                                 const AttributeNameVector& attribute_names,
                                 const MetaBlockRequestVector& metadata_blocks)
-        : BundleEvent(BUNDLE_ATTRIB_REPORT),
+        : BundleEvent(BUNDLE_ATTRIB_REPORT, EVENT_PROCESSOR_MAIN),
           query_id_(query_id),
           bundle_(bundle.object(), "BundleAttributesReportEvent"),
           attribute_names_(attribute_names),
@@ -1186,7 +1704,7 @@ public:
     LinkCreateRequest(const std::string &name, Link::link_type_t link_type,
                       const std::string &endpoint,
                       ConvergenceLayer *cla, AttributeVector &parameters)
-        : BundleEvent(LINK_CREATE),
+        : BundleEvent(LINK_CREATE, EVENT_PROCESSOR_MAIN),
           name_(name),
           endpoint_(endpoint),
           link_type_(link_type),
@@ -1221,7 +1739,7 @@ class LinkReconfigureRequest: public BundleEvent {
 public:
     LinkReconfigureRequest(const LinkRef& link,
                            AttributeVector &parameters)
-        : BundleEvent(LINK_RECONFIGURE),
+        : BundleEvent(LINK_RECONFIGURE, EVENT_PROCESSOR_MAIN),
           link_(link.object(), "LinkReconfigureRequest"),
           parameters_(parameters)
     {
@@ -1242,7 +1760,7 @@ public:
 class LinkDeleteRequest: public BundleEvent {
 public:
     LinkDeleteRequest(const LinkRef& link) :
-        BundleEvent(LINK_DELETE),
+        BundleEvent(LINK_DELETE, EVENT_PROCESSOR_MAIN),
         link_(link.object(), "LinkDeleteRequest")
     {
         // should be processed only by the daemon
@@ -1279,7 +1797,7 @@ public:
  */
 class LinkQueryRequest: public BundleEvent {
 public:
-    LinkQueryRequest() : BundleEvent(LINK_QUERY)
+    LinkQueryRequest() : BundleEvent(LINK_QUERY, EVENT_PROCESSOR_MAIN)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -1288,7 +1806,7 @@ public:
 
 class LinkReportEvent : public BundleEvent {
 public:
-    LinkReportEvent() : BundleEvent(LINK_REPORT) {}
+    LinkReportEvent() : BundleEvent(LINK_REPORT, EVENT_PROCESSOR_MAIN) {}
 };
 
 /**
@@ -1297,7 +1815,7 @@ public:
 class CLASetParamsRequest : public BundleEvent {
 public:
     CLASetParamsRequest(ConvergenceLayer *cla, AttributeVector &parameters)
-        : BundleEvent(CLA_SET_PARAMS), cla_(cla), parameters_(parameters)
+        : BundleEvent(CLA_SET_PARAMS, EVENT_PROCESSOR_MAIN), cla_(cla), parameters_(parameters)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -1316,7 +1834,7 @@ public:
 class CLAParamsSetEvent : public BundleEvent {
 public:
     CLAParamsSetEvent(ConvergenceLayer *cla, std::string name)
-        : BundleEvent(CLA_PARAMS_SET), cla_(cla), name_(name) {}
+        : BundleEvent(CLA_PARAMS_SET, EVENT_PROCESSOR_MAIN), cla_(cla), name_(name) {}
 
     ///< CL that changed
     ConvergenceLayer *cla_;
@@ -1331,7 +1849,7 @@ public:
 class SetLinkDefaultsRequest : public BundleEvent {
 public:
     SetLinkDefaultsRequest(AttributeVector &parameters)
-        : BundleEvent(CLA_SET_LINK_DEFAULTS), parameters_(parameters)
+        : BundleEvent(CLA_SET_LINK_DEFAULTS, EVENT_PROCESSOR_MAIN), parameters_(parameters)
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -1347,7 +1865,7 @@ public:
 class NewEIDReachableEvent: public BundleEvent {
 public:
     NewEIDReachableEvent(Interface* iface, const std::string &endpoint)
-        : BundleEvent(CLA_EID_REACHABLE),
+        : BundleEvent(CLA_EID_REACHABLE, EVENT_PROCESSOR_MAIN),
           iface_(iface),
           endpoint_(endpoint) {}
 
@@ -1377,7 +1895,7 @@ protected:
     CLAQueryReport(event_type_t type,
                    const std::string& query_id,
                    bool daemon_only = false)
-        : BundleEvent(type),
+        : BundleEvent(type, EVENT_PROCESSOR_MAIN),
           query_id_(query_id)
     {
         daemon_only_ = daemon_only;
@@ -1520,6 +2038,386 @@ public:
     /// Convergence layer parameter values by name.
     AttributeVector parameters_;
 };
+
+#ifdef ACS_ENABLED
+/**
+ * Event class for aggregate custody transfer signal arrivals.
+ * (processed by BundleDaemon)
+ */
+class AggregateCustodySignalEvent : public BundleEvent {
+public:
+    AggregateCustodySignalEvent(const AggregateCustodySignal::data_t& data)
+        : BundleEvent(AGGREGATE_CUSTODY_SIGNAL, EVENT_PROCESSOR_MAIN), data_(data)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The parsed data from the custody transfer signal
+    AggregateCustodySignal::data_t data_;
+};
+
+/**
+ * Event class for issuing an aggregate custody signal for a bundle
+ * (ACS internal event processed by BundleDaemonACS)
+ */
+class AddBundleToAcsEvent : public BundleEvent {
+public:
+    AddBundleToAcsEvent(EndpointID* custody_eid, bool succeeded, 
+                        BundleProtocol::custody_signal_reason_t reason, 
+                        uint64_t custody_id)
+        : BundleEvent(ISSUE_AGGREGATE_CUSTODY_SIGNAL, EVENT_PROCESSOR_ACS),
+          custody_eid_(custody_eid),
+          succeeded_(succeeded),
+          reason_(reason),
+          custody_id_(custody_id)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    /// The Endpoint ID of the previous custody holder to which we are sending the ACS
+    const EndpointID* custody_eid_;
+
+    /// Whether or not the signal is success or fail
+    bool succeeded_;
+
+    /// Reason code for the signal
+    BundleProtocol::custody_signal_reason_t reason_;
+
+    /// The Custody ID of the reference bundle 
+    uint64_t custody_id_;
+};
+
+/**
+ * Event class for expiration of an Aggregate Custody Signal
+ * (ACS internal event processed by BundleDaemonACS)
+ */
+class AcsExpiredEvent : public BundleEvent {
+public:
+    AcsExpiredEvent(std::string key, uint32_t pacs_id)
+        : BundleEvent(ACS_EXPIRED_EVENT, EVENT_PROCESSOR_ACS),
+          pacs_key_(key),
+          pacs_id_(pacs_id)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    /// key value into the map structure
+    std::string pacs_key_;
+
+    /// Unique Pending ACS ID
+    u_int32_t pacs_id_;
+};
+#endif // ACS_ENABLED
+
+/**
+ * Event class for external routers to receive a copy of the
+ * Aggregate Custody Signal Data
+ * (processed by BundleDaemon - passed through to the router)
+ *
+ * NOTE: Not in the ACS_ENABLED ifdef since it is not dependent
+ *       on any ACS headers and won't be used unless enabled
+ */
+class ExternalRouterAcsEvent : public BundleEvent {
+public:
+    ExternalRouterAcsEvent(const char* buf, size_t len)
+        : BundleEvent(EXTERNAL_ROUTER_ACS, EVENT_PROCESSOR_MAIN), 
+          acs_data_(buf, len)
+    {
+    }
+    
+    /// The payload data from the ACS as a string
+    std::string acs_data_;
+};
+
+
+#ifdef DTPC_ENABLED
+/**
+ * Event class for registering a topic 
+ */
+class DtpcTopicRegistrationEvent : public BundleEvent {
+public:
+    DtpcTopicRegistrationEvent(u_int32_t topic_id,
+                               bool      has_elision_func,
+                               int*      result,
+                               DtpcRegistration** registration)
+        : BundleEvent(DTPC_TOPIC_REGISTRATION, EVENT_PROCESSOR_DTPC), 
+          topic_id_(topic_id),
+          has_elision_func_(has_elision_func),
+          result_(result),
+          registration_(registration)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The topic ID to register for
+    u_int32_t topic_id_;
+
+    /// Ellision function defined for the topic
+    bool has_elision_func_;
+
+    /// Pointer to the expected result
+    int* result_;
+
+    /// Pointer to the newly created DtpcRegistration object 
+    DtpcRegistration** registration_;
+};
+
+/**
+ * Event class for unregistering a topic 
+ */
+class DtpcTopicUnregistrationEvent : public BundleEvent {
+public:
+    DtpcTopicUnregistrationEvent(u_int32_t topic_id,
+                                 DtpcRegistration*     registration,
+                                 int*      result)
+        : BundleEvent(DTPC_TOPIC_UNREGISTRATION, EVENT_PROCESSOR_DTPC), 
+          topic_id_(topic_id),
+          registration_(registration),
+          result_(result)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The topic ID to unregister
+    u_int32_t topic_id_;
+
+    /// The DtpcRegistration object to be unregistered
+    DtpcRegistration* registration_;
+
+    /// Pointer to the expected result
+    int* result_;
+};
+
+/**
+ * Event class for sending a Data Item
+ */
+class DtpcSendDataItemEvent : public BundleEvent {
+public:
+    DtpcSendDataItemEvent(u_int32_t topic_id,
+                          DtpcApplicationDataItem* data_item,
+                          const EndpointID& dest_eid,
+                          u_int32_t profile_id,
+                          int*      result)
+        : BundleEvent(DTPC_SEND_DATA_ITEM, EVENT_PROCESSOR_DTPC), 
+          topic_id_(topic_id),
+          data_item_(data_item),
+          dest_eid_(dest_eid),
+          profile_id_(profile_id),
+          result_(result)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The topic ID
+    u_int32_t topic_id_;
+
+    /// The Application Data Item
+    DtpcApplicationDataItem* data_item_;
+
+    /// Destination endpoint id
+    EndpointID dest_eid_;
+
+    /// The transmission profile ID
+    u_int32_t profile_id_;
+
+    /// Pointer to the expected result
+    int* result_;
+};
+
+/**
+ * Event class for expiration of a DTPC Payload Aggregation
+ */
+class DtpcPayloadAggregationTimerExpiredEvent : public BundleEvent {
+public:
+    DtpcPayloadAggregationTimerExpiredEvent(std::string key, u_int64_t seq_ctr)
+        : BundleEvent(DTPC_PAYLOAD_AGGREGATION_EXPIRED, EVENT_PROCESSOR_DTPC), 
+          key_(key),
+          seq_ctr_(seq_ctr)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The key to find the Payload Aggregator
+    std::string key_;
+
+    /// sequence counter when the timer was started
+    u_int64_t seq_ctr_;    
+};
+
+/**
+ * Event class for a DTPC PDU Transmission
+ */
+class DtpcPduTransmittedEvent: public BundleEvent {
+public:
+    DtpcPduTransmittedEvent(DtpcProtocolDataUnit* pdu)
+        : BundleEvent(DTPC_PDU_TRANSMITTED, EVENT_PROCESSOR_DTPC), 
+          pdu_(pdu)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The DTPC PDU
+    DtpcProtocolDataUnit* pdu_;
+};
+
+/**
+ * Event class for a DTPC Delete request
+ */
+class DtpcPduDeleteRequest: public BundleEvent {
+public:
+    DtpcPduDeleteRequest(DtpcProtocolDataUnit* pdu)
+        : BundleEvent(DTPC_PDU_DELETE, EVENT_PROCESSOR_DTPC), 
+          pdu_(pdu)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The DTPC PDU
+    DtpcProtocolDataUnit* pdu_;
+};
+
+/**
+ * Event class for expiration of a Retransmit Timer
+ */
+class DtpcRetransmitTimerExpiredEvent : public BundleEvent {
+public:
+    DtpcRetransmitTimerExpiredEvent(std::string key)
+        : BundleEvent(DTPC_RETRANSMIT_TIMER_EXPIRED, EVENT_PROCESSOR_DTPC), 
+          key_(key)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The key to find the Payload Aggregator
+    std::string key_;
+};
+
+/**
+ * Event class for a DTPC ACK received event
+ */
+class DtpcAckReceivedEvent : public BundleEvent {
+public:
+    DtpcAckReceivedEvent(DtpcProtocolDataUnit* pdu)
+        : BundleEvent(DTPC_ACK_RECEIVED, EVENT_PROCESSOR_DTPC), 
+          pdu_(pdu)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The DTPC PDU
+    DtpcProtocolDataUnit* pdu_;
+};
+
+/**
+ * Event class for a DTPC Data PDU received event
+ */
+class DtpcDataReceivedEvent : public BundleEvent {
+public:
+    DtpcDataReceivedEvent(DtpcProtocolDataUnit* pdu,
+                          BundleRef& bref)
+        : BundleEvent(DTPC_DATA_RECEIVED, EVENT_PROCESSOR_DTPC), 
+          pdu_(pdu),
+          rcvd_bref_(bref.object(), "DtpcDataReceivedEvent")
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The DTPC PDU
+    DtpcProtocolDataUnit* pdu_;
+
+    /// The Bundle that delivered the PDU
+    BundleRef rcvd_bref_;
+};
+
+/**
+ * Event class for expiration of a DTPC Payload Aggregation
+ */
+class DtpcDeliverPduTimerExpiredEvent : public BundleEvent {
+public:
+    DtpcDeliverPduTimerExpiredEvent(std::string key, u_int64_t seq_ctr)
+        : BundleEvent(DTPC_DELIVER_PDU_TIMER_EXPIRED, EVENT_PROCESSOR_DTPC), 
+          key_(key),
+          seq_ctr_(seq_ctr)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The key to find the Data PDU Collector
+    std::string key_;
+
+    /// sequence counter when the timer was started
+    u_int64_t seq_ctr_;    
+};
+
+/**
+ * Event class for expiration of a Retransmit Timer
+ */
+class DtpcTopicExpirationCheckEvent: public BundleEvent {
+public:
+    DtpcTopicExpirationCheckEvent(u_int32_t topic_id)
+        : BundleEvent(DTPC_TOPIC_EXPIRATION_CHECK, EVENT_PROCESSOR_DTPC), 
+          topic_id_(topic_id)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// Topic ID
+    u_int32_t topic_id_;
+};
+
+/**
+ * Event class for elision function response
+ */
+class DtpcElisionFuncResponse : public BundleEvent {
+public:
+    DtpcElisionFuncResponse(u_int32_t topic_id,
+                          DtpcApplicationDataItemList* data_item_list,
+                          const EndpointID& dest_eid,
+                          u_int32_t profile_id,
+                          bool modified)
+        : BundleEvent(DTPC_ELISION_FUNC_RESPONSE, EVENT_PROCESSOR_DTPC), 
+          topic_id_(topic_id),
+          data_item_list_(data_item_list),
+          dest_eid_(dest_eid),
+          profile_id_(profile_id),
+          modified_(modified)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The topic ID
+    u_int32_t topic_id_;
+
+    /// The List of Application Data Items
+    DtpcApplicationDataItemList* data_item_list_;
+
+    /// Destination endpoint id
+    EndpointID dest_eid_;
+
+    /// The transmission profile ID
+    u_int32_t profile_id_;
+
+    /// Indication if the ADI list was modified by the elision function
+    bool modified_;
+};
+
+
+#endif // DTPC_ENABLED
 
 } // namespace dtn
 

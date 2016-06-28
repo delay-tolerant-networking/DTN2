@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -28,6 +46,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "dtn_api.h"
+
+#include <time.h>
 
 #define BUFSIZE 16
 #define BLOCKSIZE 8192
@@ -66,6 +86,7 @@ int   change		= 0;    	// change existing registration
 int   unregister	= 0;    	// remove existing registration 
 int   recv_timeout	= -1;    	// timeout to dtn_recv call
 int   no_find_reg	= 0;    	// omit call to dtn_find_registration
+int   do_stats      = 0;        // statistics frequency (bundle count)
 char filename[PATH_MAX];		// Destination filename for file xfers
 dtn_bundle_payload_location_t bundletype = DTN_PAYLOAD_MEM;
 
@@ -79,6 +100,7 @@ usage()
     fprintf(stderr, " -a Application acknowledgement of received bundles (to daemon)\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -q quiet\n");
+    fprintf(stderr, " -s show statistics (implies quiet & no timeout)\n");
     fprintf(stderr, " -h help\n");
     fprintf(stderr, " -d <eid|demux_string> endpoint id\n");
     fprintf(stderr, " -r <regid> use existing registration regid\n");
@@ -108,7 +130,7 @@ parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "aA:B:vqhHd:r:e:f:R:F:xn:cuNt:o:");
+        c = getopt(argc, argv, "aA:B:vqhHsd:r:e:f:R:F:xn:cuNt:o:s");
         switch (c)
         {
         case 'a':
@@ -118,6 +140,7 @@ parse_options(int argc, char**argv)
             api_IP = optarg;
             break;
         case 'B':
+            api_IP_set = 1;
             api_port = atoi(optarg);
             break;    
         case 'v':
@@ -194,6 +217,11 @@ parse_options(int argc, char**argv)
         case -1:
             done = 1;
             break;
+        case 's':
+            do_stats = 1;
+            quiet = 1;
+            recv_timeout = -1;
+            break;    
         default:
             // getopt already prints an error message for unknown
             // option characters
@@ -324,7 +352,7 @@ int buildfilename(char* template, char* newfilename, int counter )
  */
 int
 handle_file_transfer(dtn_bundle_spec_t spec, dtn_bundle_payload_t payload,
-                     int* total_bytes, int counter)
+                     uint64_t* total_bytes, int counter)
 {
     int tempdes;
     int destdes;
@@ -389,16 +417,24 @@ handle_file_transfer(dtn_bundle_spec_t spec, dtn_bundle_payload_t payload,
 int
 main(int argc, char** argv)
 {
-    int i;
+    int bundle_count;
+    int bundles_this_sec;
     u_int k;
     int ret;
-    int total_bytes = 0;
+    uint64_t total_bytes = 0;
     dtn_handle_t handle;
     dtn_endpoint_id_t local_eid;
     dtn_reg_info_t reginfo;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
     int call_bind;
+    time_t now = time(0);
+    time_t first_pkt_time = time(0);
+    time_t elapsed;
+    time_t last_rpt = time(0);;
+    int last_bundle_count = 0;
+    int bundles_per_sec = 0;
+    double Mbps = 0.0;
 
     // force stdout to always be line buffered, even if output is
     // redirected to a pipe or file
@@ -530,15 +566,47 @@ main(int argc, char** argv)
     } else {
         printf("looping to receive %d bundles\n", count);
     }
-    for (i = 0; (count == 0) || (i < count); ++i) {
+    bundle_count = 0;
+    bundles_this_sec = 0;
+    while ((count == 0) || (bundle_count < count)) {
         memset(&spec, 0, sizeof(spec));
         memset(&payload, 0, sizeof(payload));
 
         if (!quiet) {
             printf("dtn_recv [%s]...\n", local_eid.uri);
         }
-    
-        if ((ret = dtn_recv(handle, &spec, bundletype, &payload, 
+   
+        if (do_stats)
+        {
+            if ((ret = dtn_recv(handle, &spec, bundletype, &payload, 
+                                                            250)) < 0)
+            {
+                if (DTN_ETIMEOUT !=  dtn_errno(handle)) {
+                    fprintf(stderr, "error getting recv reply: %d (%s)\n",
+                            ret, dtn_strerror(dtn_errno(handle)));
+                    goto err;
+                } else if (bundle_count != last_bundle_count) {
+                    now = time(0);
+                    elapsed = now - last_rpt;
+                    if ( elapsed > 1) {
+                        // output a summary if new bundle not received within a second
+                        last_rpt = now;
+                        last_bundle_count = bundle_count;
+                        elapsed = now - first_pkt_time;
+                        if (elapsed > 0) {
+                            bundles_per_sec = bundle_count / elapsed;
+                            Mbps = (total_bytes * 8.0) / 1000000.0 / elapsed;
+                        }
+                        printf("Summary: rcvd %d bundles  1sec: %d - elapsed: %lds  Avg Bundles/sec: %d  Data Mbps: %.3f\n", 
+                               bundle_count, bundles_this_sec, elapsed, bundles_per_sec, Mbps);
+                        fflush(stdout);
+                        bundles_this_sec = 0;
+                    }
+                }
+                continue;
+            }
+
+        } else  if ((ret = dtn_recv(handle, &spec, bundletype, &payload, 
                                                         recv_timeout)) < 0)
         {
             fprintf(stderr, "error getting recv reply: %d (%s)\n",
@@ -546,17 +614,41 @@ main(int argc, char** argv)
             goto err;
         }
 
+
         // Files need to be handled differently than memory transfers
         if ( bundletype == DTN_PAYLOAD_FILE )
         {
-                handle_file_transfer(spec, payload, &total_bytes, i);
+                handle_file_transfer(spec, payload, &total_bytes, bundle_count);
                 dtn_free_payload(&payload);
+                bundle_count++;
                 continue;
         }
 
         total_bytes += payload.buf.buf_len;
 
         if (quiet) {
+            now = time(0);
+ 
+            //dzdebug
+            if (do_stats) {
+                if ( 0 == bundle_count ) {
+                    first_pkt_time = now;
+                    last_rpt = now;
+                }
+                if ((0 == bundle_count) || (now > last_rpt)) {
+                    last_rpt = now;
+                    elapsed = now - first_pkt_time;
+                    if (elapsed > 0) {
+                        bundles_per_sec = bundle_count / elapsed;
+                        Mbps = (total_bytes * 8.0) / 1000000.0 / elapsed;
+                    }
+                    printf("rcvd bundle #%d   1sec: %d - elapsed: %lds  Avg Bundles/sec: %d  Data Mbps: %.3f\n", 
+                           bundle_count, bundles_this_sec, elapsed, bundles_per_sec, Mbps);
+                    fflush(stdout);
+                    bundles_this_sec = 0;
+                }
+            }
+
             dtn_free_payload(&payload);
             if (spec.blocks.blocks_len > 0) {
                 free(spec.blocks.blocks_val);
@@ -568,10 +660,13 @@ main(int argc, char** argv)
                 spec.metadata.metadata_val = NULL;
                 spec.metadata.metadata_len = 0;
             }
+            bundle_count++;
+            bundles_this_sec++;
             continue;
         }
 
-        printf("bundle spec at 0x%08X\n", &spec);
+        printf("bundle spec at 0x%p\n", &spec);
+        //printf("bundle spec at 0x%08X\n", &spec);
 
         printf("\n%d extension blocks from [%s]: transit time=%d ms\n",
                spec.blocks.blocks_len, spec.source.uri, 0);
@@ -608,10 +703,11 @@ main(int argc, char** argv)
 
         dtn_free_payload(&payload);
         if (spec.blocks.blocks_len > 0) {
-        	int i=0;
+        	size_t i=0;
         	for ( i=0; i<spec.blocks.blocks_len; i++ ) {
-        		printf("Freeing extension block [%d].data at 0x%08X\n",
-        			   i, spec.blocks.blocks_val[i].data.data_val);
+        		//printf("Freeing extension block [%zu].data at 0x%08X\n",
+        		printf("Freeing extension block [%zu].data at %p\n",
+        			   i, &spec.blocks.blocks_val[i].data.data_val);
         	    free(spec.blocks.blocks_val[i].data.data_val);
         	}
             free(spec.blocks.blocks_val);
@@ -619,20 +715,34 @@ main(int argc, char** argv)
             spec.blocks.blocks_len = 0;
         }
         if (spec.metadata.metadata_len > 0) {
-        	int i=0;
+        	size_t i=0;
         	for ( i=0; i<spec.metadata.metadata_len; i++ ) {
-        		printf("Freeing metadata block [%d].data at 0x%08X\n",
-        			   i, spec.metadata.metadata_val[i].data.data_val);
+        		//printf("Freeing metadata block [%zu].data at 0x%08X\n",
+        		printf("Freeing metadata block [%zu].data at %p\n",
+        			   i, &spec.metadata.metadata_val[i].data.data_val);
         	    free(spec.metadata.metadata_val[i].data.data_val);
         	}
             free(spec.metadata.metadata_val);
             spec.metadata.metadata_val = NULL;
             spec.metadata.metadata_len = 0;
         }
+
+        bundle_count++;
     }
 
-    printf("dtnrecv (pid %d) exiting: %d bundles received, %d total bytes\n\n",
-           getpid(), i, total_bytes);
+    if (do_stats) {
+        elapsed = now - first_pkt_time;
+        if (elapsed > 0) {
+            bundles_per_sec = bundle_count / elapsed;
+            Mbps = (total_bytes * 8.0) / 1000000.0 / elapsed;
+        }
+        printf("Final rcvd bundle #%d 1sec: %d -  elapsed: %lds  Avg Bundles/sec: %d  Data Mbps: %.3f\n\n", 
+               bundle_count, bundles_this_sec, elapsed, bundles_per_sec, Mbps);
+        fflush(stdout);
+    }
+
+    printf("dtnrecv (pid %d) exiting: %d bundles received, %"PRIu64" total bytes\n\n",
+           getpid(), bundle_count, total_bytes);
 
 done:
     dtn_close(handle);

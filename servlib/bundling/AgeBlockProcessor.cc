@@ -1,3 +1,21 @@
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 // **BlockProcessor**s typically have four procedures. `prepare`,
 // `generate`, `finalize`, and `consume`. `consume` is called when a particular
 // extension block is being inbound processed, while the first three are called
@@ -60,14 +78,15 @@ AgeBlockProcessor::prepare(const Bundle*    bundle,
                            const LinkRef&   link,
                            list_owner_t     list) 
 {
-    log_info_p(LOG, "prepare() begin");
+    log_debug_p(LOG, "prepare() begin");
 
     // Check to see if we're enabled for outbound processing. If not, return
     // BP_FAIL.
     if(BundleProtocol::params_.age_outbound_enabled_ != true) {
-        log_info_p(LOG, "age_outbound_enabled != true, no AEB, returning BP_FAIL");
-        log_info_p(LOG, "prepare() end");
-        return BP_FAIL;             
+        log_debug_p(LOG, "age_outbound_enabled != true, no AEB, returning BP_FAIL");
+        log_debug_p(LOG, "prepare() end");
+        //return BP_FAIL;  // fail used to be okay but now aborts
+        return BP_SUCCESS;             
     }
 
     // We can't call `bundle->api_blocks()` as it doesn't return a `const`, so
@@ -81,13 +100,14 @@ AgeBlockProcessor::prepare(const Bundle*    bundle,
     // delete or fix it if it's malformed, or update it (a bundle might have
     // been in a queue for a while so we need to update the age.
     if( bundle->api_blocks_c()->find_block(BundleProtocol::AGE_BLOCK) != false ) {
-        log_info_p(LOG, "Age block exists in API Blocks, returning BP_FAIL");
-        log_info_p(LOG, "prepare() end");
-        return BP_FAIL;
+        log_debug_p(LOG, "Age block exists in API Blocks, returning BP_FAIL");
+        log_debug_p(LOG, "prepare() end");
+        //return BP_FAIL;  // fail used to be okay but now aborts
+        return BP_SUCCESS;             
     }
 
     // Call our parent class `prepare()`. 
-    log_info_p(LOG, "prepare() end");
+    log_debug_p(LOG, "prepare() end");
     return BlockProcessor::prepare(bundle, xmit_blocks, source, link, list);
 }
 
@@ -110,24 +130,24 @@ AgeBlockProcessor::generate(const Bundle*  bundle,
     (void)link;
     (void)xmit_blocks;
 
-    log_info_p(LOG, "generate() begin");
+    log_debug_p(LOG, "generate() begin");
 
     //`XXX` If the creation timestamp isn't 0, this shouldn't exist.
     /* ASSERT(bundle->creation_ts().seconds_ == 0); */
 
     //`XXX` What flags do we need to set
     u_int64_t flags = BundleProtocol::BLOCK_FLAG_REPLICATE |
-                      BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR |
+                      BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR |
                       (last ? BundleProtocol::BLOCK_FLAG_LAST_BLOCK : 0);
 
     //`XXX` Simple `oasys::Time` tests. To be removed.
     oasys::Time startTime = oasys::Time::now();
-    log_info_p(LOG, "oasys::Time start: %u", startTime.in_milliseconds());
-    log_info_p(LOG, "oasys::Time elapsed (ms): %u", startTime.elapsed_ms());
-    log_info_p(LOG, "elapsed time (ms) [pre sleep]: %u", bundle->time_aeb().elapsed_ms());
+    log_debug_p(LOG, "oasys::Time start: %u", startTime.in_milliseconds());
+    log_debug_p(LOG, "oasys::Time elapsed (ms): %u", startTime.elapsed_ms());
+    log_debug_p(LOG, "elapsed time (ms) [pre sleep]: %u", bundle->time_aeb().elapsed_ms());
 
     //`XXX` remove; this is to make sure we Age gracefully.
-    //log_info_p(LOG, "sleping for 5s...");
+    //log_debug_p(LOG, "sleping for 5s...");
     //sleep(5);    
  
     // The generic formula is the following: 
@@ -147,8 +167,8 @@ AgeBlockProcessor::generate(const Bundle*  bundle,
     /* bundle->set_creation_ts(BundleTimestamp(0, bundle->creation_ts().seqno_)); */
 
     // Debugging statements
-    log_info_p(LOG, "bundle age (s): %llu", age);
-    log_info_p(LOG, "elapsed time (ms) [post sleep, age calculated]: %u", bundle->time_aeb().elapsed_ms());
+    log_debug_p(LOG, "bundle age (s): %"PRIu64, age);
+    log_debug_p(LOG, "elapsed time (ms) [post sleep, age calculated]: %u", bundle->time_aeb().elapsed_ms());
 
     // Calculate the length of the SDNV-encoded Age for accurate generation of
     // the preamble. We don't want to deal with any segfaults.
@@ -192,9 +212,9 @@ AgeBlockProcessor::generate(const Bundle*  bundle,
     bp += len;
 
     // Logging for some interesting statistics.
-    log_info_p(LOG, "elapsed time (ms) [finished AEB generation]: %u", bundle->time_aeb().elapsed_ms());
-    log_info_p(LOG, "oasys::Time elapsed (ms): %u", startTime.elapsed_ms());
-    log_info_p(LOG, "generate() end");
+    log_debug_p(LOG, "elapsed time (ms) [finished AEB generation]: %u", bundle->time_aeb().elapsed_ms());
+    log_debug_p(LOG, "oasys::Time elapsed (ms): %u", startTime.elapsed_ms());
+    log_debug_p(LOG, "generate() end");
 
     return BP_SUCCESS;
 }
@@ -220,11 +240,11 @@ AgeBlockProcessor::consume(Bundle*    bundle,
 {
     // Typical debug statements. Changed LOGLEVEL from `ERROR` to `INFO` (but
     // not `DEBUG` as you'll get oversaturated with information).
-    log_info_p(LOG, "consume() begin");
+    log_debug_p(LOG, "consume() begin");
 
     // Currently just some info/debug statements for testing out `oasys::Time`.
     oasys::Time startTime = oasys::Time::now();
-    log_info_p(LOG, "oasys::Time now(): %u", startTime.in_milliseconds());
+    log_debug_p(LOG, "oasys::Time now(): %u", startTime.in_milliseconds());
 
     // Calling the generic `consume` to fill in some of the blanks. Returns the
     // number of bytes consumed.
@@ -269,7 +289,7 @@ AgeBlockProcessor::consume(Bundle*    bundle,
 
     // Set some bundle metadata: `age` and the current `Time`, to keep track of
     // how long we held the bundle for. See the `NOTE` on limitations.
-    log_info_p(LOG, "Bundle Age: %llu", age_value);
+    log_debug_p(LOG, "Bundle Age: %"PRIu64, age_value);
     bundle->set_age(age_value);
     bundle->set_time_aeb(oasys::Time::now());
 
@@ -278,11 +298,11 @@ AgeBlockProcessor::consume(Bundle*    bundle,
     // with the Creation Timestamp Time but we could get into some interesting
     // contention issues if we don't explore this more carefully.
     if(BundleProtocol::params_.age_zero_creation_ts_time_ == true) {
-        log_info_p(LOG, "Zero-ing Creation Timestamp Time");
+        log_debug_p(LOG, "Zero-ing Creation Timestamp Time");
         bundle->set_creation_ts(BundleTimestamp(0, bundle->creation_ts().seqno_)); 
     }
 
-    log_info_p(LOG, "consume() end");
+    log_debug_p(LOG, "consume() end");
 
     // Finish and return the number of bytes consumed.
     return cc;

@@ -14,12 +14,31 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _GLOBAL_STORE_H_
 #define _GLOBAL_STORE_H_
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
 #include <oasys/serialize/Serialize.h>
+#include <oasys/thread/SpinLock.h>
 
 // forward decl
 namespace oasys {
@@ -86,7 +105,7 @@ public:
      *
      * (was db_update_bundle_id, db_restore_bundle_id)
      */
-    u_int32_t next_bundleid();
+    bundleid_t next_bundleid();
     
     /**
      * Get a new unique registration id, updating the running value in
@@ -98,6 +117,21 @@ public:
     u_int32_t next_regid();
 
     /**
+     * Get a new unique Pending ACS ID
+     */
+    u_int32_t next_pacsid();
+    
+    /**
+     * Get a new Custody ID
+     */
+    bundleid_t next_custodyid();
+
+    /**
+     * Get the last custody id
+     */
+    bundleid_t last_custodyid();
+    
+    /**
      * Load in the globals.
      */
     bool load();
@@ -106,6 +140,27 @@ public:
      * Close (and flush) the data store.
      */
     void close();
+
+    /**
+     * Lock to synchronize database access between BundleDaemonStorage and GlobalStore
+     */
+     void lock_db_access(const char* lockedby);
+
+    /**
+     * Release lock to synchronize database access
+     */
+    void unlock_db_access();
+
+    /**
+     * Indicates if a database update is needed and makes a snapshot
+     * of the current Globals to store in the database
+     */
+    bool needs_update(Globals* globals_copy);
+
+    /**
+     * Makes the actual update to the database and returns a status code
+     */
+    int update_database(Globals* globals_copy);
 
 protected:
     /**
@@ -124,8 +179,36 @@ protected:
 
     oasys::Mutex* lock_;
 
+    /// flag indicating if a database update is needed
+    bool needs_update_;
+
+    /// control db access between the BundleDaemonStorage and the GlobalStore
+    mutable oasys::SpinLock db_access_lock_;
+
     static GlobalStore* instance_; ///< singleton instance
 };
+
+
+/**
+ * A simple thread class that drives the TimerSystem implementation.
+ */
+class GlobalStoreDBUpdateThread : public oasys::Thread {
+public:
+    static void init();
+    static GlobalStoreDBUpdateThread* instance()
+    {
+        return instance_;
+    }
+
+private:
+    GlobalStoreDBUpdateThread() : Thread("GlobalStoreDBUpdateThread") {}
+    void run();
+    void update();
+
+    Globals* globals_copy_;    
+    static GlobalStoreDBUpdateThread* instance_;
+};
+
 } // namespace dtn
 
 #endif /* _GLOBAL_STORE_H_ */

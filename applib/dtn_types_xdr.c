@@ -303,8 +303,61 @@ xdr_dtn_extension_block_flags_t (XDR *xdrs, dtn_extension_block_flags_t *objp)
 }
 
 /**
+ *	   BPQ extension block type
+ */
+
+#define DTN_BPQ_BLOCK_TYPE 0x0B
+
+/**
+ * BPQ Extension block kind.
+ *
+ *     BPQ_BLOCK_KIND_QUERY				- query bundles
+ *     BPQ_BLOCK_KIND_RESPONSE				- response bundles
+ *     BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG	- response bundles that should not be cached unless complete
+ *     BPQ_BLOCK_KIND_PUBLISH				- publish bundles - treated like response except local storage
+ */
+
+
+bool_t
+xdr_dtn_bpq_extension_block_kind_t (XDR *xdrs, dtn_bpq_extension_block_kind_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
+/**
+ * BPQ Extension block matching rule. (More may be added later)
+ *
+ *     BPQ_MATCHING_RULE_EXACT
+ */
+
+
+bool_t
+xdr_dtn_bpq_extension_block_matching_rule_t (XDR *xdrs, dtn_bpq_extension_block_matching_rule_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
+/**
  * Extension block.
  */
+
+bool_t
+xdr_dtn_extension_block_data_t (XDR *xdrs, dtn_extension_block_data_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_u_int (xdrs, &objp->data_len))
+		 return FALSE;
+	 if (!xdr_pointer (xdrs, (char **)&objp->data_val, sizeof (char), (xdrproc_t) xdr_char))
+		 return FALSE;
+	return TRUE;
+}
 
 bool_t
 xdr_dtn_extension_block_t (XDR *xdrs, dtn_extension_block_t *objp)
@@ -315,7 +368,65 @@ xdr_dtn_extension_block_t (XDR *xdrs, dtn_extension_block_t *objp)
 		 return FALSE;
 	 if (!xdr_u_int (xdrs, &objp->flags))
 		 return FALSE;
-	 if (!xdr_bytes (xdrs, (char **)&objp->data.data_val, (u_int *) &objp->data.data_len, DTN_MAX_BLOCK_LEN))
+	 if (!xdr_dtn_extension_block_data_t (xdrs, &objp->data))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_dtn_bpq_ext_block_original_id_t (XDR *xdrs, dtn_bpq_ext_block_original_id_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->creation_ts))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->source_len))
+		 return FALSE;
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_dtn_bpq_ext_block_query_t (XDR *xdrs, dtn_bpq_ext_block_query_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_u_int (xdrs, &objp->query_len))
+		 return FALSE;
+	 if (!xdr_pointer (xdrs, (char **)&objp->query_val, sizeof (char), (xdrproc_t) xdr_char))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_dtn_bpq_ext_block_fragments_t (XDR *xdrs, dtn_bpq_ext_block_fragments_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_u_int (xdrs, &objp->num_frag_returned))
+		 return FALSE;
+	 if (!xdr_pointer (xdrs, (char **)&objp->frag_offsets, sizeof (u_int), (xdrproc_t) xdr_u_int))
+		 return FALSE;
+	 if (!xdr_pointer (xdrs, (char **)&objp->frag_lenghts, sizeof (u_int), (xdrproc_t) xdr_u_int))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_dtn_bpq_extension_block_data_t (XDR *xdrs, dtn_bpq_extension_block_data_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_u_int (xdrs, &objp->kind))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->matching_rule))
+		 return FALSE;
+	 if (!xdr_dtn_bpq_ext_block_original_id_t (xdrs, &objp->original_id))
+		 return FALSE;
+	 if (!xdr_dtn_bpq_ext_block_query_t (xdrs, &objp->query))
+		 return FALSE;
+	 if (!xdr_dtn_bpq_ext_block_fragments_t (xdrs, &objp->fragments))
 		 return FALSE;
 	return TRUE;
 }
@@ -336,6 +447,27 @@ xdr_dtn_sequence_id_t (XDR *xdrs, dtn_sequence_id_t *objp)
 		 return FALSE;
 	return TRUE;
 }
+/**
+ * Extended Class of Service (ECOS) flags bit definitions.
+ *
+ *     ECOS_FLAG_CRITICAL         - critical - send on every logical path
+ *     ECOS_FLAG_STREAMING        - streaming - send on best efforts without retransmission
+ *     ECOS_FLAG_FLOW_LABEL       - indicates flow label exists after the ordinal byte
+ *     ECOS_FLAG_RELIABLE         - reliable - send on convergence layer that detects data loss and retransmits
+ *
+ * Use these bit definitions OR-ed together to set the ecos_flags parameter.
+ */
+
+
+bool_t
+xdr_dtn_ecos_flags_bits_t (XDR *xdrs, dtn_ecos_flags_bits_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
 
 /**
  * Bundle metadata. The delivery_regid is ignored when sending
@@ -347,6 +479,99 @@ bool_t
 xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 {
 	register int32_t *buf;
+
+
+	if (xdrs->x_op == XDR_ENCODE) {
+		 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
+			 return FALSE;
+		 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->dest))
+			 return FALSE;
+		 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->replyto))
+			 return FALSE;
+		 if (!xdr_dtn_bundle_priority_t (xdrs, &objp->priority))
+			 return FALSE;
+		 if (!xdr_int (xdrs, &objp->dopts))
+			 return FALSE;
+		 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
+			 return FALSE;
+		 if (!xdr_dtn_timestamp_t (xdrs, &objp->creation_ts))
+			 return FALSE;
+		 if (!xdr_dtn_reg_id_t (xdrs, &objp->delivery_regid))
+			 return FALSE;
+		 if (!xdr_dtn_sequence_id_t (xdrs, &objp->sequence_id))
+			 return FALSE;
+		 if (!xdr_dtn_sequence_id_t (xdrs, &objp->obsoletes_id))
+			 return FALSE;
+		buf = XDR_INLINE (xdrs, 4 * BYTES_PER_XDR_UNIT);
+		if (buf == NULL) {
+			 if (!xdr_bool (xdrs, &objp->ecos_enabled))
+				 return FALSE;
+			 if (!xdr_u_int (xdrs, &objp->ecos_flags))
+				 return FALSE;
+			 if (!xdr_u_int (xdrs, &objp->ecos_ordinal))
+				 return FALSE;
+			 if (!xdr_u_int (xdrs, &objp->ecos_flow_label))
+				 return FALSE;
+
+		} else {
+		IXDR_PUT_BOOL(buf, objp->ecos_enabled);
+		IXDR_PUT_U_LONG(buf, objp->ecos_flags);
+		IXDR_PUT_U_LONG(buf, objp->ecos_ordinal);
+		IXDR_PUT_U_LONG(buf, objp->ecos_flow_label);
+		}
+		 if (!xdr_array (xdrs, (char **)&objp->blocks.blocks_val, (u_int *) &objp->blocks.blocks_len, DTN_MAX_BLOCKS,
+			sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
+			 return FALSE;
+		 if (!xdr_array (xdrs, (char **)&objp->metadata.metadata_val, (u_int *) &objp->metadata.metadata_len, DTN_MAX_BLOCKS,
+			sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
+			 return FALSE;
+		return TRUE;
+	} else if (xdrs->x_op == XDR_DECODE) {
+		 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
+			 return FALSE;
+		 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->dest))
+			 return FALSE;
+		 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->replyto))
+			 return FALSE;
+		 if (!xdr_dtn_bundle_priority_t (xdrs, &objp->priority))
+			 return FALSE;
+		 if (!xdr_int (xdrs, &objp->dopts))
+			 return FALSE;
+		 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
+			 return FALSE;
+		 if (!xdr_dtn_timestamp_t (xdrs, &objp->creation_ts))
+			 return FALSE;
+		 if (!xdr_dtn_reg_id_t (xdrs, &objp->delivery_regid))
+			 return FALSE;
+		 if (!xdr_dtn_sequence_id_t (xdrs, &objp->sequence_id))
+			 return FALSE;
+		 if (!xdr_dtn_sequence_id_t (xdrs, &objp->obsoletes_id))
+			 return FALSE;
+		buf = XDR_INLINE (xdrs, 4 * BYTES_PER_XDR_UNIT);
+		if (buf == NULL) {
+			 if (!xdr_bool (xdrs, &objp->ecos_enabled))
+				 return FALSE;
+			 if (!xdr_u_int (xdrs, &objp->ecos_flags))
+				 return FALSE;
+			 if (!xdr_u_int (xdrs, &objp->ecos_ordinal))
+				 return FALSE;
+			 if (!xdr_u_int (xdrs, &objp->ecos_flow_label))
+				 return FALSE;
+
+		} else {
+		objp->ecos_enabled = IXDR_GET_BOOL(buf);
+		objp->ecos_flags = IXDR_GET_U_LONG(buf);
+		objp->ecos_ordinal = IXDR_GET_U_LONG(buf);
+		objp->ecos_flow_label = IXDR_GET_U_LONG(buf);
+		}
+		 if (!xdr_array (xdrs, (char **)&objp->blocks.blocks_val, (u_int *) &objp->blocks.blocks_len, DTN_MAX_BLOCKS,
+			sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
+			 return FALSE;
+		 if (!xdr_array (xdrs, (char **)&objp->metadata.metadata_val, (u_int *) &objp->metadata.metadata_len, DTN_MAX_BLOCKS,
+			sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
+			 return FALSE;
+	 return TRUE;
+	}
 
 	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
 		 return FALSE;
@@ -367,6 +592,14 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 	 if (!xdr_dtn_sequence_id_t (xdrs, &objp->sequence_id))
 		 return FALSE;
 	 if (!xdr_dtn_sequence_id_t (xdrs, &objp->obsoletes_id))
+		 return FALSE;
+	 if (!xdr_bool (xdrs, &objp->ecos_enabled))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->ecos_flags))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->ecos_ordinal))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->ecos_flow_label))
 		 return FALSE;
 	 if (!xdr_array (xdrs, (char **)&objp->blocks.blocks_val, (u_int *) &objp->blocks.blocks_len, DTN_MAX_BLOCKS,
 		sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))

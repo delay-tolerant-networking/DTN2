@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -212,6 +230,9 @@ DTND::main(int argc, char* argv[])
         daemonizer_.notify_parent(0);
     }
     
+    log_notice_p("/dtnd", "starting APIServer on %s:%d", 
+                 intoa(apiserver->local_addr()), apiserver->local_port());
+
     dtnserver->start();
     if (apiserver->enabled()) {
         apiserver->bind_listen_start(apiserver->local_addr(), 
@@ -244,13 +265,14 @@ DTND::main(int argc, char* argv[])
     delete dtnserver;
     // don't delete apiserver; keep it around so slow APIClients can finish
     
+    delete apiserver;
+
     // give other threads (like logging) a moment to catch up before exit
     oasys::Thread::yield();
-    sleep(1);
+    sleep(3);
     
     // kill logging
     oasys::Log::shutdown();
-    delete apiserver;
     
     return 0;
 }

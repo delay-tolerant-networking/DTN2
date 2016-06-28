@@ -1039,6 +1039,7 @@ void parse_options(int argc, char**argv, dtnperf_options_t *perf_opt, dtn_option
             api_IP = optarg;
             break;
         case 'B':
+            api_IP_set = 1;
             api_port = atoi(optarg);
             break;    
 		case 'h':

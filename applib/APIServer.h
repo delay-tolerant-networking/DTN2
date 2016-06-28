@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _APISERVER_H_
 #define _APISERVER_H_
 
@@ -29,12 +47,17 @@
 #include "dtn_api.h"
 #include "dtn_ipc.h"
 #include "dtn_types.h"
+#include "dtpc_types.h"
+
+#include "conv_layers/RecvRawConvergenceLayer.h"
 
 namespace dtn {
 
 class APIClient;
 class APIRegistration;
 class APIRegistrationList;
+class DtpcRegistration;
+class DtpcRegistrationList;
 
 /**
  * Class that implements the main server side handling of the DTN
@@ -100,6 +123,7 @@ protected:
     int handle_send();
     int handle_cancel();
     int handle_recv();
+    int handle_recv_raw();
     int handle_ack();
     int handle_begin_poll();
     int handle_cancel_poll();
@@ -127,6 +151,27 @@ protected:
 
     bool is_bound(u_int32_t regid);
     
+#ifdef DTPC_ENABLED
+    // DTPC methods
+    virtual int handle_dtpc_register();
+    virtual int handle_dtpc_unregister();
+    virtual int handle_dtpc_send();
+    virtual int handle_dtpc_recv();
+    virtual int handle_dtpc_elision_response();
+    virtual int invoke_elision_func(DtpcRegistration* dtpc_reg);
+
+    // similar to wait_for_notify above but with a DTPC focus
+    virtual int wait_for_dtpc_notify(const char*        operation,
+                                     dtn_timeval_t      dtn_timeout,
+                                     DtpcRegistration** recv_ready_reg,
+                                     bool*              sock_ready);
+
+    // search the DTPC bindings for the given topic ID registration and returns it
+    virtual bool is_dtpc_bound(u_int32_t topic_id, DtpcRegistration** reg);
+
+    DtpcRegistrationList* dtpc_bindings_;
+#endif //DTPC_ENABLED
+
     char buf_[DTN_MAX_API_MSG];
     XDR xdr_encode_;
     XDR xdr_decode_;
@@ -136,6 +181,9 @@ protected:
     APIServer* parent_;
     size_t total_sent_;
     size_t total_rcvd_;
+
+    RecvRawConvergenceLayer* raw_convergence_layer_;
+    LinkRef raw_convergence_layer_linkref_;
 };
 
 } // namespace dtn

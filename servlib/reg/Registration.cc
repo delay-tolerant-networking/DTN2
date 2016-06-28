@@ -14,11 +14,30 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
 #include "Registration.h"
+#include "RegistrationInitialLoadThread.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
@@ -75,7 +94,12 @@ Registration::Registration(u_int32_t regid,
       expiration_timer_(NULL),
       active_(false),
       expired_(false),
-      delivery_cache_(std::string(logpath()) + "/delivery_cache", 1024)
+      in_datastore_(false),
+      add_to_datastore_(false),
+      in_storage_queue_(false),
+      delivery_cache_(std::string(logpath()) + "/delivery_cache", 1024),
+      initial_load_thread_(NULL)
+      
 {
     struct timeval now;
     ::gettimeofday(&now, 0);
@@ -99,7 +123,11 @@ Registration::Registration(const oasys::Builder&)
       expiration_timer_(NULL),
       active_(false),
       expired_(false),
-      delivery_cache_(std::string(logpath()) + "/delivery_cache", 1024)
+      in_datastore_(false),
+      add_to_datastore_(false),
+      in_storage_queue_(false),
+      delivery_cache_(std::string(logpath()) + "/delivery_cache", 1024),
+      initial_load_thread_(NULL)
 {
 }
 
@@ -249,5 +277,33 @@ Registration::ExpirationTimer::timeout(const struct timeval& now)
         BundleDaemon::post(new RegistrationExpiredEvent(reg_));
     } 
 }
+
+//----------------------------------------------------------------------
+void
+Registration::set_initial_load_thread(RegistrationInitialLoadThread* loader)
+{
+    initial_load_thread_ = loader;
+}
+
+//----------------------------------------------------------------------
+void 
+Registration::clear_initial_load_thread(RegistrationInitialLoadThread* loader)
+{
+    if ( initial_load_thread_ == loader ) {
+        initial_load_thread_ = NULL;
+    }
+}
+
+//----------------------------------------------------------------------
+void 
+Registration::stop_initial_load_thread()
+{
+    if ( NULL != initial_load_thread_ ) {
+        initial_load_thread_->set_should_stop();
+        initial_load_thread_ = NULL;
+    }
+}
+
+
 
 } // namespace dtn

@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -51,7 +69,7 @@ UnknownBlockProcessor::prepare(const Bundle*    bundle,
     ASSERT(source->owner() == this);
 
     if (source->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR) {
-        return BP_FAIL;
+        return BP_SUCCESS;  // Now must return SUCCESS if block is not to be forwarded
     }
 
     // If we're called for this type then security is not enabled
@@ -87,8 +105,13 @@ UnknownBlockProcessor::generate(const Bundle*  bundle,
     // We shouldn't be here if the block has the following flags set
     ASSERT((source->flags() &
             BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR) == 0);
-    ASSERT((source->flags() &
-            BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR) == 0);
+
+    // A change to BundleProtocol results in outgoing discard taking place here
+    if (source->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR) {
+        return BP_SUCCESS;
+    }
+    //ASSERT((source->flags() &
+    //        BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR) == 0);
     
     // The source better have some contents, but doesn't need to have
     // any data necessarily
@@ -139,6 +162,8 @@ UnknownBlockProcessor::validate(const Bundle*           bundle,
     }
 
     if (block->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR) {
+        log_warn_p("/dtn/bundle/protocol/unk", "Discard Bundle on Error: *%p  Block type: 0x%2x", 
+                   bundle, block->type());
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
     }
@@ -150,6 +175,6 @@ UnknownBlockProcessor::validate(const Bundle*           bundle,
 int
 UnknownBlockProcessor::format(oasys::StringBuffer* buf)
 {
-	buf->append("Unknown");
+    return buf->append("Unknown");
 }
 } // namespace dtn

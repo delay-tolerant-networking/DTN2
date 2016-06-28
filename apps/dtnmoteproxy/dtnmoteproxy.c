@@ -323,6 +323,7 @@ readCommandLineArgs(int argc, char **argv)
             api_IP = optarg;
             break;
         case 'B':
+            api_IP_set = 1;
             api_port = atoi(optarg);
             break;    
         case 'h':

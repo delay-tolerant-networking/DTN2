@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -33,7 +51,8 @@ namespace dtn {
 //----------------------------------------------------------------------
 ContactManager::ContactManager()
     : BundleEventHandler("ContactManager", "/dtn/contact/manager"),
-      opportunistic_cnt_(0)
+      opportunistic_cnt_(0),
+      shutting_down_(false)
 {
     links_ = new LinkSet();
     previous_links_ = new LinkSet();
@@ -47,10 +66,23 @@ ContactManager::~ContactManager()
 }
 
 //----------------------------------------------------------------------
+void
+ContactManager::set_shutting_down()
+{
+    oasys::ScopeLock l(&lock_, "ContactManager::set_shutting_down");
+    shutting_down_ = true;
+}
+
+
+//----------------------------------------------------------------------
 bool
 ContactManager::add_new_link(const LinkRef& link)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::add_new_link");
+
+    if (shutting_down_) {
+        return false;
+    }
 
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
@@ -85,10 +117,12 @@ ContactManager::add_new_link(const LinkRef& link)
 void
 ContactManager::add_previous_link(const LinkRef& link)
 {
-    ASSERT(link != NULL);
+    if (BundleDaemon::instance()->params_.persistent_links_) {
+        ASSERT(link != NULL);
 
-    log_debug("adding OLD link %s", link->name());
-    previous_links_->insert(LinkRef(link.object(), "From Datastore"));
+        log_debug("adding OLD link %s", link->name());
+        previous_links_->insert(LinkRef(link.object(), "From Datastore"));
+    }
 
     return;
 }
@@ -141,9 +175,11 @@ ContactManager::del_link(const LinkRef& link, bool wait,
     // back with a different specification.  However, if this link was a
     // reincarnation, it will already be (correctly) in previous_links_ and
     // no action is required.
-    if (link->used_in_fwdlog() && !link->reincarnated())
-    {
-    	previous_links_->insert(link);
+    if (BundleDaemon::instance()->params_.persistent_links_) {
+        if (link->used_in_fwdlog() && !link->reincarnated())
+        {
+    	    previous_links_->insert(link);
+        }
     }
 
     if (wait) {
@@ -165,6 +201,10 @@ bool
 ContactManager::has_link(const LinkRef& link)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::has_link");
+
+    if (shutting_down_) {
+        return false;
+    }
     ASSERT(link != NULL);
     
     LinkSet::iterator iter = links_->find(link);
@@ -178,6 +218,10 @@ bool
 ContactManager::has_link(const char* name)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::has_link");
+
+    if (shutting_down_) {
+        return false;
+    }
     ASSERT(name != NULL);
     
     LinkSet::iterator iter;
@@ -193,9 +237,13 @@ LinkRef
 ContactManager::find_link(const char* name)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::find_link");
-    
+
     LinkSet::iterator iter;
     LinkRef link("ContactManager::find_link: return value");
+    
+    if (shutting_down_) {
+        return link;
+    }
     
     for (iter = links_->begin(); iter != links_->end(); ++iter) {
         if (strcasecmp((*iter)->name(), name) == 0) {
@@ -273,6 +321,9 @@ ContactManager::consistent_with_previous_usage(const LinkRef& link, bool *reinca
         		// We appear to be consistent
         		// Force remote_eid to be consistent
         		link->set_remote_eid((*iter)->remote_eid());
+
+                        // copy the in_datastore flag
+                        link->set_in_datastore((*iter)->in_datastore());
 
         		// Record that this is a reincarnation
         		*reincarnation = true;
@@ -372,6 +423,11 @@ void
 ContactManager::reopen_link(const LinkRef& link)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::reopen_link");
+
+    if (shutting_down_) {
+        return;
+    }
+
     ASSERT(link != NULL);
 
     log_debug("reopen link %s", link->name());
@@ -428,6 +484,10 @@ ContactManager::handle_link_available(LinkAvailableEvent* event)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::handle_link_available");
 
+    if (shutting_down_) {
+        return;
+    }
+
     LinkRef link = event->link_;
     ASSERT(link != NULL);
     
@@ -468,6 +528,10 @@ void
 ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::handle_link_unavailable");
+
+    if (shutting_down_) {
+        return;
+    }
 
     LinkRef link = event->link_;
     ASSERT(link != NULL);
@@ -530,6 +594,11 @@ ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
         return;
     }
 
+    // need to release the lock or a deadly embrace can happen if the 
+    // TimerSystem is processing a LinkAvailabilityTimer at this time!!
+    l.unlock();
+
+
     log_debug("link %s unavailable (%s): scheduling retry timer in %d seconds",
               link->name(), event->reason_to_str(event->reason_), timeout);
     timer->schedule_in(timeout * 1000);
@@ -540,6 +609,10 @@ void
 ContactManager::handle_contact_up(ContactUpEvent* event)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::handle_contact_up");
+
+    if (shutting_down_) {
+        return;
+    }
 
     LinkRef link = event->contact_->link();
     ASSERT(link != NULL);
@@ -600,9 +673,13 @@ ContactManager::find_any_link_to(LinkSet *link_set,
 								 u_int states)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::find_link_to");
-    
+
     LinkSet::iterator iter;
     LinkRef link("ContactManager::find_link_to: return value");
+    
+    if (shutting_down_) {
+        return link;
+    }
     
     log_debug("find_link_to: cl %s nexthop %s remote_eid %s "
               "type %s states 0x%x",
@@ -659,6 +736,10 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
     
 
     oasys::ScopeLock l(&lock_, "ContactManager::new_opportunistic_link");
+    
+    if (shutting_down_) {
+        return link;
+    }
 
     // See if an OPPORTUNISTIC link went to this remote_eid during a previous
     // run of the daemon - if so we will use the same name so that the forwarding log
@@ -724,6 +805,10 @@ void
 ContactManager::dump(oasys::StringBuffer* buf) const
 {
     oasys::ScopeLock l(&lock_, "ContactManager::dump");
+    
+    if (shutting_down_) {
+        return;
+    }
     
     buf->append("Links:\n");
     LinkSet::iterator iter;

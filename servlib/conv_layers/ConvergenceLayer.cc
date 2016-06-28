@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -29,6 +47,13 @@
 #include "NORMConvergenceLayer.h"
 #include "LTPConvergenceLayer.h"
 #include "AX25CMConvergenceLayer.h"
+
+#ifdef LTPUDP_ENABLED
+#    include "LTPUDPConvergenceLayer.h"
+#    include "LTPUDPReplayConvergenceLayer.h"
+#endif
+
+#include "STCPConvergenceLayer.h"
 
 #include "bundling/BundleDaemon.h"
 
@@ -69,9 +94,19 @@ ConvergenceLayer::init_clayers()
 #ifdef LTP_ENABLED
     add_clayer(new LTPConvergenceLayer());
 #endif
+
+#ifdef LTPUDP_ENABLED
+    add_clayer(new LTPUDPConvergenceLayer());
+    add_clayer(new LTPUDPReplayConvergenceLayer());
+#endif
+
+
 #ifdef OASYS_AX25_ENABLED
 	add_clayer(new AX25CMConvergenceLayer());
 #endif
+
+    add_clayer(new STCPConvergenceLayer());
+
     // XXX/demmer fixme
     //add_clayer("file", new FileConvergenceLayer());
 }
@@ -132,7 +167,7 @@ ConvergenceLayer::set_interface_defaults(int argc, const char* argv[],
     if (argc == 0) {
         return true;
     } else {
-        invalidp = &argv[0];
+        *invalidp = argv[0];
         return false;
     }
 }
@@ -145,7 +180,7 @@ ConvergenceLayer::set_link_defaults(int argc, const char* argv[],
     if (argc == 0) {
         return true;
     } else {
-        invalidp = &argv[0];
+        *invalidp = argv[0];
         return false;
     }
 }

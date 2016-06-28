@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _PROPHET_ENCOUNTER_H_
 #define _PROPHET_ENCOUNTER_H_
 
@@ -26,7 +44,6 @@
 #include "Dictionary.h"
 #include "BundleTLVEntryList.h"
 #include "Alarm.h"
-#include <ctime>
 
 namespace prophet
 {
@@ -187,8 +204,8 @@ protected:
     BundleResponseList local_response_; ///< Bundle requests sent to peer
     Table remote_nodes_; ///< in-memory representation of remote's RIB
     u_int hello_rate_; ///< simple flow control for Hello messages (ACK, etc)
-    time_t data_sent_; ///< timestamp of last TLV sent
-    time_t data_rcvd_; ///< timestamp of last TLV received
+    u_int32_t data_sent_; ///< timestamp of last TLV sent
+    u_int32_t data_rcvd_; ///< timestamp of last TLV received
     Alarm* alarm_; ///< callback registration for timeout handler
 }; // class Encounter
 

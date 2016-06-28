@@ -14,14 +14,41 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_MAPPING_H_
 #define _BUNDLE_MAPPING_H_
 
+#include <tr1/memory>
 #include <vector>
 
-#include "BundleList.h"
+#include "BundleListBase.h"
 
 namespace dtn {
+
+class BundleMapping;
+
+// Shorthand for the shared pointers
+typedef std::tr1::shared_ptr<void> SPV;
+typedef std::tr1::shared_ptr<BundleMapping> SPBMapping;
+
+
 
 /**
  * Structure stored in a list along with each bundle to keep a
@@ -35,18 +62,18 @@ class BundleMapping {
 public:
     BundleMapping() : list_(NULL), position_() {}
     
-    BundleMapping(BundleList* list, const BundleList::iterator& position)
+    BundleMapping(BundleListBase* list, SPV& position)
         : list_(list), position_(position) {}
 
-    BundleList*                 list()     const { return list_; }
-    const BundleList::iterator& position() const { return position_; }
+    BundleListBase* list() const { return list_; }
+    const SPV position()   const { return position_; }
 
 protected:
-    /// Pointer to the list on which the bundle is held
-    BundleList* list_;
+    /// Pointer to the BundleList on which the bundle is held
+    BundleListBase* list_;
 
-    /// Position of the bundle on that list
-    BundleList::iterator position_;
+    /// Position of the bundle in a BundleList list
+    SPV position_;
 };
 
 /**
@@ -56,19 +83,19 @@ protected:
  * it compact in memory and because the number of queues for each
  * bundle is likely small.
  */
-class BundleMappings : public std::vector<BundleMapping> {
+class BundleMappings : public std::vector< SPBMapping > {
 public:
     /**
      * Return an iterator at the mapping to the given list, or end()
      * if the mapping is not present.
      */
-    iterator find(const BundleList* list);
+    iterator find(const BundleListBase* list);
 
     /**
      * Syntactic sugar for finding whether or not a mapping exists for
      * the given list.
      */
-    bool contains(const BundleList* list) { return find(list) != end(); }
+    bool contains(const BundleListBase* list) { return find(list) != end(); }
 };
 
 } // namespace dtn

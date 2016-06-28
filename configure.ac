@@ -123,6 +123,8 @@ AC_CONFIG_EXTERNAL_CL
 AC_CONFIG_EXTERNAL_DP
 AC_CONFIG_NORM
 AC_CONFIG_LTP
+AC_CONFIG_LTPUDP
+AC_CONFIG_LTPUDPAUTH
 AC_CONFIG_SCRIPT_APIS
 AC_CONFIG_ODBC
 
@@ -136,6 +138,36 @@ AC_CONFIG_OPENSSL
 # Check if BPQ should be enabled
 #--------------------------------------------------------------------------
 AC_CONFIG_BPQ
+
+#--------------------------------------------------------------------------
+# Check if ACS should be enabled
+#--------------------------------------------------------------------------
+AC_CONFIG_ACS
+
+#--------------------------------------------------------------------------
+# Check if BundleDaemon Statistics should be enabled
+#--------------------------------------------------------------------------
+AC_CONFIG_BDSTATS
+
+#--------------------------------------------------------------------------
+# Configure for 64 bit Bundle IDs
+#--------------------------------------------------------------------------
+AC_CONFIG_BID64BIT
+
+#--------------------------------------------------------------------------
+# Check if DTPC should be enabled
+#--------------------------------------------------------------------------
+AC_CONFIG_DTPC
+
+#--------------------------------------------------------------------------
+# Check if ECOS should be enabled
+#--------------------------------------------------------------------------
+AC_CONFIG_ECOS
+
+#--------------------------------------------------------------------------
+# Check if the EHS External Router should be built
+#--------------------------------------------------------------------------
+AC_CONFIG_EHSROUTER
 
 # -------------------------------------------------------------------------
 # Configure gcc 
@@ -157,6 +189,7 @@ AC_SUBST(INCFLAGS)
 AC_CONFIG_FILES([Rules.make:$OASYS_ETCDIR/Rules.make.in])
 AC_CONFIG_FILES([System.make:$OASYS_ETCDIR/System.make:System.make.in])
 AC_CONFIG_FILES([servlib/ipnd.make:servlib/ipnd.make.in])
+AC_CONFIG_FILES([servlib/dtpc.make:servlib/dtpc.make.in])
 
 if test ! $SRCDIR = `pwd` ; then
    AC_CONFIG_FILES([Makefile:Makefile-Builddir.in])

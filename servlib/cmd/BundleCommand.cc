@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -56,7 +74,7 @@ BundleCommand::BundleCommand()
     add_to_help("dump_tcl <id>", "dump a bundle as a tcl list");
     add_to_help("dump_ascii <id>", "dump the bundle in ascii");
     add_to_help("expire <id>", "force a specific bundle to expire");
-    add_to_help("cancel <id> <link>", "cancel a bundle being sent on a link");
+    add_to_help("cancel <id> [<link>]", "cancel a bundle being sent [on a specific link]");
     add_to_help("clear_fwdlog <id>", "clear the forwarding log for a bundle");
     add_to_help("daemon_idle_shutdown <secs>",
                 "shut down the bundle daemon after an idle period");
@@ -247,7 +265,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         // return the creation timestamp (can use with source EID to
         // create a globally unique bundle identifier
-        resultf("%llu.%llu", b->creation_ts().seconds_, b->creation_ts().seqno_);
+        resultf("%"PRIu64".%"PRIu64, b->creation_ts().seconds_, b->creation_ts().seqno_);
         return TCL_OK;
         
     } else if (!strcmp(cmd, "stats")) {
@@ -271,40 +289,86 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         return TCL_OK;
         
     } else if (!strcmp(cmd, "list")) {
-        Bundle* b;
-        BundleList::iterator iter;
-        oasys::StringBuffer buf;
-        BundleList* pending = BundleDaemon::instance()->pending_bundles();
-        BundleList* custody = BundleDaemon::instance()->custody_bundles();
-        BundleList* all_bundles = BundleDaemon::instance()->all_bundles();
-        
-        oasys::ScopeLock l(all_bundles->lock(), "BundleCommand::exec");
-        buf.appendf("All Bundles (%zu): \n", all_bundles->size());
-    
-        for (iter = all_bundles->begin(); iter != all_bundles->end(); ++iter) {
-            b = *iter;
-            buf.appendf("\t%-3d: %s -> %s length %zu%s%s\n",
-                        b->bundleid(),
-                        b->source().c_str(),
-                        b->dest().c_str(),
-                        b->payload().length(),
-                        pending->contains(b) ? "" : " (NOT PENDING)",
-                        custody->contains(b) ? " (Custodian)" : ""
-                );
+        int startbundleid = 0; // klm++
+        bool havestartbundleid = false;
+        int endbundleid = INT_MAX; // klm++
+        bool haveendbundleid = false;
+        // if 3 cmd params, get starting bundle id // klm+
+        if (objc > 2) { // klm+
+          if (Tcl_GetIntFromObj(interp, objv[2], &startbundleid) != TCL_OK) { // klm++
+            resultf("invalid starting bundle id %s", // klm++
+                Tcl_GetStringFromObj(objv[2], 0)); // klm++
+            return TCL_ERROR; // klm++
+          } // klm+
+          havestartbundleid = true; // got a good startid
+          if (objc > 3) { // klm+
+            // if 4 cmd params, get ending bundle id
+            if (Tcl_GetIntFromObj(interp, objv[3], &endbundleid) != TCL_OK) { // klm++
+              resultf("invalid ending bundle id %s", // klm++
+                  Tcl_GetStringFromObj(objv[3], 0)); // klm++
+              return TCL_ERROR; // klm++
+            }
+            haveendbundleid = true; // got a good endid
+          }
         }
-        
+        Bundle* b;
+        all_bundles_t::iterator iter;
+        oasys::StringBuffer buf;
+        pending_bundles_t* pending = BundleDaemon::instance()->pending_bundles();
+        custody_bundles_t* custody = BundleDaemon::instance()->custody_bundles();
+        all_bundles_t* all_bundles = BundleDaemon::instance()->all_bundles();
+
+        oasys::ScopeLock l(all_bundles->lock(), "BundleCommand::exec");
+        // prompt based on params
+        if ( haveendbundleid )
+        {
+          buf.appendf("All Bundles (from total %zu) with bundle id >= %d and <= %d:\n", all_bundles->size(), startbundleid, endbundleid);
+        }
+        else if ( havestartbundleid )
+        {
+          buf.appendf("All Bundles (from total %zu) with bundle id >= %d:\n", all_bundles->size(), startbundleid );
+        }
+        else
+        {
+          buf.appendf("All Bundles (%zu): \n", all_bundles->size());
+        }
+
+        for (iter = all_bundles->begin(); iter != all_bundles->end(); ++iter) {
+#ifdef ALL_BUNDLES_IS_MAP
+          b = iter->second;  // for <map> lists
+#else
+          b = *iter;  // for <list> lists
+#endif
+
+          if ( b->bundleid() >= (unsigned) startbundleid && b->bundleid() <= (unsigned) endbundleid )
+          {
+            buf.appendf("\t%-3"PRIbid": %s -> %s length %zu%s%s\n",
+                b->bundleid(),
+                b->source().c_str(),
+                b->dest().c_str(),
+                b->payload().length(),
+                pending->contains(b) ? "" : " (NOT PENDING)",
+                custody->contains(b) ? " (Custodian)" : ""
+                );
+          }
+        }
+
         set_result(buf.c_str());
-        
+
         return TCL_OK;
         
     } else if (!strcmp(cmd, "ids")) {
-        BundleList::iterator iter;
-        BundleList* all_bundles = BundleDaemon::instance()->all_bundles();
+        all_bundles_t::iterator iter;
+        all_bundles_t* all_bundles = BundleDaemon::instance()->all_bundles();
         
         oasys::ScopeLock l(all_bundles->lock(), "BundleCommand::exec");
     
         for (iter = all_bundles->begin(); iter != all_bundles->end(); ++iter) {
-            append_resultf("%d ", (*iter)->bundleid());
+            #ifdef ALL_BUNDLES_IS_MAP
+                append_resultf("%"PRIbid" ", (iter->second)->bundleid()); // for <map> lists
+            #else
+                append_resultf("%d ", (*iter)->bundleid()); // for <list> lists
+            #endif
         }
         
         return TCL_OK;
@@ -328,7 +392,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        BundleList* all_bundles = BundleDaemon::instance()->all_bundles();
+        all_bundles_t* all_bundles = BundleDaemon::instance()->all_bundles();
         
         BundleRef bundle = all_bundles->find(bundleid);
 
@@ -378,8 +442,8 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
     } else if (!strcmp(cmd, "cancel")) {
         // bundle cancel <id> <link>
-        if (objc != 4) {
-            wrong_num_args(objc, objv, 2, 4, 4);
+        if (objc != 3 && objc != 4) {
+            wrong_num_args(objc, objv, 2, 3, 4);
             return TCL_ERROR;
         }
 
@@ -390,10 +454,20 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        const char* name = Tcl_GetStringFromObj(objv[3], 0);
+        const char* name = "";
+        if (objc == 4) {
+            name = Tcl_GetStringFromObj(objv[3], 0);
+        }
 
         BundleRef bundle
-            = BundleDaemon::instance()->pending_bundles()->find(bundleid);
+            = BundleDaemon::instance()->all_bundles()->find(bundleid);
+        if (bundle != NULL) {
+#ifdef PENDING_BUNDLES_IS_MAP
+            bundle = BundleDaemon::instance()->pending_bundles()->find(bundleid);
+#else
+            bundle = BundleDaemon::instance()->pending_bundles()->find(bundle->gbofid_str());
+#endif
+        }
 
         if (bundle == NULL) {
             resultf("no pending bundle with id %d", bundleid);
@@ -420,7 +494,14 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         }
 
         BundleRef bundle
-            = BundleDaemon::instance()->pending_bundles()->find(bundleid);
+            = BundleDaemon::instance()->all_bundles()->find(bundleid);
+        if (bundle != NULL) {
+#ifdef PENDING_BUNDLES_IS_MAP
+            bundle = BundleDaemon::instance()->pending_bundles()->find(bundleid);
+#else
+            bundle = BundleDaemon::instance()->pending_bundles()->find(bundle->gbofid_str());
+#endif
+        }
 
         if (bundle == NULL) {
             resultf("no pending bundle with id %d", bundleid);

@@ -14,11 +14,28 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
-#include <sys/poll.h>
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/thread/Timer.h>
@@ -40,12 +57,16 @@ struct UDPConvergenceLayer::Params UDPConvergenceLayer::defaults_;
 void
 UDPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 {
+    int temp = 0;
     a->process("local_addr", oasys::InAddrPtr(&local_addr_));
     a->process("remote_addr", oasys::InAddrPtr(&remote_addr_));
     a->process("local_port", &local_port_);
     a->process("remote_port", &remote_port_);
+    a->process("bucket_type", &temp);
+    bucket_type_ = (oasys::RateLimitedSocket::BUCKET_TYPE) temp;
     a->process("rate", &rate_);
     a->process("bucket_depth", &bucket_depth_);
+    a->process("wait_and_send", &wait_and_send_);
 }
 
 //----------------------------------------------------------------------
@@ -56,8 +77,13 @@ UDPConvergenceLayer::UDPConvergenceLayer()
     defaults_.local_port_               = UDPCL_DEFAULT_PORT;
     defaults_.remote_addr_              = INADDR_NONE;
     defaults_.remote_port_              = 0;
+    defaults_.bucket_type_              = (oasys::RateLimitedSocket::BUCKET_TYPE) 0;
     defaults_.rate_                     = 0; // unlimited
     defaults_.bucket_depth_             = 0; // default
+    defaults_.wait_and_send_           = true;
+    next_hop_addr_                      = INADDR_NONE;
+    next_hop_port_                      = 0;
+    next_hop_flags_                     = 0;
 }
 
 //----------------------------------------------------------------------
@@ -82,17 +108,21 @@ UDPConvergenceLayer::parse_params(Params* params,
                                   const char** invalidp)
 {
     oasys::OptParser p;
-
+    int temp = 0;
     p.addopt(new oasys::InAddrOpt("local_addr", &params->local_addr_));
     p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
     p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
     p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
+    p.addopt(new oasys::IntOpt("bucket_type", &temp));
     p.addopt(new oasys::UIntOpt("rate", &params->rate_));
-    p.addopt(new oasys::UIntOpt("bucket_depth_", &params->bucket_depth_));
+    p.addopt(new oasys::UIntOpt("bucket_depth", &params->bucket_depth_));
+    p.addopt(new oasys::BoolOpt("wait_and_send",&params->wait_and_send_));
 
     if (! p.parse(argc, argv, invalidp)) {
         return false;
     }
+
+    params->bucket_type_ = (oasys::RateLimitedSocket::BUCKET_TYPE) temp;
 
     return true;
 };
@@ -228,6 +258,7 @@ UDPConvergenceLayer::init_link(const LinkRef& link,
     }
 
     link->set_cl_info(params);
+
     return true;
 }
 
@@ -298,6 +329,10 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
         port = UDPCL_DEFAULT_PORT;
     }
 
+    next_hop_addr_  = addr;
+    next_hop_port_  = port;
+    next_hop_flags_ = MSG_DONTWAIT;
+
     Params* params = (Params*)link->cl_info();
     
     // create a new sender structure
@@ -313,6 +348,7 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
     }
         
     contact->set_cl_info(sender);
+    log_debug("UDPConv.. Adding ContactUpEvent ");
     BundleDaemon::post(new ContactUpEvent(link->contact()));
     
     // XXX/demmer should this assert that there's nothing on the link
@@ -341,9 +377,12 @@ UDPConvergenceLayer::close_contact(const ContactRef& contact)
 void
 UDPConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
 {
+    (void) bundle;
+
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
-    
+   
+     
     const ContactRef& contact = link->contact();
     Sender* sender = (Sender*)contact->cl_info();
     if (!sender) {
@@ -351,15 +390,16 @@ UDPConvergenceLayer::bundle_queued(const LinkRef& link, const BundleRef& bundle)
                  contact.object());
         return;
     }
+    BundleRef lbundle = link->queue()->front();
     ASSERT(contact == sender->contact_);
 
-    int len = sender->send_bundle(bundle);
+    int len = sender->send_bundle(lbundle, next_hop_addr_, next_hop_port_);
 
     if (len > 0) {
-        link->del_from_queue(bundle, len);
-        link->add_to_inflight(bundle, len);
+        link->del_from_queue(lbundle, len);
+        link->add_to_inflight(lbundle, len);
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle.object(), contact, link, len, 0));
+            new BundleTransmittedEvent(lbundle.object(), contact, link, len, 0));
     }
 }
 
@@ -395,7 +435,7 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         return;
     }
     
-    log_debug("process_data: new bundle id %d arrival, length %zu (payload %zu)",
+    log_debug("process_data: new bundle id %"PRIbid" arrival, length %zu (payload %zu)",
               bundle->bundleid(), len, bundle->payload().length());
     
     BundleDaemon::post(
@@ -437,10 +477,18 @@ UDPConvergenceLayer::Sender::Sender(const ContactRef& contact)
     : Logger("UDPConvergenceLayer::Sender",
              "/dtn/cl/udp/sender/%p", this),
       socket_(logpath_),
-      rate_socket_(logpath_, 0, 0),
+      rate_socket_(0),
       contact_(contact.object(), "UDPCovergenceLayer::Sender")
 {
 }
+
+UDPConvergenceLayer::Sender::~Sender()
+{
+    if (rate_socket_) {
+        delete rate_socket_;
+    }
+}
+
 
 //----------------------------------------------------------------------
 bool
@@ -464,23 +512,30 @@ UDPConvergenceLayer::Sender::init(Params* params,
             return false;
         }
     }
+   
+    socket_.init_socket();
     
-    if (socket_.connect(addr, port) != 0) {
-        log_err("error issuing udp connect to %s:%d: %s",
-                intoa(addr), port, strerror(errno));
-        return false;
-    }
+
+//    if (socket_.connect(addr, port) != 0) 
+//    {
+//        log_err("error issuing udp init_socket to %s:%d: %s",
+//                intoa(addr), port, strerror(errno));
+//        return false;
+//    }
 
     if (params->rate_ != 0) {
-        rate_socket_.bucket()->set_rate(params->rate_);
+
+        rate_socket_ = new oasys::RateLimitedSocket(logpath_, 0, 0, params->bucket_type_);
+        rate_socket_->set_socket((oasys::IPSocket *) &socket_);
+        rate_socket_->bucket()->set_rate(params->rate_);
 
         if (params->bucket_depth_ != 0) {
-            rate_socket_.bucket()->set_depth(params->bucket_depth_);
+            rate_socket_->bucket()->set_depth(params->bucket_depth_);
         }
-        
+ 
         log_debug("initialized rate controller: rate %llu depth %llu",
-                  U64FMT(rate_socket_.bucket()->rate()),
-                  U64FMT(rate_socket_.bucket()->depth()));
+                  U64FMT(rate_socket_->bucket()->rate()),
+                  U64FMT(rate_socket_->bucket()->depth()));
     }
 
     return true;
@@ -488,8 +543,9 @@ UDPConvergenceLayer::Sender::init(Params* params,
     
 //----------------------------------------------------------------------
 int
-UDPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
+UDPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle, in_addr_t next_hop_addr_, u_int16_t next_hop_port_)
 {
+    int cc = 0;
     BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(contact_->link());
     ASSERT(blocks != NULL);
 
@@ -505,12 +561,21 @@ UDPConvergenceLayer::Sender::send_bundle(const BundleRef& bundle)
     }
         
     // write it out the socket and make sure we wrote it all
-    int cc = socket_.write((char*)buf_, total_len);
+    if(params_->rate_ > 0) {
+        log_debug("about to call rate_socket_.sendto");
+        cc = rate_socket_->sendto((char*)buf_, total_len, 0, next_hop_addr_, next_hop_port_, params_->wait_and_send_);
+    } else {
+        cc = socket_.sendto((char*)buf_, total_len, 0, next_hop_addr_, next_hop_port_);
+    }
+
+    //int cc = socket_.write((char*)buf_, total_len);
     if (cc == (int)total_len) {
-        log_info("send_bundle: successfully sent bundle length %d", cc);
+        log_info("send_bundle: successfully sent bundle (id:%"PRIbid") length %d", 
+                 bundle.object()->bundleid(), cc);
         return total_len;
     } else {
-        log_err("send_bundle: error sending bundle (wrote %d/%zu): %s",
+        log_err("send_bundle: error sending bundle (id:%"PRIbid") (wrote %d/%zu): %s",
+                bundle.object()->bundleid(), 
                 cc, total_len, strerror(errno));
         return -1;
     }

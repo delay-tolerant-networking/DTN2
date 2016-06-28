@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -120,7 +138,7 @@ void EthDiscovery::run()
     ifaddr.sll_protocol = htons(ETHERTYPE_DTN_BEACON);
     ifaddr.sll_ifindex = req.ifr_ifindex;
 
-    if(::bind(sock_, (struct sockaddr*) &ifaddr, sizeof(ifaddr)) == -1) {
+    if(bind(sock_, (struct sockaddr*) &ifaddr, sizeof(ifaddr)) == -1) {
         log_err("bind() failed: %s", strerror(errno));
         return;
     }
@@ -164,7 +182,7 @@ void EthDiscovery::run()
                 iov[1].iov_len = len;
 
                 cc = oasys::IO::writevall(sock_, iov, 2);
-                if(cc != sizeof(ethhdr)+len) {
+                if(cc != (int)sizeof(ethhdr)+len) {
                     log_err("send failed: %s", strerror(errno));
                     return;
                 }
@@ -192,7 +210,7 @@ void EthDiscovery::run()
         if(cc < 0) {
             log_err("readvall() failed");
             return;
-        } else if(cc < sizeof(ethhdr)) {
+        } else if(cc < (int)sizeof(ethhdr)) {
             log_warn("corrupt packet received, ignore");
             continue;
         }

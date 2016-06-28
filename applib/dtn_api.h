@@ -14,16 +14,47 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef DTN_API_H
 #define DTN_API_H
 
 #include "dtn_errno.h"
 #include "dtn_types.h"
+#include "dtpc_types.h"
 
 /**
  * The basic handle for communication with the dtn router.
  */
 typedef int* dtn_handle_t;
+
+
+#ifdef DTPC_ENABLED
+    #include "dtpc_types.h"
+
+    /** 
+      * Unable to figure out how to declare the typedef for the elision function pointer 
+      * within the dtpc_types.x to have it included in the dtpc_types.h file
+      */
+    typedef void (*ptr_elision_func_t)(dtpc_data_item_list_t* list, bool_t* modified);
+#endif //DTPC_ENABLED
+
 
 #ifdef  __cplusplus
 extern "C" {
@@ -180,6 +211,27 @@ extern int dtn_recv(dtn_handle_t handle,
  * interval in milliseconds to block on the server-side (-1 means
  * infinite wait).
  *
+ * Note that the "payload" returned is the full bundle as it would be
+ * transmitted. 
+ *
+ * Note that it is advisable to call dtn_free_payload on the returned
+ * structure, otherwise the XDR routines will memory leak.
+ */
+extern int dtn_recv_raw(dtn_handle_t handle,
+                        dtn_bundle_spec_t* spec,
+                        dtn_bundle_payload_location_t location,
+                        dtn_bundle_payload_t* raw_bundle,
+                        dtn_timeval_t timeout);
+
+
+/**
+ * Blocking receive for a bundle, filling in the spec and payload
+ * structures with the bundle data. The location parameter indicates
+ * the manner by which the caller wants to receive payload data (i.e.
+ * either in memory or in a file). The timeout parameter specifies an
+ * interval in milliseconds to block on the server-side (-1 means
+ * infinite wait).
+ *
  * Note: this will not remove the bundle from the stack
  *
  * Note that it is advisable to call dtn_free_payload on the returned
@@ -286,6 +338,53 @@ void dtn_free_payload(dtn_bundle_payload_t* payload);
  * Return a string version of a status report reason code.
  */
 const char* dtn_status_report_reason_to_str(dtn_status_report_reason_t err);
+
+
+#ifdef DTPC_ENABLED
+/*************************************************************
+ *
+ *        Delay Tolerant Payload Conditioning Functions
+ *
+ *************************************************************/
+/**
+ * Create a DTPC registration for a topic. 
+ */
+extern int dtpc_register(dtn_handle_t h,
+                         dtpc_reg_info_t* reginfo);
+
+/**
+ * Unregister from a DTPC topic. 
+ */
+extern int dtpc_unregister(dtn_handle_t h,
+                           dtpc_topic_id_t topic_id);
+
+/**
+ * Send an Application Data Item
+ */
+extern int dtpc_send(dtn_handle_t h,
+                     dtpc_data_item_t* data_item,
+                     dtpc_topic_id_t* topic_id,
+                     dtpc_endpoint_id_t* dest_eid,
+                     dtpc_profile_id_t profile_id);
+
+/**
+ * Receive an Application Data Item
+ * (must be active to receive and invoke the Elision Function callback)
+ */
+extern int dtpc_recv(dtn_handle_t h,
+                     dtpc_data_item_t* data_item,
+                     dtpc_topic_id_t* topic_id,
+                     dtpc_endpoint_id_t* src_eid,
+                     dtpc_timeval_t timeout,
+                     ptr_elision_func_t efunc);
+
+/**
+ * Process an Elision Function callback (invoked internally by the API)
+ */
+extern int dtpc_process_elision_function(dtn_handle_t h, ptr_elision_func_t efunc);
+
+#endif //DTPC_ENABLED
+
 
 #ifdef  __cplusplus
 }

@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_ROUTER_H_
 #define _BUNDLE_ROUTER_H_
 
@@ -22,6 +40,7 @@
 #include <oasys/thread/Thread.h>
 #include <oasys/util/StringUtils.h>
 
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleEventHandler.h"
 #include "naming/EndpointID.h"
@@ -128,6 +147,17 @@ public:
     virtual bool accept_bundle(Bundle* bundle, int* errp);
 
     /**
+     * Synchronous probe indicating whether or not custody of this bundle 
+     * should be accepted by the system.
+     *
+     * The default implementation returns true to match DTN2.9 
+     * functionality which did not check with the router.
+     *
+     * @return true if okay to accept custody of the bundle.
+     */
+    virtual bool accept_custody(Bundle* bundle);
+
+    /**
      * Synchronous probe indicating whether or not this bundle can be
      * deleted by the system.
      *
@@ -194,10 +224,10 @@ protected:
     std::string name_;
     
     /// The list of all bundles still pending delivery
-    BundleList* pending_bundles_;
+    pending_bundles_t* pending_bundles_;
 
     /// The list of all bundles that I have custody of
-    BundleList* custody_bundles_;
+    custody_bundles_t* custody_bundles_;
 
     /// The actions interface, set by the BundleDaemon when the router
     /// is initialized.

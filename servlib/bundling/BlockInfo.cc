@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -132,12 +150,14 @@ BlockInfo::type() const
                 || owner_->block_type() == BundleProtocol::METADATA_BLOCK
                 || owner_->block_type() == BundleProtocol::EXTENSION_SECURITY_BLOCK
                 || owner_->block_type() == BundleProtocol::SESSION_BLOCK
-				|| owner_->block_type() == BundleProtocol::AGE_BLOCK
-				|| owner_->block_type() == BundleProtocol::QUERY_EXTENSION_BLOCK
-				|| owner_->block_type() == BundleProtocol::SEQUENCE_ID_BLOCK
-				|| owner_->block_type() == BundleProtocol::OBSOLETES_ID_BLOCK
-				|| owner_->block_type() == BundleProtocol::UNKNOWN_BLOCK
-				|| owner_->block_type() == BundleProtocol::API_EXTENSION_BLOCK);
+                || owner_->block_type() == BundleProtocol::AGE_BLOCK
+                || owner_->block_type() == BundleProtocol::QUERY_EXTENSION_BLOCK
+                || owner_->block_type() == BundleProtocol::SEQUENCE_ID_BLOCK
+                || owner_->block_type() == BundleProtocol::OBSOLETES_ID_BLOCK
+                || owner_->block_type() == BundleProtocol::CUSTODY_TRANSFER_ENHANCEMENT_BLOCK
+                || owner_->block_type() == BundleProtocol::EXTENDED_CLASS_OF_SERVICE_BLOCK
+                || owner_->block_type() == BundleProtocol::UNKNOWN_BLOCK
+                || owner_->block_type() == BundleProtocol::API_EXTENSION_BLOCK);
     return contents_.buf()[0];
 }
 
@@ -187,7 +207,7 @@ BlockInfo::serialize(oasys::SerializeAction* a)
         // need to re-assign the owner
         if (owner_type_ == BundleProtocol::API_EXTENSION_BLOCK) {
             owner_ = APIBlockProcessor::instance();
-        } else if(owner_type_ == BundleProtocol::UNKNOWN_BLOCK) {
+        } else if (owner_type_ == BundleProtocol::UNKNOWN_BLOCK) {
             owner_ = UnknownBlockProcessor::instance();
         } else {
             owner_ = BundleProtocol::find_processor(owner_type_);

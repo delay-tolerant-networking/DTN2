@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -21,7 +39,7 @@
 #include "BundleActions.h"
 #include "Bundle.h"
 #include "BundleDaemon.h"
-#include "BundleList.h"
+#include "BundleDaemonStorage.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "contacts/Link.h"
 #include "storage/BundleStore.h"
@@ -93,7 +111,7 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
         return false;
     }
     
-    log_debug("trying to find xmit blocks for bundle id:%d on link %s",
+    log_debug("trying to find xmit blocks for bundle id:%"PRIbid" on link %s",
               bundle->bundleid(), link->name());
 
     if (bundle->xmit_blocks()->find_blocks(link) != NULL) {
@@ -111,45 +129,55 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
     // checks and subsequent block selection to remain inside the BPA,
     // with the DP pushing (firewall-like) policies and keys down via
     // a PF_KEY-like interface.
-    log_debug("trying to create xmit blocks for bundle id:%d on link %s",
+    log_debug("trying to create xmit blocks for bundle id:%"PRIbid" on link %s",
               bundle->bundleid(), link->name());
     BlockInfoVec* blocks = BundleProtocol::prepare_blocks(bundle, link);
     if(blocks == NULL) {
-        log_err("BundleActions::queue_bundle: prepare_blocks returned NULL on bundle %d", bundle->bundleid());
+        log_err("BundleActions::queue_bundle: prepare_blocks returned NULL on bundle %"PRIbid, bundle->bundleid());
         return false;
     }
     total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
     if(total_len == 0) {
-        log_err("BundleActions::queue_bundle: generate_blocks returned 0 on bundle %d", bundle->bundleid());
+        log_err("BundleActions::queue_bundle: generate_blocks returned 0 on bundle %"PRIbid, bundle->bundleid());
         return false;
     }
-    log_debug("BundleActions::queue_bundle: total_len=%d", total_len);
+    log_debug("BundleActions::queue_bundle: total_len=%zu", total_len);
     log_debug("queue bundle *%p on %s link %s (%s) (total len %zu)",
               bundle, link->type_str(), link->name(), link->nexthop(),
               total_len);
 
     ForwardingInfo::state_t state = bundle->fwdlog()->get_latest_entry(link);
     if (state == ForwardingInfo::QUEUED) {
-        log_err("queue bundle *%p on %s link %s (%s): "
-                "already queued or in flight",
-                bundle, link->type_str(), link->name(), link->nexthop());
-        return false;
+        //dz debug
+        if (! BundleDaemon::params_.persistent_links_)
+        {
+            // previous shutdown while bundle was queued
+            bundle->fwdlog()->update(link, ForwardingInfo::TRANSMIT_FAILED);
+        }
+        else 
+        {
+            log_err("queue bundle *%p on %s link %s (%s): "
+                    "already queued or in flight",
+                    bundle, link->type_str(), link->name(), link->nexthop());
+            return false;
+        }
     }
 
 #ifdef LTP_ENABLED
+
 	// XXXSF: The MTU check makes no sense for LTP where MTU relates to 
 	// segment size and not bundle size. However, the UDP CL does need 
 	// this and perhaps others, so I shouldn't move it just yet. But
 	// properly speaking I think this should be a CL specific check to
 	// make or not make -- Stephen Farrell
-	if(link->clayer()->name()!="ltp") {
+	if(strcmp(link->clayer()->name(), "ltp")) {
 #endif
     if ((link->params().mtu_ != 0) && (total_len > link->params().mtu_)) {
         log_err("queue bundle *%p on %s link %s (%s): length %zu > mtu %u",
                 bundle, link->type_str(), link->name(), link->nexthop(),
                 total_len, link->params().mtu_);
         FragmentState *fs = BundleDaemon::instance()->fragmentmgr()->proactively_fragment(bundle, link, link->params().mtu_);
-        log_debug("BundleActions::queue_bundle: bundle->payload().length()=%d", bundle->payload().length());
+        log_debug("BundleActions::queue_bundle: bundle->payload().length()=%zu", bundle->payload().length());
         if(fs != 0) {
             //BundleDaemon::instance()->delete_bundle(bref, BundleProtocol::REASON_NO_ADDTL_INFO);
             log_debug("BundleActions::queue_bundle forcing fragmentation because TestParameters (the twiddle command) says we should");
@@ -182,14 +210,14 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
 
     // Make sure that the bundle isn't unexpectedly already on the
     // queue or in flight on the link
-    if (link->queue()->contains(bundle))
+    if (bundle->is_queued_on(link->queue()))
     {
         log_err("queue bundle *%p on link *%p: already queued on link",
                 bundle, link.object());
         return false;
     }
 
-    if (link->inflight()->contains(bundle))
+    if (bundle->is_queued_on(link->inflight()))
     {
         log_err("queue bundle *%p on link *%p: already in flight on link",
                 bundle, link.object());
@@ -197,14 +225,15 @@ BundleActions::queue_bundle(Bundle* bundle, const LinkRef& link,
     }
 
     log_debug("adding QUEUED forward log entry for %s link %s "
-              "with nexthop %s and remote eid %s to *%p",
+              "with nexthop %s and remote eid %s to *%p    dzdebug> action: %d",
               link->type_str(), link->name(),
-              link->nexthop(), link->remote_eid().c_str(), bundle);
+              link->nexthop(), link->remote_eid().c_str(), bundle, (int)action);
     
     bundle->fwdlog()->add_entry(link, action, ForwardingInfo::QUEUED,
                                 custody_timer);
-    BundleDaemon *daemon = BundleDaemon::instance();
-    daemon->actions()->store_update(bundle);
+    // XXX/dz - this was just done in the add_entry!
+    //BundleDaemon *daemon = BundleDaemon::instance();
+    //daemon->actions()->store_update(bundle);
 
     log_debug("adding *%p to link %s's queue (length %u)",
               bundle, link->name(), link->bundles_queued());
@@ -300,34 +329,21 @@ BundleActions::delete_bundle(Bundle* bundle,
 void
 BundleActions::store_add(Bundle* bundle)
 {
-    log_debug("adding bundle %d to data store", bundle->bundleid());
-    bool added = BundleStore::instance()->add(bundle);
-    if (! added) {
-        log_crit("error adding bundle %d to data store!!", bundle->bundleid());
-    }
+    BundleDaemonStorage::instance()->bundle_add_update(bundle);
 }
 
 //----------------------------------------------------------------------
 void
 BundleActions::store_update(Bundle* bundle)
 {
-    log_debug("updating bundle %d in data store", bundle->bundleid());
-    bool updated = BundleStore::instance()->update(bundle);
-    if (! updated) {
-        log_crit("error updating bundle %d in data store!!", bundle->bundleid());
-    }
+    BundleDaemonStorage::instance()->bundle_add_update(bundle);
 }
 
 //----------------------------------------------------------------------
 void
 BundleActions::store_del(Bundle* bundle)
 {
-    log_debug("removing bundle %d from data store", bundle->bundleid());
-    bool removed = BundleStore::instance()->del(bundle);
-    if (! removed) {
-        log_crit("error removing bundle %d from data store!!",
-                 bundle->bundleid());
-    }
+    BundleDaemonStorage::instance()->bundle_delete(bundle);
 }
 
 } // namespace dtn

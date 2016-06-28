@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_H_
 #define _BUNDLE_H_
 
@@ -32,6 +50,7 @@
 #include "BundleTimestamp.h"
 #include "CustodyTimer.h"
 #include "ForwardingLog.h"
+#include "GbofId.h"
 #include "MetadataBlock.h"
 #include "SequenceID.h"
 #include "naming/EndpointID.h"
@@ -42,7 +61,7 @@ typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
 
 namespace dtn {
 
-class BundleList;
+class BundleListBase;
 class BundleStore;
 class ExpirationTimer;
 class SQLBundleStore;
@@ -118,7 +137,7 @@ public:
      * Hook for the generic durable table implementation to know what
      * the key is for the database.
      */
-    u_int32_t durable_key() { return bundleid_; }
+    bundleid_t durable_key() { return bundleid_; }
 
     /**
      * Hook for the bundle store implementation to count the storage
@@ -165,7 +184,7 @@ public:
     /**
      * Return true if the bundle is on the given list. 
      */
-    bool is_queued_on(const BundleList* l);
+    bool is_queued_on(const BundleListBase* l);
 
     /**
      * Validate the bundle's fields
@@ -205,15 +224,18 @@ public:
     }
 
     /// @{ Accessors
-    u_int32_t         bundleid()          const { return bundleid_; }
+    bundleid_t        bundleid()          const { return bundleid_; }
     oasys::Lock*      lock()              const { return &lock_; }
+    const GbofId&     gbofid()            const { return gbofid_; }
+    const std::string gbofid_str()        const { return gbofid_.str(); }
+
     bool              expired()           const { return expiration_timer_ == NULL; }
-    const EndpointID& source()            const { return source_; }
+    const EndpointID& source()            const { return gbofid_.source(); }
     const EndpointID& dest()              const { return dest_; }
     const EndpointID& custodian()         const { return custodian_; }
     const EndpointID& replyto()           const { return replyto_; }
     const EndpointID& prevhop()           const { return prevhop_; }
-    bool              is_fragment()       const { return is_fragment_; }
+    bool              is_fragment()       const { return gbofid_.is_fragment(); }
     bool              is_admin()          const { return is_admin_; }
     bool              do_not_fragment()   const { return do_not_fragment_; }
     bool              custody_requested() const { return custody_requested_; }
@@ -226,9 +248,11 @@ public:
     bool              deletion_rcpt()     const { return deletion_rcpt_; }
     bool              app_acked_rcpt()    const { return app_acked_rcpt_; }
     u_int64_t         expiration()        const { return expiration_; }
-    u_int32_t         frag_offset()       const { return frag_offset_; }
+    u_int32_t         frag_offset()       const { return gbofid_.frag_offset(); }
+    u_int32_t         frag_length()       const { return gbofid_.frag_length(); }
     u_int32_t         orig_length()       const { return orig_length_; }
     bool              in_datastore()      const { return in_datastore_; }
+    bool      queued_for_datastore()      const { return queued_for_datastore_;	}
     bool              local_custody()     const { return local_custody_; }
     const std::string& owner()            const { return owner_; }
     bool              fragmented_incoming() const { return fragmented_incoming_; }
@@ -238,11 +262,15 @@ public:
     u_int8_t          session_flags()     const { return session_flags_; }
     const BundlePayload& payload()        const { return payload_; }
     const ForwardingLog* fwdlog()         const { return &fwdlog_; }
-    const BundleTimestamp& creation_ts()  const { return creation_ts_; }
+    const BundleTimestamp& creation_ts()  const { return gbofid_.creation_ts(); }
     const BundleTimestamp& extended_id()  const { return extended_id_; }
     const BlockInfoVec& recv_blocks()     const { return recv_blocks_; }
     const MetadataVec& recv_metadata()    const { return recv_metadata_; }
     const LinkMetadataSet& generated_metadata() const { return generated_metadata_; }
+    bool              payload_space_reserved() const { return payload_space_reserved_; }
+    bool              in_storage_queue()  const { return in_storage_queue_; }
+    bool                   deleting()     const { return deleting_; }
+
 #ifdef BSP_ENABLED
     const BundleSecurityConfig& security_config() const {return security_config_;}
     const u_char *payload_bek() const {return payload_bek_;}
@@ -259,15 +287,26 @@ public:
     const BlockInfoVec*    api_blocks_c()   const { return &api_blocks_; }
     const BlockInfoVec&    api_blocks_r()   const { return api_blocks_; }
     bool              is_freed() { return freed_; }
+
+#ifdef ECOS_ENABLED
+    bool ecos_enabled()                   const { return ecos_enabled_; }
+    uint8_t ecos_flags()                  const { return ecos_flags_; }
+    bool ecos_critical()                  const { return ecos_flags_ & 0x01; }
+    bool ecos_streaming()                 const { return ecos_flags_ & 0x02; }
+    bool ecos_has_flowlabel()             const { return ecos_flags_ & 0x04; }
+    bool ecos_reliable()                  const { return ecos_flags_ & 0x08; }
+    uint8_t ecos_ordinal()                const { return ecos_ordinal_; }
+    uint64_t ecos_flowlabel()             const { return ecos_flowlabel_; }
+#endif
     /// @}
 
     /// @{ Setters and mutable accessors
-    EndpointID* mutable_source()       { return &source_; }
+    EndpointID* mutable_source()       { return gbofid_.mutable_source(); }
     EndpointID* mutable_dest()         { return &dest_; }
     EndpointID* mutable_replyto()      { return &replyto_; }
     EndpointID* mutable_custodian()    { return &custodian_; }
     EndpointID* mutable_prevhop()      { return &prevhop_; }
-    void set_is_fragment(bool t)       { is_fragment_ = t; }
+    void set_is_fragment(bool t)       { gbofid_.set_is_fragment(t); }
     void set_is_admin(bool t)          { is_admin_ = t; }
     void set_do_not_fragment(bool t)   { do_not_fragment_ = t; }
     void set_custody_requested(bool t) { custody_requested_ = t; }
@@ -280,18 +319,21 @@ public:
     void set_deletion_rcpt(bool t)     { deletion_rcpt_ = t; }
     void set_app_acked_rcpt(bool t)    { app_acked_rcpt_ = t; }
     void set_expiration(u_int64_t e)   { expiration_ = e; }
-    void set_frag_offset(u_int32_t o)  { frag_offset_ = o; }
+    void set_frag_offset(u_int32_t o)  { gbofid_.set_frag_offset(o); }
+    void set_frag_length(u_int32_t l)  { gbofid_.set_frag_length(l); }
     void set_orig_length(u_int32_t l)  { orig_length_ = l; }
     void set_in_datastore(bool t)      { in_datastore_ = t; }
+    void set_queued_for_datastore(bool t)      { queued_for_datastore_ = t; }
     void set_local_custody(bool t)     { local_custody_ = t; }
     void set_owner(const std::string& s) { owner_ = s; }
     void set_fragmented_incoming(bool t) { fragmented_incoming_ = t; }
-    void set_creation_ts(const BundleTimestamp& ts) { creation_ts_ = ts; }
+    void set_creation_ts(const BundleTimestamp& ts) { gbofid_.set_creation_ts(ts); }
+    BundleTimestamp* mutable_creation_ts() { return gbofid_.mutable_creation_ts(); }
     SequenceID* mutable_sequence_id()  { return &sequence_id_; }
     SequenceID* mutable_obsoletes_id() { return &obsoletes_id_; }
     EndpointID* mutable_session_eid()  { return &session_eid_; }
     void set_session_flags(u_int8_t f) { session_flags_ = f; }
-    void test_set_bundleid(u_int32_t id) { bundleid_ = id; }
+    void test_set_bundleid(bundleid_t id) { bundleid_ = id; }
     BundlePayload*   mutable_payload() { return &payload_; }
     ForwardingLog*   fwdlog()          { return &fwdlog_; }
     ExpirationTimer* expiration_timer(){ return expiration_timer_; }
@@ -306,6 +348,10 @@ public:
     void set_expiration_timer(ExpirationTimer* e) {
         expiration_timer_ = e;
     }
+    void set_payload_space_reserved(bool t=true) { payload_space_reserved_ = t; }
+    void set_in_storage_queue(bool t)            { in_storage_queue_ = t; }
+    void set_deleting(bool t)                    { deleting_ = t; }
+
 #ifdef BSP_ENABLED
     void set_payload_bek(u_char *bek, u_int32_t bek_len, u_char *iv, u_char *salt) {
         if(payload_bek_!=NULL) {
@@ -332,6 +378,35 @@ public:
 
     void set_age(u_int64_t a)          { age_ = a; } ///< [AEB] set age
     void set_time_aeb(oasys::Time time){ time_aeb_ = time; } ///< [AEB]
+
+#ifdef ACS_ENABLED
+    // Aggregate Custody Signal methods
+    /**
+     * Set/Get the Custody ID that we assign to a bundle when
+     * we take custody of it.
+     */
+    void set_custodyid(bundleid_t t)   { custodyid_ = t; }
+    bundleid_t custodyid()             { return custodyid_; }
+    /**
+     * Set/Get whether or not the bundle was received with a valid CTEB
+     */
+    void set_cteb_valid(bool t)        { cteb_valid_ = t; }
+    bool cteb_valid()                  { return cteb_valid_; }
+    /**
+     * Set/Get the Custody ID received in a valid CTEB
+     * NOTE: using 64 bits because we may process IDs from
+     * a server that uses 64 bits even if we are not.
+     */
+    void set_cteb_custodyid(u_int64_t t)  { cteb_custodyid_ = t; }
+    u_int64_t cteb_custodyid()            { return cteb_custodyid_; }
+#endif // ACS_ENABLED
+
+#ifdef ECOS_ENABLED
+    void set_ecos_enabled(bool t)         { ecos_enabled_ = t; }
+    void set_ecos_flags(uint8_t t)        { ecos_flags_ = t; }
+    void set_ecos_ordinal(uint8_t t)      { ecos_ordinal_ = t; }
+    void set_ecos_flowlabel(uint64_t t)   { ecos_flowlabel_ = t; }
+#endif
     /// @}
     
 private:
@@ -339,12 +414,13 @@ private:
      * Bundle data fields that correspond to data transferred between
      * nodes according to the bundle protocol.
      */
-    EndpointID source_;		///< Source eid
+    GbofId gbofid_;             ///< Unique ID of this bundle maintains the
+                                ///      Source eid, Creation timestamp and 
+                                ///      Fragment Offset/Length of the bundle
     EndpointID dest_;		///< Destination eid
     EndpointID custodian_;	///< Current custodian eid
     EndpointID replyto_;	///< Reply-To eid
     EndpointID prevhop_;	///< Previous hop eid
-    bool is_fragment_;		///< Fragmentary Bundle
     bool is_admin_;		///< Administrative record bundle
     bool do_not_fragment_;	///< Bundle shouldn't be fragmented
     bool custody_requested_;	///< Custody requested
@@ -356,9 +432,7 @@ private:
     bool delivery_rcpt_;	///< End-to-end delivery reporting
     bool deletion_rcpt_;	///< Bundle deletion reporting
     bool app_acked_rcpt_;	///< Acknowlege by application reporting
-    BundleTimestamp creation_ts_; ///< Creation timestamp
     u_int64_t expiration_;	///< Bundle expiration time
-    u_int32_t frag_offset_;	///< Offset of fragment in original bundle
     u_int32_t orig_length_;	///< Length of original bundle
     SequenceID sequence_id_;	///< Sequence id vector
     SequenceID obsoletes_id_;	///< Obsoletes id vector
@@ -382,10 +456,11 @@ private:
      * Internal fields and structures for managing the bundle that are
      * not transmitted over the network.
      */
-    u_int32_t bundleid_;	   ///< Local bundle identifier
+    bundleid_t bundleid_;	   ///< Local bundle identifier
     mutable oasys::SpinLock lock_; ///< Lock for bundle data that can be
                                    ///  updated by multiple threads
     bool in_datastore_;		   ///< Is bundle in persistent store
+    bool queued_for_datastore_;	   ///< Is bundle queued to be put in persistent store
     bool local_custody_;	   ///< Does local node have custody
     std::string owner_;            ///< Declared entity that "owns" this
                                    ///  bundle, which could be empty
@@ -411,13 +486,36 @@ private:
                                	   ///  contain the Bundle.
     
     int  refcount_;		   ///< Bundle reference count
-    bool freed_;		   ///< Bit indicating whether a bundle
+    bool freed_;		   ///< Flag indicating whether a bundle
                                    ///  free event has been posted
+    bool deleting_;		   ///< Flag indicating delete from database is queued
+
+    bool payload_space_reserved_;  ///< Payload space reserved flag
+    bool in_storage_queue_;        ///< Flag indicating whether bundle update event is  
+                                   ///  queued in the storage thread
+
+#ifdef ACS_ENABLED
+    // Aggregate Custody Signal parameters
+    bundleid_t custodyid_;          ///< Our Custody ID for the bundle 
+    bool cteb_valid_;              ///< Flag indicating the bundle contains 
+                                   ///  a valid Custody Transfer Extension
+                                   ///  Block (CTEB)
+    u_int64_t cteb_custodyid_;     ///< Previous custodian's Custody ID
+                                   ///  for the bundle 
+#endif // ACS_ENABLED
+
+
+#ifdef ECOS_ENABLED
+    bool ecos_enabled_;
+    uint8_t ecos_flags_;
+    uint8_t ecos_ordinal_;
+    uint64_t ecos_flowlabel_;
+#endif
 
     /**
      * Initialization helper function.
      */
-    void init(u_int32_t id);
+    void init(bundleid_t id);
 };
 
 

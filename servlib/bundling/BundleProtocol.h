@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_PROTOCOL_H_
 #define _BUNDLE_PROTOCOL_H_
 
@@ -183,12 +201,27 @@ public:
         CONFIDENTIALITY_BLOCK       = 0x004, ///< Defined in RFC6257
         PREVIOUS_HOP_BLOCK          = 0x005, ///< Defined in RFC6259
         METADATA_BLOCK              = 0x008, ///< Defined in RFC6258
-        EXTENSION_SECURITY_BLOCK    = 0x009, /// Defined in RFC6257        
-        AGE_BLOCK                   = 0x00a, ///< draft-irtf-dtnrg-bundle-age-block-01
-        QUERY_EXTENSION_BLOCK       = 0x00b, ///< draft-irtf-dtnrg-bpq-00
-	SESSION_BLOCK               = 0x00c, ///< NOT IN SPEC YET
+        EXTENSION_SECURITY_BLOCK    = 0x009, /// Defined in RFC6257
+
+        // XXX/dz In order to be compatible with the ION implementation
+        // the CTEB must be 0x00a and it is believed that it will be
+        // officially assigned. As a result, I had to move the 
+        // Age Block to 0x00d - sorry for any inconvenience!!
+        // XXX/dz not conditionally compiling values in this header so 
+        // that they will be placeholders even if not enabled.
+        CUSTODY_TRANSFER_ENHANCEMENT_BLOCK    = 0x00a,  ///< draft-jenkins-custody-transfer-enhancement-block-01
+
+        QUERY_EXTENSION_BLOCK       = 0x00b, ///< draft-farrell-dtnrg-bpq-00
+        SESSION_BLOCK               = 0x00c, ///< NOT IN SPEC YET
+        AGE_BLOCK                   = 0x00d, ///< draft-irtf-dtnrg-bundle-age-block-01
         SEQUENCE_ID_BLOCK           = 0x010, ///< NOT IN SPEC YET
         OBSOLETES_ID_BLOCK          = 0x011, ///< NOT IN SPEC YET
+
+        // XXX/dz Adding for compatibility with ION ACS in use by 
+        // University of Colorado at Boulder and the CGBA experiments
+        // NOT IN SPEC YET
+        EXTENDED_CLASS_OF_SERVICE_BLOCK        = 0x013,  ///< draft-irtf-dtnrg-ecos-02
+
         API_EXTENSION_BLOCK         = 0x100, ///< INTERNAL ONLY -- NOT IN SPEC
         UNKNOWN_BLOCK               = 0x101, ///< INTERNAL ONLY -- NOT IN SPEC
     } bundle_block_type_t;
@@ -221,9 +254,10 @@ public:
      * Administrative Record Type Codes
      */
     typedef enum {
-        ADMIN_STATUS_REPORT     = 0x01,
-        ADMIN_CUSTODY_SIGNAL    = 0x02,
-        ADMIN_ANNOUNCE          = 0x05,   // NOT IN BUNDLE SPEC
+        ADMIN_STATUS_REPORT            = 0x01,
+        ADMIN_CUSTODY_SIGNAL           = 0x02,
+        ADMIN_AGGREGATE_CUSTODY_SIGNAL = 0x04,
+        ADMIN_ANNOUNCE                 = 0x05,   // NOT IN BUNDLE SPEC
     } admin_record_type_t;
 
     /**

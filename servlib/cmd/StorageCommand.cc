@@ -14,12 +14,31 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
 #include "StorageCommand.h"
 #include "bundling/BundlePayload.h"
+#include "bundling/BundleDaemonStorage.h"
 #include "storage/BundleStore.h"
 #include "storage/DTNStorageConfig.h"
 
@@ -188,7 +207,25 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
 			 "MySQL server to avoid connections being terminated (default 10)\n"
     		 "	valid options:	positive integer"));
 
+    bind_var(new oasys::UIntOpt("interval",
+                                &BundleDaemonStorage::params_.db_storage_ms_interval_,
+                                "milliseconds",
+                                "Millisecond interval between database updates"));
+
+    bind_var(new oasys::BoolOpt("db_log_auto_removal",
+                                &BundleDaemonStorage::params_.db_log_auto_removal_,
+				"use log file auto removal "
+				"in Berkeley DB (default false)\n"
+        		"	valid options:	true or false"));
+
+    bind_var(new oasys::BoolOpt("db_storage_enabled",
+                                &BundleDaemonStorage::params_.db_storage_enabled_,
+				"enable or disable writing to the database (default true)\n"
+                "        (payload still written to disk)\n"
+                "	valid options:	true or false"));
+
     add_to_help("usage", "print the current storage usage");
+    add_to_help("stats", "print storage statistics");
 }
 
 //----------------------------------------------------------------------
@@ -207,6 +244,13 @@ StorageCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     if (!strcmp(cmd, "usage")) {
         // storage usage
         resultf("bundles %llu", U64FMT(BundleStore::instance()->total_size()));
+        return TCL_OK;
+    }
+    else if (!strcmp(cmd, "stats")) {
+        // storage statistics
+        oasys::StringBuffer buf("Storage Statistics: ");
+        BundleDaemonStorage::instance()->get_stats(&buf);
+        set_result(buf.c_str());
         return TCL_OK;
     }
 

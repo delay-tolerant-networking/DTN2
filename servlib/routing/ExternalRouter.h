@@ -19,6 +19,24 @@
  *    derived from this software without specific prior written permission.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _EXTERNAL_ROUTER_H_
 #define _EXTERNAL_ROUTER_H_
 
@@ -34,6 +52,8 @@
 #include <reg/Registration.h>
 #include <oasys/serialize/XercesXMLSerialize.h>
 #include <oasys/io/UDPClient.h>
+#include <oasys/util/Time.h>
+#include <oasys/util/TokenBucket.h>
 
 #define EXTERNAL_ROUTER_SERVICE_TAG "/ext.rtr/*"
 
@@ -68,6 +88,12 @@ public:
     /// The static routing table
     static RouteTable *route_table;
 
+    /// The multicast address to use for communication
+    static in_addr_t multicast_addr_;
+
+    /// The network interface to use for communication
+    static in_addr_t network_interface_;
+
     ExternalRouter();
     virtual ~ExternalRouter();
 
@@ -81,6 +107,25 @@ public:
      */
     virtual void shutdown();
 
+    /**
+     * Synchronous probe indicating whether or not custody of this bundle 
+     * should be accepted by the system.
+     *
+     * The default implementation returns true to match DTN2.9 
+     * functionality which did not check with the router.
+     * -- External part of this router will issue a request to accept 
+     *    custody of the bundle after getting the BundleReceived 
+     *    message if it decides it is warranted.
+     *
+     * @return true if okay to accept custody of the bundle.
+     */
+    virtual bool accept_custody(Bundle* bundle);
+
+    /**
+     * Hook to ask the router if the bundle can be deleted.
+     */
+    bool can_delete_bundle(const BundleRef& bundle);
+    
     /**
      * Format the given StringBuffer with static routing info.
      * @param buf buffer to fill with the static routing table
@@ -98,6 +143,7 @@ public:
     virtual void handle_bundle_expired(BundleExpiredEvent* event);
     virtual void handle_bundle_cancelled(BundleSendCancelledEvent* event);
     virtual void handle_bundle_injected(BundleInjectedEvent* event);
+    virtual void handle_bundle_custody_accepted(BundleCustodyAcceptedEvent* event);
     virtual void handle_contact_up(ContactUpEvent* event);
     virtual void handle_contact_down(ContactDownEvent* event);
     virtual void handle_link_created(LinkCreatedEvent *event);
@@ -114,6 +160,7 @@ public:
     virtual void handle_route_add(RouteAddEvent* event);
     virtual void handle_route_del(RouteDelEvent* event);
     virtual void handle_custody_signal(CustodySignalEvent* event);
+    virtual void handle_external_router_acs(ExternalRouterAcsEvent* event);
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
     virtual void handle_link_report(LinkReportEvent *event);
     virtual void handle_link_attributes_report(LinkAttributesReportEvent *event);
@@ -122,7 +169,14 @@ public:
     virtual void handle_bundle_attributes_report(BundleAttributesReportEvent *event);
     virtual void handle_route_report(RouteReportEvent* event);
 
-    virtual void send(rtrmessage::bpa &message);
+    virtual void send(rtrmessage::bpa &message, const char* type_str);
+
+protected:
+#ifdef PENDING_BUNDLES_IS_MAP
+    virtual void generate_bundle_report_from_map();
+#else
+    virtual void generate_bundle_report_from_list();
+#endif
 
 protected:
     class ModuleServer;
@@ -144,6 +198,15 @@ protected:
 
     /// Hello timer
     HelloTimer *hello_;
+
+    /// Sequence Counter for sending messages
+    uint64_t send_seq_ctr_;
+
+    /// Initialized flag
+    bool initialized_;
+
+    /// Send sequentializer
+    oasys::SpinLock lock_;
 };
 
 /**
@@ -151,10 +214,20 @@ protected:
  * with external routers
  */
 class ExternalRouter::ModuleServer : public oasys::Thread,
-                                     public oasys::UDPClient {
+                                     public oasys::Logger {
 public:
     ModuleServer();
     virtual ~ModuleServer();
+
+    /**
+     * Post a string to process from the ExternalRouter counterpart
+     */
+    virtual void post(std::string* event);
+
+    /**
+     * Post a string to send to the ExternalRouter counterpart
+     */
+    virtual void post_to_send(std::string* event);
 
     /**
      * The main thread loop
@@ -169,12 +242,44 @@ public:
     void process_action(const char *payload);
 
     /// Message queue for accepting BundleEvents from ExternalRouter
-    oasys::MsgQueue< std::string * > *eventq;
+    oasys::MsgQueue< std::string * > *eventq_;
 
     /// Xerces XML validating parser for incoming messages
     oasys::XercesXMLUnmarshal *parser_;
 
-    oasys::SpinLock *lock_;
+protected:
+
+    class Receiver : public oasys::Thread,
+                     public oasys::UDPClient {
+    public:
+        Receiver(ExternalRouter::ModuleServer* parent);
+        virtual ~Receiver();
+        virtual void run();
+    protected:
+        /// Pointer to parent
+        ExternalRouter::ModuleServer* parent_;
+
+        /// Sequence Counter for messages receivevd
+        uint64_t last_recv_seq_ctr_;
+    };
+
+    class Sender : public oasys::Thread,
+                   public oasys::UDPClient {
+    public:
+        Sender();
+        virtual ~Sender();
+        virtual void run();
+        virtual void post(std::string* event);
+    protected:
+        /// Message queue for accepting BundleEvents from ExternalRouter
+        oasys::MsgQueue< std::string * > *eventq_;
+
+        /// Rate Limiting TokenBucket
+        oasys::TokenBucket bucket_;
+
+        oasys::Time transmit_timer_;
+        uint64_t bytes_sent_;
+    };
 
 private:
     Link::link_type_t convert_link_type(rtrmessage::linkTypeType type);
@@ -182,6 +287,18 @@ private:
 
     ForwardingInfo::action_t 
     convert_fwd_action(rtrmessage::bundleForwardActionType);
+
+    /// Sequence Counter for messages receivevd
+    uint64_t last_recv_seq_ctr_;
+
+    oasys::Time transmit_timer_;
+    uint64_t bytes_sent_;
+
+    /// Sender thread
+    Sender* sender_;
+
+    /// Receiver thread
+    Receiver* receiver_;
 };
 
 /**

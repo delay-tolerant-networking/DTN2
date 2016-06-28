@@ -14,10 +14,32 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
+#include <sys/ioctl.h>
+#include <net/if.h>
+
+#include <oasys/io/NetUtils.h>
 #include <oasys/util/StringBuffer.h>
 #include <oasys/serialize/XMLSerialize.h>
 
@@ -29,6 +51,8 @@
 
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
+
+#include "naming/IPNScheme.h"
 
 #include "routing/BundleRouter.h"
 #include "routing/RouteEntry.h"
@@ -164,6 +188,9 @@ RouteCommand::RouteCommand()
 		"	valid options:  number\n"));
     
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
+    add_to_help("extrtr_multicast", "External Router multicast address (default is INADDR_ALLRTRS_GROUP)");
+    add_to_help("extrtr_interface", "External Router network interface (default is INADDR_LOOPBACK)");
+
     bind_var(new oasys::UInt16Opt("server_port",
 				&ExternalRouter::server_port,
 				"port",
@@ -338,6 +365,99 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
     }
+
+    else if (strcmp(cmd, "local_eid_ipn") == 0) {
+        if (argc == 2) {
+            // route local_eid_ipn
+            set_result(BundleDaemon::instance()->local_eid_ipn().c_str());
+            return TCL_OK;
+
+        } else if (argc == 3) {
+            // route local_eid_ipn <eid?>
+            EndpointID eid;
+            eid.assign(argv[2]);
+            if (!eid.valid()) {
+                resultf("invalid ipn eid '%s'", argv[2]);
+                return TCL_ERROR;
+            }
+            if (eid.scheme() != IPNScheme::instance()) {
+                resultf("invalid ipn eid '%s'", argv[2]);
+                return TCL_ERROR;
+            }
+            if (eid.ssp().substr(eid.ssp().length()-2).compare(".0") != 0 ) {
+                resultf("invalid - local_ipn_eid must end with '.0'");
+                return TCL_ERROR;
+            }
+            BundleDaemon::instance()->set_local_eid_ipn(argv[2]);
+        } else {
+            wrong_num_args(argc, argv, 2, 2, 3);
+            return TCL_ERROR;
+        }
+    }
+
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
+    else if (strcmp(cmd, "extrtr_multicast") == 0) {
+        if (argc == 2) {
+            // route extrtr_multicast
+            set_result(intoa(ExternalRouter::multicast_addr_));
+            return TCL_OK;
+        } else if (argc == 3) {
+             // Assume this is the IP address of one of our interfaces?
+            std::string val = argv[2];
+            if (0 != oasys::gethostbyname(val.c_str(), &ExternalRouter::multicast_addr_)) {
+                resultf("Error in gethostbyname for %s", val.c_str());
+                return TCL_ERROR;
+            }
+            return TCL_OK;
+        } else {
+            wrong_num_args(argc, argv, 2, 2, 3);
+            return TCL_ERROR;
+        }
+    }
+
+    else if (strcmp(cmd, "extrtr_interface") == 0) {
+        if (argc == 2) {
+            // route extrtr_interface_
+            set_result(intoa(ExternalRouter::network_interface_));
+            return TCL_OK;
+        } else if (argc == 3) {
+
+            std::string val = argv[2];
+            if (0 == val.compare("any")) {
+                ExternalRouter::network_interface_ = htonl(INADDR_ANY);
+            } else if (0 == val.compare("lo")) {
+                ExternalRouter::network_interface_ = htonl(INADDR_LOOPBACK);
+            } else if (0 == val.compare("localhost")) {
+                ExternalRouter::network_interface_ = htonl(INADDR_LOOPBACK);
+            } else if (val.find("eth") != std::string::npos) {
+                int fd = socket(AF_INET, SOCK_DGRAM, 0);
+                struct ifreq ifr;
+                memset(&ifr, 0, sizeof(ifr));
+                strncpy(ifr.ifr_name, val.c_str(), IFNAMSIZ-1);
+                if (ioctl(fd, SIOCGIFADDR, &ifr)) {
+                    resultf("Error in ioctl for interface name: %s", val.c_str());
+                    return TCL_ERROR;
+                } else {
+                    ExternalRouter::network_interface_ = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr;
+                }
+            } else {
+               // Assume this is the IP address of one of our interfaces?
+                if (0 != oasys::gethostbyname(val.c_str(), &ExternalRouter::network_interface_)) {
+                    resultf("Error in gethostbyname for %s", val.c_str());
+                    return TCL_ERROR;
+                }
+            }
+
+            return TCL_OK;
+
+        } else {
+            wrong_num_args(argc, argv, 2, 2, 3);
+            return TCL_ERROR;
+        }
+    }
+#endif
+
+
 
     else {
         resultf("unimplemented route subcommand %s", cmd);

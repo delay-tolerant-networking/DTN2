@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -325,7 +343,7 @@ bool
 BPQCache::create_cache_entry(Bundle* bundle, BPQBlock* block, std::string key)
 {
 	if (max_cache_size_ < bundle->payload().length()) {
-		log_warn("bundle too large to add to cache {max cache size: %u, bundle size: %u}",
+		log_warn("bundle too large to add to cache {max cache size: %u, bundle size: %zu}",
 				max_cache_size_, bundle->payload().length());
 
 		return false;
@@ -333,12 +351,12 @@ BPQCache::create_cache_entry(Bundle* bundle, BPQBlock* block, std::string key)
 
 	if ( bundle->is_fragment() ) {
 		log_debug("creating new cache entry for bundle fragment "
-				  "{key: %s, offset: %u, length: %u}",
+				  "{key: %s, offset: %u, length: %zu}",
 				  key.c_str(), bundle->frag_offset(),
 				  bundle->payload().length());
 	} else {
 		log_debug("creating new cache entry for complete bundle "
-				  "{key: %s, length: %u}",
+				  "{key: %s, length: %zu}",
 				  key.c_str(), bundle->payload().length());
 	}
 
@@ -403,13 +421,13 @@ BPQCache::append_cache_entry(BPQCacheEntry* entry, Bundle* bundle, std::string k
 	ASSERT( bundle->is_fragment() );
 
 	if (max_cache_size_ < bundle->payload().length()) {
-		log_warn("bundle too large to add to cache {max cache size: %u, bundle size: %u}",
+		log_warn("bundle too large to add to cache {max cache size: %u, bundle size: %zu}",
 				max_cache_size_, bundle->payload().length());
 
 		return false;
 	}
 
-	log_debug("appending received bundle fragment to cache {offset: %u, length: %u}",
+	log_debug("appending received bundle fragment to cache {offset: %u, length: %zu}",
 			  bundle->frag_offset(), bundle->payload().length());
 
 	cache_size_ += bundle->payload().length();

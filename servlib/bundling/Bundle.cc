@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -27,6 +45,7 @@
 #include "BundleList.h"
 #include "ExpirationTimer.h"
 
+#include "bundling/BundleDaemonStorage.h"
 #include "storage/GlobalStore.h"
 #include "storage/BundleStore.h"
 
@@ -34,30 +53,32 @@ namespace dtn {
 
 //----------------------------------------------------------------------
 void
-Bundle::init(u_int32_t id)
+Bundle::init(bundleid_t id)
 {
-    bundleid_		= id;
-    is_fragment_	= false;
-    is_admin_		= false;
-    do_not_fragment_	= false;
-    in_datastore_       = false;
-    custody_requested_	= false;
-    local_custody_      = false;
-    singleton_dest_     = true;
-    priority_		= COS_NORMAL;
-    receive_rcpt_	= false;
-    custody_rcpt_	= false;
-    forward_rcpt_	= false;
-    delivery_rcpt_	= false;
-    deletion_rcpt_	= false;
-    app_acked_rcpt_	= false;
-    orig_length_	= 0;
-    frag_offset_	= 0;
-    expiration_		= 0;
-    owner_              = "";
-    fragmented_incoming_= false;
-    session_flags_      = 0;
-    freed_          = false;
+    bundleid_		    = id;
+    is_admin_		    = false;
+    do_not_fragment_	    = false;
+    in_datastore_           = false;
+    custody_requested_	    = false;
+    local_custody_          = false;
+    singleton_dest_         = true;
+    priority_		    = COS_NORMAL;
+    receive_rcpt_	    = false;
+    custody_rcpt_	    = false;
+    forward_rcpt_	    = false;
+    delivery_rcpt_	    = false;
+    deletion_rcpt_	    = false;
+    app_acked_rcpt_	    = false;
+    orig_length_	    = 0;
+    expiration_		    = 0;
+    owner_                  = "";
+    fragmented_incoming_    = false;
+    session_flags_          = 0;
+    freed_                  = false;
+    payload_space_reserved_ = false;
+    queued_for_datastore_   = false;
+    in_storage_queue_       = false;
+    deleting_               = false;
 #ifdef BSP_ENABLED
     security_config_ = BundleSecurityConfig(Ciphersuite::config);
     payload_bek_ = NULL;
@@ -76,11 +97,25 @@ Bundle::init(u_int32_t id)
 
     // XXX/ modify this depending on whether a flag is set to use AEB or not.
     // XXX/ of course, we could just zero this out with our age block processor
-    creation_ts_.seconds_ = BundleTimestamp::get_current_time();
-    creation_ts_.seqno_   = bundleid_;
+    mutable_creation_ts()->seconds_ = BundleTimestamp::get_current_time();
+    mutable_creation_ts()->seqno_   = bundleid_;
 
     age_                = 0; // [AEB]
     time_aeb_           = oasys::Time::now(); // [AEB]
+
+#ifdef ACS_ENABLED
+    // Agregate Custody parameters
+    custodyid_          = 0;
+    cteb_valid_         = false;
+    cteb_custodyid_     = 0;
+#endif // ACS_ENABLED
+
+#ifdef ECOS_ENABLED
+    ecos_enabled_ = false;
+    ecos_flags_ = 0;
+    ecos_ordinal_ = 0;
+    ecos_flowlabel_ = 0;
+#endif
 
     // This identifier provides information about when a local Bundle
     // object was created so that bundles with the same GBOF-ID can be
@@ -91,9 +126,9 @@ Bundle::init(u_int32_t id)
 
     // XXX/ hence, let's not break functionality by setting the internal
     // timestamp to 0. 
-    extended_id_ = creation_ts_;
+    extended_id_ = creation_ts();
 
-    log_debug_p("/dtn/bundle", "Bundle::init bundle id %d", id);
+    log_debug_p("/dtn/bundle", "Bundle::init bundle id %"PRIbid, id);
 }
 
 //----------------------------------------------------------------------
@@ -102,7 +137,7 @@ Bundle::Bundle(BundlePayload::location_t location)
       payload_(&lock_), fwdlog_(&lock_, this), xmit_blocks_(&lock_),
       recv_metadata_("recv_metadata")
 {
-    u_int32_t id = GlobalStore::instance()->next_bundleid();
+    bundleid_t id = GlobalStore::instance()->next_bundleid();
     init(id);
     payload_.init(id, location);
     refcount_	      = 0;
@@ -129,7 +164,7 @@ Bundle::Bundle(const oasys::Builder&)
 //----------------------------------------------------------------------
 Bundle::~Bundle()
 {
-    log_debug_p("/dtn/bundle/free", "destroying bundle id %d", bundleid_);
+    log_debug_p("/dtn/bundle/free", "destroying bundle id %"PRIbid, bundleid_);
     
     ASSERT(mappings_.size() == 0);
 #ifdef BSP_ENABLED
@@ -149,16 +184,16 @@ int
 Bundle::format(char* buf, size_t sz) const
 {
     if (is_admin()) {
-        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload, is_admin]",
-                        bundleid_, source_.c_str(), dest_.c_str(),
+        return snprintf(buf, sz, "bundle id %"PRIbid" [%s -> %s %zu byte payload, is_admin]",
+                        bundleid_, source().c_str(), dest_.c_str(),
                         payload_.length());
     } else if (is_fragment()) {
-        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload, fragment @%u/%u]",
-                        bundleid_, source_.c_str(), dest_.c_str(),
-                        payload_.length(), frag_offset_, orig_length_);
+        return snprintf(buf, sz, "bundle id %"PRIbid" [%s -> %s %zu byte payload, fragment @%u/%u]",
+                        bundleid_, source().c_str(), dest_.c_str(),
+                        payload_.length(), frag_offset(), orig_length_);
     } else {
-        return snprintf(buf, sz, "bundle id %u [%s -> %s %zu byte payload]",
-                        bundleid_, source_.c_str(), dest_.c_str(),
+        return snprintf(buf, sz, "bundle id %"PRIbid" [%s -> %s %zu byte payload]",
+                        bundleid_, source().c_str(), dest_.c_str(),
                         payload_.length());
     }
 }
@@ -172,8 +207,9 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
 
     u_int32_t cur_time_sec = BundleTimestamp::get_current_time();
 
-    buf->appendf("bundle id %d:\n", bundleid_);
-    buf->appendf("            source: %s\n", source_.c_str());
+    buf->appendf("bundle id %"PRIbid":\n", bundleid_);
+    buf->appendf("         Global ID: %s\n", gbofid_str().c_str());
+    buf->appendf("            source: %s\n", source().c_str());
     buf->appendf("              dest: %s\n", dest_.c_str());
     buf->appendf("         custodian: %s\n", custodian_.c_str());
     buf->appendf("           replyto: %s\n", replyto_.c_str());
@@ -189,21 +225,38 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("     delivery_rcpt: %s\n", bool_to_str(delivery_rcpt_));
     buf->appendf("     deletion_rcpt: %s\n", bool_to_str(deletion_rcpt_));
     buf->appendf("    app_acked_rcpt: %s\n", bool_to_str(app_acked_rcpt_));
-    buf->appendf("       creation_ts: %llu.%llu\n",
-                 creation_ts_.seconds_, creation_ts_.seqno_);
-    buf->appendf("        expiration: %llu (%lld left)\n", expiration_,
-                 creation_ts_.seconds_ + expiration_ - cur_time_sec);
-    buf->appendf("       is_fragment: %s\n", bool_to_str(is_fragment_));
+    buf->appendf("       creation_ts: %"PRIu64".%"PRIu64"\n",
+                 creation_ts().seconds_, creation_ts().seqno_);
+    buf->appendf("        expiration: %"PRIu64" (%"PRIu64" left)\n", expiration_,
+                 creation_ts().seconds_ + expiration_ - cur_time_sec);
+    buf->appendf("       is_fragment: %s\n", bool_to_str(is_fragment()));
     buf->appendf("          is_admin: %s\n", bool_to_str(is_admin_));
     buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));
     buf->appendf("       orig_length: %d\n", orig_length_);
-    buf->appendf("       frag_offset: %d\n", frag_offset_);
+    buf->appendf("       frag_offset: %d\n", frag_offset());
     buf->appendf("       sequence_id: %s\n", sequence_id_.to_str().c_str());
     buf->appendf("      obsoletes_id: %s\n", obsoletes_id_.to_str().c_str());
     buf->appendf("       session_eid: %s\n", session_eid_.c_str());
     buf->appendf("     session_flags: 0x%x\n", session_flags_);
-    buf->appendf("               age: %llu\n", age_);
+    buf->appendf("               age: %"PRIu64"\n", age_);
     //buf->appendf("          time_aeb: %llu\n", time_aeb_);
+
+#ifdef ACS_ENABLED
+    buf->appendf("    cteb was valid: %s\n", bool_to_str(cteb_valid()));
+    buf->appendf("   cteb custody id: %"PRIu64"\n", cteb_custodyid());
+    buf->appendf("  local custody id: %"PRIu64"\n", custodyid());
+#endif // ACS_ENABLED
+
+#ifdef ECOS_ENABLED
+    if (ecos_enabled()) {
+        buf->appendf("        ECOS flags: %u\n", ecos_flags_);
+        buf->appendf("      ECOS ordinal: %u\n", ecos_ordinal_);
+        buf->appendf("   ECOS flow label: %"PRIu64"\n", ecos_flowlabel_);
+    }
+#endif
+
+    buf->appendf("          refcount: %d\n", refcount_);
+
     buf->append("\n");
 
     buf->appendf("forwarding log:\n");
@@ -214,7 +267,8 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("queued on %zu lists:\n", mappings_.size());
     for (BundleMappings::iterator i = mappings_.begin();
          i != mappings_.end(); ++i) {
-        buf->appendf("\t%s\n", i->list()->name().c_str());
+        SPBMapping bmap ( *i );
+        buf->appendf("\t%s\n", bmap->list()->name().c_str());
     }
 
     buf->append("\nrecv blocks:");
@@ -259,10 +313,11 @@ void
 Bundle::serialize(oasys::SerializeAction* a)
 {
     a->process("bundleid", &bundleid_);
-    a->process("is_fragment", &is_fragment_);
+    bool is_frag = is_fragment();
+    a->process("is_fragment", &is_frag);
     a->process("is_admin", &is_admin_);
     a->process("do_not_fragment", &do_not_fragment_);
-    a->process("source", &source_);
+    a->process("source", mutable_source());
     a->process("dest", &dest_);
     a->process("custodian", &custodian_);
     a->process("replyto", &replyto_);
@@ -277,12 +332,13 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("delivery_rcpt", &delivery_rcpt_);
     a->process("deletion_rcpt", &deletion_rcpt_);
     a->process("app_acked_rcpt", &app_acked_rcpt_);
-    a->process("creation_ts_seconds", &creation_ts_.seconds_);
-    a->process("creation_ts_seqno", &creation_ts_.seqno_);
+    a->process("creation_ts_seconds", &mutable_creation_ts()->seconds_);
+    a->process("creation_ts_seqno", &mutable_creation_ts()->seqno_);
     a->process("expiration", &expiration_);
     a->process("payload", &payload_);
     a->process("orig_length", &orig_length_);
-    a->process("frag_offset", &frag_offset_);
+    u_int32_t frag_off = frag_offset();
+    a->process("frag_offset", &frag_off);
     a->process("owner", &owner_);
     a->process("session_eid", &session_eid_);    
     a->process("session_flags", &session_flags_);    
@@ -312,8 +368,22 @@ Bundle::serialize(oasys::SerializeAction* a)
 
     // a->process("metadata", &recv_metadata_); // XXX/kscott
 
+#ifdef ACS_ENABLED
+    a->process("custodyid", &custodyid_);
+    a->process("cteb_valid", &cteb_valid_);
+    a->process("cteb_custodyid", &cteb_custodyid_);
+#endif // ACS_ENABLED
+
+
+#ifdef ECOS_ENABLED
+    a->process("ecos_enabled", &ecos_enabled_);
+    a->process("ecos_flags", &ecos_flags_);
+    a->process("ecos_ordinal", &ecos_ordinal_);
+    a->process("ecos_flowlabel", &ecos_flowlabel_);
+#endif
+
     // serialize the forwarding log
-    // Changed to the forwarding log result in the bundle being
+    // Changes to the forwarding log result in the bundle being
     // updated on disk.
     log_debug("XXX Now serializing forwarding log");
     a->process("forwarding_log", &fwdlog_);
@@ -321,6 +391,8 @@ Bundle::serialize(oasys::SerializeAction* a)
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         in_datastore_ = true;
         payload_.init_from_store(bundleid_);
+        set_is_fragment(is_frag);
+        set_frag_offset(frag_off);
     }
 
     // Call consume() on each of the blocks?
@@ -331,9 +403,9 @@ void
 Bundle::copy_metadata(Bundle* new_bundle) const
 {
     new_bundle->is_admin_ 		= is_admin_;
-    new_bundle->is_fragment_ 		= is_fragment_;
+    new_bundle->set_is_fragment(is_fragment());
     new_bundle->do_not_fragment_ 	= do_not_fragment_;
-    new_bundle->source_ 		= source_;
+    new_bundle->mutable_source()->assign(source());
     new_bundle->dest_ 			= dest_;
     new_bundle->custodian_		= custodian_;
     new_bundle->replyto_ 		= replyto_;
@@ -347,7 +419,7 @@ Bundle::copy_metadata(Bundle* new_bundle) const
     new_bundle->delivery_rcpt_ 		= delivery_rcpt_;
     new_bundle->deletion_rcpt_	 	= deletion_rcpt_;
     new_bundle->app_acked_rcpt_	 	= app_acked_rcpt_;
-    new_bundle->creation_ts_ 		= creation_ts_;
+    new_bundle->set_creation_ts(creation_ts());
     new_bundle->expiration_ 		= expiration_;
     new_bundle->age_	   	 	= age_; // [AEB]
     new_bundle->time_aeb_       = time_aeb_; // [AEB]
@@ -359,16 +431,19 @@ Bundle::add_ref(const char* what1, const char* what2)
 {
     (void)what1;
     (void)what2;
-    
-    oasys::ScopeLock l(&lock_, "Bundle::add_ref");
+   
+    char refstr[32];
+    snprintf(refstr, sizeof(refstr), "Bundle::add_ref: %"PRIbid, bundleid_);
+    //oasys::ScopeLock l(&lock_, "Bundle::add_ref");
+    oasys::ScopeLock l(&lock_, refstr);
 
-    ASSERTF(freed_ == false, "Bundle::add_ref on bundle %d (%p)"
+    ASSERTF(freed_ == false, "Bundle::add_ref on bundle %"PRIbid" (%p)"
             "called when bundle is already being freed!", bundleid_, this);
 
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
     log_debug_p("/dtn/bundle/refs",
-                "bundle id %d (%p): refcount %d -> %d (%zu mappings) add %s %s",
+                "bundle id %"PRIbid" (%p): refcount %d -> %d (%zu mappings) add %s %s",
                 bundleid_, this, refcount_ - 1, refcount_,
                 mappings_.size(), what1, what2);
 
@@ -395,53 +470,120 @@ Bundle::del_ref(const char* what1, const char* what2)
 
     int ret = --refcount_;
     log_debug_p("/dtn/bundle/refs2",
-                "bundle id %d (%p): freed_(%d) refcount %d -> %d (%zu mappings) del %s:%s",
+                "bundle id %"PRIbid" (%p): freed_(%d) refcount %d -> %d (%zu mappings) del %s:%s",
                 bundleid_, this, freed_, refcount_ + 1, refcount_,
                 mappings_.size(), what1, what2);
-#if 1
+#if 0
     log_debug_p("/dtn/bundle/refs2",
     		    "queued on %zu lists:\n", mappings_.size());
     for (BundleMappings::iterator i = mappings_.begin();
          i != mappings_.end(); ++i) {
-        log_debug_p("/dtn/bundle/refs2", "\t%s\n", i->list()->name().c_str());
+        SPBMapping bmap ( *i );
+        log_debug_p("/dtn/bundle/refs2", "\t%s\n", bmap->list()->name().c_str());
     }
 #endif
-    
-    if (refcount_ > 1) {
-        ASSERTF(freed_ == false,  "Bundle::del_ref on bundle %d (%p)"
+
+
+    if (refcount_ == 1) {
+        ASSERTF(freed_ == false,  "Bundle::del_ref on bundle %"PRIbid" (%p)"
+                "called when bundle is freed but has %d references",
+                bundleid_, this, refcount_);
+        
+        log_debug("bundle id %"PRIbid" (%p): one reference remaining, posting free event",
+                  bundleid_, this);
+
+        // One final check to see if delete from database is needed
+        if (queued_for_datastore_) {
+            BundleDaemonStorage::instance()->bundle_delete(this);
+            queued_for_datastore_ = false; // prevent BundleDaemon from posting delete also
+        }
+
+        freed_ = true;
+
+//dz debug - delete now        if (payload_space_reserved_) {
+//dz debug - delete now            BundleStore::instance()->release_payload_space(durable_size(), bundleid_);
+//dz debug - delete now            payload_space_reserved_ = false;
+//dz debug - delete now        }
+
+        BundleDaemon::instance()->post(new BundleFreeEvent(this));
+
+//dz debug - delete now    } else if (refcount_ == 2 && in_storage_queue_) {
+//dz debug - delete now        ASSERTF(freed_ == false,  "Bundle::del_ref on bundle %"PRIbid" (%p)"
+//dz debug - delete now                "called when bundle is freed but has %d references",
+//dz debug - delete now                bundleid_, this, refcount_);
+        
+//dz debug - delete now        log_debug("bundle id %"PRIbid" (%p): all_bundles and storage_queue reference, delete from datastore",
+//dz debug - delete now                  bundleid_, this);
+
+        //NOTE: BundleDaemonStorage adding/removing bundle on its lists 
+        //      will trigger this block multiple times so the
+        //      check for queued_for_datastore_ prevents multiple delete attempts
+//dz debug - delete now        if (queued_for_datastore_) {
+//dz debug - delete now            BundleDaemonStorage::instance()->bundle_delete(this);
+//dz debug - delete now            queued_for_datastore_ = false; // prevent multiple deletes from storage
+//dz debug - delete now        }
+
+    } else if (refcount_ > 0) {
+        ASSERTF(freed_ == false,  "Bundle::del_ref on bundle %"PRIbid" (%p)"
                 "called when bundle is freed but has %d references",
                 bundleid_, this, refcount_);
     
         return ret;
 
-    } else if (refcount_ == 1) {
-        ASSERTF(freed_ == false,  "Bundle::del_ref on bundle %d (%p)"
-                "called when bundle is freed but has %d references",
-                bundleid_, this, refcount_);
-        
-        freed_ = true;
-        
-        log_debug_p("/dtn/bundle",
-                    "bundle id %d (%p): one reference remaining, posting free event",
-                    bundleid_, this);
-        
-        BundleDaemon::instance()->post(new BundleFreeEvent(this));
-
     } else if (refcount_ == 0) {
         log_debug_p("/dtn/bundle",
-                    "bundle id %d (%p): last reference removed",
+                    "bundle id %"PRIbid" (%p): last reference removed",
                     bundleid_, this);
         ASSERTF(freed_ == true,
-                "Bundle %d (%p) refcount is zero but bundle wasn't properly freed",
+                "Bundle %"PRIbid" (%p) refcount is zero but bundle wasn't properly freed",
                 bundleid_, this);
-   } else if (refcount_ < 0 ) {
-	   log_debug_p("/dtn/bundle",
-			       "bundle id %d (%p): refcount_(%d) < 0!",
-			       bundleid_, this, refcount_);
+    } else if (refcount_ < 0) {
+        log_debug_p("/dtn/bundle",
+                    "bundle id %"PRIbid" (%p): refcount_(%d) < 0!",
+                     bundleid_, this, refcount_);
    }
     
     return 0;
 }
+
+/*
+//----------------------------------------------------------------------
+int
+Bundle::add_ref_storage(const char* what1, const char* what2)
+{
+    (void)what1;
+    (void)what2;
+   
+    oasys::ScopeLock l(&lock_, "Bundle::add_ref_storage");
+
+    ASSERT(refcount_storage_ >= 0);
+    int ret = ++refcount_storage_;
+    log_debug_p("/dtn/bundle/refstorag",
+                "bundle id %"PRIbid" (%p): refcount_storage %d -> %d (%zu mappings) add %s %s",
+                bundleid_, this, refcount_storage_ - 1, refcount_storage_,
+                mappings_.size(), what1, what2);
+
+    return ret;
+}
+
+//----------------------------------------------------------------------
+int
+Bundle::del_ref_storage(const char* what1, const char* what2)
+{
+    (void)what1;
+    (void)what2;
+    
+    oasys::ScopeLock l(&lock_, "Bundle::del_ref_storage");
+
+    int ret = --refcount_storage_;
+    log_debug_p("/dtn/bundle/refstorag",
+                "bundle id %"PRIbid" (%p): freed_(%d) refcount_storage %d -> %d (%zu mappings) del %s:%s",
+                bundleid_, this, freed_, refcount_storage_ + 1, refcount_storage_,
+                mappings_.size(), what1, what2);
+
+    return ret;
+}
+*/
 
 //----------------------------------------------------------------------
 size_t
@@ -463,7 +605,7 @@ Bundle::mappings()
 
 //----------------------------------------------------------------------
 bool
-Bundle::is_queued_on(const BundleList* bundle_list)
+Bundle::is_queued_on(const BundleListBase* bundle_list)
 {
     oasys::ScopeLock l(&lock_, "Bundle::is_queued_on");
     return mappings_.contains(bundle_list);
@@ -473,8 +615,8 @@ Bundle::is_queued_on(const BundleList* bundle_list)
 bool
 Bundle::validate(oasys::StringBuffer* errbuf)
 {
-    if (!source_.valid()) {
-        errbuf->appendf("invalid source eid [%s]", source_.c_str());
+    if (!source().valid()) {
+        errbuf->appendf("invalid source eid [%s]", source().c_str());
         return false;
     }
     

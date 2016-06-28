@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_EVENT_HANDLER_H_
 #define _BUNDLE_EVENT_HANDLER_H_
 
@@ -124,6 +142,16 @@ protected:
     virtual void handle_bundle_delete(BundleDeleteRequest* request);
 
     /**
+     * Default event handler for requests to take custody of a bundle (ExternalRouter).
+     */
+    virtual void handle_bundle_take_custody(BundleTakeCustodyRequest* request);
+
+    /**
+     * Default event handler for custody accepted event (ExternalRouter).
+     */
+    virtual void handle_bundle_custody_accepted(BundleCustodyAcceptedEvent* event);
+
+    /**
      * Default event handler for a bundle accept request probe.
      */
     virtual void handle_bundle_accept(BundleAcceptRequest* event);
@@ -175,6 +203,53 @@ protected:
     virtual void handle_registration_delete(RegistrationDeleteRequest* event);
     
     /**
+     * Default event handler for store bundle update events.
+     */
+    virtual void handle_store_bundle_update(StoreBundleUpdateEvent*);
+
+    /**
+     * Default event handler for store bundle delete events.
+     */
+    virtual void handle_store_bundle_delete(StoreBundleDeleteEvent*);
+
+#ifdef ACS_ENABLED 
+    /**
+     * Default event handler for store pendingacs update events.
+     */
+    virtual void handle_store_pendingacs_update(StorePendingAcsUpdateEvent*);
+
+    /**
+     * Default event handler for store pendingacs delete events.
+     */
+    virtual void handle_store_pendingacs_delete(StorePendingAcsDeleteEvent*);
+#endif // ACS_ENABLED 
+
+    /**
+     * Default event handler for an External Router ACS -- purposely not in the ACS_ENABLED block
+     */
+    virtual void handle_external_router_acs(ExternalRouterAcsEvent*);
+
+    /**
+     * Default event handler for store registration update events.
+     */
+    virtual void handle_store_registration_update(StoreRegistrationUpdateEvent*);
+
+    /**
+     * Default event handler for store registration delete events.
+     */
+    virtual void handle_store_registration_delete(StoreRegistrationDeleteEvent*);
+
+    /**
+     * Default event handler for store link update events.
+     */
+    virtual void handle_store_link_update(StoreLinkUpdateEvent*);
+
+    /**
+     * Default event handler for store link delete events.
+     */
+    virtual void handle_store_link_delete(StoreLinkDeleteEvent*);
+
+    /**
      * Default event handler when a new contact is up.
      */
     virtual void handle_contact_up(ContactUpEvent* event);
@@ -218,6 +293,12 @@ protected:
      * Default event handler when a link is unavailable
      */
     virtual void handle_link_unavailable(LinkUnavailableEvent* event);
+
+    /**
+     * Default event handler when a link is unavailable
+     */
+    virtual void handle_link_check_deferred(LinkCheckDeferredEvent* event);
+
 
     /**
      * Default event handler for link state change requests.
@@ -334,6 +415,88 @@ protected:
     virtual void handle_iface_attributes_report(IfaceAttributesReportEvent*);
     virtual void handle_cla_parameters_query(CLAParametersQueryRequest*);
     virtual void handle_cla_parameters_report(CLAParametersReportEvent*);
+
+
+#ifdef ACS_ENABLED
+    /**
+     * Default event handler when custody signals are received.
+     */
+    virtual void handle_aggregate_custody_signal(AggregateCustodySignalEvent* event);
+
+    /**
+     * Default event handler for issuing an aggreage custody signal
+     */
+    virtual void handle_add_bundle_to_acs(AddBundleToAcsEvent* event);
+
+    /**
+     * Default event handler for an aggreage custody signal expiration
+     */
+    virtual void handle_acs_expired(AcsExpiredEvent* event);
+#endif // ACS_ENABLED
+
+
+#ifdef DTPC_ENABLED
+    /**
+     * Default event handler when DTPC topic is registered
+     */
+    virtual void handle_dtpc_topic_registration(DtpcTopicRegistrationEvent* event);
+
+    /**
+     * Default event handler when DTPC topic is unregistered
+     */
+    virtual void handle_dtpc_topic_unregistration(DtpcTopicUnregistrationEvent* event);
+
+    /**
+     * Default event handler when DTPC data item is sent
+     */
+    virtual void handle_dtpc_send_data_item(DtpcSendDataItemEvent* event);
+
+    /**
+     * Default event handler when DTPC Payload Aggregation Timer expires
+     */
+    virtual void handle_dtpc_payload_aggregation_timer_expired(DtpcPayloadAggregationTimerExpiredEvent* event);
+
+    /**
+     * Default event handler when DTPC transmits a PDU
+     */
+    virtual void handle_dtpc_transmitted_event(DtpcPduTransmittedEvent* event);
+
+    /**
+     * Default event handler when DTPC requests deletion of a PDU
+     */
+    virtual void handle_dtpc_delete_request(DtpcPduDeleteRequest* event);
+
+    /**
+     * Default event handler when DTPC Payload Aggregation Timer expires
+     */
+    virtual void handle_dtpc_retransmit_timer_expired(DtpcRetransmitTimerExpiredEvent* event);
+
+    /**
+     * Default event handler when DTPC ACK PDUs are received
+     */
+    virtual void handle_dtpc_ack_received_event(DtpcAckReceivedEvent* event);
+
+    /**
+     * Default event handler when DTPC Data PDUs are received
+     */
+    virtual void handle_dtpc_data_received_event(DtpcDataReceivedEvent* event);
+
+    /**
+     * Default event handler when a DTPC Deliver PDU Timer expires
+     */
+    virtual void handle_dtpc_deliver_pdu_event(DtpcDeliverPduTimerExpiredEvent* event);
+
+    /**
+     * Default event handler when a DTPC Topic Expiration Timer expires
+     */
+    virtual void handle_dtpc_topic_expiration_check(DtpcTopicExpirationCheckEvent* event);
+
+    /**
+     * Default event handler when a DTPC elision function response is received
+     */
+    virtual void handle_dtpc_elision_func_response(DtpcElisionFuncResponse* event);
+#endif // DTPC_ENABLED
+
 };
 
 } // namespace dtn

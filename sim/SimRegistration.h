@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _SIM_REGISTRATION_H_
 #define _SIM_REGISTRATION_H_
 
@@ -29,7 +47,8 @@ namespace dtnsim {
 /**
  * Registration used for the simulator
  */
-class SimRegistration : public oasys::Formatter, public APIRegistration {
+//dz debug class SimRegistration : public oasys::Formatter, public APIRegistration {
+class SimRegistration : public APIRegistration {
 public:
     SimRegistration(Node* node, const EndpointID& endpoint, u_int32_t expiration = 10);
 

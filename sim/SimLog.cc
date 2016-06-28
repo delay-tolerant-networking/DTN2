@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include <dtn-config.h>
 #endif
@@ -54,7 +72,7 @@ SimLog::log_entry(const char* what, Node* node, Bundle* bundle)
 {
     u_int64_t now = BundleTimestamp::get_current_time();
 
-    buf_.appendf("%f\t%s\t%s\t%s\t%s\t%llu,%llu\t%zu\t%llu\n",
+    buf_.appendf("%f\t%s\t%s\t%s\t%s\t%"PRIu64",%"PRIu64"\t%zu\t%"PRIu64"\n",
                  Simulator::time(),
                  node->name(),
                  what,

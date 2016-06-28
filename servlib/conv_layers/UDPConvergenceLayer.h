@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _UDP_CONVERGENCE_LAYER_H_
 #define _UDP_CONVERGENCE_LAYER_H_
 
@@ -114,9 +132,10 @@ public:
         u_int16_t local_port_;		///< Local port to bind to
         in_addr_t remote_addr_;		///< Peer address to connect to
         u_int16_t remote_port_;		///< Peer port to connect to
-
+        oasys::RateLimitedSocket::BUCKET_TYPE bucket_type_;         ///< bucket type for standard or leaky
         u_int32_t rate_;		///< Rate (in bps)
         u_int32_t bucket_depth_;	///< Token bucket depth (in bits)
+        bool      wait_and_send_;       ///< Force the socket to wait until sent on rate socket only
     };
     
     /**
@@ -128,6 +147,10 @@ protected:
     bool parse_params(Params* params, int argc, const char** argv,
                       const char** invalidp);
     virtual CLInfo* new_link_params();
+
+    in_addr_t next_hop_addr_;
+    u_int16_t next_hop_port_;
+    int       next_hop_flags_; 
     /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.
@@ -175,7 +198,7 @@ protected:
         /**
          * Destructor.
          */
-        virtual ~Sender() {}
+        virtual ~Sender();
 
         /**
          * Initialize the sender (the "real" constructor).
@@ -194,7 +217,7 @@ protected:
          * Send one bundle.
          * @return the length of the bundle sent or -1 on error
          */
-        int send_bundle(const BundleRef& bundle);
+        int send_bundle(const BundleRef& bundle, in_addr_t next_hop_addr_, u_int16_t next_hop_port_);
 
         /**
          * Pointer to the link parameters.
@@ -209,7 +232,7 @@ protected:
         /**
          * Rate-limited socket that's optionally enabled.
          */
-        oasys::RateLimitedSocket rate_socket_;
+        oasys::RateLimitedSocket* rate_socket_;
         
         /**
          * The contact that we're representing.
@@ -222,6 +245,7 @@ protected:
          * be any bigger than that.
          */
         u_char buf_[UDPConvergenceLayer::MAX_BUNDLE_LEN];
+
     };   
 };
 

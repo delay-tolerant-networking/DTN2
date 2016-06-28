@@ -34,6 +34,9 @@ all: dtn-tests
 
 BINFILES :=					\
 	unit_tests/bundle-list-test		\
+	unit_tests/bundle-list-intmap-test	\
+	unit_tests/bundle-list-strmap-test	\
+	unit_tests/bundle-list-strmultimap-test \
 	unit_tests/bundle-payload-test		\
 	unit_tests/bundle-protocol-test		\
 	unit_tests/bundle-timestamp-test	\

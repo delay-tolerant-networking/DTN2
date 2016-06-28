@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _LINK_H_
 #define _LINK_H_
 
@@ -21,6 +39,7 @@
 #include <oasys/debug/Formatter.h>
 #include <oasys/serialize/Serialize.h>
 #include <oasys/thread/SpinLock.h>
+#include <oasys/thread/Timer.h>
 #include <oasys/util/Ref.h>
 #include <oasys/util/RefCountedObject.h>
 
@@ -496,6 +515,20 @@ public:
     bool queue_has_space() const;
 
     /**
+     * In datastore flag getter and setter
+     */
+    bool in_datastore() const          { return in_datastore_; }
+    void set_in_datastore(bool t)      { in_datastore_ = t; }
+
+    /** dzdebug
+     * Track number of bundles on the deferred list and
+     * if positive periodically kick off an event to see if
+     * they can be queued for transmission
+     */
+    void increment_deferred_count();
+    void decrement_deferred_count();
+
+    /**
      * Accessor for the link's list of bundles that have been
      * transmitted but for which the convergence layer is awaiting
      * acknowledgement.
@@ -719,6 +752,12 @@ protected:
      */
     virtual void close();
 
+    /**
+     * Trigger checking to see if deferred bundles can be sent
+     */
+    virtual void check_deferred_bundles();
+
+
     /// Type of the link
     int type_;
 
@@ -812,6 +851,37 @@ protected:
     /// the link can be deleted completely and the name reused (to allow
     /// command input finger trouble to be corrected).
     bool used_in_fwdlog_;
+
+    /// Flag indicating if the Link is in the persistent store
+    bool in_datastore_;
+
+    //dzdebug
+    class LinkDeferredTimer : public oasys::Timer,
+                              public oasys::Logger 
+    {
+    public:
+        LinkDeferredTimer( Link* link )
+                : Logger("Link::LinkDeferredTimer",
+                         "/dtn/link/deferredtimer")
+        {
+            linkref_ = link;
+        }
+  
+        /**
+         * Timer callback function
+         */
+        void timeout(const struct timeval &now);
+
+    public:
+        LinkRef  linkref_;
+    };
+
+
+    /// Number of bundles deferred 
+    u_int deferred_bundle_count_;
+
+    /// Timer to generate a BundleCheckDeferredEvent
+    LinkDeferredTimer* deferred_timer_;
 
     /// Destructor -- protected since links shouldn't be deleted
     //virtual ~Link();

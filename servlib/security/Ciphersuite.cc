@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -562,6 +580,7 @@ Ciphersuite::check_validation(const Bundle*       bundle,
     BlockInfoVec::const_iterator iter;
 
     bool is_esb = (Ciphersuite::config->get_block_type(num) == dtn::BundleProtocol::EXTENSION_SECURITY_BLOCK);
+    bool is_bab = (Ciphersuite::config->get_block_type(num) == dtn::BundleProtocol::BUNDLE_AUTHENTICATION_BLOCK);
 
     log_debug_p(log, "Ciphersuite::check_validation(%hu)", num);
     if ( block_list == NULL )
@@ -593,6 +612,38 @@ Ciphersuite::check_validation(const Bundle*       bundle,
             }
         }
         return true;
+    } else if (is_bab) {
+        log_debug_p(log, "Ciphersuite::check_validation: it's a BAB rule - only one needs to verify!");
+        for ( iter = block_list->begin();
+              iter != block_list->end();
+              ++iter)
+        {
+
+            if ( iter->locals() == NULL )       // then of no interest
+                continue;
+        
+            locals = dynamic_cast<BP_Local_CS*>(iter->locals());
+            if ( locals == NULL )
+                continue;
+    
+            if (locals->owner_cs_num() != num ) {
+                log_debug_p(log, "Ciphersuite::check_validation: found a block, but the cs_num is wrong (%d)", locals->owner_cs_num());
+                continue;
+            }
+
+            // check if src and dest pattern match here
+            if(check_src_dest_match(locals, src, dest, bundle)) {
+                if (iter->owner()->validate_security_result(bundle, block_list, (BlockInfo*) &*iter)) {
+                    log_debug_p(log, "Ciphersuite::check_validation: found a validated BAB security result");
+                    return true;
+                }
+                log_debug_p(log, "Ciphersuite::check_validation: found a BAB security result that did not validate - continuing");
+            } else {
+                log_debug_p(log, "Ciphersuite::check_validation: found a BAB block for a different secdest");
+            }
+        }
+
+        return false;
     }
 
        

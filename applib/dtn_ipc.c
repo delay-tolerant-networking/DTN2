@@ -57,7 +57,17 @@ dtnipc_msgtoa(u_int8_t type)
         CASE(DTN_CANCEL_POLL);
         CASE(DTN_CANCEL);
         CASE(DTN_SESSION_UPDATE);
-	    CASE(DTN_PEEK);
+        CASE(DTN_PEEK);
+        CASE(DTN_RECV_RAW);
+
+#ifdef DTPC_ENABLED
+        CASE(DTPC_REGISTER);
+        CASE(DTPC_UNREGISTER);
+        CASE(DTPC_SEND);
+        CASE(DTPC_RECV);
+        CASE(DTPC_ELISION_RESPONSE);
+#endif
+
     default:
         return "(unknown type)";
     }
@@ -247,13 +257,14 @@ dtnipc_open_with_IP(char *daemon_api_IP,short daemon_api_port,dtnipc_handle_t* h
                     "not a valid ip address\n", daemon_api_IP);
             exit(1);
         }
-    
-    if (daemon_api_port > 0xffff)
-        {
-            fprintf(stderr, "DTNAPI_PORT environment variable (%d) "
-                    "not a valid ip port\n", daemon_api_port);
-            exit(1);
-        }
+
+    // short is only 16 bits 
+    //if (daemon_api_port > 0xffff)
+    //    {
+    //        fprintf(stderr, "DTNAPI_PORT environment variable (%d) "
+    //                "not a valid ip port\n", daemon_api_port);
+    //        exit(1);
+    //    }
     
     ipc_port = (u_int16_t)daemon_api_port;
     
@@ -438,8 +449,34 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
     xdr_setpos(&handle->xdr_decode, 0);
 
     // read the status code and length
-    ret = read(handle->sock, handle->buf, 8);
-    handle->total_rcvd += ret;
+    // XXX/dz wrapped the read() so it would be interrupt tolerant
+    nread = 0;
+    while (nread < 8) {
+      errno = 0;
+      ret = read(handle->sock,
+                 &handle->buf[nread], 8 - nread);
+      handle->total_rcvd += ret;
+      if (handle->debug) {
+        fprintf(stderr, "dtn_ipc: recv() read len %d/%d bytes (%s)\n",
+                ret, nread, ret == -1 ? strerror(errno) : "success");
+      }
+
+      if (ret <= 0) {
+        // XXX/dz scenario causes infinite loop:
+        // if the dtnd daemon crashes while it is in the
+        // middle of a read, ret is returned as zero and errno
+        // remains EINTR. added setting errno to zero above
+        // and checking that ret is less than zero before continuing.
+        if (ret < 0 && errno == EINTR)
+          continue;
+            
+        handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
+        return -1;
+      }
+      nread += ret;
+    }
+    ret = nread;
 
     // make sure we got it all
     if (ret != 8) {
@@ -463,8 +500,8 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
     }
 
     // read the rest of the message 
-    nread = 8;
     while (nread < len + 8) {
+        errno = 0;
         ret = read(handle->sock,
                    &handle->buf[nread], sizeof(handle->buf) - nread);
         handle->total_rcvd += ret;
@@ -475,7 +512,112 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
         }
 
         if (ret <= 0) {
-            if (errno == EINTR)
+            if (ret < 0 && errno == EINTR)
+                continue;
+            
+            handle->err = DTN_ECOMM;
+            dtnipc_close(handle);
+            return -1;
+        }
+
+        nread += ret;
+    }
+
+    return len;
+}
+
+
+/*
+ * Receive a message on the ipc channel. May block if there is no
+ * pending message.
+ *
+ * Sets status to the server-returned status code and returns the
+ * length of any reply message on success, returns -1 on internal
+ * error.
+ */
+int
+dtnipc_recv_raw(dtnipc_handle_t* handle, int* status)
+{
+    int ret;
+    u_int32_t len, nread;
+    u_int32_t statuscode;
+
+    // reset the xdr decoder before reading in any data
+    xdr_setpos(&handle->xdr_decode, 0);
+
+    // read the status code and length
+    // dz 2011.10.17 - carry forward patch to 2.7
+    // dz 2011.07.28 - wrapped the read() so it would be interrupt tolerant
+    nread = 0;
+    while (nread < 8) {
+      errno = 0;
+      ret = read(handle->sock,
+                 &handle->buf[nread], 8 - nread);
+      handle->total_rcvd += ret;
+      if (handle->debug) {
+        fprintf(stderr, "dtn_ipc: recv_raw() read len %d/%d bytes (%s)\n",
+                ret, nread, ret == -1 ? strerror(errno) : "success");
+      }
+
+      if (ret <= 0) {
+        // dz 2012.02.14  scenario causes infinite loop:
+        // if the dtnd daemon crashes while it is in the
+        // middle of a read, ret is returned as zero and errno
+        // remains EINTR. added setting errno to zero above
+        // and checking that ret is less than zero before continuing.
+        if (ret < 0 && errno == EINTR)
+          continue;
+            
+        handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
+        return -1;
+      }
+      nread += ret;
+    }
+    ret = nread;
+
+    // make sure we got it all
+    if (ret != 8) {
+        handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
+        return -1;
+    }
+    
+    memcpy(&statuscode, handle->buf, sizeof(statuscode));
+    statuscode = ntohl(statuscode);
+    *status = statuscode;
+    
+    memcpy(&len, &handle->buf[4], sizeof(len));
+    len = ntohl(len);
+    
+    if (handle->debug) {
+        fprintf(stderr, "dtn_ipc: recv_raw() read %d/8 bytes for status (%s): "
+                "status %d len %d (total sent/rcvd %u/%u)\n",
+                ret, ret == -1 ? strerror(errno) : "success",
+                *status, len, handle->total_sent, handle->total_rcvd);
+    }
+
+    // read the rest of the message 
+    // dz 2011.07.28 - wrapped the read() so it would be interrupt tolerant
+    nread = 8;
+    while (nread < len + 8) {
+        errno = 0;
+        ret = read(handle->sock,
+                   &handle->buf[nread], sizeof(handle->buf) - nread);
+        handle->total_rcvd += ret;
+        
+        if (handle->debug) {
+            fprintf(stderr, "dtn_ipc: recv_raw() read %d/%d bytes (%s)\n",
+                    ret, len, ret == -1 ? strerror(errno) : "success");
+        }
+
+        if (ret <= 0) {
+            // dz 2012.02.14  scenario causes infinite loop:
+            // if the dtnd daemon crashes while it is in the
+            // middle of a read, ret is returned as zero and errno
+            // remains EINTR. added setting errno to zero above
+            // and checking that ret is less than zero before continuing.
+            if (ret < 0 && errno == EINTR)
                 continue;
             
             handle->err = DTN_ECOMM;
@@ -506,6 +648,35 @@ int dtnipc_send_recv(dtnipc_handle_t* handle, dtnapi_message_type_t type)
 
     // wait for a response
     if (dtnipc_recv(handle, &status) < 0) {
+        return -1;
+    }
+
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/**
+ * Send a message and wait for a response over the dtn ipc protocol.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int dtnipc_send_recv_raw(dtnipc_handle_t* handle, dtnapi_message_type_t type)
+{
+    int status;
+
+    // send the message
+    if (dtnipc_send(handle, type) < 0) {
+        return -1;
+    }
+
+    // wait for a response
+    if (dtnipc_recv_raw(handle, &status) < 0) {
         return -1;
     }
 

@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_DAEMON_H_
 #define _BUNDLE_DAEMON_H_
 
@@ -31,9 +49,13 @@
 #include <oasys/thread/MsgQueue.h>
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/Time.h>
+#include <oasys/thread/SpinLock.h>
 
 #include "BundleEvent.h"
 #include "BundleEventHandler.h"
+#include "BundleListIntMap.h"
+#include "BundleListStrMap.h"
+#include "BundleListStrMultiMap.h"
 #include "BundleProtocol.h"
 #include "BundleActions.h"
 #include "BundleStatusReport.h"
@@ -46,15 +68,41 @@
 namespace dtn {
 
 class AdminRegistration;
+class AdminRegistrationIpn;
 class Bundle;
 class BundleAction;
 class BundleActions;
-class BundleList;
+class BundleDaemonInput;
+class BundleDaemonOutput;
+class BundleDaemonStorage;
 class BundleRouter;
 class ContactManager;
 class FragmentManager;
 class PingRegistration;
+class IpnEchoRegistration;
 class RegistrationTable;
+class RegistrationInitialLoadThread;
+
+#ifdef ACS_ENABLED
+    class BundleDaemonACS;
+#endif // ACS_ENABLED
+
+
+// XXX/dz Set the typedefs to the type of list you want to use for each of the 
+// bundle lists and enable the #define for those that are maps 
+typedef BundleListIntMap       all_bundles_t;
+//typedef BundleList             pending_bundles_t;
+typedef BundleListIntMap       pending_bundles_t;
+typedef BundleListStrMap       custody_bundles_t;
+typedef BundleListStrMultiMap  dupefinder_bundles_t;
+#define ALL_BUNDLES_IS_MAP 1
+#define PENDING_BUNDLES_IS_MAP 1
+#define CUSTODY_BUNDLES_IS_MAP 1
+
+// XXX/dz Looking at the current usage of the custody_bundles, it could be
+// combined with the dupefinder list with the addition a method which 
+// returns the one bundle which in in local custody for a key and a separate
+// counter which tracks the number of bundles in custody.
 
 /**
  * Class that handles the basic event / action mechanism. All events
@@ -84,7 +132,7 @@ public:
      * SimBundleActions class.
      */
     virtual void do_init();
-    
+
     /**
      * Boot time initializer.
      */
@@ -122,8 +170,8 @@ public:
     
    /**
     * Virtual post_event function, overridden by the Node class in
-     * the simulator to use a modified event queue.
-     */
+    * the simulator to use a modified event queue.
+    */
     virtual void post_event(BundleEvent* event, bool at_back = true);
 
     /**
@@ -158,18 +206,23 @@ public:
     /**
      * Accessor for the all bundles list.
      */
-    BundleList* all_bundles() { return all_bundles_; }
+    all_bundles_t* all_bundles() { return all_bundles_; }
     
     /**
      * Accessor for the pending bundles list.
      */
-    BundleList* pending_bundles() { return pending_bundles_; }
+    pending_bundles_t* pending_bundles() { return pending_bundles_; }
     
     /**
      * Accessor for the custody bundles list.
      */
-    BundleList* custody_bundles() { return custody_bundles_; }
+    custody_bundles_t* custody_bundles() { return custody_bundles_; }
     
+    /**
+     * Accessor for the dupefinder bundles list.
+     */
+    dupefinder_bundles_t* dupefinder_bundles() { return dupefinder_bundles_; }
+
 #ifdef BPQ_ENABLED
     /**
      * Accessor for the BPQ Cache.
@@ -205,11 +258,19 @@ public:
     const EndpointID& local_eid() { return local_eid_; }
 
     /**
+     * Return the local IPN endpoint identifier.
+     */
+    const EndpointID& local_eid_ipn() { return local_eid_ipn_; }
+
+    /**
      * Set the local endpoint id.
      */
-    void set_local_eid(const char* eid_str) {
-        local_eid_.assign(eid_str);
-    }
+    void set_local_eid(const char* eid_str);
+
+    /**
+     * Set the local IPN endpoint id.
+     */
+    void set_local_eid_ipn(const char* eid_str);
 
     /**
      * General daemon parameters
@@ -245,6 +306,22 @@ public:
         /// DTN daemon is restarted.
         bool recreate_links_on_restart_;
 
+        /// Whether or not links should be maintained in the database
+        /// (if not then bundle queue-ing will be redone from scratch on reload)
+        bool persistent_links_;
+
+        /// Set the announce_ipn bool.
+        bool announce_ipn_;
+
+        /// Whether to write API Registration bundle lists to the database
+        /// XXX/dz defaulting to false but original DTN2 reference implementation would be true
+        bool serialize_apireg_bundle_lists_;
+
+        /// ipn_echo_service_number_
+        u_int64_t ipn_echo_service_number_;
+
+        /// ipn_echo_max_return_length_
+        u_int64_t ipn_echo_max_return_length_;
     };
 
     static Params params_;
@@ -288,6 +365,22 @@ public:
     void init_idle_shutdown(int interval);
     
     /**
+     * Take custody for the given bundle, sending the appropriate
+     * signal to the current custodian.
+     */
+    void accept_custody(Bundle* bundle);
+
+
+    /**
+     * Check the registration table and optionally deliver the bundle
+     * to any that match.
+     *
+     * @return whether or not any matching registrations were found or
+     * if the bundle is destined for the local node
+     */
+    bool check_local_delivery(Bundle* bundle, bool deliver);
+
+    /**
      * This is used for delivering bundle to app by Late Binding
      */
     void check_and_deliver_to_registrations(Bundle* bundle, const EndpointID&);
@@ -316,6 +409,8 @@ public:
 
 protected:
     friend class BundleActions;
+    friend class BundleDaemonInput;
+    friend class RegistrationInitialLoadThread;
 
     /**
      * Initialize and load in the registrations.
@@ -332,6 +427,13 @@ protected:
      */
     void load_bundles();
         
+#ifdef ACS_ENABLED
+    /**
+     * Initialize and load in stored Pending ACSs .
+     */
+    void load_pendingacs();
+#endif // ACS_ENABLED
+
     /**
      * Main thread function that dispatches events.
      */
@@ -347,12 +449,12 @@ protected:
     void handle_bundle_acknowledged_by_app(BundleAckEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
     void handle_bundle_free(BundleFreeEvent* event);
-    void handle_bundle_send(BundleSendRequest* event);
     void handle_bundle_cancel(BundleCancelRequest* event);
     void handle_bundle_cancelled(BundleSendCancelledEvent* event);
     void handle_bundle_inject(BundleInjectRequest* event);
     void handle_bundle_delete(BundleDeleteRequest* request);
     void handle_bundle_accept(BundleAcceptRequest* event);
+    void handle_bundle_take_custody(BundleTakeCustodyRequest* request);
     void handle_bundle_query(BundleQueryRequest* event);
     void handle_bundle_report(BundleReportEvent* event);
     void handle_bundle_attributes_query(BundleAttributesQueryRequest* request);
@@ -369,6 +471,7 @@ protected:
     void handle_link_deleted(LinkDeletedEvent* event);
     void handle_link_available(LinkAvailableEvent* event);    
     void handle_link_unavailable(LinkUnavailableEvent* event);
+    void handle_link_check_deferred(LinkCheckDeferredEvent* event);
     void handle_link_state_change_request(LinkStateChangeRequest* request);
     void handle_link_create(LinkCreateRequest* event);
     void handle_link_delete(LinkDeleteRequest* request);
@@ -397,6 +500,10 @@ protected:
     void handle_iface_attributes_report(IfaceAttributesReportEvent* event);
     void handle_cla_parameters_query(CLAParametersQueryRequest* request);
     void handle_cla_parameters_report(CLAParametersReportEvent* event);
+
+#ifdef ACS_ENABLED
+    void handle_aggregate_custody_signal(AggregateCustodySignalEvent* event);
+#endif // ACS_ENABLED
     ///@}
 
     /// @{
@@ -427,18 +534,13 @@ protected:
     void cancel_custody_timers(Bundle* bundle);
 
     /**
-     * Take custody for the given bundle, sending the appropriate
-     * signal to the current custodian.
-     */
-    void accept_custody(Bundle* bundle);
-
-    /**
      * Release custody of the given bundle, sending the appropriate
      * signal to the current custodian.
      */
     void release_custody(Bundle* bundle);
 
     /**
+     * part 1 processing just adds to pending and the BundleStore
      * Add the bundle to the pending list and (optionally) the
      * persistent store, and set up the expiration timer for it.
      *
@@ -447,6 +549,15 @@ protected:
      */
     bool add_to_pending(Bundle* bundle, bool add_to_store);
     
+    /**
+     * Resume the add the bundle to the pending list processing
+     * and set up the expiration timer for it.
+     *
+     * @return true if the bundle is legal to be delivered and/or
+     * forwarded, false if it's already expired
+     */
+    bool resume_add_to_pending(Bundle* bundle, bool add_to_store);
+
     /**
      * Remove the bundle from the pending list and data store, and
      * cancel the expiration timer.
@@ -477,29 +588,12 @@ protected:
      */
     Bundle* find_duplicate(Bundle* bundle);
 
-#ifdef BPQ_ENABLED
-    /**
-     * Check the bundle for a BPQ extension block. If found handle:
-     * 		QUERY 	 - search for matching response in cache and try to answer
-     * 		RESPONSE - attempt to add to cache
-     * If a query is completely answered the bundle need not be forwarded on.
-     */
-    bool handle_bpq_block(Bundle* b, BundleReceivedEvent* event);
-#endif /* BPQ_ENABLED */
-
     /**
      * Deliver the bundle to the given registration
      */
-    void deliver_to_registration(Bundle* bundle, Registration* registration);
+    void deliver_to_registration(Bundle* bundle, Registration* registration,
+                                 bool initial_load=false);
     
-    /**
-     * Check the registration table and optionally deliver the bundle
-     * to any that match.
-     *
-     * @return whether or not any matching registrations were found or
-     * if the bundle is destined for the local node
-     */
-    bool check_local_delivery(Bundle* bundle, bool deliver);
     
     /// The active bundle router
     BundleRouter* router_;
@@ -510,8 +604,14 @@ protected:
     /// The administrative registration
     AdminRegistration* admin_reg_;
 
+    /// The IPN administrative registration
+    AdminRegistrationIpn* admin_reg_ipn_;
+
     /// The ping registration
     PingRegistration* ping_reg_;
+
+    /// The ipn echo registration
+    IpnEchoRegistration* ipn_echo_reg_;
 
     /// The contact manager
     ContactManager* contactmgr_;
@@ -523,18 +623,16 @@ protected:
     RegistrationTable* reg_table_;
 
     /// The list of all bundles in the system
-    BundleList* all_bundles_;
+    all_bundles_t* all_bundles_;
 
     /// The list of all bundles that are still being processed
-    BundleList* pending_bundles_;
+    pending_bundles_t* pending_bundles_;
 
     /// The list of all bundles that we have custody of
-    BundleList* custody_bundles_;
+    custody_bundles_t* custody_bundles_;
     
-#ifdef BPQ_ENABLED
-    /// The LRU cache containing bundles with the BPQ response extension
-    BPQCache* bpq_cache_;
-#endif /* BPQ_ENABLED */
+    /// The list of all bundles that are still being processed
+    dupefinder_bundles_t* dupefinder_bundles_;
 
     /// The event queue
     oasys::MsgQueue<BundleEvent*>* eventq_;
@@ -543,17 +641,18 @@ protected:
     /// bundle status reports, routing, etc.
     EndpointID local_eid_;
 
+    /// The IPN endpoint id used to take custody of bundles destined to an IPN node
+    EndpointID local_eid_ipn_;
+ 
     /// Statistics structure definition
     struct Stats {
-        u_int32_t received_bundles_;
-        u_int32_t delivered_bundles_;
-        u_int32_t generated_bundles_;
-        u_int32_t transmitted_bundles_;
-        u_int32_t expired_bundles_;
-        u_int32_t deleted_bundles_;
-        u_int32_t duplicate_bundles_;
-        u_int32_t injected_bundles_;
-        u_int32_t events_processed_;
+        bundleid_t delivered_bundles_;
+        bundleid_t transmitted_bundles_;
+        bundleid_t expired_bundles_;
+        bundleid_t deleted_bundles_;
+        bundleid_t injected_bundles_;
+        bundleid_t events_processed_;
+        bundleid_t suppressed_delivery_;
     };
 
     /// Stats instance
@@ -586,6 +685,64 @@ protected:
 
     /// Time value when the last event was handled
     oasys::Time last_event_;
+
+#ifdef ACS_ENABLED
+    /// The Bundle Daemon Aggregate Custody Signal thread
+    BundleDaemonACS* daemon_acs_;
+    friend class BundleDaemonACS;
+#endif // ACS_ENABLED
+
+    /// The Bundle Daemon Input thread
+    BundleDaemonInput* daemon_input_;
+
+    /// The Bundle Daemon Input thread
+    BundleDaemonOutput* daemon_output_;
+
+    /// The Bundle Daemon Storage thread
+    BundleDaemonStorage* daemon_storage_;
+
+#ifdef BPQ_ENABLED
+    /// The LRU cache containing bundles with the BPQ response extension
+    BPQCache* bpq_cache_;
+#endif /* BPQ_ENABLED */
+
+#ifdef BDSTATS_ENABLED
+    /// BD Statistics structure definition
+    struct BDStats {
+        uint64_t bundle_accept_;
+        uint64_t bundle_received_;
+        uint64_t bundle_transmitted_;
+        uint64_t bundle_free_;
+        uint64_t link_created_;
+        uint64_t contact_up_;
+        uint64_t other_;
+        uint64_t deliver_bundle_;
+        uint64_t bundle_delivered_;
+    };
+    BDStats bdstats_posted_;
+    BDStats bdstats_processed_;
+    mutable oasys::SpinLock bdstats_lock_;
+
+    bool bdstats_init_;
+    oasys::Time bdstats_start_time_;
+    oasys::Time bdstats_time_;
+
+    /**
+     *     A simple thread class that drives the TimerSystem implementation.
+     */
+    class BDStatusThread : public Thread {
+    public:
+        BDStatusThread();
+    
+    private:
+        void run();
+    };
+
+public:
+    void bdstats_update(BDStats* stats=NULL, BundleEvent* event=NULL);
+
+#endif // BDSTATS_ENABLED
+
 };
 
 } // namespace dtn

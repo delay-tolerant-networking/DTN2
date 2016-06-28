@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -85,6 +103,14 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_delete((BundleDeleteRequest*)e);
         break;
 
+    case BUNDLE_TAKE_CUSTODY:
+        handle_bundle_take_custody((BundleTakeCustodyRequest*)e);
+        break;
+
+    case BUNDLE_CUSTODY_ACCEPTED:
+        handle_bundle_custody_accepted((BundleCustodyAcceptedEvent*)e);
+        break;
+
     case BUNDLE_ACCEPT_REQUEST:
         handle_bundle_accept((BundleAcceptRequest*)e);
         break;
@@ -123,6 +149,40 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
  
     case REGISTRATION_DELETE:
         handle_registration_delete((RegistrationDeleteRequest*)e);
+        break;
+
+    case STORE_BUNDLE_UPDATE:
+        handle_store_bundle_update((StoreBundleUpdateEvent*)e);
+        break;
+
+    case STORE_BUNDLE_DELETE:
+        handle_store_bundle_delete((StoreBundleDeleteEvent*)e);
+        break;
+
+#ifdef ACS_ENABLED 
+    case STORE_PENDINGACS_UPDATE:
+        handle_store_pendingacs_update((StorePendingAcsUpdateEvent*)e);
+        break;
+
+    case STORE_PENDINGACS_DELETE:
+        handle_store_pendingacs_delete((StorePendingAcsDeleteEvent*)e);
+        break;
+#endif // ACS_ENABLED 
+
+    case STORE_REGISTRATION_UPDATE:
+        handle_store_registration_update((StoreRegistrationUpdateEvent*)e);
+        break;
+
+    case STORE_REGISTRATION_DELETE:
+        handle_store_registration_delete((StoreRegistrationDeleteEvent*)e);
+        break;
+
+    case STORE_LINK_UPDATE:
+        handle_store_link_update((StoreLinkUpdateEvent*)e);
+        break;
+
+    case STORE_LINK_DELETE:
+        handle_store_link_delete((StoreLinkDeleteEvent*)e);
         break;
 
    case ROUTE_ADD:
@@ -175,6 +235,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
 
     case LINK_UNAVAILABLE:
         handle_link_unavailable((LinkUnavailableEvent*)e);
+        break;
+
+    case LINK_CHECK_DEFERRED:
+        handle_link_check_deferred((LinkCheckDeferredEvent*)e);
         break;
 
     case LINK_STATE_CHANGE_REQUEST:
@@ -280,6 +344,74 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
     case CLA_PARAMS_REPORT:
         handle_cla_parameters_report((CLAParametersReportEvent*)e);
         break;
+
+#ifdef ACS_ENABLED
+    case AGGREGATE_CUSTODY_SIGNAL:
+        handle_aggregate_custody_signal((AggregateCustodySignalEvent*)e);
+        break;
+
+    case ISSUE_AGGREGATE_CUSTODY_SIGNAL:
+        handle_add_bundle_to_acs((AddBundleToAcsEvent*)e);
+        break;
+
+    case ACS_EXPIRED_EVENT:
+        handle_acs_expired((AcsExpiredEvent*)e);
+        break;
+#endif // ACS_ENABLED
+
+    case EXTERNAL_ROUTER_ACS:  // purposely not inside the ACS_ENABLED block
+        handle_external_router_acs((ExternalRouterAcsEvent*)e);
+        break;
+
+#ifdef DTPC_ENABLED
+    case DTPC_TOPIC_REGISTRATION:
+        handle_dtpc_topic_registration((DtpcTopicRegistrationEvent*)e);
+        break;
+
+    case DTPC_TOPIC_UNREGISTRATION:
+        handle_dtpc_topic_unregistration((DtpcTopicUnregistrationEvent*)e);
+        break;
+
+    case DTPC_SEND_DATA_ITEM:
+        handle_dtpc_send_data_item((DtpcSendDataItemEvent*) e);
+        break;
+
+    case DTPC_PAYLOAD_AGGREGATION_EXPIRED:
+        handle_dtpc_payload_aggregation_timer_expired((DtpcPayloadAggregationTimerExpiredEvent*) e);
+        break;
+
+    case DTPC_PDU_TRANSMITTED:
+        handle_dtpc_transmitted_event((DtpcPduTransmittedEvent*) e);
+        break;
+
+    case DTPC_PDU_DELETE:
+        handle_dtpc_delete_request((DtpcPduDeleteRequest*) e);
+        break;
+
+    case DTPC_RETRANSMIT_TIMER_EXPIRED:
+        handle_dtpc_retransmit_timer_expired((DtpcRetransmitTimerExpiredEvent*) e);
+        break;
+
+    case DTPC_ACK_RECEIVED:
+        handle_dtpc_ack_received_event((DtpcAckReceivedEvent*) e);
+        break;
+
+    case DTPC_DATA_RECEIVED:
+        handle_dtpc_data_received_event((DtpcDataReceivedEvent*) e);
+        break;
+
+    case DTPC_DELIVER_PDU_TIMER_EXPIRED:
+        handle_dtpc_deliver_pdu_event((DtpcDeliverPduTimerExpiredEvent*) e);
+        break;
+
+    case DTPC_TOPIC_EXPIRATION_CHECK:
+        handle_dtpc_topic_expiration_check((DtpcTopicExpirationCheckEvent*) e);
+        break;
+
+    case DTPC_ELISION_FUNC_RESPONSE:
+        handle_dtpc_elision_func_response((DtpcElisionFuncResponse*) e);
+        break;
+#endif // DTPC_ENABLED
 
     default:
         PANIC("unimplemented event type %d", e->type_);
@@ -392,6 +524,22 @@ BundleEventHandler::handle_bundle_delete(BundleDeleteRequest*)
 }
 
 /**
+ * Default event handler for the take custody of bundle requests.
+ */
+void
+BundleEventHandler::handle_bundle_take_custody(BundleTakeCustodyRequest*)
+{
+}
+
+/**
+ * Default event handler for the take custody of bundle requests.
+ */
+void
+BundleEventHandler::handle_bundle_custody_accepted(BundleCustodyAcceptedEvent*)
+{
+}
+
+/**
  * Default event handler for a bundle accept request probe.
  */
 void
@@ -475,6 +623,72 @@ BundleEventHandler::handle_registration_delete(RegistrationDeleteRequest*)
 }
 
 /**
+ * Default event handler for store bundle update events.
+ */
+void
+BundleEventHandler::handle_store_bundle_update(StoreBundleUpdateEvent*)
+{
+}
+
+/**
+ * Default event handler for store bundle delete events.
+ */
+void
+BundleEventHandler::handle_store_bundle_delete(StoreBundleDeleteEvent*)
+{
+}
+
+#ifdef ACS_ENABLED 
+/**
+ * Default event handler for store pendingacs update events.
+ */
+void
+BundleEventHandler::handle_store_pendingacs_update(StorePendingAcsUpdateEvent*)
+{
+}
+
+/**
+ * Default event handler for store pendingacs delete events.
+ */
+void
+BundleEventHandler::handle_store_pendingacs_delete(StorePendingAcsDeleteEvent*)
+{
+}
+#endif // ACS_ENABLED 
+
+/**
+ * Default event handler for store registration update events.
+ */
+void
+BundleEventHandler::handle_store_registration_update(StoreRegistrationUpdateEvent*)
+{
+}
+
+/**
+ * Default event handler for store registration delete events.
+ */
+void
+BundleEventHandler::handle_store_registration_delete(StoreRegistrationDeleteEvent*)
+{
+}
+
+/**
+ * Default event handler for store link update events.
+ */
+void
+BundleEventHandler::handle_store_link_update(StoreLinkUpdateEvent*)
+{
+}
+
+/**
+ * Default event handler for store link delete events.
+ */
+void
+BundleEventHandler::handle_store_link_delete(StoreLinkDeleteEvent*)
+{
+}
+
+/**
  * Default event handler when a new contact is up.
  */
 void
@@ -543,6 +757,14 @@ BundleEventHandler::handle_link_available(LinkAvailableEvent*)
  */
 void
 BundleEventHandler::handle_link_unavailable(LinkUnavailableEvent*)
+{
+}
+
+/**
+ * Default event handler for the link check deferred bundles event
+ */
+void
+BundleEventHandler::handle_link_check_deferred(LinkCheckDeferredEvent*)
 {
 }
 
@@ -760,5 +982,139 @@ void
 BundleEventHandler::handle_cla_parameters_report(CLAParametersReportEvent*)
 {
 }
+
+#ifdef ACS_ENABLED
+/**
+ * Default event handler when custody signals are received.
+ */
+void
+BundleEventHandler::handle_aggregate_custody_signal(AggregateCustodySignalEvent*)
+{
+}
+
+/**
+ * Default event handler for issuing an aggregate custody signal
+ */
+void
+BundleEventHandler::handle_add_bundle_to_acs(AddBundleToAcsEvent*)
+{
+}
+
+/**
+ * Default event handler for an aggregate custody signal expiration
+ */
+void
+BundleEventHandler::handle_acs_expired(AcsExpiredEvent*)
+{
+}
+#endif // ACS_ENABLED
+
+/**
+ * Default event handler for an External Router ACS -- purposely not in the ACS_ENABLED block
+ */
+void
+BundleEventHandler::handle_external_router_acs(ExternalRouterAcsEvent*)
+{
+}
+
+#ifdef DTPC_ENABLED
+/**
+ * Default event handler when a DTPC topic is registered
+ */
+void
+BundleEventHandler::handle_dtpc_topic_registration(DtpcTopicRegistrationEvent*)
+{
+}
+
+/**
+ * Default event handler when a DTPC topic is unregistered
+ */
+void
+BundleEventHandler::handle_dtpc_topic_unregistration(DtpcTopicUnregistrationEvent*)
+{
+}
+
+/**
+ * Default event handler when a DTPC data item is sent
+ */
+void
+BundleEventHandler::handle_dtpc_send_data_item(DtpcSendDataItemEvent*)
+{
+}
+
+/**
+ * Default event handler when DTPC Payload Aggregation Timer expires
+ */
+void
+BundleEventHandler::handle_dtpc_payload_aggregation_timer_expired(DtpcPayloadAggregationTimerExpiredEvent*)
+{
+}
+
+/**
+ * Default event handler when DTPC transmits a PDU
+ */
+void 
+BundleEventHandler::handle_dtpc_transmitted_event(DtpcPduTransmittedEvent*)
+{
+}
+
+/**
+ * Default event handler when DTPC requests deletion of a PDU
+ */
+void 
+BundleEventHandler::handle_dtpc_delete_request(DtpcPduDeleteRequest*)
+{
+}
+
+/**
+ * Default event handler when DTPC Retransmit Timer expires
+ */
+void
+BundleEventHandler::handle_dtpc_retransmit_timer_expired(DtpcRetransmitTimerExpiredEvent*)
+{
+}
+
+/**
+ * Default event handler when DTPC ACK PDUs are received
+ */
+void 
+BundleEventHandler::handle_dtpc_ack_received_event(DtpcAckReceivedEvent*)
+{
+}
+
+/**
+ * Default event handler when DTPC Data PDUs are received
+ */
+void 
+BundleEventHandler::handle_dtpc_data_received_event(DtpcDataReceivedEvent*)
+{
+}
+
+/**
+ * Default event handler when a DTPC Deliver PDU Timer expires
+ */
+void 
+BundleEventHandler::handle_dtpc_deliver_pdu_event(DtpcDeliverPduTimerExpiredEvent*)
+{
+}
+
+/**
+ * Default event handler when a DTPC Topic Expiration Timer expires
+ */
+void
+BundleEventHandler::handle_dtpc_topic_expiration_check(DtpcTopicExpirationCheckEvent*)
+{
+}
+
+
+/**
+ * Default event handler when a DTPC elision function response is received
+ */
+void
+BundleEventHandler::handle_dtpc_elision_func_response(DtpcElisionFuncResponse*)
+{
+}
+
+#endif // DTPC_ENABLED
 
 } // namespace dtn

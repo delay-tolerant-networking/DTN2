@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -52,6 +70,8 @@ FragmentManager::create_fragment(Bundle* bundle,
                                  bool first,
                                  bool last)
 {
+    (void) blocks;
+
     Bundle* fragment = new Bundle();
 
 
@@ -90,9 +110,9 @@ FragmentManager::create_fragment(Bundle* bundle,
             }
         }
     }
-   log_debug("FragmentManager::create_fragment setting payload lengthto %d based on block lengths retrieved from xmit_blocks", length);
-    log_debug("FragmentManager::create_fragment extension blocks total %d in length", ext_block_len);
-    log_debug("FragmentManager::create_fragment current payload length %d", bundle->payload().length());
+    log_debug("FragmentManager::create_fragment setting payload lengthto %zu based on block lengths retrieved from xmit_blocks", length);
+    log_debug("FragmentManager::create_fragment extension blocks total %zu in length", ext_block_len);
+    log_debug("FragmentManager::create_fragment current payload length %zu", bundle->payload().length());
     // initialize the fragment's orig_length and figure out the offset
     // into the payload
     if (! bundle->is_fragment()) {
@@ -127,13 +147,24 @@ FragmentManager::create_fragment(Bundle* bundle,
            }
         } 
     }
-    log_debug("FragmentManager::create_fragment After check for overallocated length, length=%d", length);
+    log_debug("FragmentManager::create_fragment After check for overallocated length, length=%zu", length);
 
 
     // initialize payload
     fragment->mutable_payload()->set_length(length);
     fragment->mutable_payload()->write_data(bundle->payload(), offset, length, 0);
- 
+
+    // set the frag length in the GbofId
+    fragment->set_frag_length(length);
+
+    // if original bundle is in custody then take custody of this fragment
+    if (bundle->local_custody()) {
+        fragment->mutable_custodian()->assign(EndpointID::NULL_EID());
+        BundleDaemon::instance()->accept_custody(fragment);
+    }
+
+    log_crit("Created fragment: %s", fragment->gbofid_str().c_str()); //dz debug
+
     return fragment;
 }
 
@@ -287,7 +318,7 @@ void
 FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
 {
     char buf[128];
-    snprintf(buf, 128, "%llu.%llu",
+    snprintf(buf, 128, "%"PRIu64".%"PRIu64,
              bundle->creation_ts().seconds_,
              bundle->creation_ts().seqno_);
     
@@ -355,6 +386,10 @@ FragmentManager::proactively_fragment(Bundle* bundle,
         log_debug("FragmentManager::proactively_fragment can't fragment because the extension blocks are too large");
         return NULL;
     }
+
+    //dz debug - adjust max_length because a calc is off somewhere -- frags are bigger than the mtu also
+    if (max_length > 10) max_length -= 10;
+
    
     bool first = true; 
     bool last=false;
@@ -370,8 +405,8 @@ FragmentManager::proactively_fragment(Bundle* bundle,
             fragment = create_fragment(bundle, bundle->recv_blocks(), bundle->xmit_blocks()->find_blocks(link), offset, max_length, first, last);
         //}
         first=false;
-        log_debug("FragmentManager::proactively_fragment: just created %dth fragment",count+1);
-        log_debug("FragmentManager::proactively_fragment: fragment has payload length %d",fragment->payload().length());
+        log_debug("FragmentManager::proactively_fragment: just created %zuth fragment",count+1);
+        log_debug("FragmentManager::proactively_fragment: fragment has payload length %zu",fragment->payload().length());
         ASSERT(fragment);
         
         state->add_fragment(fragment);
@@ -489,7 +524,7 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
     get_hash_key(fragment, &hash_key);
     iter = fragment_table_.find(hash_key);
 
-    log_debug("processing bundle fragment id=%u hash=%s %d",
+    log_debug("processing bundle fragment id=%"PRIbid" hash=%s %d",
               fragment->bundleid(), hash_key.c_str(),
               fragment->is_fragment());
 
@@ -585,7 +620,7 @@ FragmentManager::delete_obsoleted_fragments(Bundle* bundle)
     get_hash_key(bundle, &hash_key);
     iter = fragment_table_.find(hash_key);
 
-    log_debug("checking for obsolete fragments id=%u hash=%s...",
+    log_debug("checking for obsolete fragments id=%"PRIbid" hash=%s...",
               bundle->bundleid(), hash_key.c_str());
     
     if (iter == fragment_table_.end()) {

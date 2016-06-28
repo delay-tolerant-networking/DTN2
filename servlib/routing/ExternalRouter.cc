@@ -19,6 +19,24 @@
  *    derived from this software without specific prior written permission.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -45,14 +63,37 @@
 #include "contacts/NamedAttribute.h"
 #include "reg/RegistrationTable.h"
 #include "conv_layers/ConvergenceLayer.h"
+
+/* dz debug
+#include "conv_layers/TCPConvergenceLayer.h"
+#include "conv_layers/UDPConvergenceLayer.h"
+#ifdef LTP_ENABLED
+#    include "conv_layers/LTPConvergenceLayer.h"
+#endif
+#ifdef OASYS_BLUETOOTH_ENABLED
+#    include "conv_layers/BluetoothConvergenceLayer.h"
+#endif
+*/
+
+
 #include <oasys/io/UDPClient.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/io/IO.h>
+#include <oasys/io/NetUtils.h>
+
+/*dz debug - use this version to log each message type and its sequence counter
+#define DEBUG_RTR_MSGS
 
 #define SEND(event, data) \
     rtrmessage::bpa message; \
     message.event(data); \
-    send(message);
+    send(message, #event);
+*/
+
+#define SEND(event, data) \
+    rtrmessage::bpa message; \
+    message.event(data); \
+    send(message, NULL);
 
 #define CATCH(exception) \
     catch (exception &e) { log_warn("%s", e.what()); }
@@ -62,13 +103,17 @@ namespace dtn {
 using namespace rtrmessage;
 
 ExternalRouter::ExternalRouter()
-    : BundleRouter("ExternalRouter", "external")
+    : BundleRouter("ExternalRouter", "external"),
+      initialized_(false)
 {
-    log_notice("Initializing ExternalRouter");
+    log_notice("Creating ExternalRouter");
 }
 
 ExternalRouter::~ExternalRouter()
 {
+
+    //XXX/dz - TODO - shutdown cleanly - segfault in ModuleServer if delete while processing
+
     delete srv_;
     delete hello_;
     delete reg_;
@@ -79,6 +124,10 @@ ExternalRouter::~ExternalRouter()
 void
 ExternalRouter::initialize()
 {
+    log_notice("Initializing ExternalRouter");
+
+    send_seq_ctr_ = 0;
+
     // Create the static route table
     route_table_ = new RouteTable("external");
 
@@ -96,10 +145,12 @@ ExternalRouter::initialize()
     srv_ = new ModuleServer();
     srv_->start();
 
+    initialized_ = true;
+
     bpa message;
     message.alert(dtnStatusType(std::string("justBooted")));
     message.hello_interval(ExternalRouter::hello_interval);
-    send(message);
+    send(message, "justBooted");
     hello_->schedule_in(ExternalRouter::hello_interval * 1000);
 }
 
@@ -118,27 +169,183 @@ ExternalRouter::get_routing_state(oasys::StringBuffer* buf)
     route_table_->dump(buf);
 }
 
+//----------------------------------------------------------------------
+bool
+ExternalRouter::can_delete_bundle(const BundleRef& bundle)
+{
+    // check if we haven't yet done anything with this bundle
+    if (bundle->fwdlog()->get_count(ForwardingInfo::TRANSMITTED |
+                                    ForwardingInfo::DELIVERED) == 0)
+    {
+        log_debug("ExternalRouter::can_delete_bundle(%"PRIbid"): "
+                  "not yet transmitted or delivered",
+                  bundle->bundleid());
+        return false;
+    }
+
+    // check if we have local custody
+    if (bundle->local_custody()) {
+        log_debug("ExternalRouter::can_delete_bundle(%"PRIbid"): "
+                  "not deleting because we have custody",
+                  bundle->bundleid());
+        return false;
+    }
+
+    if (bundle->ecos_critical()) {
+        log_debug("ExternalRouter::can_delete_bundle(%"PRIbid"): "
+                  "not deleting because ECOS critical bundles can be sent over multiple links",
+                  bundle->bundleid());
+        return false;
+    }
+
+
+    //XXX/dz - Need to add support for sessions??
+    //
+    // check if the bundle is part of a session with subscribers
+    //Session* session = get_session_for_bundle(bundle.object());
+    //if (session && !session->subscribers().empty())
+    //{
+    //    log_debug("ExternalRouter::can_delete_bundle(%u): "
+    //              "session has subscribers",
+    //              bundle->bundleid());
+    //    return false;
+    //}
+
+    return true;
+}
+ 
+bool
+ExternalRouter::accept_custody(Bundle* bundle)
+{
+    // External part of this router will issue a request to accept 
+    // custody of the bundle after getting the BundleReceived 
+    // message if it decides it is warranted.
+
+    (void)bundle;
+    return false;
+}
+
+
+
 // Serialize events and UDP multicast to external routers
 void
 ExternalRouter::handle_event(BundleEvent *event)
 {
-    dispatch_event(event);
+    if (initialized_) {
+        dispatch_event(event);
+    }
 }
+
+/*
+std::string
+ExternalRouter::link_remote_addr(LinkRef& lref)
+{
+    std::string result = "";
+
+    if (lref == NULL) {
+        // Bundle did not come in from a link - probably a generated bundle
+        return result;
+    }
+
+    CLInfo* clinfo = lref->cl_info();
+
+    if (clinfo) {    
+        if (0 == strcmp("tcp", lref->clayer()->name())) {
+            typedef TCPConvergenceLayer::TCPLinkParams tcp_params;
+            tcp_params *params = dynamic_cast<tcp_params*>(clinfo);
+            if (params != 0) {
+                oasys::Intoa raddr(params->remote_addr_);
+                result = raddr.buf();
+            }
+        } else if (0 == strcmp("udp", lref->clayer()->name())) {
+            typedef UDPConvergenceLayer::Params udp_params;
+            udp_params *params = dynamic_cast<udp_params*>(clinfo);
+            if (params != 0) {
+                oasys::Intoa raddr(params->remote_addr_);
+                result = raddr.buf();
+            }
+        } 
+
+#ifdef LTP_ENABLED
+        else if (0 == strcmp("ltp", lref->clayer()->name())) {
+            typedef LTPConvergenceLayer::Params ltp_params;
+            ltp_params *params = dynamic_cast<ltp_params*>(clinfo);
+            if (params != 0) {
+                oasys::Intoa raddr(params->remote_addr_);
+                result = raddr.buf();
+            }
+        } 
+#endif
+
+#ifdef OASYS_BLUETOOTH_ENABLED
+        else if (0 == strcmp("bt", lref->clayer()->name())) {
+            typedef BluetoothConvergenceLayer::Params bt_params;
+            bt_params *params = dynamic_cast<bt_params*>(clinfo);
+            if (params != 0) {
+                oasys::Intoa raddr(bd2str(params->remote_addr_));
+                result = raddr.buf();
+            }
+        } 
+#endif
+
+    }
+
+    return result;
+}
+*/
 
 void
 ExternalRouter::handle_bundle_received(BundleReceivedEvent *event)
 {
-    bpa::bundle_received_event::type e(
-        event->bundleref_.object(),
-        event->bundleref_->dest(),
-        event->bundleref_->custodian(),
-        event->bundleref_->replyto(),
-        bundle_ts_to_long(event->bundleref_->extended_id()),
-        event->bundleref_->expiration(),
-        event->bytes_received_);
+    // Pull the remote address from the CLInfo if it is available
+    // which is only from TCP connections 
+    std::string link_id = "";
+    if (event->link_ != NULL) {
+        link_id = event->link_->name();
+    }
+    
 
-    // optional param, so has to be added after constructor call
-    e.prevhop(event->bundleref_->prevhop());
+
+    bpa::bundle_received_event::type e(
+        event->bundleref_->source().uri().uri(),
+        event->bundleref_->dest().uri().uri(),
+        event->bundleref_->custodian().uri().uri(),
+        event->bundleref_->replyto().uri().uri(),
+        event->bundleref_->prevhop().uri().uri(),
+//dz debug        bundle_ts_to_long(event->bundleref_->extended_id()),
+        event->bundleref_->bundleid(),
+        event->bundleref_->gbofid_str(),
+
+#ifdef ACS_ENABLED
+        event->bundleref_->custodyid(),
+#else
+        0, // custodyid placeholder
+#endif
+        event->bundleref_->expiration(),
+
+//dz debug        event->bytes_received_,
+        event->bundleref_->payload().length(),
+
+        event->bundleref_->custody_requested(),
+        link_id,
+
+        
+        bundlePriorityType(lowercase(event->bundleref_->prioritytoa(event->bundleref_->priority()))),
+#ifdef ECOS_ENABLED
+        event->bundleref_->ecos_flags(),
+        event->bundleref_->ecos_ordinal()
+#else
+        0, // ecos_flags placeholder
+        0  // ecos_ordinal placeholder
+#endif
+
+        );
+
+#ifdef ECOS_ENABLED
+        // set the option ECOS flow label value
+        e.ecos_flowlabel(event->bundleref_->ecos_flowlabel());
+#endif
+
 
     LinkRef null_link("ExternalRouter::handle_bundle_received");
     MetadataVec * gen_meta = event->bundleref_->generated_metadata().
@@ -150,17 +357,32 @@ ExternalRouter::handle_bundle_received(BundleReceivedEvent *event)
     SEND(bundle_received_event, e)
 }
 
+void ExternalRouter::handle_bundle_custody_accepted(BundleCustodyAcceptedEvent* event)
+{
+    bpa::bundle_custody_accepted_event::type e(
+        event->bundleref_->bundleid(),
+#ifdef ACS_ENABLED
+        event->bundleref_->custodyid(),
+#else
+        0, // custodyid placeholder
+#endif
+        event->bundleref_->custodian().c_str(),
+        event->bundleref_->gbofid_str().c_str());
+
+    SEND(bundle_custody_accepted_event, e)
+}
+
 void
 ExternalRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
     if (event->contact_ == NULL) return;
 
     bpa::data_transmitted_event::type e(
-        event->bundleref_.object(),
-        bundle_ts_to_long(event->bundleref_->extended_id()),
+        event->bundleref_->bundleid(),
         event->link_.object()->name_str(),
         event->bytes_sent_,
-        event->reliably_sent_);
+        event->reliably_sent_,
+        event->bundleref_->gbofid_str());
     SEND(data_transmitted_event, e)
 }
 
@@ -168,8 +390,8 @@ void
 ExternalRouter::handle_bundle_delivered(BundleDeliveredEvent* event)
 {
     bpa::bundle_delivered_event::type e(
-        event->bundleref_.object(),
-        bundle_ts_to_long(event->bundleref_->extended_id()));
+        event->bundleref_->bundleid(),
+        event->bundleref_->gbofid_str());
     SEND(bundle_delivered_event, e)
 }
 
@@ -177,8 +399,8 @@ void
 ExternalRouter::handle_bundle_expired(BundleExpiredEvent* event)
 {
     bpa::bundle_expired_event::type e(
-        event->bundleref_.object(),
-        bundle_ts_to_long(event->bundleref_->extended_id()));
+        event->bundleref_->bundleid(),
+        event->bundleref_->gbofid_str());
     SEND(bundle_expired_event, e)
 }
 
@@ -186,9 +408,9 @@ void
 ExternalRouter::handle_bundle_cancelled(BundleSendCancelledEvent* event)
 {
     bpa::bundle_send_cancelled_event::type e(
-        event->bundleref_.object(),
         event->link_.object()->name_str(),
-        bundle_ts_to_long(event->bundleref_->extended_id()));
+        event->bundleref_->bundleid(),
+        event->bundleref_->gbofid_str());
     SEND(bundle_send_cancelled_event, e)
 }
 
@@ -197,8 +419,8 @@ ExternalRouter::handle_bundle_injected(BundleInjectedEvent* event)
 {
     bpa::bundle_injected_event::type e(
         event->request_id_,
-        event->bundleref_.object(),
-        bundle_ts_to_long(event->bundleref_->extended_id()));
+        event->bundleref_->bundleid(),
+        event->bundleref_->gbofid_str());
     SEND(bundle_injected_event, e)
 }
 
@@ -380,37 +602,53 @@ ExternalRouter::handle_custody_signal(CustodySignalEvent* event)
     // of. There should only be one such bundle.
 
     GbofId gbof_id;
-    gbof_id.source_ = event->data_.orig_source_eid_;
-    gbof_id.creation_ts_ = event->data_.orig_creation_tv_;
-    gbof_id.is_fragment_
-        = event->data_.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT;
-    gbof_id.frag_length_
-        = gbof_id.is_fragment_ ? event->data_.orig_frag_length_ : 0;
-    gbof_id.frag_offset_
-        = gbof_id.is_fragment_ ? event->data_.orig_frag_offset_ : 0;
-
-    BundleDaemon *bd = BundleDaemon::instance();
-    BundleRef br = bd->custody_bundles()->find(gbof_id);
-    if (!br.object()) {
-        // We don't seem to currently have custody of this bundle
-        return;
-    }
+        gbof_id.mutable_source()->assign(event->data_.orig_source_eid_);
+        gbof_id.mutable_creation_ts()->seconds_ = event->data_.orig_creation_tv_.seconds_;
+        gbof_id.mutable_creation_ts()->seqno_ = event->data_.orig_creation_tv_.seqno_;
+        gbof_id.set_is_fragment( event->data_.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT );
+        if (gbof_id.is_fragment()) {
+            gbof_id.set_frag_length(event->data_.orig_frag_length_);
+            gbof_id.set_frag_offset(event->data_.orig_frag_offset_);
+        }
 
     bpa::custody_signal_event::type e(
-        event->data_,
         attr,
-        bundle_ts_to_long(br->extended_id()));
+        event->bundle_id_,
+        gbof_id.str());
 
     SEND(custody_signal_event, e)
 }
 
 void
+ExternalRouter::handle_external_router_acs(ExternalRouterAcsEvent* event)
+{
+    aggregate_custody_signal_event::acs_data::type hex_data(event->acs_data_.c_str(), event->acs_data_.length());
+
+    bpa::aggregate_custody_signal_event::type e(hex_data);
+
+    //dz debug
+    //log_debug("handle_external_router_acs - send external router an ACS notification: %s", 
+    //         hex_data.encode().c_str());
+
+    SEND(aggregate_custody_signal_event, e)
+}
+
+void
 ExternalRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
-    bpa::custody_timeout_event::type e(
-        event->bundle_.object(),
-        bundle_ts_to_long(event->bundle_->extended_id()));
-    SEND(custody_timeout_event, e)
+    // Check to see if the bundle is still pending
+    BundleRef br = BundleDaemon::instance()->all_bundles()->find_for_storage(event->bundle_id_);
+    if (! BundleDaemon::instance()->pending_bundles()->contains(br)) {
+        br.release();
+    }
+
+    if (br != NULL) {
+        bpa::custody_timeout_event::type e(
+            event->bundle_id_,
+            br->gbofid_str());
+
+        SEND(custody_timeout_event, e)
+    }
 }
 
 void
@@ -482,26 +720,92 @@ ExternalRouter::handle_contact_report(ContactReportEvent* event)
 void
 ExternalRouter::handle_bundle_report(BundleReportEvent *event)
 {
+    (void) event;
+
+#ifdef PENDING_BUNDLES_IS_MAP
+    generate_bundle_report_from_map();
+#else
+    generate_bundle_report_from_list();
+#endif
+}
+
+#ifdef PENDING_BUNDLES_IS_MAP
+
+void
+ExternalRouter::generate_bundle_report_from_map()
+{
+    BundleDaemon *bd = BundleDaemon::instance();
+    BundleRef bref("generate_bundle_report_from_map");
+
+    log_debug("generata_bundle_report_from_map - pending_bundles size %zu", bd->pending_bundles()->size());
+    pending_bundles_t* bundles = bd->pending_bundles();
+
+    bundles->lock()->lock("ExternalRouter::handle_event");
+    pending_bundles_t::iterator iter = bundles->begin();
+
+    if (iter != bundles->end()) {
+        bref = iter->second;
+    }
+    bundles->lock()->unlock();
+
+    int ctr = 0;
+    while (bref != NULL) {
+        bundle_report report;
+        bundle_report::bundle::container c;
+
+        // 25 bundles per message is ~15-20 KB (unless EIDs get large)
+        while (bref != NULL && ctr++<25) {
+           c.push_back(bundle_report::bundle::type(bref.object()));
+
+           bref = bundles->find_next(bref->bundleid());
+        }
+
+        report.bundle(c);
+        SEND(bundle_report, report)
+
+        ctr = 0;
+    }
+}
+
+#else
+
+void
+ExternalRouter::generate_bundle_report_from_list()
+{
+
     BundleDaemon *bd = BundleDaemon::instance();
     oasys::ScopeLock l(bd->pending_bundles()->lock(),
         "ExternalRouter::handle_event");
 
-    (void) event;
 
     log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
-    const BundleList *bundles = bd->pending_bundles();
-    BundleList::iterator i = bundles->begin();
-    BundleList::iterator end = bundles->end();
+    pending_bundles_t* bundles = bd->pending_bundles();
+    pending_bundles_t::iterator i = bundles->begin();
+    pending_bundles_t::iterator end = bundles->end();
 
-    bundle_report report;
-    bundle_report::bundle::container c;
+    int ctr = 0;
+    while (i != end) {
+        bundle_report report;
+        bundle_report::bundle::container c;
 
-    for(; i != end; ++i)
-        c.push_back(bundle_report::bundle::type(*i));
+        // 25 bundles per message is ~15-20 KB (unless EIDs get large)
+        while(i != end && ctr++<25) {
+#ifdef PENDING_BUNDLES_IS_MAP
+           c.push_back(bundle_report::bundle::type(i->second));
+#else
+           c.push_back(bundle_report::bundle::type(*i));
+#endif
+           ++i;
+        }
 
-    report.bundle(c);
-    SEND(bundle_report, report)
+        report.bundle(c);
+        SEND(bundle_report, report)
+
+        ctr = 0;
+    }
 }
+
+#endif //PENDING_BUNDLES_IS_MAP
 
 void
 ExternalRouter::handle_bundle_attributes_report(BundleAttributesReportEvent *event)
@@ -673,12 +977,17 @@ ExternalRouter::handle_route_report(RouteReportEvent* event)
 }
 
 void
-ExternalRouter::send(bpa &message)
+ExternalRouter::send(bpa &message, const char* type_str)
 {
+    oasys::ScopeLock l(&lock_, "send");
+
     xercesc::MemBufFormatTarget buf;
     xml_schema::namespace_infomap map;
 
     message.eid(BundleDaemon::instance()->local_eid().c_str());
+    message.eid_ipn(BundleDaemon::instance()->local_eid_ipn().c_str());
+
+    message.sequence_ctr(send_seq_ctr_++);
 
     if (ExternalRouter::client_validation)
         map[""].schema = ExternalRouter::schema.c_str();
@@ -686,7 +995,13 @@ ExternalRouter::send(bpa &message)
     try {
         bpa_(buf, message, map, "UTF-8",
              xml_schema::flags::dont_initialize);
-        srv_->eventq->push_back(new std::string((char *)buf.getRawBuffer()));
+        srv_->post_to_send(new std::string((char *)buf.getRawBuffer()));
+
+        //dz debug - to determine missed messages
+        if (NULL != type_str) {
+            log_info("%lu - %s", send_seq_ctr_-1, type_str);
+        }
+
     }
     catch (xml_schema::serialization &e) {
         const xml_schema::errors &elist = e.errors();
@@ -721,85 +1036,71 @@ ExternalRouter::reason_to_str(int reason)
 }
 
 ExternalRouter::ModuleServer::ModuleServer()
-    : IOHandlerBase(new oasys::Notifier("/router/external/moduleserver")),
-      Thread("/router/external/moduleserver"),
+    : Thread("/router/external/moduleserver"),
+      Logger("ExternalRouter::ModuleServer", "/router/external/moduleserver"),
       parser_(new oasys::XercesXMLUnmarshal(
                   ExternalRouter::server_validation,
-                  ExternalRouter::schema.c_str())),
-      lock_(new oasys::SpinLock())
+                  ExternalRouter::schema.c_str()))
 {
     set_logpath("/router/external/moduleserver");
-
-    // router interface and external routers must be able to bind
-    // to the same port
-    if (fd() == -1) {
-        init_socket();
-    }
-    const int on = 1;
-    if (setsockopt(fd(), SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
-        log_err("ExternalRouter::ModuleServer::ModuleServer():  "
-                "Failed to set SO_REUSEADDR:  %s", strerror(errno));
-    bind(htonl(INADDR_ALLRTRS_GROUP), ExternalRouter::server_port);
-
-    // join the "all routers" multicast group
-    ip_mreq mreq;
-    mreq.imr_multiaddr.s_addr = htonl(INADDR_ALLRTRS_GROUP);
-    mreq.imr_interface.s_addr = htonl(INADDR_LOOPBACK);
-    if (setsockopt(fd(), IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                   &mreq, sizeof(mreq)) < 0)
-        log_err("ExternalRouter::ModuleServer::ModuleServer():  "
-                "Failed to join multicast group:  %s", strerror(errno));
-
-    // source messages from the loopback interface
-    in_addr src_if;
-    src_if.s_addr = htonl(INADDR_LOOPBACK);
-    if (setsockopt(fd(), IPPROTO_IP, IP_MULTICAST_IF,
-                   &src_if, sizeof(src_if)) < 0)
-        log_err("ExternalRouter::ModuleServer::ModuleServer():  "
-                "Failed to set IP_MULTICAST_IF:  %s", strerror(errno));
 
     // we always delete the thread object when we exit
     Thread::set_flag(Thread::DELETE_ON_EXIT);
 
-    set_logfd(false);
+    last_recv_seq_ctr_ = 0;
+    eventq_ = new oasys::MsgQueue< std::string * >(logpath_);
 
-    eventq = new oasys::MsgQueue< std::string * >(logpath_, lock_);
+    receiver_ = new Receiver(this);
+    receiver_->start();
+
+    sender_ = new Sender();
+    sender_->start();
 }
 
 ExternalRouter::ModuleServer::~ModuleServer()
 {
+    receiver_->set_should_stop();
+    sender_->set_should_stop();
+
     // free all pending events
     std::string *event;
-    while (eventq->try_pop(&event))
+    while (eventq_->try_pop(&event))
         delete event;
 
-    delete eventq;
+    delete eventq_;
+}
+
+/// Post a string to send 
+void
+ExternalRouter::ModuleServer::post(std::string* event)
+{
+    eventq_->push_back(event);
+}
+
+/// Post a string to send 
+void
+ExternalRouter::ModuleServer::post_to_send(std::string* event)
+{
+    sender_->post(event);
 }
 
 // ModuleServer main loop
 void
 ExternalRouter::ModuleServer::run() 
 {
-    // block on input from the socket and
-    // on input from the bundle event list
-    struct pollfd pollfds[2];
+    // block on input from event queue
+    struct pollfd pollfds[1];
 
     struct pollfd* event_poll = &pollfds[0];
-    event_poll->fd = eventq->read_fd();
+    event_poll->fd = eventq_->read_fd();
     event_poll->events = POLLIN;
     event_poll->revents = 0;
-
-    struct pollfd* sock_poll = &pollfds[1];
-    sock_poll->fd = fd();
-    sock_poll->events = POLLIN;
-    sock_poll->revents = 0;
 
     while (1) {
         if (should_stop()) return;
 
         // block waiting...
-        int ret = oasys::IO::poll_multiple(pollfds, 2, -1,
-            get_notifier());
+        int ret = oasys::IO::poll_multiple(pollfds, 1, 10);
 
         if (ret == oasys::IOINTR) {
             log_debug("module server interrupted");
@@ -807,35 +1108,16 @@ ExternalRouter::ModuleServer::run()
             continue;
         }
 
-        if (ret == oasys::IOERROR) {
-            log_debug("module server error");
-            set_should_stop();
-            continue;
-        }
-
         // check for an event
         if (event_poll->revents & POLLIN) {
             std::string *event;
-            if (eventq->try_pop(&event)) {
+            if (eventq_->try_pop(&event)) {
                 ASSERT(event != NULL)
-                sendto(const_cast< char * >(event->c_str()),
-                    event->size(), 0,
-                    htonl(INADDR_ALLRTRS_GROUP),
-                    ExternalRouter::server_port);
+
+                process_action(event->c_str());
+
                 delete event;
-            }
-        }
-
-        if (sock_poll->revents & POLLIN) {
-            char buf[MAX_UDP_PACKET];
-            in_addr_t raddr;
-            u_int16_t rport;
-            int bytes;
-
-            bytes = recvfrom(buf, MAX_UDP_PACKET, 0, &raddr, &rport);
-            buf[bytes] = '\0';
-
-            process_action(buf);
+            }    
         }
     }
 }
@@ -869,35 +1151,65 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
     CATCH(xml_schema::not_derived)
 
     // Check that we have an instance object to work with
-    if (instance.get() == 0)
+    if (instance.get() == 0) {
+        // dz debug
+        log_warn("ExternalRouter::ModuleServer - no object extracted from message");
         return;
+    }
+
+    if (!instance->server_eid().present()) {
+        log_debug("received message without server_eid - probably a loopback: %s", payload);
+        return;
+    } else {
+        if ((0 != BundleDaemon::instance()->local_eid().compare(instance->server_eid().get())) &&
+            (0 != BundleDaemon::instance()->local_eid_ipn().compare(instance->server_eid().get())))
+        {
+            log_debug("received message for different server node: %s", instance->server_eid().get().c_str());
+            return;
+        }
+        else {
+            log_debug("processing message for server node: %s", instance->server_eid().get().c_str());
+        }
+    }
+
+
+    uint64_t seq_ctr = instance->sequence_ctr();
+
+    // check for gaps in sequence counter
+    if (seq_ctr != last_recv_seq_ctr_+1) {
+        if (seq_ctr > last_recv_seq_ctr_) {
+            log_err("Possible missed messages - Last SeqCtr: %"PRIu64" Curr SeqCtr: %"PRIu64" - diff: %"PRIu64,
+                    last_recv_seq_ctr_, seq_ctr, (seq_ctr - last_recv_seq_ctr_));
+        } else if (0 != seq_ctr) {
+            log_err("Sequence Counter jumped backwards - Last SeqCtr: %"PRIu64" Curr SeqCtr: %"PRIu64,
+                    last_recv_seq_ctr_, seq_ctr);
+        }
+    }
+    last_recv_seq_ctr_ = seq_ctr; 
+
+
+    //dz debug
+    bool msg_processed = false;
 
     // @@@ Need to add:
     //      broadcast_send_bundle_request
 
     // Examine message contents
     if (instance->send_bundle_request().present()) {
+        msg_processed = true;
         log_debug("posting BundleSendRequest");
         send_bundle_request& in_request = instance->send_bundle_request().get();
 
-        gbofIdType id = in_request.gbof_id();
-        BundleTimestamp local_id;
-        local_id.seconds_ = in_request.local_id() >> 32;
-        local_id.seqno_ = in_request.local_id() & 0xffffffff;
         std::string link = in_request.link_id();
         int action = convert_fwd_action(in_request.fwd_action());
 
-        GbofId gbof_id;
-        gbof_id.source_ = EndpointID( id.source().uri() );
-        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
-        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
-        gbof_id.is_fragment_ = id.is_fragment();
-        gbof_id.frag_length_ = id.frag_length();
-        gbof_id.frag_offset_ = id.frag_offset();
-
+        bundleid_t bid = in_request.local_id();
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
-        BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
+        BundleRef br = bd->all_bundles()->find_for_storage(bid);
+        if (!bd->pending_bundles()->contains(br)) {
+            br.release();
+        }
+
         if (br.object()) {
             BundleSendRequest *request = new BundleSendRequest(br, link, action);
     
@@ -952,7 +1264,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                             if (block_i->contents().size() == 0) {
                                 existing->remove_outgoing_metadata(link_ref);                        
                                 log_info("Removing metadata block %u from bundle "
-                                         "%u on link %s", block_i->identifier(),
+                                         "%"PRIbid" on link %s", block_i->identifier(),
                                          br->bundleid(), link.c_str());
                             }
                         
@@ -960,7 +1272,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                             // it is being modified for this link.
                             else {
                                 log_info("Modifying metadata block %u on bundle "
-                                         "%u on link %s", block_i->identifier(),
+                                         "%"PRIbid" on link %s", block_i->identifier(),
                                          br->bundleid(), link.c_str());
                                 existing->modify_outgoing_metadata(
                                               link_ref,
@@ -1005,12 +1317,12 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
     
     			link_vec->push_back(meta_block);
     
-                            log_info("Adding a metadata block to bundle %u on "
+                            log_info("Adding a metadata block to bundle %"PRIbid" on "
                                      "link %s", br->bundleid(), link.c_str());
                             continue;
                         }
     
-                        log_err("bundle %u does not have a block %u",
+                        log_err("bundle %"PRIbid" does not have a block %u",
                                 br->bundleid(), block_i->identifier());
     
                     } else {
@@ -1027,7 +1339,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
                                 block_i->contents().size());
                         
                         vec->push_back(meta_block);
-                        log_info("Adding an metadata block to bundle %u on "
+                        log_info("Adding an metadata block to bundle %"PRIbid" on "
                                  "link %s", br->bundleid(), link.c_str());
                     }
                  }
@@ -1036,12 +1348,10 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             BundleDaemon::post(request);
         }
         else {
-            log_warn("attempt to send nonexistent bundle %s",
-                     gbof_id.str().c_str());
+            log_warn("attempt to send nonexistent bundle: %"PRIbid, bid);
         }
-    }
-
-    if (instance->open_link_request().present()) {
+    } else if (instance->open_link_request().present()) {
+        msg_processed = true;
         BundleDaemon *bd = BundleDaemon::instance();
         log_debug("posting LinkStateChangeRequest");
 
@@ -1057,9 +1367,8 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             log_warn("attempt to open link %s that doesn't exist!",
                      lstr.c_str());
         }
-    }
-
-    if (instance->close_link_request().present()) {
+    } else if (instance->close_link_request().present()) {
+        msg_processed = true;
         BundleDaemon *bd = BundleDaemon::instance();
         log_debug("posting LinkStateChangeRequest");
 
@@ -1075,9 +1384,8 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             log_warn("attempt to close link %s that doesn't exist!",
                      lstr.c_str());
         }
-    }
-
-    if (instance->add_link_request().present()) {
+    } else if (instance->add_link_request().present()) {
+        msg_processed = true;
         log_debug("posting LinkCreateRequest");
 
         rtrmessage::add_link_request request
@@ -1121,11 +1429,11 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             BundleDaemon::post(
                 new LinkCreateRequest(name, type, eid, cl, params));
         }
-    }
-
-    if (instance->delete_link_request().present()) {
+    } else if (instance->delete_link_request().present()) {
+        msg_processed = true;
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("posting LinkDeleteRequest");
+        //dz debug log_debug("posting LinkDeleteRequest");
+        log_crit("posting LinkDeleteRequest");
 
         std::string lstr = instance->delete_link_request().get().link_id();
         LinkRef link = bd->contactmgr()->find_link(lstr.c_str());
@@ -1136,11 +1444,9 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             log_warn("attempt to delete link %s that doesn't exist!",
                      lstr.c_str());
         }
-    }
-
-    if (instance->reconfigure_link_request().present()) {
+    } else if (instance->reconfigure_link_request().present()) {
+        msg_processed = true;
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("posting LinkReconfigureRequest");
 
         rtrmessage::reconfigure_link_request request
             = instance->reconfigure_link_request().get();
@@ -1185,28 +1491,29 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             for (iter = c.begin(); iter < c.end(); iter++) {
               if (iter->bool_value().present())
                 params.push_back(NamedAttribute(iter->name(), 
-                                                iter->bool_value()));
+                                                iter->bool_value().get()));
               else if (iter->u_int_value().present())
                 params.push_back(NamedAttribute(iter->name(), 
-                                                iter->u_int_value()));
+                                                iter->u_int_value().get()));
               else if (iter->int_value().present())
                 params.push_back(NamedAttribute(iter->name(), 
-                                                iter->int_value()));
-              else if (iter->str_value().present())
+                                                iter->int_value().get()));
+              else if (iter->str_value().present()) 
                 params.push_back(NamedAttribute(iter->name(), 
-                                                iter->str_value()));
+                                                iter->str_value().get()));
               else
                 log_warn("unknown value type in key-value pair");
             }
 
-            BundleDaemon::post(new LinkReconfigureRequest(link, params));
+            // Post at head in case the event queue is backed up
+            // XXX/dz configure start/stop transmitting should not wait
+            BundleDaemon::post_at_head(new LinkReconfigureRequest(link, params));
         } else {
             log_warn("attempt to reconfigure link %s that doesn't exist!",
                      lstr.c_str());
         }
-    }
-
-    if (instance->inject_bundle_request().present()) {
+    } else if (instance->inject_bundle_request().present()) {
+        msg_processed = true;
         log_debug("posting BundleInjectRequest");
 
         inject_bundle_request fields = instance->inject_bundle_request().get();
@@ -1242,64 +1549,39 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             request->expiration_ = 0; // default will be used
 
         BundleDaemon::post(request);
-    }
-
-    if (instance->cancel_bundle_request().present()) {
+    } else if (instance->cancel_bundle_request().present()) {
+        msg_processed = true;
         log_debug("posting BundleCancelRequest");
 
-        gbofIdType id =
-            instance->cancel_bundle_request().get().gbof_id();
-        BundleTimestamp local_id;
-        local_id.seconds_ =
-            instance->cancel_bundle_request().get().local_id() >> 32;
-        local_id.seqno_ =
-            instance->cancel_bundle_request().get().local_id() & 0xffffffff;
         std::string link =
             instance->cancel_bundle_request().get().link_id();
 
-        GbofId gbof_id;
-        gbof_id.source_ = EndpointID( id.source().uri() );
-        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
-        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
-        gbof_id.is_fragment_ = id.is_fragment();
-        gbof_id.frag_length_ = id.frag_length();
-        gbof_id.frag_offset_ = id.frag_offset();
-
+        bundleid_t bid = instance->cancel_bundle_request().get().local_id();
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
-        BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
+        BundleRef br = bd->all_bundles()->find_for_storage(bid);
+        if (!bd->pending_bundles()->contains(br)) {
+            br.release();
+        }
+
         if (br.object()) {
             BundleCancelRequest *request = new BundleCancelRequest(br, link);
             BundleDaemon::post(request);
         }
         else {
-            log_warn("attempt to cancel send of nonexistent bundle %s",
-                     gbof_id.str().c_str());
+            log_warn("attempt to cancel send of nonexistent bundle: %"PRIbid, bid);
         }
-    }
-
-    if (instance->delete_bundle_request().present()) {
+    } else if (instance->delete_bundle_request().present()) {
+        msg_processed = true;
         log_debug("posting BundleDeleteRequest");
 
-        gbofIdType id =
-            instance->delete_bundle_request().get().gbof_id();
-
-        GbofId gbof_id;
-        gbof_id.source_ = EndpointID( id.source().uri() );
-        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
-        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
-        gbof_id.is_fragment_ = id.is_fragment();
-        gbof_id.frag_length_ = id.frag_length();
-        gbof_id.frag_offset_ = id.frag_offset();
-        BundleTimestamp local_id;
-        local_id.seconds_ =
-            instance->delete_bundle_request().get().local_id() >> 32;
-        local_id.seqno_ =
-            instance->delete_bundle_request().get().local_id() & 0xffffffff;
+        bundleid_t bid = instance->delete_bundle_request().get().local_id();
 
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
-        BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
+        BundleRef br = bd->all_bundles()->find_for_storage(bid);
+        if (!bd->pending_bundles()->contains(br)) {
+            br.release();
+        }
+
         if (br.object()) {
             BundleDeleteRequest *request =
                 new BundleDeleteRequest(br,
@@ -1307,12 +1589,29 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             BundleDaemon::post(request);
         }
         else {
-            log_warn("attempt to delete nonexistent bundle %s",
-                     gbof_id.str().c_str());
+            log_warn("attempt to delete nonexistent bundle: %"PRIbid, bid);
         }
-    }
+    } else if (instance->take_custody_of_bundle_request().present()) {
+        msg_processed = true;
+        log_debug("posting TakeCustodyOfBundleRequest");
 
-    if (instance->set_cl_params_request().present()) {
+        bundleid_t bid = instance->take_custody_of_bundle_request().get().local_id();
+        BundleDaemon *bd = BundleDaemon::instance();
+        BundleRef br = bd->all_bundles()->find_for_storage(bid);
+        if (!bd->pending_bundles()->contains(br)) {
+            br.release();
+        }
+
+        if (br.object()) {
+            BundleTakeCustodyRequest *request =
+                new BundleTakeCustodyRequest(br);
+            BundleDaemon::post(request);
+        }
+        else {
+            log_warn("attempt to take custody of nonexistent bundle: %"PRIbid, bid);
+        }
+    } else if (instance->set_cl_params_request().present()) {
+        msg_processed = true;
         log_debug("posting CLASetParamsRequest");
 
         std::string clayer = instance->set_cl_params_request().get().clayer();
@@ -1347,29 +1646,19 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
 
             BundleDaemon::post(new CLASetParamsRequest(cl, params));
         }
-    }
-
-    if (instance->bundle_attributes_query().present()) {
+    } else if (instance->bundle_attributes_query().present()) {
+        msg_processed = true;
         log_debug("posting BundleAttributesQueryRequest");
         bundle_attributes_query query =
             instance->bundle_attributes_query().get();
         std::string query_id = query.query_id();
-        gbofIdType id = query.gbof_id();
 
-        GbofId gbof_id;
-        gbof_id.source_ = EndpointID( id.source().uri() );
-        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
-        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
-        gbof_id.is_fragment_ = id.is_fragment();
-        gbof_id.frag_length_ = id.frag_length();
-        gbof_id.frag_offset_ = id.frag_offset();
-        BundleTimestamp local_id;
-        local_id.seconds_ = query.local_id() >> 32;
-        local_id.seqno_ = query.local_id() & 0xffffffff;
-
+        bundleid_t bid = query.local_id();
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
-        BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
+        BundleRef br = bd->all_bundles()->find_for_storage(bid);
+        if (!bd->pending_bundles()->contains(br)) {
+            br.release();
+        }
 
         // XXX note, if we want to send a report even when the bundle does
         // not exist (instead of ignoring the request), we have to not test
@@ -1421,17 +1710,14 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             BundleDaemon::post(request);
         }
         else {
-            log_warn("attempt to query nonexistent bundle %s",
-                     gbof_id.str().c_str());
+            log_warn("attempt to query nonexistent bundle: %"PRIbid, bid);
         }
-    }
-
-    if (instance->link_query().present()) {
+    } else if (instance->link_query().present()) {
+        msg_processed = true;
         log_debug("posting LinkQueryRequest");
         BundleDaemon::post(new LinkQueryRequest());
-    }
-
-    if (instance->link_attributes_query().present()) {
+    } else if (instance->link_attributes_query().present()) {
+        msg_processed = true;
         BundleDaemon *bd = BundleDaemon::instance();
         log_debug("posting LinkAttributesQueryRequest");
 
@@ -1459,25 +1745,21 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
             log_warn("attempt to query attributes of link %s that doesn't exist!",
                      lstr.c_str());
         }
-    }
-
-    if (instance->bundle_query().present()) {
+    } else if (instance->bundle_query().present()) {
+        msg_processed = true;
         log_debug("posting BundleQueryRequest");
         BundleDaemon::post(new BundleQueryRequest());
-    }
-
-    if (instance->contact_query().present()) {
+    } else if (instance->contact_query().present()) {
+        msg_processed = true;
         log_debug("posting ContactQueryRequest");
         BundleDaemon::post(new ContactQueryRequest());
-    }
-
-    if (instance->route_query().present()) {
+    } else if (instance->route_query().present()) {
+        msg_processed = true;
         log_debug("posting RouteQueryRequest");
         BundleDaemon::post(new RouteQueryRequest());
-    }
-
-    /* This is needed for delivering to LB applications */
-    if (instance->deliver_bundle_to_app_request().present()) {
+    } else if (instance->deliver_bundle_to_app_request().present()) {
+        /* This is needed for delivering to LB applications */
+        msg_processed = true;
         log_debug("posting DeliverBundleToAppRequest");
         deliver_bundle_to_app_request& in_request = 
             instance->deliver_bundle_to_app_request().get();
@@ -1486,29 +1768,34 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         EndpointID reg_eid;
         reg_eid.assign(reg.uri());
 
-        gbofIdType id = in_request.gbof_id();
-        GbofId gbof_id;
-        gbof_id.source_ = EndpointID( id.source().uri() );
-        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
-        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
-        gbof_id.is_fragment_ = id.is_fragment();
-        gbof_id.frag_length_ = id.frag_length();
-        gbof_id.frag_offset_ = id.frag_offset();
-        BundleTimestamp local_id;
-        local_id.seconds_ = in_request.local_id() >> 32;
-        local_id.seqno_ = in_request.local_id() & 0xffffffff;
-
+        bundleid_t bid = in_request.local_id();
         BundleDaemon *bd = BundleDaemon::instance();
-        log_debug("pending_bundles size %zu", bd->pending_bundles()->size());
-        BundleRef br = bd->pending_bundles()->find(gbof_id, local_id);
+        BundleRef br = bd->all_bundles()->find_for_storage(bid);
+        if (!bd->pending_bundles()->contains(br)) {
+            br.release();
+        }
 
         if (br.object()) {
             bd->check_and_deliver_to_registrations(br.object(), reg_eid);
         }
         else {
-            log_warn("attempt to deliver nonexistent bundle %s to app %s",
-                     gbof_id.str().c_str(), reg_eid.c_str());
+            log_warn("attempt to deliver nonexistent bundle %"PRIbid" to app %s",
+                     bid, reg_eid.c_str());
         }
+    }
+    else if (instance->shutdown_request().present()) {
+        msg_processed = true;
+        log_info("Initiating Shutdown procedure");
+        // XXX/dz Note that if running with the console then
+        // the program does not actually exit until the user hits
+        // <Return> because it is waiting in a readline for input
+        oasys::TclCommandInterp::instance()->exec_command("shutdown");
+        oasys::TclCommandInterp::instance()->exit_event_loop();
+    }
+
+    //dz debug
+    if (!msg_processed) {
+        log_crit("ExternalRouter::ModuleServer - message type ignored - probably loopback");
     }
 }
 
@@ -1560,6 +1847,242 @@ ExternalRouter::ModuleServer::convert_priority(rtrmessage::bundlePriorityType pr
     return Bundle::COS_INVALID;
 }
 
+ExternalRouter::ModuleServer::Receiver::Receiver(ModuleServer* parent)
+    : IOHandlerBase(new oasys::Notifier("/router/external/moduleserver/rcvr")),
+      Thread("/router/external/moduleserver/rcvr"),
+      parent_(parent)
+{
+    set_logpath("/router/external/moduleserver/rcvr");
+
+    params_.reuseport_ = true;
+
+    last_recv_seq_ctr_ = 0;
+
+    // router interface and external routers must be able to bind
+    // to the same port
+    params_.recv_bufsize_ = 10240000;
+    if (fd() == -1) {
+        init_socket();
+    }
+
+    bind(ExternalRouter::multicast_addr_, ExternalRouter::server_port);
+
+    // join the "all routers" (or configured) multicast group
+    ip_mreq mreq;
+    mreq.imr_multiaddr.s_addr = ExternalRouter::multicast_addr_;
+    mreq.imr_interface.s_addr = ExternalRouter::network_interface_;
+    if (setsockopt(fd(), IPPROTO_IP, IP_ADD_MEMBERSHIP,
+                   &mreq, sizeof(mreq)) < 0)
+        log_err("ExternalRouter::ModuleServer::Receiver::Receiver():  "
+                "Failed to join multicast group:  %s", strerror(errno));
+
+    // source messages from the loopback interface (or configured I/F)
+    in_addr src_if;
+    src_if.s_addr = ExternalRouter::network_interface_;
+    if (setsockopt(fd(), IPPROTO_IP, IP_MULTICAST_IF,
+                   &src_if, sizeof(src_if)) < 0)
+        log_err("ExternalRouter::ModuleServer::Receiver::Receiver():  "
+                "Failed to set IP_MULTICAST_IF:  %s", strerror(errno));
+
+    // we always delete the thread object when we exit
+    Thread::set_flag(Thread::DELETE_ON_EXIT);
+
+    set_logfd(false);
+}
+
+ExternalRouter::ModuleServer::Receiver::~Receiver()
+{
+}
+
+// ModuleServer::Receiver main loop
+void
+ExternalRouter::ModuleServer::Receiver::run() 
+{
+     
+    int rcv_bufsize = 0;
+    int snd_bufsize = 0;
+    socklen_t optlen = sizeof(rcv_bufsize);
+    getsockopt(fd_, SOL_SOCKET, SO_RCVBUF, &rcv_bufsize, &optlen);
+    getsockopt(fd_, SOL_SOCKET, SO_SNDBUF, &snd_bufsize, &optlen);
+    log_always("ExternalRouter::ModuleServer::Receiver::run - SocketBuffer sizes rcv/send: %u/%u",
+               rcv_bufsize, snd_bufsize);
+
+    // block on input from the socket and
+    // on input from the bundle event list
+    struct pollfd pollfds[1];
+
+    struct pollfd* sock_poll = &pollfds[0];
+    sock_poll->fd = fd();
+    sock_poll->events = POLLIN;
+    sock_poll->revents = 0;
+
+    char buf[MAX_UDP_PACKET];
+    in_addr_t raddr;
+    u_int16_t rport;
+    int bytes;
+
+    while (1) {
+        if (should_stop()) return;
+
+        // block waiting...
+        int ret = oasys::IO::poll_multiple(pollfds, 1, 10,
+            get_notifier());
+
+        if (ret == oasys::IOINTR) {
+            log_debug("module server interrupted");
+            set_should_stop();
+            continue;
+        }
+
+        if (ret == oasys::IOERROR) {
+            log_debug("module server error");
+            set_should_stop();
+            continue;
+        }
+
+        if (sock_poll->revents & POLLIN) {
+            bytes = recvfrom(buf, MAX_UDP_PACKET, 0, &raddr, &rport);
+            buf[bytes] = '\0';
+
+            parent_->post(new std::string(buf));
+        }
+    }
+}
+
+
+ExternalRouter::ModuleServer::Sender::Sender()
+    : IOHandlerBase(new oasys::Notifier("/router/external/moduleserver/sndr")),
+      Thread("/router/external/moduleserver/sndr"),
+      bucket_(logpath(), 50000000, 65535*8)
+{
+    set_logpath("/router/external/moduleserver/sndr");
+
+    bytes_sent_ = 0;
+
+    // router interface and external routers must be able to bind
+    // to the same port
+    params_.send_bufsize_ = 1024000;
+    if (fd() == -1) {
+        init_socket();
+    }
+
+    //unsigned char off = 0;
+    //if (setsockopt(fd(), IPPROTO_IP, IP_MULTICAST_LOOP, &off, sizeof(off)) < 0)
+    //    log_err("ExternalRouter::ModuleServer::Server::Server():  "
+    //            "Failed to disable multicast loopback:  %s", strerror(errno));
+
+    // source messages from the loopback interface
+    in_addr src_if;
+    src_if.s_addr = ExternalRouter::network_interface_;
+    if (setsockopt(fd(), IPPROTO_IP, IP_MULTICAST_IF,
+                   &src_if, sizeof(src_if)) < 0)
+        log_err("ExternalRouter::ModuleServer::Server::Server():  "
+                "Failed to set IP_MULTICAST_IF:  %s", strerror(errno));
+
+    // we always delete the thread object when we exit
+    Thread::set_flag(Thread::DELETE_ON_EXIT);
+
+    set_logfd(false);
+
+    eventq_ = new oasys::MsgQueue< std::string * >(logpath_);
+}
+
+ExternalRouter::ModuleServer::Sender::~Sender()
+{
+    // free all pending events
+    std::string *event;
+    while (eventq_->try_pop(&event))
+        delete event;
+
+    delete eventq_;
+}
+
+/// Post a string to send 
+void
+ExternalRouter::ModuleServer::Sender::post(std::string* event)
+{
+    eventq_->push_back(event);
+}
+
+/// ModuleServer Sender main loop
+void
+ExternalRouter::ModuleServer::Sender::run() 
+{
+     
+    int rcv_bufsize = 0;
+    int snd_bufsize = 0;
+    socklen_t optlen = sizeof(rcv_bufsize);
+    getsockopt(fd_, SOL_SOCKET, SO_RCVBUF, &rcv_bufsize, &optlen);
+    getsockopt(fd_, SOL_SOCKET, SO_SNDBUF, &snd_bufsize, &optlen);
+    log_always("ExternalRouter::ModuleServer::Sender::run - SocketBuffer sizes rcv/send: %u/%u",
+               rcv_bufsize, snd_bufsize);
+
+    // block on input from the socket and
+    // on input from the bundle event list
+    struct pollfd pollfds[1];
+
+    struct pollfd* event_poll = &pollfds[0];
+    event_poll->fd = eventq_->read_fd();
+    event_poll->events = POLLIN;
+    event_poll->revents = 0;
+
+    bool first_transmit = true;
+    while (1) {
+        if (should_stop()) return;
+
+        // block waiting...
+        int ret = oasys::IO::poll_multiple(pollfds, 1, 10,
+            get_notifier());
+
+        if (ret == oasys::IOINTR) {
+            log_debug("module server interrupted");
+            set_should_stop();
+            continue;
+        }
+
+        if (ret == oasys::IOERROR) {
+            log_debug("module server error");
+            set_should_stop();
+            continue;
+        }
+
+        // check for an event
+        if (event_poll->revents & POLLIN) {
+            std::string *event;
+            if (eventq_->try_pop(&event)) {
+                ASSERT(event != NULL)
+
+                if (first_transmit) {
+                    first_transmit = false;
+                    transmit_timer_.get_time();
+                }
+
+//dz debug??                while (!bucket_.try_to_drain(event->size()*8)) {
+//dz debug??                    spin_yield();
+//dz debug??                }
+
+                int cc = sendto(const_cast< char * >(event->c_str()),
+                    event->size(), 0,
+                    ExternalRouter::multicast_addr_,
+                    ExternalRouter::server_port);
+
+                bytes_sent_ += cc;
+                if (transmit_timer_.elapsed_ms() >= 1000) {
+                    //dz debug --- < 24Mbps with no rate limiting
+                    bytes_sent_ *= 8;
+                    log_debug("ExternalRouter sent %"PRIu64" bits in %u ms", 
+                             bytes_sent_, transmit_timer_.elapsed_ms());
+                    transmit_timer_.get_time();
+                    bytes_sent_ = 0;
+                }
+
+                delete event;
+            }
+        }
+    }
+
+}
+
 ExternalRouter::HelloTimer::HelloTimer(ExternalRouter *router)
     : router_(router)
 {
@@ -1576,7 +2099,13 @@ ExternalRouter::HelloTimer::timeout(const struct timeval &)
 {
     bpa message;
     message.hello_interval(ExternalRouter::hello_interval);
-    router_->send(message);
+
+#ifdef DEBUG_RTR_MSGS
+    router_->send(message, "hello");
+#else
+    router_->send(message, NULL);
+#endif
+
     schedule_in(ExternalRouter::hello_interval * 1000);
 }
 
@@ -1596,14 +2125,19 @@ ExternalRouter::ERRegistration::ERRegistration(ExternalRouter *router)
 void
 ExternalRouter::ERRegistration::deliver_bundle(Bundle *bundle)
 {
-    bundle_delivery_event e(bundle, bundle,
-                            bundle_ts_to_long(bundle->extended_id()));
+    bundle_delivery_event e(bundle,
+                            bundle->bundleid(),
+                            bundle->gbofid_str());
 
     e.bundle().payload_file( bundle->payload().filename() );
 
     bpa message;
     message.bundle_delivery_event(e);
-    router_->send(message);
+#ifdef DEBUG_RTR_MSGS
+    router_->send(message, "bundle_delivery_event");
+#else
+    router_->send(message, NULL);
+#endif
 
     BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
 }
@@ -1615,11 +2149,13 @@ void external_rtr_shutdown(void *)
 }
 
 // Initialize ExternalRouter parameters
-u_int16_t ExternalRouter::server_port       = 8001;
-u_int16_t ExternalRouter::hello_interval    = 30;
-std::string ExternalRouter::schema          = INSTALL_SYSCONFDIR "/router.xsd";
-bool ExternalRouter::server_validation      = true;
-bool ExternalRouter::client_validation      = false;
+u_int16_t ExternalRouter::server_port          = 8001;
+u_int16_t ExternalRouter::hello_interval       = 30;
+std::string ExternalRouter::schema             = INSTALL_SYSCONFDIR "/router.xsd";
+bool ExternalRouter::server_validation         = true;
+bool ExternalRouter::client_validation         = false;
+in_addr_t ExternalRouter::multicast_addr_      = htonl(INADDR_ALLRTRS_GROUP);
+in_addr_t ExternalRouter::network_interface_   = htonl(INADDR_LOOPBACK);
 
 } // namespace dtn
 #endif // XERCES_C_ENABLED && EXTERNAL_DP_ENABLED

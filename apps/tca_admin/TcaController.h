@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 
 //#include <stdio.h>
 //#include <unistd.h>
@@ -37,7 +55,8 @@ public:
         
     TcaController(Role role, const std::string& link_id,
                   const std::string& ask_addr, const std::string& adv_str,
-                  int registry_ttl, int control_ttl);
+                  int registry_ttl, int control_ttl, bool api_IP_set, 
+                  const std::string& api_IP, unsigned int api_port);
 
     virtual ~TcaController();
 
@@ -63,6 +82,9 @@ protected:
     std::string             adv_str_;
     int                     registry_ttl_;
     int                     control_ttl_;
+    bool                    api_IP_set;
+    std::string             api_IP;
+    unsigned int            api_port;
 
     TcaRegistry             registry_;      // the DHT registry (gateway only)
     dtn_handle_t            handle_;

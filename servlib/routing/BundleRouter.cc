@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -113,7 +131,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     if (info.state() == ForwardingInfo::TRANSMITTED ||
         info.state() == ForwardingInfo::QUEUED)
     {
-        log_debug("should_fwd bundle %d: "
+        log_debug("should_fwd bundle %"PRIbid": "
                   "skip %s due to forwarding log entry %s",
                   bundle->bundleid(), link->name(),
                   ForwardingInfo::state_to_str(info.state()));
@@ -130,7 +148,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
         
         if (count > 0)
         {
-            log_debug("should_fwd bundle %d: "
+            log_debug("should_fwd bundle %"PRIbid": "
                       "skip %s since already sent or queued %zu times for remote eid %s",
                       bundle->bundleid(), link->name(),
                       count, link->remote_eid().c_str());
@@ -146,7 +164,7 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
         
         if (count > 0)
         {
-            log_debug("should_fwd bundle %d: "
+            log_debug("should_fwd bundle %"PRIbid": "
                       "skip %s since transmission suppressed to remote eid %s",
                       bundle->bundleid(), link->name(),
                       link->remote_eid().c_str());
@@ -165,19 +183,19 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
             action);
 
         if (count > 0) {
-            log_debug("should_fwd bundle %d: "
+            log_debug("should_fwd bundle %"PRIbid": "
                       "skip %s since already transmitted or queued (count %zu)",
                       bundle->bundleid(), link->name(), count);
             return false;
         } else {
-            log_debug("should_fwd bundle %d: "
+            log_debug("should_fwd bundle %"PRIbid": "
                       "link %s ok since transmission count=%zu",
                       bundle->bundleid(), link->name(), count);
         }
     }
 
     // otherwise log the reason why we should send it
-    log_debug("should_fwd bundle %d: "
+    log_debug("should_fwd bundle %"PRIbid": "
               "match %s: forwarding log entry %s",
               bundle->bundleid(), link->name(),
               ForwardingInfo::state_to_str(info.state()));
@@ -204,18 +222,28 @@ BundleRouter::accept_bundle(Bundle* bundle, int* errp)
     // StoragePolicy class of some sort. for now just use a
     // statically-configured payload limit
     BundleStore* bs = BundleStore::instance();
-    if (bs->payload_quota() != 0 &&
-        (bs->total_size() + bundle->payload().length() > bs->payload_quota()))
-    {
-        log_info("accept_bundle: rejecting bundle *%p since "
-                 "cur size %llu + bundle size %zu > quota %llu",
-                 bundle, U64FMT(bs->total_size()), bundle->payload().length(),
-                 U64FMT(bs->payload_quota()));
-        *errp = BundleProtocol::REASON_DEPLETED_STORAGE;
-        return false;
-    } 
+    if (!bundle->payload_space_reserved()) {
+        if (bs->payload_quota() != 0 &&
+            (bs->total_size() + bundle->payload().length() > bs->payload_quota()))
+        {
+            log_info("accept_bundle: rejecting bundle *%p since "
+                     "cur size %llu + bundle size %zu > quota %llu",
+                     bundle, U64FMT(bs->total_size()), bundle->payload().length(),
+                     U64FMT(bs->payload_quota()));
+            *errp = BundleProtocol::REASON_DEPLETED_STORAGE;
+            return false;
+        } 
+    }
 
     *errp = 0;
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+BundleRouter::accept_custody(Bundle* bundle)
+{
+    (void)bundle;
     return true;
 }
 

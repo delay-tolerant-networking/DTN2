@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_ROUTETABLE_H_
 #define _BUNDLE_ROUTETABLE_H_
 
@@ -168,7 +186,7 @@ RouteTable::del_matching_entries(Predicate pred)
     // entries are at the end, then cleans them out with erase()
     RouteEntryVec::iterator new_end =
         std::remove_if(route_table_.begin(), route_table_.end(),
-                       std::bind2nd(std::equal_to<RouteEntry*>(), static_cast<RouteEntry*>(NULL)));
+                       std::bind2nd(std::equal_to<RouteEntry*>(), 0));
     route_table_.erase(new_end, route_table_.end());
     
     return old_size - route_table_.size();

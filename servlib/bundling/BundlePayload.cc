@@ -1,4 +1,4 @@
-/*
+    /*
  *    Copyright 2004-2006 Intel Corporation
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,29 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
+
+#include <inttypes.h>
 
 #include <errno.h>
 #include <sys/types.h>
@@ -39,14 +59,20 @@ bool BundlePayload::test_no_remove_ = false;
 BundlePayload::BundlePayload(oasys::SpinLock* lock)
     : Logger("BundlePayload", "/dtn/bundle/payload"),
       location_(DISK), length_(0), 
-      cur_offset_(0), base_offset_(0), lock_(lock)
+
+      //dz debug - testing with a payload specific lock instead of using the bundle lock
+
+      //dz debug cur_offset_(0), base_offset_(0), lock_(lock)
+      cur_offset_(0), base_offset_(0), lock_(new oasys::SpinLock())
 {
+    (void) lock;
 }
 
 //----------------------------------------------------------------------
 void
 BundlePayload::init(int bundleid, location_t location)
 {
+    bundleid_ =  bundleid;
     location_ = location;
     
     logpathf("/dtn/bundle/payload/%d", bundleid);
@@ -55,6 +81,9 @@ BundlePayload::init(int bundleid, location_t location)
     if (location == MEMORY || location == NODATA) {
         return;
     }
+
+    //dz debug
+    oasys::ScopeLock l(lock_, "BundlePayload::init");
 
     // initialize the file handle for the backing store, but
     // immediately close it
@@ -71,10 +100,17 @@ BundlePayload::init(int bundleid, location_t location)
         return;
     }
 
-    oasys::StringBuffer path("%s/bundle_%d.dat",
-                             bs->payload_dir().c_str(), bundleid);
-    
+    //XXX/dz too many files in a directory causes major delay when creating files
+    oasys::StringBuffer dirpath("%s/%d",
+                             bs->payload_dir().c_str(), (bundleid / 10000));
+    //create the subdirectory if it does not exist
+    mkdir(dirpath.c_str(), 0755 ); 
 
+
+    // create the path into the subdirectory
+    oasys::StringBuffer path("%s/%d/bundle_%d.dat",
+                             bs->payload_dir().c_str(), (bundleid / 10000), bundleid);
+    
     file_.logpathf("%s/file", logpath_);
     
     int open_errno = 0;
@@ -101,7 +137,10 @@ BundlePayload::init(int bundleid, location_t location)
         PANIC("duplicate entry in open fd cache");
     }
 
-    sync_payload();
+    if (length_ > 0) {
+        // XXX/dz this will probably never be invoked
+        sync_payload();
+    }
 
     unpin_file();
 }
@@ -114,6 +153,9 @@ BundlePayload::sync_payload()
         return;
     }
 
+    //dz debug
+    oasys::ScopeLock l(lock_, "BundlePayload::sync_payload");
+
     pin_file();
     fsync(file_.fd());
     unpin_file();
@@ -125,9 +167,21 @@ BundlePayload::init_from_store(int bundleid)
 {
     location_ = DISK;
 
+
+    //dz debug
+    oasys::ScopeLock l(lock_, "BundlePayload::init_from_store");
+
     BundleStore* bs = BundleStore::instance();
-    oasys::StringBuffer path("%s/bundle_%d.dat",
-                             bs->payload_dir().c_str(), bundleid);
+
+    //XXX/dz too many files in a directory causes major delay when creating files
+    oasys::StringBuffer dirpath("%s/%d",
+                             bs->payload_dir().c_str(), (bundleid / 10000));
+    //create the subdirectory if it does not exist
+    mkdir(dirpath.c_str(), 0755 ); 
+
+    // create the path into the subdirectory
+    oasys::StringBuffer path("%s/%d/bundle_%d.dat",
+                             bs->payload_dir().c_str(), (bundleid / 10000), bundleid);
 
     file_.logpathf("%s/file", logpath_);
     
@@ -162,6 +216,10 @@ BundlePayload::~BundlePayload()
             file_.unlink();
         }
     }
+
+
+    //dz debug 
+    delete lock_;
 }
 
 //----------------------------------------------------------------------
@@ -186,11 +244,11 @@ BundlePayload::set_length(size_t length)
 
 
 //----------------------------------------------------------------------
-void
+bool
 BundlePayload::pin_file() const
 {
     if (location_ != DISK) {
-        return;
+        return true;
     }
     
     BundleStore* bs = BundleStore::instance();
@@ -198,9 +256,28 @@ BundlePayload::pin_file() const
     
     if (fd == -1) {
         if (file_.reopen(O_RDWR) < 0) {
-            log_err("error reopening file %s: %s",
-                    file_.path(), strerror(errno));
-            return;
+            // verify that the directory portion of the file path has not been corrupted
+            if (0 != strncmp(file_.path(), bs->payload_dir().c_str(), bs->payload_dir().length())) {
+                log_err("corrupted file_.path(): %s expected dir: %s  error: %s",
+                        file_.path(), bs->payload_dir().c_str(), strerror(errno));
+
+                // correct the path and try again
+                oasys::StringBuffer path("%s/%"PRIbid"/bundle_%"PRIbid".dat",
+                                         bs->payload_dir().c_str(), (bundleid_ / 10000), bundleid_);
+                file_.set_path(path.c_str());
+
+                if (file_.reopen(O_RDWR) < 0) {
+                    log_err("error reopening file after corruption fix attempt %s: %s",
+                            file_.path(), strerror(errno));
+
+                    return false;
+                }
+            } else {
+                log_err("error reopening file %s: %s",
+                        file_.path(), strerror(errno));
+
+                return false;
+            }
         }
         
         cur_offset_ = 0;
@@ -213,6 +290,8 @@ BundlePayload::pin_file() const
     } else {
         ASSERT(fd == file_.fd());
     }
+
+    return true;
 }
 
 //----------------------------------------------------------------------
@@ -254,6 +333,9 @@ BundlePayload::truncate(size_t length)
 void
 BundlePayload::copy_file(oasys::FileIOClient* dst) const
 {
+    //dz debug
+    oasys::ScopeLock l(lock_, "BundlePayload::copy_file");
+
     ASSERT(location_ == DISK);
     pin_file();
     file_.lseek(0, SEEK_SET);
@@ -364,6 +446,10 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
 void
 BundlePayload::set_data(const u_char* bp, size_t len)
 {
+
+    //dz debug
+    oasys::ScopeLock l(lock_, "BundlePayload::set_data");
+
     set_length(len);
     write_data(bp, 0, len);
 }
@@ -454,7 +540,7 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf)
         if (offset != cur_offset_) {
             file_.lseek(offset, SEEK_SET);
         }
-        
+    
         file_.readall((char*)buf, len);
         cur_offset_ = offset + len;
         

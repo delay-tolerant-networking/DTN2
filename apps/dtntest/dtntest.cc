@@ -14,11 +14,31 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
 #include <errno.h>
+#include <inttypes.h>
+
 #include <oasys/debug/Log.h>
 #include <oasys/io/FileUtils.h>
 #include <oasys/io/NetUtils.h>
@@ -496,7 +516,7 @@ public:
             return TCL_ERROR;
         }
 
-        resultf("%s,%llu.%llu",
+        resultf("%s,%"PRIu64".%"PRIu64,
                 id.source.uri, id.creation_ts.secs, id.creation_ts.seqno);
         return TCL_OK;
     }
@@ -695,7 +715,7 @@ public:
         APPEND_STRING_VAL("replyto", spec.replyto.uri, -1);
 
         char tmp[256];
-        snprintf(tmp, 256, "%llu.%llu", spec.creation_ts.secs, spec.creation_ts.seqno);
+        snprintf(tmp, 256, "%"PRIu64".%"PRIu64"", spec.creation_ts.secs, spec.creation_ts.seqno);
         
         APPEND_STRING_VAL("creation_ts", tmp, -1);
 

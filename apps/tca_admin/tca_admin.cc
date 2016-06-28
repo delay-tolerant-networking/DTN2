@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -44,6 +62,12 @@ static std::string ask_addr;        // clayer address to send ask to
 static std::string adv_string;      // published adv string
 static int registry_ttl = MAX_TTL;  // registry entry ttl
 static int control_ttl = MAX_TTL;   // control bundle ttl
+
+// Daemon connection
+
+static bool api_IP_set  = 0;
+static std::string  api_IP = "127.0.0.1";
+static unsigned int api_port  = 5010;
 
 
 static TcaController::Role  role = TcaController::TCA_MOBILE;
@@ -79,10 +103,17 @@ parse_options(int argc, const char **argv)
 
     while (!done)
     {
-        c = getopt(argc, (char **) argv, "htn:l:a:d:r:e:");
+        c = getopt(argc, (char **) argv, "htn:A:B:l:a:d:r:e:");
 
         switch (c)
         {
+        case 'A':
+            api_IP_set = 1;
+            api_IP = optarg; 
+            break;
+        case 'B':
+            api_port = (short) atoi(optarg);
+            break;
         case 'h':
             print_usage();
             exit(0);
@@ -168,6 +199,9 @@ parse_options(int argc, const char **argv)
     printf("    adv_string = '%s'\n", adv_string.c_str());
     printf("    registry_ttl = %d\n", registry_ttl);
     printf("    control_ttl = %d\n", control_ttl);
+    printf("    api_ip_set  = %d\n",api_IP_set);
+    printf("    api_ip      = %s\n",api_IP.c_str());
+    printf("    api_port    = %d\n",api_port);
     if (tidy) printf("    tidy = true\n");
     else printf("    tidy = false\n");
 
@@ -184,7 +218,7 @@ main(int argc, const char** argv)
     parse_options(argc, argv);
 
     TcaController controller(role, link_id, ask_addr, adv_string,
-                        registry_ttl, control_ttl);
+                        registry_ttl, control_ttl, api_IP_set, api_IP, api_port);
 
     if (!controller.init(tidy))
     {

@@ -32,8 +32,127 @@ extensions to the normal TCL command set. You may always use TCL
 commands and other expressions in your dtn.conf configuration file. For an
 example of this, search for <tt>[info hostname]</tt> in the sample
 <tt>daemon/dtn.conf</tt> file.
+<br>
 
-<a name="api"/>
+
+<a name="acs"></a>
+<h2> acs </h2>
+
+<p>
+Use the <tt>acs</tt> command to configure the Aggregate Custody Signal
+parameters. The definitions can be overridden for individual custodian/destination
+EID patterns.
+
+<a name="acs_set"/>
+<h4> The acs <i>set</i> command</h4>
+<p>
+
+This command is used to configure the default Aggregate Custody Signal
+parameters. These values apply if there is no ACS override for a bundle's
+custodian or destination EID.
+
+<h4> acs set </h4>
+<p>
+Syntax: <tt>acs <i>set</i> <i>arg</i> <i>val</i></tt>
+<br>
+Example: <tt>acs set enabled true</tt>
+
+<p>
+<table>
+<tr>
+<th>arg
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>enabled</tt>
+<td>true or false
+<td>true
+<td>Whether or not to generate Aggregate Custody Signals when incoming bundles
+    contain valid CTEB blocks and to attach CTEB blocks to outgoing bundles.
+
+<tr>
+<td><tt>delay</tt>
+<td>number (seconds)
+<td>30
+<td>Number of seconds to accumulate custody signals (IDs) before issuing an
+    Aggregate Custody Signal.
+
+<tr>
+<td><tt>size</tt>
+<td>number (bytes)
+<td>1000
+<td>Maximum size to allow the payload of an Aggregate Custody Signal to grow to
+    before issuing the ACS.
+
+</table>
+
+
+<a name="acs_override"/>
+<h4> The acs <i>override</i> command</h4>
+<p>
+This command is used to override the default ACS parameters for a
+specific EID pattern. While accepting custody of a bundle, the previous
+custodian's EID is used to determine which ACS parameters apply. While
+transmitting a custodial bundle, the destination EID is used to determine
+which ACS parameters apply.
+<p>
+Syntax: <tt>acs <i>override</i> <i>eid</i> <i>enabled</i> [ <i>delay</i> <i>size</i> ]</tt>
+<br>
+<p>
+Example: <tt>acs override ipn:23.* false</tt>
+<br>
+<p>
+Example : <tt>acs override dtn://foo/bar true 600 1200</tt>
+<br>
+
+<p>
+<table>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Comments
+
+<tr>
+<td><tt>eid</tt>
+<td>string
+<td> A valid EID Pattern
+
+<tr>
+<td><tt>enabled</tt>
+<td>true or false
+<td> Whether or not to enable ACS processing for the EID
+
+<tr>
+<td><tt>delay</tt>
+<td>number
+<td> Seconds to accumulate custody signals (custody IDs) before issuing an
+     ACS to the previous custodian
+
+<tr>
+<td><tt>size</tt>
+<td>number
+<td> Max size (bytes) for the payload of an ACS to the previous custodian
+</table>
+
+<a name="acs_del"/>
+<h4> The acs <i>del</i> command</h4>
+<p>
+This command is used to delete the override of the default ACS parameters for a
+specific EID.
+<p>
+Syntax: <tt>acs <i>del</i> <i>eid</i></tt>
+<br>
+<p>
+Example: <tt>acs del ipn:23.*</tt>
+<br>
+<p>
+Example : <tt>acs del dtn://foo/bar</tt>
+<br>
+
+
+<a name="api"></a>
 <h2> api </h2>
 
 <p>

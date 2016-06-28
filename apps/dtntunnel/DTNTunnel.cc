@@ -14,18 +14,45 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
+
+/* Enable inclusion of the STD C Macros */
+#ifndef __STDC_FORMAT_MACROS
+    #define __STDC_FORMAT_MACROS 1
+#endif
+#include <inttypes.h>
 
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <time.h>
-#include <sys/socket.h>
+//#ifndef CLOCK_MONOTONIC_RAW  -- clock_nanosleep does not support _RAW yet
+//#    define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
+//#endif
 
 #include "dtn_api.h"
 #include "APIEndpointIDOpt.h"
@@ -63,13 +90,30 @@ DTNTunnel::DTNTunnel()
       max_size_(32 * 1024),
       tunnel_spec_(""),
       tunnel_spec_set_(false),
-      transparent_(false)
+      socket_recv_bufsize_(0),
+      socket_send_bufsize_(0),
+      transparent_(false),
+      api_ip_("127.0.0.1"),
+      api_port_(0),
+      api_ip_set_(false),
+      ecos_enabled_(false),
+      ecos_critical_(false),
+      ecos_streaming_(false),
+      ecos_reliable_(false),
+      ecos_flow_label_set_(false),
+      ecos_flags_(0),
+      ecos_ordinal_(0),
+      ecos_flow_label_(0)
 {
     // override default logging setting
     loglevel_ = oasys::LOG_NOTICE;
     
     memset(&local_eid_, 0, sizeof(local_eid_));
     memset(&dest_eid_,  0, sizeof(dest_eid_));
+
+    throughput_stats_enabled_ = false;
+    throughput_stats_seqctr_enabled_ = false;
+    memset(&throughput_stats_, 0, sizeof(throughput_stats_));
 }
 
 //----------------------------------------------------------------------
@@ -117,13 +161,64 @@ DTNTunnel::fill_options()
                              &tunnel_spec_set_));
 
     opts_.addopt(
+        new oasys::BoolOpt('m', "monitor_statistics", &throughput_stats_enabled_,
+                           "output throughput statistics"));
+    
+    opts_.addopt(
+        new oasys::BoolOpt('q', "seq_ctr", &throughput_stats_seqctr_enabled_, 
+                           "enable 10 character sequence counter at start of payload"));
+    
+    opts_.addopt(
+        new oasys::UIntOpt('b', "recv_bufsize", &socket_recv_bufsize_, "<bytes>",
+                           "socket receive buffer size (0 = system default)"));
+    
+    opts_.addopt(
+        new oasys::UIntOpt('w', "send_bufsize", &socket_send_bufsize_, "<bytes>",
+                           "socket send buffer size (0 = system default)"));
+
+    opts_.addopt(
         new oasys::BoolOpt('r', "reorder_udp", &reorder_udp_,
                            "udp bundles received out of order will buffer until in-order deliver can be made"));
-#ifdef __linux__
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
     opts_.addopt(
         new oasys::BoolOpt('p', "transparent_proxy", &transparent_, 
     			    "proxy application traffic transparently"));
 #endif
+
+    opts_.addopt(
+        new oasys::StringOpt('A', "api ip host", &api_ip_, "<host>",
+                             "api IP host", &api_ip_set_));
+
+    opts_.addopt(
+        new oasys::UIntOpt('B', "api_port", &api_port_, "<api_port>",
+                           "api port number"));
+
+    // ECOS parameters
+    opts_.addopt(
+        new oasys::BoolOpt('C', "ECOS critical", &ecos_critical_, 
+                           "Set ECOS critical flag",
+                           &ecos_enabled_));
+
+    opts_.addopt(
+        new oasys::BoolOpt('S', "ECOS streaming", &ecos_streaming_, 
+                           "Set ECOS streaming flag",
+                           &ecos_enabled_));
+
+    opts_.addopt(
+        new oasys::BoolOpt('R', "ECOS reliable", &ecos_reliable_, 
+                           "Set ECOS critical flag",
+                           &ecos_enabled_));
+    opts_.addopt(
+        new oasys::UIntOpt('O', "ECOS ordinal value", &ecos_ordinal_, "<priority 0-254>",
+                           "Set ECOS oridinal value",
+                           &ecos_enabled_));
+
+    opts_.addopt(
+        new oasys::UIntOpt('F', "ECOS flow label", &ecos_flow_label_, "<value>",
+                           "Include an ECOS flow label",
+                           &ecos_flow_label_set_));
+
+
 }
 
 //----------------------------------------------------------------------
@@ -137,8 +232,8 @@ DTNTunnel::validate_options(int argc, char* const argv[], int remainder)
     bool dest_eid_set = false;
     if (remainder == argc - 1) {
 	// check if a destination eid table file name is given
-	char token[4] = "://";
-	if (strstr(argv[argc-1], token) != NULL) {
+	char * tokens[2] = {"://",":"};
+	if (strstr(argv[argc-1], tokens[0]) != NULL || strstr(argv[argc-1], tokens[1]) != NULL) {
 	    // have "://" in the arg => got a eid string
             if (dtn_parse_eid_string(&dest_eid_, argv[argc-1]) == -1) {
 	        fprintf(stderr, "invalid destination endpoint id '%s'\n", 
@@ -224,6 +319,20 @@ DTNTunnel::validate_options(int argc, char* const argv[], int remainder)
 	}
     }
     
+
+    // ECOS parameters
+    if (ecos_enabled_ || ecos_flow_label_set_)
+    {
+        CHECK_OPT(ecos_ordinal_ > 254,
+                  "max value for ECOS ordinal is 254");
+
+        ecos_enabled_ = true; // may not be set if only flow label specified
+        if (ecos_critical_) ecos_flags_ |= ECOS_FLAG_CRITICAL;
+        if (ecos_streaming_) ecos_flags_ |= ECOS_FLAG_STREAMING;
+        if (ecos_reliable_) ecos_flags_ |= ECOS_FLAG_RELIABLE;
+        if (ecos_flow_label_set_) ecos_flags_ |= ECOS_FLAG_FLOW_LABEL;
+    }
+
 #undef CHECK_OPT
 }
 
@@ -327,6 +436,11 @@ DTNTunnel::get_dest_eid(in_addr_t remote_addr, dtn_endpoint_id_t* dest_eid)
 void
 DTNTunnel::init_tunnel()
 {
+    if (throughput_stats_enabled_) {
+        // start a status thread which will delete itself on exit
+        new StatusThread();
+    }
+
     tcptunnel_ = new TCPTunnel();
     udptunnel_ = new UDPTunnel();
 
@@ -345,7 +459,20 @@ DTNTunnel::init_tunnel()
 void
 DTNTunnel::init_registration()
 {
-    int err = dtn_open(&recv_handle_);
+
+    int err;
+
+    if(api_ip_set_)
+    {
+       if(api_port_ == 0)api_port_  = 5010; 
+       err = dtn_open_with_IP((char *)api_ip_.c_str(),api_port_,&recv_handle_);
+    } else {
+       if(api_port_ > 0)
+           err = dtn_open_with_IP((char *)api_ip_.c_str(),api_port_,&recv_handle_);
+       else
+           err = dtn_open(&recv_handle_);
+    }
+
     if (err != DTN_SUCCESS) {
         log_crit("can't open recv handle to daemon: %s",
                  dtn_strerror(err));
@@ -434,6 +561,12 @@ DTNTunnel::send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid)
     }
     spec.expiration = expiration_;
 
+    // ECOS parameters
+    spec.ecos_enabled = ecos_enabled_;
+    spec.ecos_flags = ecos_flags_;
+    spec.ecos_ordinal = ecos_ordinal_;
+    spec.ecos_flow_label = ecos_flow_label_;
+
     dtn_bundle_payload_t payload;
     memset(&payload, 0, sizeof(payload));
 
@@ -453,8 +586,38 @@ DTNTunnel::send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid)
     err = dtn_send(send_handle_, DTN_REG_DEFER, &spec, &payload, &bundle_id);
 
     if (err != 0) {
+        log_err("error sending bundle: %d", dtn_errno(send_handle_));
         return dtn_errno(send_handle_);
     }
+    
+    // check the 10 character sequence counter and update throughput statistics
+    u_int32_t seqctr = 0;
+    if ( throughput_stats_seqctr_enabled_) {
+        const char* ctrptr = (const char*)bundle->payload_.buf() + 
+                                          bundle->payload_.len() - 10;
+        char* endptr;
+        seqctr = strtol(ctrptr, &endptr, 10);
+    }
+
+    // update throughput statistics
+    throughput_stats_lock_.lock("send_bundle");
+    ++throughput_stats_.bundles_per_sec_;
+    ++throughput_stats_.bytes_per_sec_ += bundle->payload_.len();
+    ++throughput_stats_.total_bundles_;
+    if ( throughput_stats_seqctr_enabled_) {
+        if (seqctr < throughput_stats_.seq_ctr_) {
+            ++throughput_stats_.seq_ctr_backfills_;
+            --throughput_stats_.seq_ctr_missed_;
+        } else {
+            if (seqctr > throughput_stats_.seq_ctr_ + 1) {
+                ++throughput_stats_.seq_ctr_jumps_;
+                throughput_stats_.seq_ctr_jumpsize_ += (seqctr - throughput_stats_.seq_ctr_ - 1);
+                throughput_stats_.seq_ctr_missed_ += (seqctr - throughput_stats_.seq_ctr_ - 1);
+            }
+            throughput_stats_.seq_ctr_ = seqctr;
+        }
+    }
+    throughput_stats_lock_.unlock();
     
     return DTN_SUCCESS;
 }
@@ -476,6 +639,16 @@ DTNTunnel::handle_bundle(dtn_bundle_spec_t* spec,
         return -1;
     }
     
+    // check the 10 character sequence counter and strip it from the transmission
+    u_int32_t seqctr = 0;
+    if ( throughput_stats_seqctr_enabled_) {
+        const char* ctrptr = (const char*)payload->buf.buf_val + 
+                                          payload->buf.buf_len - 10;
+        char* endptr;
+        seqctr = strtol(ctrptr, &endptr, 10);
+        len -= 10;
+    }
+
     char* dst = b->payload_.buf(len);
     memcpy(dst, payload->buf.buf_val, len);
     b->payload_.set_len(len);
@@ -492,7 +665,72 @@ DTNTunnel::handle_bundle(dtn_bundle_spec_t* spec,
         return -1;
     }
 
+    // update throughput statistics
+    throughput_stats_lock_.lock("handle_bundle");
+    ++throughput_stats_.bundles_per_sec_;
+    ++throughput_stats_.bytes_per_sec_ += payload->buf.buf_len; // length including the seq ctr
+    ++throughput_stats_.total_bundles_;
+    if ( throughput_stats_seqctr_enabled_) {
+        if (seqctr < throughput_stats_.seq_ctr_) {
+            ++throughput_stats_.seq_ctr_backfills_;
+            --throughput_stats_.seq_ctr_missed_;
+        } else {
+            if (seqctr > throughput_stats_.seq_ctr_ + 1) {
+                ++throughput_stats_.seq_ctr_jumps_;
+                throughput_stats_.seq_ctr_jumpsize_ += (seqctr - throughput_stats_.seq_ctr_ - 1);
+                throughput_stats_.seq_ctr_missed_ += (seqctr - throughput_stats_.seq_ctr_ - 1);
+            }
+            throughput_stats_.seq_ctr_ = seqctr;
+        }
+    }
+    throughput_stats_lock_.unlock();
+    
     return 0;
+}
+
+
+//----------------------------------------------------------------------
+void
+DTNTunnel::output_throughput_stats()
+{
+    throughput_stats_lock_.lock("output_throughput_stats");
+
+    u_int64_t bundles_per_sec = throughput_stats_.bundles_per_sec_;
+    u_int64_t bytes_per_sec = throughput_stats_.bytes_per_sec_;
+    u_int64_t total_bundles = throughput_stats_.total_bundles_;
+
+    throughput_stats_.bundles_per_sec_ = 0;
+    throughput_stats_.bytes_per_sec_ = 0;
+
+    if (! throughput_stats_seqctr_enabled_) {
+        throughput_stats_lock_.unlock();
+
+        // convert to Mega-bits per sec
+        double mbits_per_sec = bytes_per_sec;
+        mbits_per_sec = mbits_per_sec * 8.0 / 1000000.0;
+        printf("\rBundles:%"PRIu64" B/s:%"PRIu64" (%.3f Mb/s)   ", 
+               total_bundles, bundles_per_sec, mbits_per_sec );
+    } else {
+        u_int64_t seq_ctr = throughput_stats_.seq_ctr_;
+        u_int64_t seq_ctr_jumps = throughput_stats_.seq_ctr_jumps_;
+        u_int64_t seq_ctr_jumpsize = throughput_stats_.seq_ctr_jumpsize_;
+        u_int64_t seq_ctr_backfills = throughput_stats_.seq_ctr_backfills_;
+        u_int64_t seq_ctr_missed = throughput_stats_.seq_ctr_missed_;
+
+        throughput_stats_lock_.unlock();
+
+        // convert to Mega-bits per sec
+        double mbits_per_sec = bytes_per_sec;
+        mbits_per_sec = mbits_per_sec * 8.0 / 1000000.0;
+        printf("\rBundles:%"PRIu64" B/s:%"PRIu64" (%.3f Mb/s)   ", 
+               total_bundles, bundles_per_sec, mbits_per_sec );
+
+        printf("SeqCtr:%"PRIu64" jmps:%"PRIu64" jmpd:%"PRIu64" bkfl:%"PRIu64" miss:%"PRIu64"   ",
+               seq_ctr, seq_ctr_jumps, seq_ctr_jumpsize, 
+               seq_ctr_backfills, seq_ctr_missed );
+    }
+
+    fflush(stdout);
 }
 
 //----------------------------------------------------------------------
@@ -542,6 +780,30 @@ DTNTunnel::main(int argc, char* argv[])
     dtn_close(send_handle_);
     
     return 0;
+}
+
+//----------------------------------------------------------------------
+DTNTunnel::StatusThread::StatusThread()
+    : Thread("UDPTunnel::StatusThread", DELETE_ON_EXIT),
+      Logger("UDPTunnel::StatusThread", "/dtntunnel/statusthread") 
+{
+    start();
+}
+
+//----------------------------------------------------------------------
+void
+DTNTunnel::StatusThread::run()
+{
+    DTNTunnel* tunnel = DTNTunnel::instance();
+
+    struct timespec ts_status;
+    clock_gettime(CLOCK_MONOTONIC, &ts_status);  // _RAW not supported by clock_nanosleep yet
+    while (! should_stop()) {
+        ts_status.tv_sec += 1;
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_status, NULL);  // _RAW not supported yet
+
+        tunnel->output_throughput_stats();
+    }
 }
 
 } // namespace dtntunnel

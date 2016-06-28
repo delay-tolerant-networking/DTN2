@@ -14,9 +14,33 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
+
+#include <sys/time.h>
+#include <time.h>
+//#ifndef CLOCK_MONOTONIC_RAW  -- clock_nanosleep does not support _RAW yet
+//#    define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
+//#endif
 
 #include <oasys/io/IO.h>
 #include <oasys/tclcmd/TclCommand.h>
@@ -26,6 +50,9 @@
 #include "BundleActions.h"
 #include "BundleEvent.h"
 #include "BundleDaemon.h"
+#include "BundleDaemonInput.h"
+#include "BundleDaemonOutput.h"
+#include "BundleDaemonStorage.h"
 #include "BundleStatusReport.h"
 #include "BundleTimestamp.h"
 #include "CustodySignal.h"
@@ -35,11 +62,15 @@
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include "naming/IPNScheme.h"
 #include "reg/AdminRegistration.h"
+#include "reg/AdminRegistrationIpn.h"
 #include "reg/APIRegistration.h"
 #include "reg/PingRegistration.h"
 #include "reg/Registration.h"
+#include "reg/RegistrationInitialLoadThread.h"
 #include "reg/RegistrationTable.h"
+#include "reg/IpnEchoRegistration.h"
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
 #include "session/Session.h"
@@ -52,6 +83,17 @@
 #  include "security/Ciphersuite.h"
 #  include "security/KeyDB.h"
 #endif
+
+#ifdef ACS_ENABLED
+#  include "BundleDaemonACS.h"
+#endif // ACS_ENABLED
+
+#ifdef DTPC_ENABLED
+#  include "dtpc/DtpcDaemon.h"
+#endif // DTPC_ENABLED
+
+
+
 
 template <>
 dtn::BundleDaemon* oasys::Singleton<dtn::BundleDaemon, false>::instance_ = NULL;
@@ -66,12 +108,18 @@ BundleDaemon::Params::Params()
        retry_reliable_unacked_(true),
        test_permuted_delivery_(false),
        injected_bundles_in_memory_(false),
-       recreate_links_on_restart_(true)
+       recreate_links_on_restart_(true),
+       persistent_links_(true),
+       announce_ipn_(false),
+       serialize_apireg_bundle_lists_(false),
+       ipn_echo_service_number_(0),
+       ipn_echo_max_return_length_(0)
 {}
 
 BundleDaemon::Params BundleDaemon::params_;
 
 bool BundleDaemon::shutting_down_ = false;
+
 
 //----------------------------------------------------------------------
 BundleDaemon::BundleDaemon()
@@ -79,25 +127,41 @@ BundleDaemon::BundleDaemon()
       Thread("BundleDaemon", CREATE_JOINABLE),
       load_previous_links_executed_(false)
 {
-    // default local eid
+    // default local eids
     local_eid_.assign(EndpointID::NULL_EID());
+    local_eid_ipn_.assign(EndpointID::NULL_EID());
 
     actions_ = NULL;
     eventq_ = NULL;
     
     memset(&stats_, 0, sizeof(stats_));
 
-    all_bundles_     = new BundleList("all_bundles");
-    pending_bundles_ = new BundleList("pending_bundles");
-    custody_bundles_ = new BundleList("custody_bundles");
+    all_bundles_        = new all_bundles_t("all_bundles");
+    pending_bundles_    = new pending_bundles_t("pending_bundles");
+    custody_bundles_    = new custody_bundles_t("custody_bundles");
+    dupefinder_bundles_ = new dupefinder_bundles_t("dupefinder_bundles");
 
 #ifdef BPQ_ENABLED
-	bpq_cache_ 	     = new BPQCache();
+    bpq_cache_          = new BPQCache();
 #endif /* BPQ_ENABLED */
 
     contactmgr_ = new ContactManager();
     fragmentmgr_ = new FragmentManager();
     reg_table_ = new RegistrationTable();
+
+    BundleDaemonStorage::init();
+    daemon_storage_ = BundleDaemonStorage::instance();
+
+#ifdef ACS_ENABLED
+    BundleDaemonACS::init();
+    daemon_acs_ = BundleDaemonACS::instance();
+#endif // ACS_ENABLED
+
+    BundleDaemonInput::init();
+    daemon_input_ = BundleDaemonInput::instance();
+
+    BundleDaemonOutput::init();
+    daemon_output_ = BundleDaemonOutput::instance();
 
     router_ = 0;
 
@@ -106,14 +170,36 @@ BundleDaemon::BundleDaemon()
 
     rtr_shutdown_proc_ = 0;
     rtr_shutdown_data_ = 0;
+
+#ifdef BDSTATS_ENABLED
+    bdstats_init_ = true;
+    memset(&bdstats_posted_, 0, sizeof(bdstats_posted_));
+    memset(&bdstats_processed_, 0, sizeof(bdstats_processed_));
+#endif // BDSTATS_ENABLED
+
 }
 
 //----------------------------------------------------------------------
 BundleDaemon::~BundleDaemon()
 {
-    delete all_bundles_;
+    daemon_input_->set_should_stop();
+    daemon_output_->set_should_stop();
+
+#ifdef ACS_ENABLED
+    daemon_acs_->set_should_stop();
+#endif // ACS_ENABLED
+
+#ifdef DTPC_ENABLED
+    DtpcDaemon::instance()->set_should_stop();
+#endif // DTPC_ENABLED
+
+
+    daemon_storage_->set_should_stop();
+
     delete pending_bundles_;
     delete custody_bundles_;
+    delete dupefinder_bundles_;
+    delete all_bundles_;
 
 #ifdef BPQ_ENABLED
     delete bpq_cache_;
@@ -122,6 +208,9 @@ BundleDaemon::~BundleDaemon()
     delete contactmgr_;
     delete fragmentmgr_;
     delete reg_table_;
+
+    sleep(1);
+
     delete router_;
 
     delete actions_;
@@ -144,6 +233,20 @@ BundleDaemon::do_init()
 
 //----------------------------------------------------------------------
 void
+BundleDaemon::set_local_eid(const char* eid_str) 
+{
+    local_eid_.assign(eid_str);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::set_local_eid_ipn(const char* eid_str) 
+{
+    local_eid_ipn_.assign(eid_str);
+}
+
+//----------------------------------------------------------------------
+void
 BundleDaemon::init()
 {       
     if (instance_ != NULL) 
@@ -159,14 +262,84 @@ BundleDaemon::init()
 void
 BundleDaemon::post(BundleEvent* event)
 {
-    instance_->post_event(event);
+    switch (event->event_processor_) {
+        case EVENT_PROCESSOR_INPUT:
+        {
+            BundleDaemonInput* daemon_input = BundleDaemonInput::instance();
+            daemon_input->post(event);
+        }
+        break;
+
+        case EVENT_PROCESSOR_OUTPUT:
+        {
+            BundleDaemonOutput* daemon_output = BundleDaemonOutput::instance();
+            daemon_output->post(event);
+        }
+        break;
+
+        case EVENT_PROCESSOR_STORAGE:
+        {
+            BundleDaemonStorage* daemon_storage = BundleDaemonStorage::instance();
+            daemon_storage->post(event);
+        }
+        break;
+
+#ifdef DTPC_ENABLED
+        case EVENT_PROCESSOR_DTPC:
+        {
+            DtpcDaemon* dtpc_daemon = DtpcDaemon::instance();
+            dtpc_daemon->post(event);
+        }
+        break;
+#endif
+
+        default:
+        {
+            instance_->post_event(event);
+        }
+    }
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::post_at_head(BundleEvent* event)
 {
-    instance_->post_event(event, false);
+    switch (event->event_processor_) {
+        case EVENT_PROCESSOR_INPUT:
+        {
+            BundleDaemonInput* daemon_input = BundleDaemonInput::instance();
+            daemon_input->post_at_head(event);
+        }
+        break;
+
+        case EVENT_PROCESSOR_OUTPUT:
+        {
+            BundleDaemonOutput* daemon_output = BundleDaemonOutput::instance();
+            daemon_output->post_at_head(event);
+        }
+        break;
+
+        case EVENT_PROCESSOR_STORAGE:
+        {
+            BundleDaemonStorage* daemon_storage = BundleDaemonStorage::instance();
+            daemon_storage->post_at_head(event);
+        }
+        break;
+
+#ifdef DTPC_ENABLED
+        case EVENT_PROCESSOR_DTPC:
+        {
+            DtpcDaemon* dtpc_daemon = DtpcDaemon::instance();
+            dtpc_daemon->post_at_head(event);
+        }
+        break;
+#endif
+
+        default:
+        {
+            instance_->post_event(event, false);
+        }
+    }
 }
 
 //----------------------------------------------------------------------
@@ -180,23 +353,62 @@ BundleDaemon::post_and_wait(BundleEvent* event,
      * start. Otherwise the wait call below would block indefinitely.
      */
     ASSERT(! oasys::Thread::start_barrier_enabled());
+
+    switch (event->event_processor_) {
+        case EVENT_PROCESSOR_INPUT:
+        {
+            BundleDaemonInput* daemon_input = BundleDaemonInput::instance();
+            return daemon_input->post_and_wait(event, notifier, timeout, at_back);
+        }
+
+        case EVENT_PROCESSOR_OUTPUT:
+        {
+            BundleDaemonOutput* daemon_output = BundleDaemonOutput::instance();
+            return daemon_output->post_and_wait(event, notifier, timeout, at_back);
+        }
+        break;
+
+        case EVENT_PROCESSOR_STORAGE:
+        {
+            BundleDaemonStorage* daemon_storage = BundleDaemonStorage::instance();
+            return daemon_storage->post_and_wait(event, notifier, timeout, at_back);
+        }
     
-    ASSERT(event->processed_notifier_ == NULL);
-    event->processed_notifier_ = notifier;
-    if (at_back) {
-        post(event);
-    } else {
-        post_at_head(event);
+#ifdef DTPC_ENABLED
+        case EVENT_PROCESSOR_DTPC:
+        {
+            DtpcDaemon* dtpc_daemon = DtpcDaemon::instance();
+            return dtpc_daemon->post_and_wait(event, notifier, timeout, at_back);
+        }
+        break;
+#endif
+
+        default:
+        {
+            ASSERT(event->processed_notifier_ == NULL);
+            event->processed_notifier_ = notifier;
+            if (at_back) {
+                post(event);
+            } else {
+                post_at_head(event);
+            }
+            return notifier->wait(NULL, timeout);
+        }
     }
-    return notifier->wait(NULL, timeout);
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::post_event(BundleEvent* event, bool at_back)
 {
+#ifdef BDSTATS_ENABLED
+    // update the posted event stats
+    bdstats_update(&bdstats_posted_, event);
+#endif // BDSTATS_ENABLED
+
     log_debug("posting event (%p) with type %s (at %s)",
               event, event->type_str(), at_back ? "back" : "head");
+
     event->posted_time_.get_time();
     eventq_->push(event, at_back);
 }
@@ -218,32 +430,36 @@ BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
 #ifdef BPQ_ENABLED
     snprintf(bpq_stats, 128, "%zu bpq -- ", bpq_cache()->size());
 #else
-    snprintf(bpq_stats, 128,  "-- bpq -- ");
+    bpq_stats[0] = 0; // no extra stats if BPQ not enabled
 #endif /* BPQ_ENABLED */
 
 
     buf->appendf("%zu pending -- "
                  "%zu custody -- "
-            	 "%s bpq -- "
-                 "%u received -- "
-                 "%u delivered -- "
-                 "%u generated -- "
-                 "%u transmitted -- "
-                 "%u expired -- "
-                 "%u duplicate -- "
-                 "%u deleted -- "
-                 "%u injected",
+            	 "%s"
+                 "%"PRIbid" received -- "
+                 "%"PRIbid" delivered -- "
+                 "%"PRIbid" generated -- "
+                 "%"PRIbid" transmitted -- "
+                 "%"PRIbid" expired -- "
+                 "%"PRIbid" duplicate -- "
+                 "%"PRIbid" deleted -- "
+                 "%"PRIbid" injected -- "
+                 "%"PRIbid" rejected -- "
+                 "%"PRIbid" suppressed_dlv",
                  pending_bundles()->size(),
                  custody_bundles()->size(),
                  bpq_stats,
-                 stats_.received_bundles_,
+                 daemon_input_->get_received_bundles(),
                  stats_.delivered_bundles_,
-                 stats_.generated_bundles_,
+                 daemon_input_->get_generated_bundles(),
                  stats_.transmitted_bundles_,
                  stats_.expired_bundles_,
-                 stats_.duplicate_bundles_,
+                 daemon_input_->get_duplicate_bundles(),
                  stats_.deleted_bundles_,
-                 stats_.injected_bundles_);
+                 stats_.injected_bundles_,
+                 daemon_input_->get_rejected_bundles(),
+                 stats_.suppressed_delivery_);
 }
 
 //----------------------------------------------------------------------
@@ -251,7 +467,7 @@ void
 BundleDaemon::get_daemon_stats(oasys::StringBuffer* buf)
 {
     buf->appendf("%zu pending_events -- "
-                 "%u processed_events -- "
+                 "%"PRIbid" processed_events -- "
                  "%zu pending_timers",
                  event_queue_size(),
                  stats_.events_processed_,
@@ -264,6 +480,10 @@ void
 BundleDaemon::reset_stats()
 {
     memset(&stats_, 0, sizeof(stats_));
+
+    daemon_input_->reset_stats();
+    daemon_output_->reset_stats();
+    daemon_storage_->reset_stats();
 
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::reset_stats");
     
@@ -284,11 +504,25 @@ BundleDaemon::generate_status_report(Bundle* orig_bundle,
               "flag = 0x%x, reason = 0x%x", flag, reason);
     
     Bundle* report = new Bundle();
-    BundleStatusReport::create_status_report(report, orig_bundle,
-                                             local_eid_, flag, reason);
-    
-    BundleReceivedEvent e(report, EVENTSRC_ADMIN);
-    handle_event(&e);
+
+    bool use_eid_ipn = false;
+    if (local_eid_ipn_.scheme() == IPNScheme::instance()) {
+        if (orig_bundle->replyto().equals(EndpointID::NULL_EID())){
+            use_eid_ipn = (orig_bundle->source().scheme() == IPNScheme::instance());
+        } else {
+            use_eid_ipn = (orig_bundle->replyto().scheme() == IPNScheme::instance());
+        }
+    }
+
+    if (use_eid_ipn) {
+        BundleStatusReport::create_status_report(report, orig_bundle,
+                                                 local_eid_ipn_, flag, reason);
+    } else {
+        BundleStatusReport::create_status_report(report, orig_bundle,
+                                                 local_eid_, flag, reason);
+    }
+
+    BundleDaemon::post(new BundleReceivedEvent(report, EVENTSRC_ADMIN) );
 	s10_bundle(S10_TXADMIN,report,NULL,0,0,orig_bundle,"status report");
 }
 
@@ -309,12 +543,27 @@ BundleDaemon::generate_custody_signal(Bundle* bundle, bool succeeded,
         return;
     }
     
+#ifdef ACS_ENABLED
+    if (bundle->cteb_valid()) {
+        if (BundleDaemonACS::instance()->generate_custody_signal(
+                                            bundle, succeeded, reason)) {
+            // if ACS is providing the signal then nothing further to do
+            return;
+        }
+    }
+#endif // ACS_ENABLED
+
+     // send a normal custody signal
     Bundle* signal = new Bundle();
-    CustodySignal::create_custody_signal(signal, bundle, local_eid_,
-                                         succeeded, reason);
-    
-    BundleReceivedEvent e(signal, EVENTSRC_ADMIN);
-    handle_event(&e);
+    if (bundle->custodian().scheme() == IPNScheme::instance()) {
+        CustodySignal::create_custody_signal(signal, bundle, local_eid_ipn_,
+                                             succeeded, reason);
+    } else {
+        CustodySignal::create_custody_signal(signal, bundle, local_eid_,
+                                             succeeded, reason);
+    }
+ 
+    BundleDaemon::post(new BundleReceivedEvent(signal, EVENTSRC_ADMIN));
 	s10_bundle(S10_TXADMIN,signal,NULL,0,0,bundle,"custody signal");
 
 }
@@ -323,12 +572,11 @@ BundleDaemon::generate_custody_signal(Bundle* bundle, bool succeeded,
 void
 BundleDaemon::cancel_custody_timers(Bundle* bundle)
 {
-    oasys::ScopeLock l(bundle->lock(), "BundleDaemon::cancel_custody_timers");
-    
-    CustodyTimerVec::iterator iter;
-    for (iter =  bundle->custody_timers()->begin();
-         iter != bundle->custody_timers()->end();
-         ++iter)
+    bundle->lock()->lock("BundleDaemon::cancel_custody_timers #1");
+    CustodyTimerVec::iterator iter =  bundle->custody_timers()->begin();
+    bundle->lock()->unlock();
+
+    while ( iter != bundle->custody_timers()->end())
     {
         bool ok = (*iter)->cancel();
         if (!ok) {
@@ -336,11 +584,22 @@ BundleDaemon::cancel_custody_timers(Bundle* bundle)
                      bundle);
         }
         
+        // release the bundle ref so the bundle can be freed
+        // before the timer expires
+        (*iter)->bundle_.release();
+        
         // the timer will be deleted when it bubbles to the top of the
         // timer queue
+
+        bundle->lock()->lock("BundleDaemon::cancel_custody_timers #2");
+        ++iter;
+        bundle->lock()->unlock();
+ 
     }
     
+    bundle->lock()->lock("BundleDaemon::cancel_custody_timers #3");
     bundle->custody_timers()->clear();
+    bundle->lock()->unlock();
 }
 
 //----------------------------------------------------------------------
@@ -355,13 +614,14 @@ BundleDaemon::accept_custody(Bundle* bundle)
         return;
     }
 
-    if (bundle->custodian().equals(local_eid_)) {
+    if ( bundle->custodian().equals(local_eid_) ||
+         bundle->custodian().equals(local_eid_ipn_) ) {
         log_err("send_custody_signal(*%p): "
                 "current custodian is already local_eid",
                 bundle);
         return;
     }
-    
+
     // send a custody acceptance signal to the current custodian (if
     // it is someone, and not the null eid)
     if (! bundle->custodian().equals(EndpointID::NULL_EID())) {
@@ -370,10 +630,31 @@ BundleDaemon::accept_custody(Bundle* bundle)
 	// next line is  for S10
 	EndpointID prev_custodian=bundle->custodian();
 
+
+    // XXX/dz Need a lock because changing the custodian can happen between the 
+    // time the BerkelyDBTable::put() calculates the size for the buffer and
+    // when it serializes the bundle into the buffer. If the current custodian
+    // is a longer string than the previous one then it aborts with error.
+    bundle->lock()->lock("BundleDaemon::accept_custody()");
+    
     // now we mark the bundle to indicate that we have custody and add
     // it to the custody bundles list
-    bundle->mutable_custodian()->assign(local_eid_);
+    if (bundle->dest().scheme() == IPNScheme::instance())  {
+        bundle->mutable_custodian()->assign(local_eid_ipn_);
+    } else {
+        bundle->mutable_custodian()->assign(local_eid_);
+    }
+
     bundle->set_local_custody(true);
+
+#ifdef ACS_ENABLED
+    // accept custody for ACS before updating to the datastore so that
+    // the CTEB block can be added and then saved in one write
+    BundleDaemonACS::instance()->accept_custody(bundle);
+#endif // ACS_ENABLED
+
+    bundle->lock()->unlock();
+
     actions_->store_update(bundle);
     
     custody_bundles_->push_back(bundle);
@@ -385,6 +666,10 @@ BundleDaemon::accept_custody(Bundle* bundle)
                                BundleStatusReport::STATUS_CUSTODY_ACCEPTED);
     }
 	s10_bundle(S10_TAKECUST,bundle,prev_custodian.c_str(),0,0,NULL,NULL);
+
+
+    // generate custody taken event for the external router
+    BundleDaemon::post(new BundleCustodyAcceptedEvent(bundle));
 }
 
 //----------------------------------------------------------------------
@@ -406,13 +691,25 @@ BundleDaemon::release_custody(Bundle* bundle)
     actions_->store_update(bundle);
 
     custody_bundles_->erase(bundle);
+
+#ifdef ACS_ENABLED
+    // and also remove it from the ACS custody id list
+    BundleDaemonACS::instance()->erase_from_custodyid_list(bundle);
+#endif // ACS_ENABLED
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::deliver_to_registration(Bundle* bundle,
-                                      Registration* registration)
+                                      Registration* registration,
+                                      bool initial_load)
 {
+    if ( !initial_load && NULL != registration->initial_load_thread() ) {
+        // Registration is currently being loaded with pending bundles and
+        // this new bundle will get picked up in the proper order
+        return;
+    }
+
     ASSERT(!bundle->is_fragment());
 
     ForwardingInfo::state_t state = bundle->fwdlog()->get_latest_entry(registration);
@@ -430,9 +727,11 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
     default:
         log_warn("deliver_to_registration called with bundle not marked " \
                  "as PENDING_DELIVERY.  Delivering anyway...");
+        // XXX/dz this was marking the bundle ForwardingInfo::DELIVERED but that  
+        // is now done while processing the BundleDelivered events
         bundle->fwdlog()->add_entry(registration,
                                     ForwardingInfo::FORWARD_ACTION,
-                                    ForwardingInfo::DELIVERED);
+                                    ForwardingInfo::PENDING_DELIVERY);
         break;
     }
 
@@ -474,18 +773,30 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
             log_debug("not updating registration %s",
                       registration->endpoint().c_str());
         } else {
-            log_debug("updating registration %s",
-                      api_reg->endpoint().c_str());
-            bundle->fwdlog()->update(registration,
-                                     ForwardingInfo::DELIVERED);
-            oasys::ScopeLock l(api_reg->lock(), "new bundle for reg");
-            api_reg->update();
+            // XXX/dz  BundleDelivered event processing now handles this
+            //log_debug("updating registration %s",
+            //          api_reg->endpoint().c_str());
+            //bundle->fwdlog()->update(registration,
+            //                         ForwardingInfo::DELIVERED);
+            //oasys::ScopeLock l(api_reg->lock(), "new bundle for reg");
+            //api_reg->update();
         }
     } else {
+        ++stats_.suppressed_delivery_;
         log_notice("suppressing duplicate delivery of bundle *%p "
-                   "to registration %d (%s)",
+                   "to registration %d (%s) - and deleting bundle",
                    bundle, registration->regid(),
                    registration->endpoint().c_str());
+
+        // Inform router it was "delivered"
+        BundleDeliveredEvent* event = new BundleDeliveredEvent(bundle, registration);
+        router_->handle_event(event);
+        delete event;
+
+        BundleRef bref("deliver_dupe_suppressed");
+        bref = bundle;
+        //dz debug  try_to_delete(bref);
+        delete_bundle(bref);
     }
 }
 
@@ -556,9 +867,6 @@ BundleDaemon::check_and_deliver_to_registrations(Bundle* bundle, const EndpointI
 void
 BundleDaemon::handle_bundle_delete(BundleDeleteRequest* request)
 {
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
     if (request->bundle_.object()) {
         log_info("BUNDLE_DELETE: bundle *%p (reason %s)",
                  request->bundle_.object(),
@@ -567,19 +875,24 @@ BundleDaemon::handle_bundle_delete(BundleDeleteRequest* request)
     }
 }
 
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_take_custody(BundleTakeCustodyRequest* request)
+{
+    if (request->bundleref_.object()) {
+            accept_custody(request->bundleref_.object());
+    }
+}
+
 //----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_acknowledged_by_app(BundleAckEvent* ack)
 {
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
-    log_debug("ack from regid(%d): (%s: (%qu, %qu))",
+    log_debug("ack from regid(%d): (%s: (%"PRIu64", %"PRIu64"))",
               ack->regid_,
               ack->sourceEID_.c_str(),
               ack->creation_ts_.seconds_, ack->creation_ts_.seqno_);
-
-    //const RegistrationTable* reg_table = BundleDaemon::instance()->reg_table();
 
     // Make sure we're happy with the registration provided.
     Registration* reg = reg_table_->get(ack->regid_);
@@ -600,396 +913,23 @@ BundleDaemon::handle_bundle_acknowledged_by_app(BundleAckEvent* ack)
 void
 BundleDaemon::handle_bundle_accept(BundleAcceptRequest* request)
 {
-    *request->result_ =
-        router_->accept_bundle(request->bundle_.object(), request->reason_);
-
-    log_info("BUNDLE_ACCEPT_REQUEST: bundle *%p %s (reason %s)",
-             request->bundle_.object(),
-             *request->result_ ? "accepted" : "not accepted",
-             BundleStatusReport::reason_to_str(*request->reason_));
+    (void) request;
+    ASSERTF(false, "handle_bundle_accept() was moved to BundleDaemonInput");
 }
     
 //----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 {
-    log_info_p("/dtn/bundle/protocol", "handle_bundle_received: begin");
-
-    const BundleRef& bundleref = event->bundleref_;
-    Bundle* bundle = bundleref.object();
-
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
-    // update statistics and store an appropriate event descriptor
-    const char* source_str = "";
-    switch (event->source_) {
-    case EVENTSRC_PEER:
-        stats_.received_bundles_++;
-		if (event->link_.object()) {
-			s10_bundle(S10_RX,bundle,event->link_.object()->nexthop(),0,0,NULL,"link");
-		} else {
-			s10_bundle(S10_RX,bundle,event->prevhop_.c_str(),0,0,NULL,"nolink");
-		}
-        break;
-        
-    case EVENTSRC_APP:
-        stats_.received_bundles_++;
-        source_str = " (from app)";
-	oasys::DurableStore::instance()->make_transaction_durable();
-
-		if (event->registration_ != NULL) {
-			s10_bundle(S10_FROMAPP,bundle,event->registration_->endpoint().c_str(),0,0,NULL,NULL);
-		} else {
-			s10_bundle(S10_FROMAPP,bundle,"dunno",0,0,NULL,NULL);
-		}
-        break;
-        
-    case EVENTSRC_STORE:
-        source_str = " (from data store)";
-		s10_bundle(S10_FROMDB,bundle,NULL,0,0,NULL,NULL);
-        break;
-        
-    case EVENTSRC_ADMIN:
-        stats_.generated_bundles_++;
-        source_str = " (generated)";
-        break;
-        
-    case EVENTSRC_FRAGMENTATION:
-        stats_.generated_bundles_++;
-        source_str = " (from fragmentation)";
-		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
-		log_debug("S10_OHCRAP - event source: %s", source_str);
-        break;
-
-    case EVENTSRC_ROUTER:
-        stats_.generated_bundles_++;
-        source_str = " (from router)";
-		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
-		log_debug("S10_OHCRAP - event source: %s", source_str);
-        break;
-
-    case EVENTSRC_CACHE:
-        stats_.generated_bundles_++;
-        source_str = " (from cache)";
-        s10_bundle(S10_FROMCACHE,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
-        break;
-
-    default:
-		s10_bundle(S10_OHCRAP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
-		log_debug("S10_OHCRAP - unknown event source: %d", event->source_);
-        NOTREACHED;
-    }
-
-    // if debug logging is enabled, dump out a verbose printing of the
-    // bundle, including all options, otherwise, a more terse log
-    if (log_enabled(oasys::LOG_DEBUG)) {
-        oasys::StaticStringBuffer<2048> buf;
-        buf.appendf("BUNDLE_RECEIVED%s: prevhop %s (%u bytes recvd)\n",
-                    source_str, event->prevhop_.c_str(), event->bytes_received_);
-        bundle->format_verbose(&buf);
-        log_multiline(oasys::LOG_DEBUG, buf.c_str());
-    } else {
-        log_info("BUNDLE_RECEIVED%s *%p prevhop %s (%u bytes recvd)",
-                 source_str, bundle, event->prevhop_.c_str(), event->bytes_received_);
-    }
-    
-    // XXX/kscott Logging bundle reception to forwarding log moved to below.
-
-    // log a warning if the bundle doesn't have any expiration time or
-    // has a creation time that's in the future. in either case, we
-    // proceed as normal
-    if (bundle->expiration() == 0) {
-        log_warn("bundle id %d arrived with zero expiration time",
-                 bundle->bundleid());
-    }
-
-    u_int32_t now = BundleTimestamp::get_current_time();
-    if ((bundle->creation_ts().seconds_ > now) &&
-        (bundle->creation_ts().seconds_ - now > 30000))
-    {
-        log_warn("bundle id %d arrived with creation time in the future "
-                 "(%llu > %u)",
-                 bundle->bundleid(), bundle->creation_ts().seconds_, now);
-    }
-   
-    // log a warning if the bundle's creation timestamp is 0, indicating 
-    // that an AEB should exist 
-    if (bundle->creation_ts().seconds_ == 0) {
-        log_info_p("/dtn/bundle/protocol", "creation time is 0, AEB should exist");
-        log_warn_p("dtn/bundle/extblock/aeb", "AEB: bundle id %d arrived with creation time of 0", 
-                 bundle->bundleid());
-    }
-
-    /*
-     * If a previous hop block wasn't included, but we know the remote
-     * endpoint id of the link where the bundle arrived, assign the
-     * prevhop_ field in the bundle so it's available for routing.
-     */
-    if (event->source_ == EVENTSRC_PEER)
-    {
-        if (bundle->prevhop()       == EndpointID::NULL_EID() ||
-            bundle->prevhop().str() == "")
-        {
-            bundle->mutable_prevhop()->assign(event->prevhop_);
-        }
-
-        if (bundle->prevhop() != event->prevhop_)
-        {
-            log_warn("previous hop mismatch: prevhop header contains '%s' but "
-                     "convergence layer indicates prevhop is '%s'",
-                     bundle->prevhop().c_str(),
-                     event->prevhop_.c_str());
-        }
-    }
-    
-    /*
-     * Check if the bundle isn't complete. If so, do reactive
-     * fragmentation.
-     */
-    if (event->source_ == EVENTSRC_PEER) {
-        ASSERT(event->bytes_received_ != 0);
-        fragmentmgr_->try_to_convert_to_fragment(bundle);
-    }
-
-    /*
-     * validate a bundle, including all bundle blocks, received from a peer
-     */
-    if (event->source_ == EVENTSRC_PEER) { 
-
-        /*
-         * Check all BlockProcessors to validate the bundle.
-         */
-        status_report_reason_t
-            reception_reason = BundleProtocol::REASON_NO_ADDTL_INFO,
-            deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
-
-        
-        log_info("handle_bundle_received: validating bundle: calling BlockProcessors?");
-        bool valid = BundleProtocol::validate(bundle,
-                                              &reception_reason,
-                                              &deletion_reason);
-        
-        /*
-         * Send the reception receipt if requested within the primary
-         * block or some other error occurs that requires a reception
-         * status report but may or may not require deleting the whole
-         * bundle.
-         */
-        if (bundle->receive_rcpt() ||
-            reception_reason != BundleProtocol::REASON_NO_ADDTL_INFO)
-        {
-            generate_status_report(bundle, BundleStatusReport::STATUS_RECEIVED,
-                                   reception_reason);
-        }
-
-        /*
-         * If the bundle is valid, probe the router to see if it wants
-         * to accept the bundle.
-         */
-        bool accept_bundle = false;
-        if (valid) {
-            int reason = BundleProtocol::REASON_NO_ADDTL_INFO;
-            accept_bundle = router_->accept_bundle(bundle, &reason);
-            deletion_reason = static_cast<BundleProtocol::status_report_reason_t>(reason);
-        }
-        
-        /*
-         * Delete a bundle if a validation error was encountered or
-         * the router doesn't want to accept the bundle, in both cases
-         * not giving the reception event to the router.
-         */
-        if (!accept_bundle) {
-            delete_bundle(bundleref, deletion_reason);
-            event->daemon_only_ = true;
-            return;
-        }
-    }
-    
-    /*
-     * Check if the bundle is a duplicate, i.e. shares a source id,
-     * timestamp, and fragmentation information with some other bundle
-     * in the system.
-     */
-    Bundle* duplicate = find_duplicate(bundle);
-    if (duplicate != NULL) {
-        log_notice("got duplicate bundle: %s -> %s creation %llu.%llu",
-                   bundle->source().c_str(),
-                   bundle->dest().c_str(),
-                   bundle->creation_ts().seconds_,
-                   bundle->creation_ts().seqno_);
-		s10_bundle(S10_DUP,bundle,NULL,0,0,NULL,"__FILE__:__LINE__");
-
-        stats_.duplicate_bundles_++;
-        
-        if (bundle->custody_requested() && duplicate->local_custody())
-        {
-            generate_custody_signal(bundle, false,
-                                    BundleProtocol::CUSTODY_REDUNDANT_RECEPTION);
-        }
-
-        if (params_.suppress_duplicates_) {
-            // since we don't want the bundle to be processed by the rest
-            // of the system, we mark the event as daemon_only (meaning it
-            // won't be forwarded to routers) and return, which should
-            // eventually remove all references on the bundle and then it
-            // will be deleted
-            event->daemon_only_ = true;
-            return;
-        }
-
-        // The BP says that the "dispatch pending" retention constraint
-        // must be removed from this bundle if there is a duplicate we
-        // currently have custody of. This would cause the bundle to have
-        // no retention constraints and it now "may" be discarded. Assuming
-        // this means it is supposed to be discarded, we have to suppress
-        // a duplicate in this situation regardless of the parameter
-        // setting. We would then be relying on the custody transfer timer
-        // to cause a new forwarding attempt in the case of routing loops
-        // instead of the receipt of a duplicate, so in theory we can indeed
-        // suppress this bundle. It may not be strictly required to do so,
-        // in which case we can remove the following block.
-        if (bundle->custody_requested() && duplicate->local_custody()) {
-            event->daemon_only_ = true;
-            return;
-        }
-
-    }
-
-#ifdef BPQ_ENABLED
-    /*
-     * If the BPQ cache has been enabled and the bundle event is coming from
-     * one of these sources. Try to handle the a BPQ extension block. This
-     * will bounce back out if there is no extension block present.
-     */
-    if ( bpq_cache()->cache_enabled_ ) {
-    	// try to handle a BPQ block
-    	if ( event->source_ == EVENTSRC_APP   ||
-			 event->source_ == EVENTSRC_PEER  ||
-			 event->source_ == EVENTSRC_STORE ||
-			 event->source_ == EVENTSRC_FRAGMENTATION) {
-
-			handle_bpq_block(bundle, event);
-		}
-    }
-
-    /*
-     * If the bundle contains a BPQ query that was successfully answered
-     * a response has already been sent and the query need not be forwarded
-     * so return from this function
-     */
-    if ( event->daemon_only_ ) {
-        return;
-    }
-#endif /* BPQ_ENABLED */
-
-    /*
-     * Add the bundle to the master pending queue and the data store
-     * (unless the bundle was just reread from the data store on startup)
-     *
-     * Note that if add_to_pending returns false, the bundle has
-     * already expired so we immediately return instead of trying to
-     * deliver and/or forward the bundle. Otherwise there's a chance
-     * that expired bundles will persist in the network.
-     *
-     * add_to_pending writes the bundle to the durable store
-     */
-    bool ok_to_route =
-        add_to_pending(bundle, (event->source_ != EVENTSRC_STORE));
-
-    if (!ok_to_route) {
-        event->daemon_only_ = true;
-        return;
-    }
-    
-    // log the reception in the bundle's forwarding log
-    if (event->source_ == EVENTSRC_PEER && event->link_ != NULL)
-    {
-        bundle->fwdlog()->add_entry(event->link_,
-                                    ForwardingInfo::FORWARD_ACTION,
-                                    ForwardingInfo::RECEIVED);
-    }
-    else if (event->source_ == EVENTSRC_APP)
-    {
-        if (event->registration_ != NULL) {
-            bundle->fwdlog()->add_entry(event->registration_,
-                                        ForwardingInfo::FORWARD_ACTION,
-                                        ForwardingInfo::RECEIVED);
-        }
-    }
-
-    /*
-     * If the bundle is a custody bundle and we're configured to take
-     * custody, then do so. In case the event was delivered due to a
-     * reload from the data store, then if we have local custody, make
-     * sure it's added to the custody bundles list.
-     */
-    if (bundle->custody_requested() && params_.accept_custody_
-        && (duplicate == NULL || !duplicate->local_custody()))
-    {
-        if (event->source_ != EVENTSRC_STORE) {
-            accept_custody(bundle);
-        
-        } else if (bundle->local_custody()) {
-            custody_bundles_->push_back(bundle);
-        }
-    }
-
-    /*
-     * If this bundle is a duplicate and it has not been suppressed, we
-     * can assume the bundle it duplicates has already been delivered or
-     * added to the fragment manager if required, so do not do so again.
-     * We can bounce out now.
-     * XXX/jmmikkel If the extension blocks differ and we care to
-     * do something with them, we can't bounce out quite yet.
-     */
-    if (duplicate != NULL) {
-        return;
-    }
-
-    /*
-     * Check if this is a complete (non-fragment) bundle that
-     * obsoletes any fragments that we know about.
-     */
-    if (! bundle->is_fragment()) {
-        fragmentmgr_->delete_obsoleted_fragments(bundle);
-    }
-
-    /*
-     * Deliver the bundle to any local registrations that it matches,
-     * unless it's generated by the router or is a bundle fragment.
-     * Delivery of bundle fragments is deferred until after re-assembly.
-     */
-    if ( event->source_==EVENTSRC_STORE ) {
-        generate_delivery_events(bundle);
-    } else {
-        bool is_local =
-            check_local_delivery(bundle,
-                                 (event->source_        != EVENTSRC_ROUTER) &&
-                                 (bundle->is_fragment() == false));
-        /*
-         * Re-assemble bundle fragments that are destined to the local node.
-         */
-        if (event->source_ != EVENTSRC_FRAGMENTATION && bundle->is_fragment() && is_local) {
-            log_debug("deferring delivery of bundle *%p "
-                      "since bundle is a fragment", bundle);
-            fragmentmgr_->process_for_reassembly(bundle);
-        }
-
-    }
-
-    /*
-     * Finally, bounce out so the router(s) can do something further
-     * with the bundle in response to the event before we check to 
-     * see if it needs to be delivered locally.
-     */
-    log_info_p("/dtn/bundle/protocol", "BundleDaemon::handle_bundle_received: end");
+    (void) event;
+    // all processing moved to Input thread - fall through to see if bundle can be deleted
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::handle_deliver_bundle_to_reg(DeliverBundleToRegEvent* event)
 {
+
     const RegistrationTable* reg_table = 
             BundleDaemon::instance()->reg_table();
 
@@ -1005,11 +945,8 @@ BundleDaemon::handle_deliver_bundle_to_reg(DeliverBundleToRegEvent* event)
         return;
     }
 
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
     Bundle* bundle = bundleref.object();
-    log_debug("Delivering bundle id:%d to registration %d %s",
+    log_debug("Delivering bundle id:%"PRIbid" to registration %d %s",
               bundle->bundleid(),
               registration->regid(),
               registration->endpoint().c_str());
@@ -1025,11 +962,8 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 
     LinkRef link = event->link_;
     ASSERT(link != NULL);
-    
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
 
-    log_debug("trying to find xmit blocks for bundle id:%d on link %s",
+    log_debug("trying to find xmit blocks for bundle id:%"PRIbid" on link %s",
               bundle->bundleid(),link->name());
     BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(link);
     
@@ -1041,7 +975,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     if(blocks == NULL)
     {
         log_info("received a redundant/conflicting bundle_transmit event about "
-                 "bundle id:%d -> %s (%s)",
+                 "bundle id:%"PRIbid" -> %s (%s)",
                  bundle->bundleid(),
                  link->name(),
                  link->nexthop());
@@ -1057,30 +991,56 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     size_t total_len = BundleProtocol::total_length(blocks);
     
-    stats_.transmitted_bundles_++;
-    
-    link->stats()->bundles_transmitted_++;
-    link->stats()->bytes_transmitted_ += event->bytes_sent_;
 
     // remove the bundle from the link's in flight queue
     if (link->del_from_inflight(event->bundleref_, total_len)) {
-        log_debug("removed bundle id:%d from link %s inflight queue",
+        log_debug("removed bundle id:%"PRIbid" from link %s inflight queue",
                  bundle->bundleid(),
                  link->name());
     } else {
-        log_warn("bundle id:%d not on link %s inflight queue",
+        log_warn("bundle id:%"PRIbid" not on link %s inflight queue",
                  bundle->bundleid(),
                  link->name());
     }
     
     // verify that the bundle is not on the link's to-be-sent queue
     if (link->del_from_queue(event->bundleref_, total_len)) {
-        log_warn("bundle id:%d unexpectedly on link %s queue in transmitted event",
+        log_warn("bundle id:%"PRIbid" unexpectedly on link %s queue in transmitted event",
                  bundle->bundleid(),
                  link->name());
     }
     
-    log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> %s (%s)",
+    if (!event->success_)
+    { 
+        // needed for LTPUDP CLA and TableBasedRouter to
+        // trigger sending more bundles if the queue is full
+        // and no new bundles are incoming when LTP is not successful
+        log_debug("trying to delete xmit blocks for bundle id:%"PRIbid" on link %s",
+               bundle->bundleid(),link->name());
+        BundleProtocol::delete_blocks(bundle, link);
+
+        //XXX/dz Schedule a custody timer if we have custody as a precaution
+        if (bundle->local_custody()) {
+            ForwardingInfo fwdinfo;
+            bundle->fwdlog()->get_latest_entry(link, &fwdinfo);
+
+            bundle->custody_timers()->push_back(
+                new CustodyTimer(fwdinfo.timestamp(),
+                                 fwdinfo.custody_spec(),
+                                 bundle, link));
+        }
+
+        bundle->fwdlog()->update(link, ForwardingInfo::TRANSMIT_FAILED);
+        return;
+    }
+
+
+    stats_.transmitted_bundles_++;
+    
+    link->stats()->bundles_transmitted_++;
+    link->stats()->bytes_transmitted_ += event->bytes_sent_;
+
+    log_info("BUNDLE_TRANSMITTED id:%"PRIbid" (%u bytes_sent/%u reliable) -> %s (%s)",
              bundle->bundleid(),
              event->bytes_sent_,
              event->reliably_sent_,
@@ -1110,7 +1070,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         (event->reliably_sent_ == 0))
     {
         bundle->fwdlog()->update(link, ForwardingInfo::TRANSMIT_FAILED);
-        log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
+        log_debug("trying to delete xmit blocks for bundle id:%"PRIbid" on link %s",
                   bundle->bundleid(),link->name());
         BundleProtocol::delete_blocks(bundle, link);
 
@@ -1166,7 +1126,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * Remove the formatted block info from the bundle since we don't
      * need it any more.
      */
-    log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
+    log_debug("trying to delete xmit blocks for bundle id:%"PRIbid" on link %s",
               bundle->bundleid(),link->name());
     BundleProtocol::delete_blocks(bundle, link);
     blocks = NULL;
@@ -1203,15 +1163,27 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
     // update statistics
     stats_.delivered_bundles_++;
     
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
     /*
      * The bundle was delivered to a registration.
      */
     Bundle* bundle = event->bundleref_.object();
 
-    log_info("BUNDLE_DELIVERED id:%d (%zu bytes) -> regid %d (%s)",
+    APIRegistration* api_reg = dynamic_cast<APIRegistration*>(event->registration_);
+    if (api_reg != NULL) {
+        log_debug("updating registration %s",
+                  api_reg->endpoint().c_str());
+        bundle->fwdlog()->update(api_reg,
+                                 ForwardingInfo::DELIVERED);
+
+        if (params_.serialize_apireg_bundle_lists_) {
+            //XXX/dz I don't think this update is necesssary even if true
+            oasys::ScopeLock l(api_reg->lock(), "handle_bundle_delivered");
+            api_reg->update();
+        }
+    }
+
+
+    log_info("BUNDLE_DELIVERED id:%"PRIbid" (%zu bytes) -> regid %d (%s)",
              bundle->bundleid(), bundle->payload().length(),
              event->registration_->regid(),
              event->registration_->endpoint().c_str());
@@ -1257,9 +1229,6 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     
     const BundleRef& bundle = event->bundleref_;
 
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
     log_info("BUNDLE_EXPIRED *%p", bundle.object());
 
     // note that there may or may not still be a pending expiration
@@ -1273,29 +1242,6 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 
 //----------------------------------------------------------------------
 void
-BundleDaemon::handle_bundle_send(BundleSendRequest* event)
-{
-    LinkRef link = contactmgr_->find_link(event->link_.c_str());
-    if (link == NULL){
-        log_err("Cannot send bundle on unknown link %s", event->link_.c_str()); 
-        return;
-    }
-
-    BundleRef br = event->bundle_;
-    if (! br.object()){
-        log_err("NULL bundle object in BundleSendRequest");
-        return;
-    }
-
-    ForwardingInfo::action_t fwd_action =
-        (ForwardingInfo::action_t)event->action_;
-
-    actions_->queue_bundle(br.object(), link,
-        fwd_action, CustodyTimerSpec::defaults_);
-}
-
-//----------------------------------------------------------------------
-void
 BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
 {
     BundleRef br = event->bundle_;
@@ -1304,9 +1250,6 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
         log_err("NULL bundle object in BundleCancelRequest");
         return;
     }
-
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
 
     // If the request has a link name, we are just canceling the send on
     // that link.
@@ -1317,7 +1260,7 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
             return;
         }
 
-        log_info("BUNDLE_CANCEL bundle %d on link %s", br->bundleid(),
+        log_info("BUNDLE_CANCEL bundle %"PRIbid" on link %s", br->bundleid(),
                 event->link_.c_str());
         
         actions_->cancel_bundle(br.object(), link);
@@ -1326,7 +1269,7 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
     // If the request does not have a link name, the bundle itself has been
     // canceled (probably by an application).
     else {
-        delete_bundle(br);
+        delete_bundle(br, BundleProtocol::REASON_TRANSMISSION_CANCELLED);
     }
 }
 
@@ -1337,15 +1280,12 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     Bundle* bundle = event->bundleref_.object();
     LinkRef link = event->link_;
     
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
-    log_info("BUNDLE_CANCELLED id:%d -> %s (%s)",
+    log_info("BUNDLE_CANCELLED id:%"PRIbid" -> %s (%s)",
             bundle->bundleid(),
             link->name(),
             link->nexthop());
     
-    log_debug("trying to find xmit blocks for bundle id:%d on link %s",
+    log_debug("trying to find xmit blocks for bundle id:%"PRIbid" on link %s",
               bundle->bundleid(), link->name());
     BlockInfoVec* blocks = bundle->xmit_blocks()->find_blocks(link);
     
@@ -1358,7 +1298,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     if (blocks == NULL)
     {
         log_info("received a redundant/conflicting bundle_cancelled event "
-                 "about bundle id:%d -> %s (%s)",
+                 "about bundle id:%"PRIbid" -> %s (%s)",
                  bundle->bundleid(),
                  link->name(),
                  link->nexthop());
@@ -1371,7 +1311,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
      */
     if (link->queue()->contains(bundle))
     {
-        log_warn("cancelled bundle id:%d still on link %s queue",
+        log_warn("cancelled bundle id:%"PRIbid" still on link %s queue",
                  bundle->bundleid(), link->name());
     }
 
@@ -1381,7 +1321,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
      */
     if (link->inflight()->contains(bundle))
     {
-        log_warn("cancelled bundle id:%d still on link %s inflight list",
+        log_warn("cancelled bundle id:%"PRIbid" still on link %s inflight list",
                  bundle->bundleid(), link->name());
     }
 
@@ -1395,7 +1335,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
      * Remove the formatted block info from the bundle since we don't
      * need it any more.
      */
-    log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
+    log_debug("trying to delete xmit blocks for bundle id:%"PRIbid" on link %s",
               bundle->bundleid(), link->name());
     BundleProtocol::delete_blocks(bundle, link);
     blocks = NULL;
@@ -1404,7 +1344,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
      * Update the forwarding log.
      */
     log_debug("trying to update the forwarding log for "
-              "bundle id:%d on link %s to state CANCELLED",
+              "bundle id:%"PRIbid" on link %s to state CANCELLED",
               bundle->bundleid(), link->name());
     bundle->fwdlog()->update(link, ForwardingInfo::CANCELLED);
 }
@@ -1413,91 +1353,8 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
 void
 BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
 {
-    // link isn't used at the moment, so don't bother searching for
-    // it.  TODO:  either remove link ID and forward action from
-    // RequestInjectBundle, or make link ID optional and send the
-    // bundle on the link if specified.
-    /*
-      LinkRef link = contactmgr_->find_link(event->link_.c_str());
-      if (link == NULL) return;
-    */
-
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
-    EndpointID src(event->src_); 
-    EndpointID dest(event->dest_); 
-    if ((! src.valid()) || (! dest.valid())) return;
-    
-    // The bundle's source EID must be either dtn:none or an EID 
-    // registered at this node.
-    const RegistrationTable* reg_table = 
-            BundleDaemon::instance()->reg_table();
-    std::string base_reg_str = src.uri().scheme() + "://" + src.uri().host();
-    
-    if (!reg_table->get(EndpointIDPattern(base_reg_str)) && 
-         src != EndpointID::NULL_EID()) {
-        log_err("this node is not a member of the injected bundle's source "
-                "EID (%s)", src.str().c_str());
-        return;
-    }
-    
-    // The new bundle is placed on the pending queue but not
-    // in durable storage (no call to BundleActions::inject_bundle)
-    Bundle* bundle = new Bundle(params_.injected_bundles_in_memory_ ? 
-                                BundlePayload::MEMORY : BundlePayload::DISK);
-    
-    bundle->mutable_source()->assign(src);
-    bundle->mutable_dest()->assign(dest);
-    
-    if (! bundle->mutable_replyto()->assign(event->replyto_))
-        bundle->mutable_replyto()->assign(EndpointID::NULL_EID());
-
-    if (! bundle->mutable_custodian()->assign(event->custodian_))
-        bundle->mutable_custodian()->assign(EndpointID::NULL_EID()); 
-
-    // bundle COS defaults to COS_BULK
-    bundle->set_priority(event->priority_);
-
-    // bundle expiration on remote dtn nodes
-    // defaults to 5 minutes
-    if(event->expiration_ == 0)
-        bundle->set_expiration(300);
-    else
-        bundle->set_expiration(event->expiration_);
-    
-    // set the payload (by hard linking, then removing original)
-    bundle->mutable_payload()->
-        replace_with_file(event->payload_file_.c_str());
-    log_debug("bundle payload size after replace_with_file(): %zd", 
-              bundle->payload().length());
-    oasys::IO::unlink(event->payload_file_.c_str(), logpath_);
-
-    /*
-     * Deliver the bundle to any local registrations that it matches,
-     * unless it's generated by the router or is a bundle fragment.
-     * Delivery of bundle fragments is deferred until after re-assembly.
-     */
-    bool is_local = check_local_delivery(bundle, !bundle->is_fragment());
-    
-    /*
-     * Re-assemble bundle fragments that are destined to the local node.
-     */
-    if (bundle->is_fragment() && is_local ) {
-        log_debug("deferring delivery of injected bundle *%p "
-                  "since bundle is a fragment", bundle);
-        fragmentmgr_->process_for_reassembly(bundle);
-    }
-
-    // The injected bundle is no longer sent automatically. It is
-    // instead added to the pending queue so that it can be resent
-    // or sent on multiple links.
-
-    // If add_to_pending returns false, the bundle has already expired
-    if (add_to_pending(bundle, 0))
-        BundleDaemon::post(new BundleInjectedEvent(bundle, event->request_id_));
-    
-    ++stats_.injected_bundles_;
+    (void) event;
+    ASSERTF(false, "handle_bundle_inject() was moved to BundleDaemonInput");
 }
 
 //----------------------------------------------------------------------
@@ -1550,30 +1407,18 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
     log_info("REGISTRATION_ADDED %d %s",
              registration->regid(), registration->endpoint().c_str());
 
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
     if (!reg_table_->add(registration,
                          (event->source_ == EVENTSRC_APP) ? true : false))
     {
         log_err("error adding registration %d to table",
                 registration->regid());
     }
-    
-    oasys::ScopeLock l(pending_bundles_->lock(), 
-                       "BundleDaemon::handle_registration_added");
-    BundleList::iterator iter;
-    for (iter = pending_bundles_->begin();
-         iter != pending_bundles_->end();
-         ++iter)
-    {
-        Bundle* bundle = *iter;
 
-        if (!bundle->is_fragment() &&
-            registration->endpoint().match(bundle->dest())) {
-            deliver_to_registration(bundle, registration);
-        }
-    }
+    // kick off a helper thread to deliver the bundles to the 
+    // registration so that it can be done in the background
+    registration->stop_initial_load_thread(); // stop an old one if there is one
+    RegistrationInitialLoadThread* loader = new RegistrationInitialLoadThread(registration);
+    loader->start();
 }
 
 //----------------------------------------------------------------------
@@ -1585,11 +1430,7 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
     log_info("REGISTRATION_REMOVED %d %s",
              registration->regid(), registration->endpoint().c_str());
 
-
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
-    if (!reg_table_->del(registration->regid())) {
+    if (!reg_table_->del(registration)) {
         log_err("error removing registration %d from table",
                 registration->regid());
         return;
@@ -1610,9 +1451,6 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
         return;
     }
     
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
     registration->set_expired(true);
     
     if (registration->active()) {
@@ -1624,7 +1462,7 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
     } else {
         // otherwise remove the registration from the table
         log_info("REGISTRATION_EXPIRED %d", registration->regid());
-        reg_table_->del(registration->regid());
+        reg_table_->del(registration);
         post_at_head(new RegistrationDeleteRequest(registration));
     }
 }
@@ -1635,10 +1473,13 @@ BundleDaemon::handle_registration_delete(RegistrationDeleteRequest* request)
 {
     log_info("REGISTRATION_DELETE %d", request->registration_->regid());
 
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
-    delete request->registration_;
+    APIRegistration* api_reg = dynamic_cast<APIRegistration*>(request->registration_);
+    if (NULL != api_reg  &&  api_reg->add_to_datastore()) {
+        // the Stroage thread will delete the registration after its processing
+        post(new StoreRegistrationDeleteEvent(request->registration_->regid(), api_reg));
+    } else {
+        delete request->registration_;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -1655,25 +1496,8 @@ BundleDaemon::handle_link_created(LinkCreatedEvent* event)
         return;
     }
 
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
-    if (link->reincarnated())
-    {
-    	if (! LinkStore::instance()->update(link.object()))
-    	{
-    		log_crit("error updating link %s: error in persistent store",
-    				 link->name());
-			return;
-		}
-    } else {
-    	if (! LinkStore::instance()->add(link.object()))
-    	{
-    		log_crit("error adding link %s: error in persistent store",
-    				 link->name());
-			return;
-		}
-    }
+    // Add (or update) this Link to the persistent store
+    post(new StoreLinkUpdateEvent(link.object()));
 
     log_info("LINK_CREATED *%p", link.object());
 }
@@ -1690,17 +1514,10 @@ BundleDaemon::handle_link_deleted(LinkDeletedEvent* event)
     // previous run was terminated, then the persistent storage should be left
     // intact (and the link spec will remain in ContactManager::previous_links_
     // so that consistency will be checked).  Otherwise delete the entry in Links.
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
 
     if (!(link->used_in_fwdlog() || link->reincarnated()))
     {
-    	if (! LinkStore::instance()->del(link->name_str()))
-    	{
-    		log_crit("error deleting link %s: error in persistent store",
-    				 link->name());
-			return;
-		}
+        post(new StoreLinkDeleteEvent(link->name_str()));
     }
 
     log_info("LINK_DELETED *%p", link.object());
@@ -1733,6 +1550,13 @@ BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
     ASSERT(!link->isavailable());
     
     log_info("LINK UNAVAILABLE *%p", link.object());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_check_deferred(LinkCheckDeferredEvent* event)
+{
+    log_debug("LinkCheckDeferred event for *%p", event->linkref_.object());
 }
 
 //----------------------------------------------------------------------
@@ -1902,9 +1726,6 @@ BundleDaemon::handle_link_create(LinkCreateRequest* request)
         log_err("LINK_CREATE %s failed", request->name_.c_str());
         return;
     }
-
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
 
     if (!contactmgr_->add_new_link(link)) {
         log_err("LINK_CREATE %s failed, already exists",
@@ -2178,11 +1999,8 @@ BundleDaemon::handle_contact_report(ContactReportEvent*)
 void
 BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 {
-    log_info("REASSEMBLY_COMPLETED bundle id %d",
+    log_info("REASSEMBLY_COMPLETED bundle id %"PRIbid"",
              event->bundle_->bundleid());
-
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
 
     // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
@@ -2227,31 +2045,29 @@ BundleDaemon::handle_route_report(RouteReportEvent*)
 void
 BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
 {
-    log_info("CUSTODY_SIGNAL: %s %llu.%llu %s (%s)",
+    log_info("CUSTODY_SIGNAL: %s %"PRIu64".%"PRIu64" %s (%s)",
              event->data_.orig_source_eid_.c_str(),
              event->data_.orig_creation_tv_.seconds_,
              event->data_.orig_creation_tv_.seqno_,
              event->data_.succeeded_ ? "succeeded" : "failed",
              CustodySignal::reason_to_str(event->data_.reason_));
 
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
-
     GbofId gbof_id;
-    gbof_id.source_ = event->data_.orig_source_eid_;
-    gbof_id.creation_ts_ = event->data_.orig_creation_tv_;
-    gbof_id.is_fragment_
-        = event->data_.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT;
-    gbof_id.frag_length_
-        = gbof_id.is_fragment_ ? event->data_.orig_frag_length_ : 0;
-    gbof_id.frag_offset_
-        = gbof_id.is_fragment_ ? event->data_.orig_frag_offset_ : 0;
+    gbof_id.mutable_source()->assign(event->data_.orig_source_eid_ );
+    gbof_id.mutable_creation_ts()->seconds_ = event->data_.orig_creation_tv_.seconds_;
+    gbof_id.mutable_creation_ts()->seqno_ = event->data_.orig_creation_tv_.seqno_;
+    gbof_id.set_is_fragment(event->data_.admin_flags_ & 
+                            BundleProtocol::ADMIN_IS_FRAGMENT);
+    gbof_id.set_frag_length(gbof_id.is_fragment() ? 
+                            event->data_.orig_frag_length_ : 0);
+    gbof_id.set_frag_offset(gbof_id.is_fragment() ? 
+                            event->data_.orig_frag_offset_ : 0);
 
-    BundleRef orig_bundle =
-        custody_bundles_->find(gbof_id);
+    BundleRef orig_bundle("handle_custody_signal");
+    orig_bundle = custody_bundles_->find(gbof_id.str());
     
     if (orig_bundle == NULL) {
-        log_warn("received custody signal for bundle %s %llu.%llu "
+        log_warn("received custody signal for bundle %s %"PRIu64".%"PRIu64" "
                  "but don't have custody",
                  event->data_.orig_source_eid_.c_str(),
                  event->data_.orig_creation_tv_.seconds_,
@@ -2259,13 +2075,16 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
         return;
     }
 
+    // Update the event Bundle ID for passing on to the External Router (and possibly others)
+    event->bundle_id_ = orig_bundle->bundleid();
+
     // release custody if either the signal succeded or if it
     // (paradoxically) failed due to duplicate transmission
     bool release = event->data_.succeeded_;
     if ((event->data_.succeeded_ == false) &&
         (event->data_.reason_ == BundleProtocol::CUSTODY_REDUNDANT_RECEPTION))
     {
-        log_notice("releasing custody for bundle %s %llu.%llu "
+        log_notice("releasing custody for bundle %s %"PRIu64".%"PRIu64" "
                    "due to redundant reception",
                    event->data_.orig_source_eid_.c_str(),
                    event->data_.orig_creation_tv_.seconds_,
@@ -2283,67 +2102,84 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
 }
 
 //----------------------------------------------------------------------
+#ifdef ACS_ENABLED
+void
+BundleDaemon::handle_aggregate_custody_signal(AggregateCustodySignalEvent* event)
+{
+    // XXX/dz this currently needs to run from within the BD thread instead
+    // of the BDACS thread as timing can cause a deadlock while trying
+    // to update the BundleStore
+    // XXX/dz the above may not be a problem now that the BDStorage thread
+    // has been implemented...
+    BundleDaemonACS::instance()->process_acs(event);
+}
+#endif // ACS_ENABLED
+
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
-    Bundle* bundle = event->bundle_.object();
     LinkRef link   = event->link_;
     ASSERT(link != NULL);
-    
-    log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link.object());
-    
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
 
-    // remove and delete the expired timer from the bundle
-    oasys::ScopeLock l(bundle->lock(), "BundleDaemon::handle_custody_timeout");
+    // Check to see if the bundle is still pending
+    BundleRef bref("handle_custody_timerout");
+    bref = pending_bundles_->find(event->bundle_id_);
+    
+    if (bref != NULL) {
+        Bundle* bundle = bref.object();
 
-    bool found = false;
-    CustodyTimer* timer = NULL;
-    CustodyTimerVec::iterator iter;
-    for (iter = bundle->custody_timers()->begin();
-         iter != bundle->custody_timers()->end();
-         ++iter)
-    {
-        timer = *iter;
-        if (timer->link_ == link)
+        log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link.object());
+    
+        // remove and delete the expired timer from the bundle
+        oasys::ScopeLock l(bundle->lock(), "BundleDaemon::handle_custody_timeout");
+
+        bool found = false;
+        CustodyTimer* timer = NULL;
+        CustodyTimerVec::iterator iter;
+        for (iter = bundle->custody_timers()->begin();
+             iter != bundle->custody_timers()->end();
+             ++iter)
         {
-            if (timer->pending()) {
-                log_err("multiple pending custody timers for link %s",
-                        link->nexthop());
-                continue;
-            }
+            timer = *iter;
+            if (timer->link_ == link)
+            {
+                if (timer->pending()) {
+                    log_err("multiple pending custody timers for link %s",
+                            link->nexthop());
+                    continue;
+                }
             
-            found = true;
-            bundle->custody_timers()->erase(iter);
-            break;
+                found = true;
+                bundle->custody_timers()->erase(iter);
+                break;
+            }
         }
-    }
 
-    if (!found) {
-        log_err("custody timeout for *%p *%p: timer not found in bundle list",
-                bundle, link.object());
-        return;
-    }
+        if (!found) {
+            log_err("custody timeout for *%p *%p: timer not found in bundle list",
+                    bundle, link.object());
+            return;
+        }
 
-    ASSERT(!timer->cancelled());
-    
-    if (!pending_bundles_->contains(bundle)) {
-        log_err("custody timeout for *%p *%p: bundle not in pending list",
-                bundle, link.object());
-    }
+        ASSERT(!timer->cancelled());
 
-    // modify the TRANSMITTED entry in the forwarding log to indicate
-    // that we got a custody timeout. then when the routers go through
-    // to figure out whether the bundle needs to be re-sent, the
-    // TRANSMITTED entry is no longer in there
-    bool ok = bundle->fwdlog()->update(link, ForwardingInfo::CUSTODY_TIMEOUT);
-    if (!ok) {
-        log_err("custody timeout can't find ForwardingLog entry for link *%p",
-                link.object());
+        // modify the TRANSMITTED entry in the forwarding log to indicate
+        // that we got a custody timeout. then when the routers go through
+        // to figure out whether the bundle needs to be re-sent, the
+        // TRANSMITTED entry is no longer in there
+        bool ok = bref->fwdlog()->update(link, ForwardingInfo::CUSTODY_TIMEOUT);
+        if (!ok) {
+            log_err("custody timeout can't find ForwardingLog entry for link *%p",
+                    link.object());
+        }
+        
+        delete timer;
+
+    } else {
+        log_debug("custody timeout for Bundle ID %"PRIbid" which is no longer in pending list (link: *%p)",
+                  event->bundle_id_, link.object());
     }
-    
-    delete timer;
 
     // now fall through to let the router handle the event, typically
     // triggering a retransmission to the link in the event
@@ -2359,20 +2195,28 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 
     log_notice("Received shutdown request");
 
-    oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_shutdown");
+    contactmgr_->set_shutting_down();
+
+    contactmgr_->lock()->lock("BundleDaemon::handle_shutdown #1");
 
     const LinkSet* links = contactmgr_->links();
-    LinkSet::const_iterator iter;
+    LinkSet::const_iterator iter = links->begin();
 
     // close any open links
-    for (iter = links->begin(); iter != links->end(); ++iter)
+    while (iter != links->end())
     {
+        contactmgr_->lock()->unlock();
         LinkRef link = *iter;
         if (link->isopen()) {
             log_debug("Shutdown: closing link *%p\n", link.object());
             link->close();
         }
+
+        contactmgr_->lock()->lock("BundleDaemon::handle_shutdown #2");
+        ++iter;
     }
+
+    contactmgr_->lock()->unlock();
 
     // Shutdown all actively registered convergence layers.
     ConvergenceLayer::shutdown_clayers();
@@ -2386,6 +2230,22 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
     if (app_shutdown_proc_) {
         (*app_shutdown_proc_)(app_shutdown_data_);
     }
+
+    // signal all objects to shutdown
+    daemon_input_->set_should_stop();
+    daemon_output_->set_should_stop();
+
+#ifdef ACS_ENABLED
+    daemon_acs_->set_should_stop();
+#endif // ACS_ENABLED
+    
+#ifdef DTPC_ENABLED
+    DtpcDaemon::instance()->set_should_stop();
+#endif // DTPC_ENABLED
+
+    daemon_storage_->set_should_stop();
+    daemon_storage_->commit_all_updates();
+
 
     // signal to the main loop to bail
     set_should_stop();
@@ -2426,17 +2286,12 @@ BundleDaemon::event_handlers_completed(BundleEvent* event)
      * processed by the router, check to see if it's still needed,
      * otherwise we delete it.
      */
-    BundleRef bundle("BundleDaemon::event_handlers_completed");
     if (event->type_ == BUNDLE_RECEIVED) {
-        bundle = ((BundleReceivedEvent*)event)->bundleref_;
+        try_to_delete(((BundleReceivedEvent*)event)->bundleref_);
     } else if (event->type_ == BUNDLE_TRANSMITTED) {
-        bundle = ((BundleTransmittedEvent*)event)->bundleref_;
+        try_to_delete(((BundleTransmittedEvent*)event)->bundleref_);
     } else if (event->type_ == BUNDLE_DELIVERED) {
-        bundle = ((BundleTransmittedEvent*)event)->bundleref_;
-    }
-
-    if (bundle != NULL) {
-        try_to_delete(bundle);
+        try_to_delete(((BundleDeliveredEvent*)event)->bundleref_);
     }
 
     /**
@@ -2444,7 +2299,7 @@ BundleDaemon::event_handlers_completed(BundleEvent* event)
      * shouldn't exist on any more lists.
      */
     if (event->type_ == BUNDLE_EXPIRED) {
-        bundle = ((BundleExpiredEvent*)event)->bundleref_.object();
+        Bundle* bundle = ((BundleExpiredEvent*)event)->bundleref_.object();
         if (bundle==NULL) {
             log_warn("can't get bundle from event->bundleref_.object()");
             return;
@@ -2452,7 +2307,7 @@ BundleDaemon::event_handlers_completed(BundleEvent* event)
         size_t num_mappings = bundle->num_mappings();
         if (num_mappings != 1) {
             log_warn("expired bundle *%p still has %zu mappings (i.e. not just in ALL_BUNDLES)",
-                     bundle.object(), num_mappings);
+                     bundle, num_mappings);
         }
     }
 }
@@ -2466,15 +2321,28 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     log_debug("adding bundle *%p to pending list (%d)",
               bundle, add_to_store);
  
-    log_info_p("/dtn/bundle/expiration","adding bundle to pending list");
- 
     pending_bundles_->push_back(bundle);
+    dupefinder_bundles_->push_back(bundle);
     
     if (add_to_store) {
-        bundle->set_in_datastore(true);
         actions_->store_add(bundle);
     }
 
+    return ok_to_route;
+}
+
+
+
+//----------------------------------------------------------------------
+bool
+BundleDaemon::resume_add_to_pending(Bundle* bundle, bool add_to_store)
+{
+    (void)add_to_store;
+
+    bool ok_to_route = true;
+
+    log_debug("resume_add_to_pending: bundle *%p", bundle);
+ 
        struct timeval now;
 
        gettimeofday(&now, 0);
@@ -2531,15 +2399,15 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
   
        if (when > 0) {
                log_debug_p("/dtn/bundle/expiration",
-                                       "scheduling expiration for bundle id %d at %u.%u "
+                                       "scheduling expiration for bundle id %"PRIbid" at %u.%u "
                                        "(in %lu seconds)",
                                        bundle->bundleid(),
                                        (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec,
                                        when);
        } else {
                log_warn_p("/dtn/bundle/expiration",
-                                  "scheduling IMMEDIATE expiration for bundle id %d: "
-                                  "[expiration %llu, creation time %llu.%llu, offset %u, now %u.%u]",
+                                  "scheduling IMMEDIATE expiration for bundle id %"PRIbid": "
+                                  "[expiration %"PRIu64", creation time %"PRIu64".%"PRIu64", offset %u, now %u.%u]",
                                   bundle->bundleid(), bundle->expiration(),
                                   bundle->creation_ts().seconds_,
                                   bundle->creation_ts().seqno_,
@@ -2564,7 +2432,7 @@ BundleDaemon::delete_from_pending(const BundleRef& bundle)
     // first try to cancel the expiration timer if it's still
     // around
     if (bundle->expiration_timer()) {
-        log_debug("cancelling expiration timer for bundle id %d",
+        log_debug("cancelling expiration timer for bundle id %"PRIbid"",
                   bundle->bundleid());
         
         bool cancelled = bundle->expiration_timer()->cancel();
@@ -2572,7 +2440,7 @@ BundleDaemon::delete_from_pending(const BundleRef& bundle)
             log_crit("unexpected error cancelling expiration timer "
                      "for bundle *%p", bundle.object());
         }
-        
+
         bundle->expiration_timer()->bundleref_.release();
         bundle->set_expiration_timer(NULL);
     }
@@ -2580,12 +2448,13 @@ BundleDaemon::delete_from_pending(const BundleRef& bundle)
     // XXX/demmer the whole BundleDaemon core should be changed to use
     // BundleRefs instead of Bundle*, as should the BundleList API, as
     // should the whole system, really...
-    log_debug("pending_bundles size %zd", pending_bundles_->size());
+    log_debug("pending_bundles size %zu", pending_bundles_->size());
     
     oasys::Time now;
     now.get_time();
     
-    bool erased = pending_bundles_->erase(bundle);
+    bool erased = pending_bundles_->erase(bundle.object());
+    dupefinder_bundles_->erase(bundle.object());
 
     log_debug("BundleDaemon: pending_bundles erasure took %u ms",
               now.elapsed_ms());
@@ -2655,8 +2524,8 @@ BundleDaemon::delete_bundle(const BundleRef& bundleref,
                             status_report_reason_t reason)
 {
     Bundle* bundle = bundleref.object();
-    
-    ++stats_.deleted_bundles_;
+
+//dz debug    ++stats_.deleted_bundles_;
     
     // send a bundle deletion status report if we have custody or the
     // bundle's deletion status report request flag is set and a reason
@@ -2739,168 +2608,34 @@ BundleDaemon::delete_bundle(const BundleRef& bundleref,
 
 //----------------------------------------------------------------------
 Bundle*
-BundleDaemon::find_duplicate(Bundle* b)
+BundleDaemon::find_duplicate(Bundle* bundle)
 {
-    oasys::ScopeLock l(pending_bundles_->lock(), 
-                       "BundleDaemon::find_duplicate");
-    log_debug("pending_bundles size %zd", pending_bundles_->size());
     Bundle *found = NULL;
-    BundleList::iterator iter;
-    for (iter = pending_bundles_->begin();
-         iter != pending_bundles_->end();
-         ++iter)
-    {
-        Bundle* b2 = *iter;
-        
-        if ((b->source().equals(b2->source())) &&
-            (b->creation_ts().seconds_ == b2->creation_ts().seconds_) &&
-            (b->creation_ts().seqno_   == b2->creation_ts().seqno_) &&
-            (b->is_fragment()          == b2->is_fragment()) &&
-            (b->frag_offset()          == b2->frag_offset()) &&
-            /*(b->orig_length()          == b2->orig_length()) &&*/
-            (b->payload().length()     == b2->payload().length()))
-        {
-            // b is a duplicate of b2
-            found = b2;
-            /*
-             * If we are not suppressing duplicates, we might have custody of
-             * one of any number of duplicates, so if this one does not have
-             * custody, keep looking until we find one that does have custody
-             * or we run out of choices. If we are suppressing duplicates
-             * there's no need to keep looking.
-             */
-            if (params_.suppress_duplicates_ || b2->local_custody()) {
-                break;
-            }
-        }
+    BundleRef bref("find_duplicate temporary");
+
+    // if custody requested check for a duplicate already in custody
+    if (bundle->custody_requested() ) {
+        bref = custody_bundles_->find(bundle->gbofid_str());
+        found = bref.object();
     }
+
+    // if no duplicate in custody check the pending bundles for a dup 
+    if ( NULL == found ) {
+        bref = dupefinder_bundles_->find(bundle->gbofid_str());
+        found = bref.object();
+    }
+
+    // XXX/dz Note that the original code checked for equality
+    // in the payload length as well. The TableBasedRouter only
+    // checks the GbofId info to decide if it is a duplicate and
+    // issues a DeleteBundleRequest if so regardless of the 
+    // suppress_duplicates setting. Seems to me that either
+    // the GbofId is sufficient to decide if it is a dup or you
+    // need to check the entire contents (hash?) to decide and
+    // it should be consistent throughout the code.
 
     return found;
 }
-
-//----------------------------------------------------------------------
-#ifdef BPQ_ENABLED
-bool
-BundleDaemon::handle_bpq_block(Bundle* bundle, BundleReceivedEvent* event)
-{
-    const BlockInfo* block = NULL;
-    bool local_bundle = true;
-
-    switch (event->source_) {
-    	case EVENTSRC_PEER:
-    		if (bundle->recv_blocks().has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
-    			block = bundle->recv_blocks().
-    			                find_block(BundleProtocol::QUERY_EXTENSION_BLOCK);
-    			local_bundle = false;
-    		} else {
-    			return false;
-    		}
-    		break;
-
-    	case EVENTSRC_APP:
-    		if (bundle->api_blocks()->has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
-				block = bundle->api_blocks()->
-    		                	find_block(BundleProtocol::QUERY_EXTENSION_BLOCK);
-				local_bundle = true;
-    		} else {
-    			return false;
-    		}
-    		break;
-
-    	case EVENTSRC_STORE:
-    	case EVENTSRC_FRAGMENTATION:
-    		if (bundle->recv_blocks().has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
-				block = bundle->recv_blocks().
-								find_block(BundleProtocol::QUERY_EXTENSION_BLOCK);
-				local_bundle = false;
-    		}
-    		else if (bundle->api_blocks()->has_block(BundleProtocol::QUERY_EXTENSION_BLOCK)) {
-				block = bundle->api_blocks()->
-    		                	find_block(BundleProtocol::QUERY_EXTENSION_BLOCK);
-				local_bundle = true;
-    		} else {
-    			return false;
-    		}
-    		break;
-
-    	default:
-    		log_err_p("/dtn/daemon/bpq", "Handle BPQ Block failed for unknown event source: %s",
-    				source_to_str((event_source_t)event->source_));
-            NOTREACHED;
-            return false;
-        }
-
-    /**
-     * At this point the BPQ Block has been found in the bundle
-     */
-    ASSERT ( block != NULL );
-    BPQBlock* bpq_block = dynamic_cast<BPQBlock *>(block->locals());
-
-    log_info_p("/dtn/daemon/bpq", "handle_bpq_block: Kind: %d Query: %s",
-        (int)  bpq_block->kind(),
-        (char*)bpq_block->query_val());
-
-    if (bpq_block->kind() == BPQBlock::KIND_QUERY) {
-    	if (bpq_cache()->answer_query(bundle, bpq_block)) {
-    		log_info_p("/dtn/daemon/bpq", "Query: %s answered completely",
-    				(char*)bpq_block->query_val());
-            event->daemon_only_ = true;
-        }
-
-    } else if (bpq_block->kind() == BPQBlock::KIND_RESPONSE ||
-               bpq_block->kind() == BPQBlock::KIND_PUBLISH) {
-    	// don't accept local responses for KIND_RESPONSE
-    	// This was originally because of a bug in the APIServer that
-    	// didn't send api_blocks in local receives.  Now need to think
-    	// if this results in circularity because cache is being searched
-    	// Leave the special case for the time being.
-        if (!local_bundle || bpq_block->kind() == BPQBlock::KIND_PUBLISH) {
-
-
-    		if (bpq_cache()->add_response_bundle(bundle, bpq_block) &&
-    			event->source_ != EVENTSRC_STORE) {
-
-
-    			bundle->set_in_datastore(true);
-				actions_->store_add(bundle);
-
-				/*
-			     * Send a reception receipt if requested within the primary
-			     * block and this is a locally generated bundle - special case
-			     * as reception reports are not normally generated for bundles
-			     * from local apps but this tells the app that the bundle has
-			     * been cached.
-			     */
-			    if (local_bundle && bundle->receive_rcpt()) {
-			    	 generate_status_report(bundle, BundleStatusReport::STATUS_RECEIVED,
-			                                BundleProtocol::REASON_NO_ADDTL_INFO);
-			    }
-    		}
-    	}
-
-    } else if (bpq_block->kind() == BPQBlock::KIND_RESPONSE_DO_NOT_CACHE_FRAG) {
-    	// don't accept local responses
-    	if (!local_bundle &&
-    		!bundle->is_fragment()	) {
-
-    		if (bpq_cache()->add_response_bundle(bundle, bpq_block) &&
-    			event->source_ != EVENTSRC_STORE) {
-
-    			bundle->set_in_datastore(true);
-				actions_->store_add(bundle);
-    		}
-    	}
-
-    } else {
-        log_err_p("/dtn/daemon/bpq", "ERROR - BPQ Block: invalid kind %d",
-            bpq_block->kind());
-        NOTREACHED;
-        return false;
-    }
-
-    return true;
-}
-#endif /* BPQ_ENABLED */
 
 //----------------------------------------------------------------------
 void
@@ -2909,23 +2644,23 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     Bundle* bundle = event->bundle_;
     event->bundle_ = NULL;
 
-    ASSERT(bundle->refcount() == 1);
+    //dz debug - could be 1 or 2 if in storage_queue   ASSERT(bundle->refcount() == 1);
     ASSERT(all_bundles_->contains(bundle));
-
-    oasys::DurableStore *store = oasys::DurableStore::instance();
-    store->begin_transaction();
 
     all_bundles_->erase(bundle);
     
     bundle->lock()->lock("BundleDaemon::handle_bundle_free");
 
-    if (bundle->in_datastore()) {
-        log_debug("removing freed bundle (id %d) from data store", bundle->bundleid());
-        actions_->store_del(bundle);
-    }
+//dz debug     if (bundle->queued_for_datastore()) {
+//dz debug         log_crit("should not happen in BundleDaemon??? removing freed bundle (id %d) from data store", bundle->bundleid());
+//dz debug         actions_->store_del(bundle);
+//dz debug     }
     log_debug("deleting freed bundle");
 
     delete bundle;
+
+    //dz debug
+    ++stats_.deleted_bundles_;
 }
 
 //----------------------------------------------------------------------
@@ -2939,6 +2674,7 @@ BundleDaemon::handle_event(BundleEvent* event)
 void
 BundleDaemon::handle_event(BundleEvent* event, bool closeTransaction)
 {
+    (void)closeTransaction;
     dispatch_event(event);
     
     if (! event->daemon_only_) {
@@ -2948,16 +2684,6 @@ BundleDaemon::handle_event(BundleEvent* event, bool closeTransaction)
     }
 
     event_handlers_completed(event);
-
-    if (closeTransaction) {
-        oasys::DurableStore* ds = oasys::DurableStore::instance();
-        if ( ds->is_transaction_open() ) {
-            log_debug("handle_event closing transaction");
-            ds->end_transaction();
-        }
-    } else {
-        log_debug("handle_event NOT closing transaction");
-    }
 
     stats_.events_processed_++;
 
@@ -2970,6 +2696,8 @@ BundleDaemon::handle_event(BundleEvent* event, bool closeTransaction)
 void
 BundleDaemon::load_registrations()
 {
+    admin_reg_ipn_ = NULL;
+
     admin_reg_ = new AdminRegistration();
     {
         RegistrationAddedEvent e(admin_reg_, EVENTSRC_ADMIN);
@@ -2990,6 +2718,33 @@ BundleDaemon::load_registrations()
         handle_event(&e);
     }
 
+    if (local_eid_ipn_.scheme() == IPNScheme::instance()) {
+        // create an AdminReg for the local IPN EID if defined
+        admin_reg_ipn_ = new AdminRegistrationIpn();
+        RegistrationAddedEvent e(admin_reg_ipn_, EVENTSRC_ADMIN);
+        handle_event(&e);
+    } else {
+        // otherwise set the local IPN EID to match the local DTN EID
+        // so that will be used when working with IPN destined bundles
+        set_local_eid_ipn(local_eid_.c_str());
+    }
+
+    if (params_.ipn_echo_service_number_ > 0) {
+        if (local_eid_ipn_.scheme() == IPNScheme::instance()) {
+            u_int64_t node;
+            u_int64_t service;
+            IPNScheme::parse(local_eid_ipn_,&node,&service);
+            EndpointID ipn_echo_eid = EndpointID::NULL_EID();
+            IPNScheme::format(&ipn_echo_eid, node, params_.ipn_echo_service_number_);
+            ipn_echo_reg_ = new IpnEchoRegistration(ipn_echo_eid,
+                                                    params_.ipn_echo_max_return_length_);  
+            {
+                RegistrationAddedEvent e(ipn_echo_reg_, EVENTSRC_ADMIN);
+                handle_event(&e);
+            }
+        }
+    }
+
     Registration* reg;
     RegistrationStore* reg_store = RegistrationStore::instance();
     RegistrationStore::iterator* iter = reg_store->new_iterator();
@@ -3002,6 +2757,9 @@ BundleDaemon::load_registrations()
             continue;
         }
         
+        reg->set_in_datastore(true);
+        daemon_storage_->reloaded_registration();
+
         RegistrationAddedEvent e(reg, EVENTSRC_STORE);
         handle_event(&e);
     }
@@ -3017,6 +2775,24 @@ BundleDaemon::load_previous_links()
     LinkStore* link_store = LinkStore::instance();
     LinkStore::iterator* iter = link_store->new_iterator();
     LinkRef link_ref;
+
+    if (! params_.persistent_links_)
+    {
+        int cnt = 0;
+        std::string key;
+        while (iter->next() == 0 && cnt < 100000) {   // prevent endless loop just in case
+            key = iter->cur_val();
+            delete iter;            
+
+            log_debug("load_previous_link - Persistent Lnks disabled - delete key: %s", key.c_str());
+            link_store->del(key);
+            ++cnt;
+
+            iter = link_store->new_iterator();
+        }
+        log_info("load_previous_links - Persistent Links is disabled - deleted %d links from database", cnt);
+        return;
+    }
 
     log_debug("Entering load_previous_links");
 
@@ -3040,6 +2816,9 @@ BundleDaemon::load_previous_links()
                     iter->cur_val().c_str());
             continue;
          }
+
+        link->set_in_datastore(true);
+        daemon_storage_->reloaded_link();
 
         log_debug("Read link %s from data store", iter->cur_val().c_str());
         link_ref = LinkRef(link, "Read from datastore");
@@ -3069,6 +2848,7 @@ BundleDaemon::load_bundles()
 
     log_notice("loading bundles from data store");
 
+
     u_int64_t total_size = 0;
 
     std::vector<Bundle*> doa_bundles;
@@ -3077,12 +2857,14 @@ BundleDaemon::load_bundles()
         bundle = bundle_store->get(iter->cur_val());
         
         if (bundle == NULL) {
-            log_err("error loading bundle %d from data store",
+            log_err("error loading bundle %"PRIbid" from data store",
                     iter->cur_val());
             continue;
         }
 
         total_size += bundle->durable_size();
+
+        daemon_storage_->reloaded_bundle();
         
         // if the bundle payload file is missing, we need to kill the
         // bundle, but we can't do so while holding the durable
@@ -3093,6 +2875,10 @@ BundleDaemon::load_bundles()
             doa_bundles.push_back(bundle);
             continue;
         }
+
+        // reset the flags indicating it is in the datastore
+        bundle->set_in_datastore(true);
+        bundle->set_queued_for_datastore(true);
 
         BundleProtocol::reload_post_process(bundle);
 
@@ -3128,6 +2914,15 @@ BundleDaemon::load_bundles()
 
     log_debug("Done with load_bundles");
 }
+
+//----------------------------------------------------------------------
+#ifdef ACS_ENABLED
+void
+BundleDaemon::load_pendingacs()
+{
+    BundleDaemonACS::instance()->load_pendingacs();
+}
+#endif // ACS_ENABLED
 
 //----------------------------------------------------------------------
 void
@@ -3190,37 +2985,67 @@ BundleDaemon::run()
     if (! BundleTimestamp::check_local_clock()) {
         exit(1);
     }
-    
+
+    // start up the timer thread to manage the timer system
+    oasys::TimerThread::init();
+
+    // If you are using the version of oasys that has the TimerReaperThread then
+    // this will start it up. If not then cancelled timers will be recovered 
+    // when they expire.
+#ifdef HAVE_TIMER_REAPER_THREAD
+    oasys::TimerReaperThread::init();
+#endif
+
     router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
     router_->initialize();
     
+    load_registrations();
     load_previous_links();
     load_bundles();
-    load_registrations();
+
+    daemon_storage_->start();
+
+#ifdef ACS_ENABLED
+    load_pendingacs();
+    daemon_acs_->start();
+#endif // ACS_ENABLED
 
     BundleEvent* event;
 
-    oasys::TimerSystem* timersys = oasys::TimerSystem::instance();
+    daemon_input_->start();
+    daemon_output_->start();
 
     last_event_.get_time();
     
-    struct pollfd pollfds[2];
+#ifdef BDSTATS_ENABLED
+    // initialize the BD Stats before starting the processing loop
+    bdstats_update();
+    new BDStatusThread();
+#endif // BDSTATS_ENABLED
+
+
+#ifdef DTPC_ENABLED
+    DtpcDaemon::instance()->start();
+#endif // DTPC_ENABLED
+
+    struct pollfd pollfds[1];
     struct pollfd* event_poll = &pollfds[0];
-    struct pollfd* timer_poll = &pollfds[1];
     
     event_poll->fd     = eventq_->read_fd();
     event_poll->events = POLLIN;
 
-    timer_poll->fd     = timersys->notifier()->read_fd();
-    timer_poll->events = POLLIN;
-    
     while (1) {
         if (should_stop()) {
             log_debug("BundleDaemon: stopping");
             break;
         }
 
-        int timeout = timersys->run_expired_timers();
+         // XXX/dz BundleDaemon used to process the expired timers here
+         // and get a timeout value until the next timer is due. Now
+         // using the TimerThread for that and just hard coding a 
+         // timeout value so we can check for should_stop regularly
+         // in case there are no events coming through.
+        int timeout = 10;
 
         log_debug_p(LOOP_LOG, 
                     "BundleDaemon: checking eventq_->size() > 0, its size is %zu", 
@@ -3233,6 +3058,7 @@ BundleDaemon::run()
             oasys::Time now;
             now.get_time();
 
+            
             
             if (now >= event->posted_time_) {
                 oasys::Time in_queue;
@@ -3263,6 +3089,11 @@ BundleDaemon::run()
             // record the last event time
             last_event_.get_time();
 
+#ifdef BDSTATS_ENABLED
+            // update the pprocessed event stats
+            bdstats_update(&bdstats_processed_, event);
+#endif // BDSTATS_ENABLED
+            
             log_debug_p(LOOP_LOG, "BundleDaemon: deleting event %s",
                         event->type_str());
             // clean up the event
@@ -3272,11 +3103,10 @@ BundleDaemon::run()
         }
         
         pollfds[0].revents = 0;
-        pollfds[1].revents = 0;
 
         log_debug_p(LOOP_LOG, "BundleDaemon: poll_multiple waiting for %d ms", 
                     timeout);
-        int cc = oasys::IO::poll_multiple(pollfds, 2, timeout);
+        int cc = oasys::IO::poll_multiple(pollfds, 1, timeout);
         log_debug_p(LOOP_LOG, "poll returned %d", cc);
 
         if (cc == oasys::IOTIMEOUT) {
@@ -3293,15 +3123,109 @@ BundleDaemon::run()
         if (event_poll->revents != 0) {
             log_debug_p(LOOP_LOG, "poll returned new event to handle");
         }
+    }
 
-        // if the timer notifier fired, then someone just scheduled a
-        // new timer, so we just continue, which will call
-        // run_expired_timers and handle it
-        if (timer_poll->revents != 0) {
-            log_debug_p(LOOP_LOG, "poll returned new timers to handle");
-            timersys->notifier()->clear();
-        }
+#ifdef HAVE_TIMER_REAPER_THREAD
+    oasys::TimerReaperThread::instance()->set_should_stop();
+    sleep(1);
+#endif
+    oasys::TimerThread::instance()->shutdown();
+
+}
+
+
+#ifdef BDSTATS_ENABLED
+void BundleDaemon::bdstats_update(BDStats* stats, BundleEvent* event)
+{
+    oasys::ScopeLock l(&bdstats_lock_, "bdstats_update");
+
+    if (bdstats_init_) {
+        bdstats_init_ = false;
+        bdstats_start_time_.get_time();
+        bdstats_time_.get_time();
+
+        // output the header line - note that the "secs" title needs to be deleted
+        // in an Excel spreadsheet to generate a chart with seconds as the X-axis
+        log_crit_p("bdstats", "secs,BunRcvPost,BunRcvProc,BunXmtPost,BunXmtProc,"
+                              "BunFreePost,BunFreeProc,LnkCreatedProc,ContactUpProc,"
+                              "OtherPost,OtherProc,"
+                              "DeliverBunPost,DeliverBunProc,"
+                              "BunDeliveredPost,BunDeliveredProc,"
+                              "BDmnEventQSize,StorageEventQSize,InputEventQSize");
+    }
+
+    // BDStatusThread calls this with NULL parameters to
+    // signal that it is time to output the stats
+    if (NULL == stats || NULL == event) {
+        log_crit_p("bdstats", "%d,%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%zu,%zu,%zu",
+                    bdstats_start_time_.elapsed_ms()/1000,
+                    bdstats_posted_.bundle_received_,
+                    bdstats_processed_.bundle_received_,
+                    bdstats_posted_.bundle_transmitted_,
+                    bdstats_processed_.bundle_transmitted_,
+                    bdstats_posted_.bundle_free_,
+                    bdstats_processed_.bundle_free_,
+                    bdstats_processed_.link_created_,
+                    bdstats_processed_.contact_up_,
+                    bdstats_posted_.other_, 
+                    bdstats_processed_.other_,
+                    bdstats_posted_.deliver_bundle_,
+                    bdstats_processed_.deliver_bundle_,
+                    bdstats_posted_.bundle_delivered_,
+                    bdstats_processed_.bundle_delivered_,
+
+
+                    eventq_->size(),
+                    daemon_storage_->event_queue_size(),
+                    daemon_input_->event_queue_size() );
+
+        memset(&bdstats_posted_, 0, sizeof(bdstats_posted_));
+        memset(&bdstats_processed_, 0, sizeof(bdstats_processed_));
+        bdstats_time_.get_time();
+
+    } else {
+
+        switch (event->type_) {
+            case BUNDLE_ACCEPT_REQUEST: ++stats->bundle_accept_; break;
+            case BUNDLE_RECEIVED: ++stats->bundle_received_; break;
+            case BUNDLE_TRANSMITTED: ++stats->bundle_transmitted_; break;
+            case BUNDLE_FREE: ++stats->bundle_free_; break;
+            case LINK_CREATED: stats->link_created_ += 10000; break;
+            case CONTACT_UP: stats->contact_up_ += 10000; break;
+            case DELIVER_BUNDLE_TO_REG: ++stats->deliver_bundle_; break;
+            case BUNDLE_DELIVERED: ++stats->bundle_delivered_; break;
+            default: ++stats->other_; break;
+            // XXX/dz use this version to see what the "other" events actually are
+            // so you can decide if you want to add them for tracking:
+            //default: ++stats->other_; log_crit("Other Event: %s", event->type_str()); break;
+        };
+    }
+
+}
+
+//----------------------------------------------------------------------
+BundleDaemon::BDStatusThread::BDStatusThread()
+    : Thread("BundleDaemon::BDStatusThread", DELETE_ON_EXIT)
+{
+    start();
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::BDStatusThread::run()
+{
+    BundleDaemon* daemon = BundleDaemon::instance();
+
+    struct timespec ts_status;
+    clock_gettime(CLOCK_MONOTONIC, &ts_status);  // _RAW not supported by clock_nanosleep yet
+    while (! should_stop()) {
+        ts_status.tv_sec += 1;
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_status, NULL);  // _RAW not supported yet
+
+        daemon->bdstats_update(NULL, NULL);
     }
 }
+
+#endif // BDSTATS_ENABLED
 
 } // namespace dtn

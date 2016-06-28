@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -115,12 +133,16 @@ Simulator::log_inqueue_stats()
         Node* node = node_iter->second;
 
         oasys::ScopeLock l(node->pending_bundles()->lock(), "log_inqueue_stats");
-        BundleList::iterator bundle_iter;
+        pending_bundles_t::iterator bundle_iter;
         for (bundle_iter = node->pending_bundles()->begin();
              bundle_iter != node->pending_bundles()->end();
              ++bundle_iter)
         {
-            Bundle* bundle = *bundle_iter;
+            #ifdef PENDING_BUNDLES_IS_MAP
+                Bundle* bundle = bundle_iter->second; // for <map> lists
+            #else
+                Bundle* bundle = *bundle_iter; // for <list> lists
+            #endif
             SimLog::instance()->log_inqueue(node, bundle);
         }
     }

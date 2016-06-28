@@ -1402,23 +1402,22 @@ BundleRef
 ECLLinkResource::get_outgoing_bundle(clmessage::bundle_attributes bundle_attribs)
 {
     GbofId gbof_id;
-    gbof_id.source_ = EndpointID( bundle_attribs.source_eid() );
-    gbof_id.creation_ts_.seconds_ = 
-            (u_int32_t)bundle_attribs.timestamp_seconds();
-    gbof_id.creation_ts_.seqno_ = 
-            (u_int32_t)bundle_attribs.timestamp_sequence();
-    gbof_id.is_fragment_ = bundle_attribs.is_fragment();
-    
-    if ( bundle_attribs.fragment_length().present() )
-        gbof_id.frag_length_ = (u_int32_t)bundle_attribs.fragment_length().get();
-    else
-        gbof_id.frag_length_ = 0;
-    
-    if ( bundle_attribs.fragment_length().present() )
-        gbof_id.frag_offset_ = (u_int32_t)bundle_attribs.fragment_offset().get();
-    else
-        gbof_id.frag_offset_ = 0;
-    
+        gbof_id.mutable_source()->assign( EndpointID( bundle_attribs.source_eid() ) );
+        gbof_id.mutable_creation_ts()->seconds_ = (u_int32_t)bundle_attribs.timestamp_seconds();
+        gbof_id.mutable_creation_ts()->seqno_ = (u_int32_t)bundle_attribs.timestamp_sequence();
+        gbof_id.set_is_fragment( bundle_attribs.is_fragment() );
+        if (gbof_id.is_fragment()) {
+            if ( bundle_attribs.fragment_length().present() )
+                gbof_id.set_frag_length( (u_int32_t)bundle_attribs.fragment_length().get() );
+            else
+                gbof_id.set_frag_length( 0 );
+
+            if ( bundle_attribs.fragment_length().present() )
+                gbof_id.set_frag_offset( (u_int32_t)bundle_attribs.fragment_offset().get() );
+            else
+                gbof_id.set_frag_offset( 0 );
+        }
+
     return outgoing_bundles_.find(gbof_id);
 }
 

@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -21,8 +39,7 @@
 #include "APIRegistration.h"
 #include "RegistrationTable.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleDaemon.h"
-#include "storage/RegistrationStore.h"
+#include "bundling/BundleDaemonStorage.h"
 
 namespace dtn {
 
@@ -136,28 +153,31 @@ RegistrationTable::add(Registration* reg, bool add_to_store)
                 reg->regid());
         return false;
     }
-    
+
+    api_reg->set_add_to_datastore(true);
+
     log_info("adding registration %d/%s", reg->regid(),
              reg->endpoint().c_str());
-    
-    if (! RegistrationStore::instance()->add(api_reg)) {
-        log_err("error adding registration %d/%s: error in persistent store",
-                reg->regid(), reg->endpoint().c_str());
-        return false;
-    }
+
+    BundleDaemonStorage::instance()->registration_add_update(api_reg);
     
     return true;
 }
 
 //----------------------------------------------------------------------
 bool
-RegistrationTable::del(u_int32_t regid)
+//RegistrationTable::del(u_int32_t regid)
+RegistrationTable::del(Registration* reg)
 {
-    oasys::ScopeLock l(&lock_, "RegistrationTable");
+    u_int32_t regid = reg->durable_key();
+    log_info("removing registration %d", regid);
+
+  
+    reg->stop_initial_load_thread();
 
     RegistrationList::iterator iter;
 
-    log_info("removing registration %d", regid);
+    oasys::ScopeLock l(&lock_, "RegistrationTable");
     
     if (! find(regid, &iter)) {
         log_err("error removing registration %d: no matching registration",
@@ -172,12 +192,6 @@ RegistrationTable::del(u_int32_t regid)
         return true;
     }
 
-    if (! RegistrationStore::instance()->del(regid)) {
-        log_err("error removing registration %d: error in persistent store",
-                regid);
-        return false;
-    }
-
     return true;
 }
 
@@ -185,8 +199,6 @@ RegistrationTable::del(u_int32_t regid)
 bool
 RegistrationTable::update(Registration* reg) const
 {
-    oasys::ScopeLock l(&lock_, "RegistrationTable");
-
     log_debug("updating registration %d/%s",
              reg->regid(), reg->endpoint().c_str());
 
@@ -197,11 +209,7 @@ RegistrationTable::update(Registration* reg) const
         return false;
     }
     
-    if (! RegistrationStore::instance()->update(api_reg)) {
-        log_err("error updating registration %d/%s: error in persistent store",
-                reg->regid(), reg->endpoint().c_str());
-        return false;
-    }
+    BundleDaemonStorage::instance()->registration_add_update(api_reg);
 
     return true;
 }

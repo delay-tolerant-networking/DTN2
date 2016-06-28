@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -46,6 +64,15 @@
 #ifdef BPQ_ENABLED
 #include "BPQBlockProcessor.h"
 #endif
+
+#ifdef ACS_ENABLED
+#  include "CustodyTransferEnhancementBlockProcessor.h"
+#endif // ACS_ENABLED 
+
+#ifdef ECOS_ENABLED
+#  include "ExtendedClassOfServiceBlockProcessor.h"
+#endif // ECOS_ENABLED
+
 namespace dtn {
 
 static const char* LOG = "/dtn/bundle/protocol";
@@ -80,7 +107,7 @@ BundleProtocol::find_processor(u_int8_t type)
     // instance. This definitely isn't elegant, but it'll have to do
     // temporarily.
     if(type == 10 && params_.age_inbound_processing_ == false) {
-        log_info_p(LOG, "BundleProtocol::find_processor - age block inbound disabled");
+        log_debug_p(LOG, "BundleProtocol::find_processor - age block inbound disabled");
         ret = 0;
     }
 
@@ -97,7 +124,10 @@ BundleProtocol::init_default_processors()
     // register default block processor handlers
     BundleProtocol::register_processor(new PrimaryBlockProcessor());
     BundleProtocol::register_processor(new PayloadBlockProcessor());
+
     BundleProtocol::register_processor(new PreviousHopBlockProcessor());
+
+
     BundleProtocol::register_processor(new MetadataBlockProcessor());
 #ifdef BPQ_ENABLED
     BundleProtocol::register_processor(new BPQBlockProcessor());
@@ -108,6 +138,15 @@ BundleProtocol::init_default_processors()
     BundleProtocol::register_processor(
         new SequenceIDBlockProcessor(BundleProtocol::OBSOLETES_ID_BLOCK));
     BundleProtocol::register_processor(new AgeBlockProcessor());
+
+#ifdef ACS_ENABLED
+    BundleProtocol::register_processor(new CustodyTransferEnhancementBlockProcessor());
+#endif // ACS_ENABLED
+
+#ifdef ECOS_ENABLED
+    BundleProtocol::register_processor(new ExtendedClassOfServiceBlockProcessor());
+#endif // ECOS_ENABLED
+
 }
 
 void BundleProtocol::delete_block_processors() {
@@ -153,7 +192,7 @@ BlockInfoVec*
 BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
 {
 
-    log_info_p(LOG, "BundleProtocol::prepare_blocks begin");
+    log_debug_p(LOG, "BundleProtocol::prepare_blocks begin");
     // create a new block list for the outgoing link by first calling
     // prepare on all the BlockProcessor classes for the blocks that
     // arrived on the link
@@ -168,8 +207,8 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
 
     if (recv_blocks->size() > 0) {
         // if there is a received block, the first one better be the primary
-        ASSERT(recv_blocks->front().type() == PRIMARY_BLOCK);
         log_debug_p(LOG, "BundleProtocol::prepare_blocks: about to check that the first block is the primary block(it is of type=%d)", recv_blocks->front().type());
+        ASSERT(recv_blocks->front().type() == PRIMARY_BLOCK);
     
         for (citer = recv_blocks->begin();
              citer != recv_blocks->end();
@@ -190,10 +229,11 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
             
             if(BP_FAIL == citer->owner()->prepare(bundle, xmit_blocks, &*citer, link,
                                    BlockInfo::LIST_RECEIVED)) {
-                log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare returned BP_FAIL on bundle %d", citer->owner()->block_type(), bundle->bundleid());
+                log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare returned BP_FAIL on bundle %"PRIbid, citer->owner()->block_type(), bundle->bundleid());
                 goto fail;
         }else{
-            log_debug_p(LOG, "BundleProtocol::prepare_block %d->prepare returned BP_SUCCESS on  bundle %d when run on a received block", citer->owner()->block_type(), bundle->bundleid());
+            log_debug_p(LOG, "BundleProtocol::prepare_block %d->prepare returned BP_SUCCESS on  bundle %"PRIbid" when run on a received block", 
+                             citer->owner()->block_type(), bundle->bundleid());
             }
         }
     }
@@ -201,12 +241,14 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
         log_debug_p(LOG, "adding primary and payload block");
         bp = find_processor(PRIMARY_BLOCK);
         if(BP_FAIL == bp->prepare(bundle, xmit_blocks, NULL, link, BlockInfo::LIST_NONE)) {
-            log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare (PRIMARY_BLOCK) returned BP_FAIL on bundle %d", bp->block_type(), bundle->bundleid());
+            log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare (PRIMARY_BLOCK) returned BP_FAIL on bundle %"PRIbid, 
+                           bp->block_type(), bundle->bundleid());
             goto fail;
         }
         bp = find_processor(PAYLOAD_BLOCK);
         if(BP_FAIL == bp->prepare(bundle, xmit_blocks, NULL, link, BlockInfo::LIST_NONE)) {
-            log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare (PAYLOAD_BLOCK) returned BP_FAIL on bundle %d", bp->block_type(),bundle->bundleid());
+            log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare (PAYLOAD_BLOCK) returned BP_FAIL on bundle %"PRIbid, 
+                           bp->block_type(),bundle->bundleid());
             goto fail;
         }
     }
@@ -220,14 +262,15 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
         if(BP_FAIL == iter->owner()->prepare(bundle, xmit_blocks, 
                                &*iter, link, BlockInfo::LIST_API)){
 
-            log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare returned BP_FAIL on bundle %d", iter->owner()->block_type(), bundle->bundleid());
+            log_err_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare returned BP_FAIL on bundle %"PRIbid, 
+                           iter->owner()->block_type(), bundle->bundleid());
             goto fail;
         }
     }
 
     //+[AEB]
     if( (api_blocks->find_block(BundleProtocol::AGE_BLOCK)) != false) {
-        log_info_p(LOG, "Age block found within API Blocks");
+        log_debug_p(LOG, "Age block found within API Blocks");
     }
     //+
 
@@ -239,25 +282,25 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
     // XXX/demmer this needs some options for the router to select
     // which block elements should be in the list, i.e. security, etc
 
-    log_info_p(LOG, "BundleProtocol::prepare_blocks looking for processors");
+    log_debug_p(LOG, "BundleProtocol::prepare_blocks looking for processors");
 
     //XXX REMOVE
     if(params_.age_outbound_enabled_ == true) {
-        log_info_p(LOG, "BundleProtocol::prepare_blocks age block outbound is ENABLED");
+        log_debug_p(LOG, "BundleProtocol::prepare_blocks age block outbound is ENABLED");
     } else {
-  	log_info_p(LOG, "BundleProtocol::prepare_blocks age block outbound is DISABLED");
+  	log_debug_p(LOG, "BundleProtocol::prepare_blocks age block outbound is DISABLED");
     }	
 
     if(params_.age_inbound_processing_ == true) {
-        log_info_p(LOG, "BundleProtocol::prepare_blocks age block inbound support is ENABLED");
+        log_debug_p(LOG, "BundleProtocol::prepare_blocks age block inbound support is ENABLED");
     } else {
-        log_info_p(LOG, "BundleProtocol::prepare_blocks age block inbound support is DISABLED");
+        log_debug_p(LOG, "BundleProtocol::prepare_blocks age block inbound support is DISABLED");
     }
 
     if(params_.age_zero_creation_ts_time_ == true) {
-        log_info_p(LOG, "BundleProtocol::prepare_blocks age block zero creation is ENABLED");
+        log_debug_p(LOG, "BundleProtocol::prepare_blocks age block zero creation is ENABLED");
     } else {
-        log_info_p(LOG, "BundleProtocol::prepare_blocks age block zero creation is DISABLED");
+        log_debug_p(LOG, "BundleProtocol::prepare_blocks age block zero creation is DISABLED");
     }
 
     for (i = 0; i < 256; ++i) {
@@ -268,10 +311,12 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
         }
 
         if (! xmit_blocks->has_block(i)) {
+            //XXX/dz Last chance for a block processor to add its block on the fly??
+
             // Don't check return value here because most of these
             // normally fail.
             bp->prepare(bundle, xmit_blocks, NULL, link, BlockInfo::LIST_NONE);
-            log_debug_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare returned BP_FAIL (which we ignored) on bundle %d", bp->block_type(), bundle->bundleid());
+            log_debug_p(LOG, "BundleProtocol::prepare_blocks: %d->prepare returned BP_FAIL (which we ignored) on bundle %"PRIbid, bp->block_type(), bundle->bundleid());
         }
     }
 
@@ -285,12 +330,12 @@ BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
 #ifdef BSP_ENABLED
     // Finally add security blocks
     if(BP_FAIL == SecurityConfig::prepare_out_blocks(bundle, link, xmit_blocks)) {
-        log_err_p(LOG,"BundleProtocol::prepare_blocks: SecurityConfig::prepare_out_blocks returned BP_FAIL on bundle %d", bundle->bundleid());
+        log_err_p(LOG,"BundleProtocol::prepare_blocks: SecurityConfig::prepare_out_blocks returned BP_FAIL on bundle %"PRIbid, bundle->bundleid());
         goto fail;
     }
 #endif
 
-    log_info_p(LOG, "BundleProtocol::prepare_blocks end");
+    log_debug_p(LOG, "BundleProtocol::prepare_blocks end");
 
     return xmit_blocks;
 fail:
@@ -314,7 +359,7 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
     // now we make another pass through the list and call generate on
     // each block processor
 
-    log_info_p(LOG, "BundleProtocol::generate_blocks: calling generate() on each block processor");
+    log_debug_p(LOG, "BundleProtocol::generate_blocks: calling generate() on each block processor");
     BlockInfoVec::iterator last_block = blocks->end() - 1;
     for (BlockInfoVec::iterator iter = blocks->begin();
          iter != blocks->end();
@@ -327,13 +372,13 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
             goto fail;
         }
 
-        log_info_p(LOG, "BundleProtocol::generate_blocks: generated block (owner 0x%x type 0x%x) "
+        log_debug_p(LOG, "BundleProtocol::generate_blocks: generated block (owner 0x%x type 0x%x) "
                     "data_offset %u data_length %u contents length %zu",
                     iter->owner()->block_type(), iter->type(),
                     iter->data_offset(), iter->data_length(),
                     iter->contents().len());
 
-        log_info_p(LOG, "BundleProtocol::generate_blocks: generated block (owner 0x%x type 0x%x) "
+        log_debug_p(LOG, "BundleProtocol::generate_blocks: generated block (owner 0x%x type 0x%x) "
                     "data_offset %u data_length %u contents length %zu",
                     iter->owner()->block_type(), iter->type(),
                     iter->data_offset(), iter->data_length(),
@@ -354,7 +399,7 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
     
     // Now that all the EID references are added to the dictionary,
     // generate the primary block.
-    log_info_p(LOG, "BundleProtocol::generate_blocks: calling generate() on PRIMARY block");
+    log_debug_p(LOG, "BundleProtocol::generate_blocks: calling generate() on PRIMARY block");
     pbp =
         (PrimaryBlockProcessor*)find_processor(PRIMARY_BLOCK);
     ASSERT(blocks->front().owner() == pbp);
@@ -365,7 +410,7 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
     //
     // NOTE: this pass must be in reverse order, from end of the list
     // to the begining, in order for security processing to work.
-    log_info_p(LOG, "BundleProtocol::generate_blocks: calling finalize() on all blocks");
+    log_debug_p(LOG, "BundleProtocol::generate_blocks: calling finalize() on all blocks");
     for (BlockInfoVec::reverse_iterator iter = blocks->rbegin();
          iter != blocks->rend();
          ++iter)
@@ -384,7 +429,7 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
         total_len += iter->full_length();
     }
 
-    log_info_p(LOG, "BundleProtocol::generate_blocks: end");
+    log_debug_p(LOG, "BundleProtocol::generate_blocks: end");
     
     return total_len;
 fail:
@@ -601,7 +646,7 @@ BundleProtocol::validate(Bundle* bundle,
                          status_report_reason_t* reception_reason,
                          status_report_reason_t* deletion_reason)
 {
-    log_info_p(LOG, "BundleProtocol::validate begin");
+    log_debug_p(LOG, "BundleProtocol::validate begin");
 
     int primary_blocks = 0, payload_blocks = 0;
     BlockInfoVec* recv_blocks = bundle->mutable_recv_blocks();
@@ -621,7 +666,7 @@ BundleProtocol::validate(Bundle* bundle,
     }
 
     // validate each individual block
-    log_info_p(LOG, "validating each individual blocks");
+    log_debug_p(LOG, "validating each individual blocks");
 
     BlockInfoVec::iterator last_block = recv_blocks->end() - 1;
     for (BlockInfoVec::iterator iter = recv_blocks->begin();
@@ -714,7 +759,7 @@ BundleProtocol::validate(Bundle* bundle,
     }
 #endif
 
-    log_info_p(LOG, "BundleProtocol::validate end");
+    log_debug_p(LOG, "BundleProtocol::validate end");
 
     return true;
 }
@@ -769,7 +814,13 @@ BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
     }
 
     u_char buf[16];
-    const u_char* bp = bundle->payload().read_data(0, sizeof(buf), buf);
+    // XXX/dz - aborts if payload is less than 16 bytes and we only need 
+    //          one byte to determine the admin type
+    //const u_char* bp = bundle->payload().read_data(0, sizeof(buf), buf);
+    if (bundle->payload().length() < 1) {
+        return false;
+    }
+    const u_char* bp = bundle->payload().read_data(0, 1, buf);
 
     switch (bp[0] >> 4)
     {
@@ -777,6 +828,7 @@ BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
 
         CASE(ADMIN_STATUS_REPORT);
         CASE(ADMIN_CUSTODY_SIGNAL);
+        CASE(ADMIN_AGGREGATE_CUSTODY_SIGNAL);
         CASE(ADMIN_ANNOUNCE);
 
 #undef  CASE

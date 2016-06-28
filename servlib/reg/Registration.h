@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _REGISTRATION_H_
 #define _REGISTRATION_H_
 
@@ -30,6 +48,7 @@
 namespace dtn {
 
 class Bundle;
+class RegistrationInitialLoadThread;
 
 /**
  * Class used to represent an "application" registration, loosely
@@ -53,6 +72,8 @@ public:
     static const u_int32_t PING_REGID = 2;
     static const u_int32_t EXTERNALROUTER_REGID = 3;
     static const u_int32_t DTLSR_REGID = 4;
+    static const u_int32_t ADMIN_REGID_IPN = 5;
+    static const u_int32_t IPN_ECHO_REGID = 6;
     static const u_int32_t MAX_RESERVED_REGID = 9;
     
     /**
@@ -155,9 +176,16 @@ public:
     u_int32_t                expiration()        const { return expiration_; }
     bool                     active()            const { return active_; }
     bool                     expired()           const { return expired_; }
+    bool                     in_datastore()      const { return in_datastore_; }
+    bool                     add_to_datastore()  const { return add_to_datastore_; }
+    bool                     in_storage_queue()  const { return in_storage_queue_; }
+    RegistrationInitialLoadThread* initial_load_thread() const { return initial_load_thread_; }
 
     void set_active(bool a)  { active_ = a; set_active_callback(a); }
     void set_expired(bool e) { expired_ = e; }
+    void set_in_datastore(bool b) { in_datastore_ = b; }
+    void set_add_to_datastore(bool b) { add_to_datastore_ = b; }
+    void set_in_storage_queue(bool t) { in_storage_queue_ = t; }
     //@}
 
     /**
@@ -178,6 +206,20 @@ public:
      */
     void force_expire();
 
+    /**
+     * Save a pointer to the loader thread
+     */
+    void set_initial_load_thread(RegistrationInitialLoadThread* loader);
+
+    /**
+     * Clear the pointer to the loader thread if it matches
+     */
+    void clear_initial_load_thread(RegistrationInitialLoadThread* loader);
+
+    /**
+     * Stop the initial load thread if one exists
+     */
+    void stop_initial_load_thread();
 protected:
     /**
      * Class to implement registration expirations.
@@ -208,7 +250,13 @@ protected:
     bool active_;    
     bool bound_;    
     bool expired_;
+    bool in_datastore_;
+    bool add_to_datastore_;
+    bool in_storage_queue_;        ///< Flag indicating whether bundle update event is  
+                                   ///  queued in the storage thread
     BundleInfoCache delivery_cache_;
+
+    RegistrationInitialLoadThread* initial_load_thread_;
 };
 
 /**

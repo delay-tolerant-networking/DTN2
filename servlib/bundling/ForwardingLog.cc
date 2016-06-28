@@ -287,6 +287,7 @@ ForwardingLog::update(const LinkRef& link, state_t state)
             ASSERT(iter->remote_eid() == EndpointID::NULL_EID() ||
                    iter->remote_eid() == link->remote_eid());
             iter->set_state(state);
+
             BundleDaemon* daemon = BundleDaemon::instance();
             daemon->actions()->store_update(bundle_);
             return true;

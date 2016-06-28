@@ -210,29 +210,42 @@ void parse_options(int argc, char**argv)
 {
     progname = argv[0];
 
-    // expiration time in seconds
     if (argc < 2)
         goto bail;
-
     if (strcmp(argv[1], "-A") == 0)  
     {      
         argv++;
         argc--;        
+
+        if (argc < 2)
+            goto bail;
+
         api_IP=argv[1];
         api_IP_set = 1;
         argv++;
         argc--;        
     }        
+
+    if (argc < 2)
+        goto bail;
     if (strcmp(argv[1], "-B") == 0)        
     {   
-         argv++;
+        argv++;
         argc--;        
+
+        if (argc < 2)
+            goto bail;
+
+        api_IP_set = 1;
         api_port=atoi(argv[1]);
         argv++;
         argc--;        
     }        
         
     
+    // expiration time in seconds
+    if (argc < 2)
+        goto bail;
     if (strcmp(argv[1], "--expiration") == 0)
     {
         argv++;
@@ -256,7 +269,6 @@ void parse_options(int argc, char**argv)
     // no reply
     if (argc < 2)
         goto bail;
-
     if (strcmp(argv[1], "-D") == 0)
       {
 	delivery_receipts = 1;

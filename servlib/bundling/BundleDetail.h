@@ -15,6 +15,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_DETAIL_H_
 #define _BUNDLE_DETAIL_H_
 
@@ -64,7 +82,7 @@ class BundleDetail : public oasys::StoreDetail
 	     * Hook for the generic durable table implementation to know what
 	     * the key is for the database.
 	     */
-	    u_int32_t durable_key() { return bundleid_; }
+	    bundleid_t durable_key() { return bundleid_; }
 
 
     private:
@@ -74,7 +92,7 @@ class BundleDetail : public oasys::StoreDetail
 	     * the bundle isn't exposed and we need stores that are persistent between
 	     * method calls
 	     */
-	    u_int32_t		bundleid_;			///< ID of the above bundle
+	    bundleid_t bundleid_;			///< ID of the above bundle
 		u_int64_t creation_time_;			///< UTC when (whole) bundle was created
 		u_int64_t creation_seq_;			///< Sequence number of bundle in creating node
 		size_t payload_length_;				///< Length of bundle payload (might be fragment)

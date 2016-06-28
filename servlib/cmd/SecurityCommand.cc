@@ -40,6 +40,12 @@ SecurityCommand::SecurityCommand()
     add_to_help("setkey <host> <cs_num> <key>",
                 "Set the symmetric key to use for the specified host and ciphersuite\n"
                 "number.  <host> may also be the wildcard symbol \"*\".");
+#ifdef LTPUDP_AUTH_ENABLED
+    add_to_help("setkeyltp <engine> <cs_num> <key> <key_id>",
+                "Currently valid only for ciphersuite 0 "
+                "Set the symmetric key to use for the specified engine and ciphersuite key_id for LTP\n"
+                "number.<key_id> is an integer value  <engine> is an integer indicating the engine id for the key set.");
+#endif
     add_to_help("dumpkeys",
                 "Dump the symmetric keys to the screen.");
     add_to_help("flushkeys",
@@ -225,7 +231,104 @@ SecurityCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         delete[] key;
         return TCL_OK;
 
-    } else if (strcmp(cmd, "dumpkeys") == 0) {
+    }
+#ifdef LTPUDP_AUTH_ENABLED
+    else if (strcmp(cmd, "setkeyltp") == 0) {
+        string engine_override;
+        // security setkey <engine_id> <cs_num> <key> <key_id>
+        if (argc != 6) {
+            wrong_num_args(argc, argv, 2, 6, 6);
+            return TCL_ERROR;
+        }
+       
+        const char* engine_arg = argv[2];
+        const char* cs_num_arg = argv[3];
+        const char* key_arg    = argv[4];
+
+        int test_val = atoi(argv[2]);
+        if (test_val == 0) {
+            resultf("invalid engine argument \"%s\"", engine_arg);
+            return TCL_ERROR;
+        }
+
+        for(int check = 0 ; check < (int) strlen(argv[2]); check++) {
+            if(!isdigit(argv[2][check])) {
+                resultf("invalid engine argument \"%s\"", argv[2]);
+                return TCL_ERROR;
+            }
+        }
+        for(int check = 0 ; check < (int) strlen(argv[5]); check++) {
+            if(!isdigit(argv[5][check])) {
+                resultf("invalid key_id argument \"%s\"", argv[5]);
+                return TCL_ERROR;
+            }
+        }
+        engine_override = std::string("LTP:") + std::string(argv[2]) + std::string(":") + std::string(argv[5]);
+        engine_arg = engine_override.c_str();
+
+        int cs_num;
+
+        if (sscanf(cs_num_arg, "%i", &cs_num) != 1) {
+            resultf("invalid cs_num argument \"%s\"", cs_num_arg);
+            return TCL_ERROR;
+        }
+
+        if (cs_num != 0) {
+            resultf("invalid cs_num (%d)", cs_num);
+            return TCL_ERROR;
+        }
+
+        int key_arg_len = strlen(key_arg);
+        if ((key_arg_len % 2) != 0) {
+            resultf("invalid key argument (must be even length)");
+            return TCL_ERROR;
+        }
+
+        size_t key_len = key_arg_len / 2;
+        if(key_len != 20 && cs_num == 0) {
+            resultf("wrong key length (%d) for ciphersuite (expected 20 bytes)",
+                    (int)key_len);
+            return TCL_ERROR;
+        }
+           
+        // convert key from ASCII hexadecimal to raw bytes
+        u_char* key = new u_char[key_len];
+        for (int i = 0; i < (int)key_len; i++)
+        {
+            int b = 0;
+
+            for (int j = 0; j <= 1; j++)
+            {
+                int c = (int)key_arg[2*i+j];
+                b <<= 4;
+
+                if (c >= '0' && c <= '9')
+                    b |= c - '0';
+                else if (c >= 'A' && c <= 'F')
+                    b |= c - 'A' + 10;
+                else if (c >= 'a' && c <= 'f')
+                    b |= c - 'a' + 10;
+                else {
+                    resultf("invalid character '%c' in key argument",
+                            (char)c);
+                    delete key;
+                    return TCL_ERROR;
+                }
+            }
+            
+            key[i] = (u_char)(b);
+        }
+
+        KeyDB::Entry new_entry =
+            KeyDB::Entry(engine_arg, cs_num, key, key_len);
+        KeyDB::set_key(new_entry);
+
+        delete[] key;
+        return TCL_OK;
+
+    }
+#endif
+    else if (strcmp(cmd, "dumpkeys") == 0) {
         // security dumpkeys
         if (argc != 2) {
             wrong_num_args(argc, argv, 2, 2, 2);

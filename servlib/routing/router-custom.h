@@ -19,6 +19,24 @@
  *    derived from this software without specific prior written permission.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _ROUTER_CUSTOM_H_
 #define _ROUTER_CUSTOM_H_
 
@@ -42,6 +60,7 @@ class linkType : public linkType_base
 {
 public:
     linkType (const remote_eid::type&,
+              const link_id::type&,
               const type::type_&,
               const nexthop::type&,
               const state::type&,
@@ -98,7 +117,10 @@ public:
                 const expiration::type&,
                 const orig_length::type&,
                 const frag_offset::type&,
-                const owner::type&);
+                const owner::type&,
+                const custodyid::type&,
+                const ecos_flags::type&,
+                const ecos_ordinal::type&);
 
     bundleType (const ::xercesc::DOMElement&,
                 ::xml_schema::flags = 0,

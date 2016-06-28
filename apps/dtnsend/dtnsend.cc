@@ -14,11 +14,30 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -48,7 +67,7 @@ char *progname;
 
 // Daemon connection
 int api_IP_set = 0;
-char * api_IP = "127.0.0.1";
+char * api_IP = (char*) "127.0.0.1";
 short api_port = 5010;
 
 // global options
@@ -164,8 +183,11 @@ main(int argc, char** argv)
     if (verbose) fprintf(stdout, "Opening connection to local DTN daemon\n");
     
     int err = 0;
-    if (api_IP_set) err = dtn_open_with_IP(api_IP,api_port,&handle);
-    else err = dtn_open(&handle);
+
+    if (api_IP_set || api_port != 5010)
+        err = dtn_open_with_IP(api_IP,api_port,&handle);
+    else  
+        err = dtn_open(&handle);
 
     if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
@@ -322,7 +344,7 @@ main(int argc, char** argv)
         memset(&bundle_id, 0, sizeof(bundle_id));
        
         //XXX remove 
-        if (verbose) fprintf(stdout, "bundle going to be sent: id %s,%llu.%llu\n",
+        if (verbose) fprintf(stdout, "bundle going to be sent: id %s,%"PRIu64".%"PRIu64"\n",
                              bundle_spec.source.uri,
                              bundle_spec.creation_ts.secs,
                              bundle_spec.creation_ts.seqno);
@@ -335,7 +357,7 @@ main(int argc, char** argv)
             exit(1);
         }
 
-        if (verbose) fprintf(stdout, "bundle sent successfully: id %s,%llu.%llu\n",
+        if (verbose) fprintf(stdout, "bundle sent successfully: id %s,%"PRIu64".%"PRIu64"\n",
                              bundle_id.source.uri,
                              bundle_id.creation_ts.secs,
                              bundle_id.creation_ts.seqno);
@@ -443,6 +465,7 @@ void parse_options(int argc, char**argv)
             api_IP = optarg;
             break;
         case 'B':
+            api_IP_set = 1;
             api_port = atoi(optarg);
             break;    
         case 'v':

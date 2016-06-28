@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BLOCKPROCESSOR_H_
 #define _BLOCKPROCESSOR_H_
 
@@ -123,6 +141,19 @@ public:
                           BlockInfo*              block,
                           status_report_reason_t* reception_reason,
                           status_report_reason_t* deletion_reason);
+
+
+#ifdef BSP_ENABLED
+    /**
+     * Validate the security result for a BSP block. This is called 
+     * after all blocks in the bundle have been fully received.
+     *
+     * @return true if the block passes security result validation
+     */
+    virtual bool validate_security_result(const Bundle*           bundle,
+                                          const BlockInfoVec*     block_list,
+                                          BlockInfo*              block);
+#endif
 
     /**
      * First callback to generate blocks for the output pass. The

@@ -14,10 +14,29 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -65,10 +84,11 @@ int   no_find_reg	= 0;    	// omit call to dtn_find_registration
 char filename[PATH_MAX];		// Destination filename for file xfers
 dtn_bundle_payload_location_t bundletype = DTN_PAYLOAD_MEM;
 int   promiscuous       = 0;	        // accept any bundles, ignore content
+int   dots              = 0;            // show progress using dots
 
 
 #define RECV_TIMEOUT 10000    	/* timeout to dtn_recv call (10s) */
-#define MAX_STARTUP_TRIES 10	/* how many times to spin on first bundle */
+int max_startup_retries = 10;	// how many times to spin on first bundle
 
 void
 usage()
@@ -92,6 +112,8 @@ usage()
     fprintf(stderr, " -N don't try to find an existing registration\n");
     fprintf(stderr, " -p operate in promiscuous mode "
 	    "(accept n bundles, ignore contents\n");
+    fprintf(stderr, " -s show progress using dots (promiscuous mode)\n");
+    fprintf(stderr, " -t <retries> default is 10 for 100 seconds\n");
 }
 
 void
@@ -105,7 +127,7 @@ parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "A:B:vhHd:r:e:f:F:xn:cuNp");
+        c = getopt(argc, argv, "A:B:vhHd:r:e:f:F:xn:cuNpst:");
         switch (c)
         {
         case 'A':
@@ -113,6 +135,7 @@ parse_options(int argc, char**argv)
             api_IP = optarg;
             break;
         case 'B':
+            api_IP_set = 1;
             api_port = atoi(optarg);
             break;    
         case 'v':
@@ -168,6 +191,12 @@ parse_options(int argc, char**argv)
 	case 'p':
 	    promiscuous = 1;
 	    break;
+        case 's':
+            dots = 1;
+            break;
+        case 't':
+            max_startup_retries = atoi(optarg);
+            break;
         case -1:
             done = 1;
             break;
@@ -266,6 +295,15 @@ main(int argc, char** argv)
     dtn_bundle_payload_t payload;
     int call_bind;
     time_t now;
+    int bundles_received = 0;
+
+    struct timespec first_bundle_receipt_time;
+    struct timespec last_bundle_receipt_time;
+    struct timespec interim_time;
+    struct timespec delta;
+    uint64_t bytes_received = 0;
+    uint64_t interim_bytes_received = 0;
+    double rate = 0.0;
 
     // force stdout to always be line buffered, even if output is
     // redirected to a pipe or file
@@ -389,10 +427,13 @@ main(int argc, char** argv)
     char *received = (char *)malloc(count + 1);
     memset(received, '\0', count);
 
+    int percnt1 = count / 100;
+
     // loop waiting for bundles
     fprintf(stderr, "waiting %d seconds for first bundle...\n",
-	    (MAX_STARTUP_TRIES)*RECV_TIMEOUT/1000);
-    for (i = 1; i <= count; ++i) {
+	    (max_startup_retries)*RECV_TIMEOUT/1000);
+    i = 1;
+    while (i <= count) {
 	int tries;
 	uint32_t which;
 	uint32_t size;
@@ -407,17 +448,20 @@ main(int argc, char** argv)
 	 * want to be friendly and wait patiently for the first
 	 * bundle, in case dtnsource is slow in getting off the mark.
 	 * 
-	 * So we loop at most MAX_STARTUP_TRIES times
+	 * So we loop at most max_startup_retries times
 	 */
 	tries = 0;
 	while ((ret = dtn_recv(handle, &spec, bundletype, &payload, 
 			       RECV_TIMEOUT)) < 0) {
 	    /* if waiting for the first bundle and we timed out be patient */
 	    if (dtn_errno(handle) == DTN_ETIMEOUT) {
-		if (i == 1 && ++tries < MAX_STARTUP_TRIES) {
+		if (i == 1 && ++tries < max_startup_retries) {
 		    fprintf(stderr, "waiting %d seconds for first bundle...\n",
-			    (MAX_STARTUP_TRIES-tries)*RECV_TIMEOUT/1000);
-		} else {
+			    (max_startup_retries-tries)*RECV_TIMEOUT/1000);
+		} else if (++tries < max_startup_retries) {
+		    fprintf(stderr, "waiting %d seconds for bundle %d...\n",
+			    (max_startup_retries-tries)*RECV_TIMEOUT/1000, i);
+                } else {
 		    /* timed out waiting, something got dropped */
 		    fprintf(stderr, "timeout waiting for bundle %d\n", i);
 		    goto bail;
@@ -430,31 +474,44 @@ main(int argc, char** argv)
 	    }
 	}
 
+        tries = 0;
 	if (i == 1) {
-	    now = time(0);
+            clock_gettime(CLOCK_MONOTONIC, &first_bundle_receipt_time);
+            last_bundle_receipt_time = first_bundle_receipt_time;
+            interim_time = first_bundle_receipt_time;
+	} else {
+            clock_gettime(CLOCK_MONOTONIC, &last_bundle_receipt_time);
+        }
+
+
+
+        // Files need to be handled differently than memory transfers
+        if (payload.location == DTN_PAYLOAD_FILE) {
+            if (handle_file_transfer(payload, &size, &which) < 0) {
+                dtn_free_payload(&payload);
+                continue;
+            }
+        } else {
+            size = payload.buf.buf_len;
+
+            if (3 == size && 0 == strncmp(&payload.buf.buf_val[1], "Go", 2)) {
+                printf("Received bpdriver start packet\n");
+                continue;
+            }
+
+            which = ntohl(*(uint32_t *)payload.buf.buf_val);
+        }
+	    
+	if (i == 1) {
+            now = time(0);
 	    printf("received first bundle at %s\n", ctime(&now));
-	}
-	if (verbose) {
-	    printf("bundle %d received successfully: id %s,%llu.%llu\n",
-		   i,
-		   spec.source.uri,
-		   spec.creation_ts.secs,
-		   spec.creation_ts.seqno);
-	}
+        }
+
+        ++bundles_received;
+        bytes_received += size;
 
 	if (!promiscuous) {
 	    /* check to see which bundle this is */
-	    // Files need to be handled differently than memory transfers
-	    if (payload.location == DTN_PAYLOAD_FILE) {
-		if (handle_file_transfer(payload, &size, &which) < 0) {
-		    dtn_free_payload(&payload);
-		    continue;
-		}
-	    } else {
-		which = ntohl(*(uint32_t *)payload.buf.buf_val);
-		size = payload.buf.buf_len;
-	    }
-	    
 	    if (which > (uint32_t) count) {
 		// note that the above cast is safe as count always >= 0
 		fprintf(stderr, "-- expecting %d bundles, saw bundle %u\n", 
@@ -464,39 +521,101 @@ main(int argc, char** argv)
 		fprintf(stderr, "-- didn't expect bundle %u\n", which);
 	    }
 	    else {
-	      ++received[which];
+	        ++received[which];
 	    }
+	} else if (!verbose) {
+            if (dots) {
+                printf(".");
+                fflush(stdout);
+            } else if (bundles_received % percnt1 == 0) {
+                delta.tv_sec = last_bundle_receipt_time.tv_sec - interim_time.tv_sec;
+                delta.tv_nsec = last_bundle_receipt_time.tv_nsec - interim_time.tv_nsec;
+                while (delta.tv_nsec >= 1000000000) {
+                    delta.tv_sec++;
+                    delta.tv_nsec -= 1000000000;
+                }
+                while (delta.tv_nsec < 0) {
+                    delta.tv_sec--;
+                    delta.tv_nsec += 1000000000;
+                }
+                double delta_us = delta.tv_sec * 1000000.0 + delta.tv_nsec / 1000.0;
+                rate = 0.0;
+                if (delta_us > 0.0) {
+                    rate = ((bytes_received - interim_bytes_received) * 8.0) / delta_us;
+                }
+
+                printf("Bundles received: %d   rate: %.3f Mbps\n", bundles_received, rate);
+
+                interim_time = last_bundle_receipt_time;
+                interim_bytes_received = bytes_received;
+            }
+        }
+
+	if (verbose) {
+	    printf("bundle %d received successfully: id %s,%"PRIu64".%"PRIu64"  payload len: %"PRIu32"\n",
+		   i,
+		   spec.source.uri,
+		   spec.creation_ts.secs,
+		   spec.creation_ts.seqno,
+           size
+           );
 	}
 
 	// XXX should verify size here...
 
 	/* all done, get next one */
 	dtn_free_payload(&payload);
+
+        ++i;
     }
 
 bail:
-    for (i = 1; i <= count; ++i) {
-	if (received[i] == 0) {
-	    int j = i + 1;
-	    while (j <= count && received[j] == 0)
-		++j;
-	    if (j == i + 1)
-		printf("bundle %d: dropped\n", i);
-	    else
-		printf("bundles %d-%d dropped\n", i, j - 1);
-	    errs += (j - i);
-	    i += (j - i - 1);
-	} else if (received[i] > 1) {
-	    printf("bundle %d: received %d copies\n", i, received[i]);
-	    ++errs;
-	}
+    printf("\n");
+	if (!promiscuous) {
+        for (i = 1; i <= count; ++i) {
+	        if (received[i] == 0) {
+	            int j = i + 1;
+	            while (j <= count && received[j] == 0)
+		            ++j;
+	            if (j == i + 1)
+		            printf("bundle %d: dropped\n", i);
+	            else
+		            printf("bundles %d-%d dropped\n", i, j - 1);
+	            errs += (j - i);
+	            i += (j - i - 1);
+	        } else if (received[i] > 1) {
+	            printf("bundle %d: received %d copies\n", i, received[i]);
+	            ++errs;
+	        }
+        }
+        if (errs == 0) {
+	        printf("all %d bundles received correctly\n", count);
+        }
     }
-    if (errs == 0) {
-	printf("all %d bundles received correctly\n", count);
+
+    delta.tv_sec = last_bundle_receipt_time.tv_sec - first_bundle_receipt_time.tv_sec;
+    delta.tv_nsec = last_bundle_receipt_time.tv_nsec - first_bundle_receipt_time.tv_nsec;
+    while (delta.tv_nsec >= 1000000000) {
+        delta.tv_sec++;
+        delta.tv_nsec -= 1000000000;
     }
+    while (delta.tv_nsec < 0) {
+        delta.tv_sec--;
+        delta.tv_nsec += 1000000000;
+    }
+    double delta_us = delta.tv_sec * 1000000.0 + delta.tv_nsec / 1000.0;
+    rate = 0.0;
+    if (delta_us > 0.0) {
+        rate = (bytes_received * 8.0) / delta_us;
+    }
+
     free(received);
     now = time(0);
-    printf("terminating at %s\n", ctime(&now));
+    printf("terminating at %s\n\n", ctime(&now));
+
+    printf("Total bundles received: %d  in %.3f secs - payload bytes: %"PRIu64"  rate: %.3f Mbps\n", 
+           bundles_received, delta_us/1000000.0, bytes_received, rate);
+
 
 done:
     dtn_close(handle);

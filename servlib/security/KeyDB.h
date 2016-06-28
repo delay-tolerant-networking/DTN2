@@ -78,6 +78,23 @@ public:
      */
     static void del_key(const char* host, u_int16_t cs_num);
 
+#ifdef LTPUDP_AUTH_ENABLED
+    /**
+     * Find the LTPUDP AUTH key for a given host, LTP ciphersuite number and key ID
+     *
+     * @return A pointer to the matching Entry, or NULL if no
+     * match is found.
+     */
+    static const Entry* find_key(const char* host, u_int16_t cs_num, u_int32_t cs_key_id);
+    
+    /**
+     * Delete the key entry for the given host and ciphersuite type.
+     * Delete the LTPUDP AUTH key for a given host, LTP ciphersuite number and key ID
+     */
+    static void del_key(const char* host, u_int16_t cs_num, u_int32_t cs_key_id);
+#endif // LTPUDP_AUTH_ENABLED
+
+
     /**
      * Delete all key entries (including wildcard entries).
      */

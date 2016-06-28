@@ -332,6 +332,7 @@ doOptions(int argc, const char **argv)
             api_IP = optarg;
             break;
         case 'B':
+            api_IP_set = 1;
             api_port = atoi(optarg);
             break;    
         case 'e':

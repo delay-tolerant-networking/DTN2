@@ -261,6 +261,7 @@ enum dtn_extension_block_flags_t {
 };
 typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
 
+
 /**
  *	   BPQ extension block type
  */
@@ -270,17 +271,18 @@ typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
 /**
  * BPQ Extension block kind.
  *
- *     BPQ_BLOCK_KIND_QUERY							- query bundles
- *     BPQ_BLOCK_KIND_RESPONSE						- response bundles
+ *     BPQ_BLOCK_KIND_QUERY				- query bundles
+ *     BPQ_BLOCK_KIND_RESPONSE				- response bundles
  *     BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG	- response bundles that should not be cached unless complete
- *     BPQ_BLOCK_KIND_PUBLISH						- publish bundles - treated like response except local storage
+ *     BPQ_BLOCK_KIND_PUBLISH				- publish bundles - treated like response except local storage
  */
 
+
 enum dtn_bpq_extension_block_kind_t {
-    BPQ_BLOCK_KIND_QUERY = 0x00,
-    BPQ_BLOCK_KIND_RESPONSE = 0x01,
-    BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG = 0x02,
-    BPQ_BLOCK_KIND_PUBLISH = 0x03,
+	BPQ_BLOCK_KIND_QUERY = 0x00,
+	BPQ_BLOCK_KIND_RESPONSE = 0x01,
+	BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG = 0x02,
+	BPQ_BLOCK_KIND_PUBLISH = 0x03,
 };
 typedef enum dtn_bpq_extension_block_kind_t dtn_bpq_extension_block_kind_t;
 
@@ -290,8 +292,9 @@ typedef enum dtn_bpq_extension_block_kind_t dtn_bpq_extension_block_kind_t;
  *     BPQ_MATCHING_RULE_EXACT
  */
 
+
 enum dtn_bpq_extension_block_matching_rule_t {
-    BPQ_MATCHING_RULE_EXACT = 0x00,
+	BPQ_MATCHING_RULE_EXACT = 0x00,
 };
 typedef enum dtn_bpq_extension_block_matching_rule_t dtn_bpq_extension_block_matching_rule_t;
 
@@ -299,35 +302,49 @@ typedef enum dtn_bpq_extension_block_matching_rule_t dtn_bpq_extension_block_mat
  * Extension block.
  */
 
+struct dtn_extension_block_data_t {
+	u_int data_len;
+	char *data_val;
+};
+typedef struct dtn_extension_block_data_t dtn_extension_block_data_t;
+
 struct dtn_extension_block_t {
 	u_int type;
 	u_int flags;
-	struct {
-		u_int data_len;
-		char *data_val;
-	} data;
+	struct dtn_extension_block_data_t data;
 };
 typedef struct dtn_extension_block_t dtn_extension_block_t;
 
+
+struct dtn_bpq_ext_block_original_id_t {
+	dtn_timestamp_t creation_ts;
+	u_int source_len;
+	dtn_endpoint_id_t source;
+};
+typedef struct dtn_bpq_ext_block_original_id_t dtn_bpq_ext_block_original_id_t;
+
+struct dtn_bpq_ext_block_query_t {
+	u_int query_len;
+	char *query_val;
+};
+typedef struct dtn_bpq_ext_block_query_t dtn_bpq_ext_block_query_t;
+
+struct dtn_bpq_ext_block_fragments_t {
+	u_int num_frag_returned;
+	u_int *frag_offsets;
+	u_int *frag_lenghts;
+};
+typedef struct dtn_bpq_ext_block_fragments_t dtn_bpq_ext_block_fragments_t;
+
 struct dtn_bpq_extension_block_data_t {
-    u_int kind;
-    u_int matching_rule;
-    struct {
-    	dtn_timestamp_t creation_ts;
-    	u_int source_len;
-    	dtn_endpoint_id_t source;
-    } original_id;
-    struct {
-        u_int query_len;
-        char* query_val;
-    } query;
-    struct {
-        u_int num_frag_returned;
-        u_int *frag_offsets;
-        u_int *frag_lenghts;
-    } fragments;
+	u_int kind;
+	u_int matching_rule;
+	struct dtn_bpq_ext_block_original_id_t original_id;
+	struct dtn_bpq_ext_block_query_t query;
+	struct dtn_bpq_ext_block_fragments_t fragments;
 };
 typedef struct dtn_bpq_extension_block_data_t dtn_bpq_extension_block_data_t;
+
 
 /**
  * A Sequence ID is a vector of (EID, counter) values in the following
@@ -343,6 +360,26 @@ struct dtn_sequence_id_t {
 	} data;
 };
 typedef struct dtn_sequence_id_t dtn_sequence_id_t;
+/**
+ * Extended Class of Service (ECOS) flags bit definitions.
+ *
+ *     ECOS_FLAG_CRITICAL         - critical - send on every logical path
+ *     ECOS_FLAG_STREAMING        - streaming - send on best efforts without retransmission
+ *     ECOS_FLAG_FLOW_LABEL       - indicates flow label exists after the ordinal byte
+ *     ECOS_FLAG_RELIABLE         - reliable - send on convergence layer that detects data loss and retransmits
+ *
+ * Use these bit definitions OR-ed together to set the ecos_flags parameter.
+ */
+
+
+enum dtn_ecos_flags_bits_t {
+	ECOS_FLAG_CRITICAL = 0x01,
+	ECOS_FLAG_STREAMING = 0x02,
+	ECOS_FLAG_FLOW_LABEL = 0x04,
+	ECOS_FLAG_RELIABLE = 0x08,
+};
+typedef enum dtn_ecos_flags_bits_t dtn_ecos_flags_bits_t;
+
 
 /**
  * Bundle metadata. The delivery_regid is ignored when sending
@@ -361,6 +398,10 @@ struct dtn_bundle_spec_t {
 	dtn_reg_id_t delivery_regid;
 	dtn_sequence_id_t sequence_id;
 	dtn_sequence_id_t obsoletes_id;
+	bool_t ecos_enabled;
+	u_int ecos_flags;
+	u_int ecos_ordinal;
+	u_int ecos_flow_label;
 	struct {
 		u_int blocks_len;
 		dtn_extension_block_t *blocks_val;
@@ -491,11 +532,22 @@ extern  bool_t xdr_dtn_reg_info_t (XDR *, dtn_reg_info_t*);
 extern  bool_t xdr_dtn_bundle_priority_t (XDR *, dtn_bundle_priority_t*);
 extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t*);
 extern  bool_t xdr_dtn_extension_block_flags_t (XDR *, dtn_extension_block_flags_t*);
-extern  bool_t xdr_dtn_extension_block_t (XDR *, dtn_extension_block_t*);
+extern  bool_t xdr_dtn_extension_block_flags_t (XDR *, dtn_extension_block_flags_t*);
+extern  bool_t xdr_dtn_bpq_extension_block_kind_t (XDR *, dtn_bpq_extension_block_kind_t*);
 extern  bool_t xdr_dtn_bpq_extension_block_kind_t (XDR *, dtn_bpq_extension_block_kind_t*);
 extern  bool_t xdr_dtn_bpq_extension_block_matching_rule_t (XDR *, dtn_bpq_extension_block_matching_rule_t*);
+extern  bool_t xdr_dtn_bpq_extension_block_matching_rule_t (XDR *, dtn_bpq_extension_block_matching_rule_t*);
+extern  bool_t xdr_dtn_extension_block_data_t (XDR *, dtn_extension_block_data_t*);
+extern  bool_t xdr_dtn_extension_block_t (XDR *, dtn_extension_block_t*);
+extern  bool_t xdr_dtn_extension_block_t (XDR *, dtn_extension_block_t*);
+extern  bool_t xdr_dtn_bpq_ext_block_original_id_t (XDR *, dtn_bpq_ext_block_original_id_t*);
+extern  bool_t xdr_dtn_bpq_ext_block_query_t (XDR *, dtn_bpq_ext_block_query_t*);
+extern  bool_t xdr_dtn_bpq_ext_block_fragments_t (XDR *, dtn_bpq_ext_block_fragments_t*);
+extern  bool_t xdr_dtn_bpq_extension_block_data_t (XDR *, dtn_bpq_extension_block_data_t*);
 extern  bool_t xdr_dtn_bpq_extension_block_data_t (XDR *, dtn_bpq_extension_block_data_t*);
 extern  bool_t xdr_dtn_sequence_id_t (XDR *, dtn_sequence_id_t*);
+extern  bool_t xdr_dtn_ecos_flags_bits_t (XDR *, dtn_ecos_flags_bits_t*);
+extern  bool_t xdr_dtn_ecos_flags_bits_t (XDR *, dtn_ecos_flags_bits_t*);
 extern  bool_t xdr_dtn_bundle_spec_t (XDR *, dtn_bundle_spec_t*);
 extern  bool_t xdr_dtn_bundle_id_t (XDR *, dtn_bundle_id_t*);
 extern  bool_t xdr_dtn_status_report_reason_t (XDR *, dtn_status_report_reason_t*);
@@ -517,11 +569,22 @@ extern bool_t xdr_dtn_reg_info_t ();
 extern bool_t xdr_dtn_bundle_priority_t ();
 extern bool_t xdr_dtn_bundle_delivery_opts_t ();
 extern bool_t xdr_dtn_extension_block_flags_t ();
-extern bool_t xdr_dtn_extension_block_t ();
+extern bool_t xdr_dtn_extension_block_flags_t ();
+extern bool_t xdr_dtn_bpq_extension_block_kind_t ();
 extern bool_t xdr_dtn_bpq_extension_block_kind_t ();
 extern bool_t xdr_dtn_bpq_extension_block_matching_rule_t ();
+extern bool_t xdr_dtn_bpq_extension_block_matching_rule_t ();
+extern bool_t xdr_dtn_extension_block_data_t ();
+extern bool_t xdr_dtn_extension_block_t ();
+extern bool_t xdr_dtn_extension_block_t ();
+extern bool_t xdr_dtn_bpq_ext_block_original_id_t ();
+extern bool_t xdr_dtn_bpq_ext_block_query_t ();
+extern bool_t xdr_dtn_bpq_ext_block_fragments_t ();
+extern bool_t xdr_dtn_bpq_extension_block_data_t ();
 extern bool_t xdr_dtn_bpq_extension_block_data_t ();
 extern bool_t xdr_dtn_sequence_id_t ();
+extern bool_t xdr_dtn_ecos_flags_bits_t ();
+extern bool_t xdr_dtn_ecos_flags_bits_t ();
 extern bool_t xdr_dtn_bundle_spec_t ();
 extern bool_t xdr_dtn_bundle_id_t ();
 extern bool_t xdr_dtn_status_report_reason_t ();

@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_PAYLOAD_H_
 #define _BUNDLE_PAYLOAD_H_
 
@@ -179,7 +197,7 @@ public:
     static bool test_no_remove_;    ///< test: don't rm payload files
 
 protected:
-    void pin_file() const;
+    bool pin_file() const;
     void unpin_file() const;
     void internal_write(const u_char* bp, size_t offset, size_t len);
 
@@ -190,6 +208,10 @@ protected:
     mutable size_t cur_offset_;	///< cache of current fd position
     size_t base_offset_;	///< for fragments, offset into the file (todo)
     oasys::SpinLock* lock_;	///< the lock for the given bundle
+
+
+    //dz debug
+    bundleid_t bundleid_;
 };
 
 } // namespace dtn

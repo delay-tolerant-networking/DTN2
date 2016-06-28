@@ -134,6 +134,62 @@ KeyDB::del_key(const char* host, u_int16_t cs_num)
     // if not found, then nothing to do
 }
 
+#ifdef LTPUDP_AUTH_ENABLED
+const KeyDB::Entry*
+KeyDB::find_key(const char* engine_id, u_int16_t cs_num, u_int32_t cs_key_id)
+{
+    string ltp_engine;
+    EntryList& keys = instance()->keys_;
+    EntryList::iterator iter;
+    log_debug_p(log, "KeyDB::find_key()");
+
+    std::stringstream stream;
+    stream << cs_key_id;
+    std::string result = stream.str();
+    
+    ltp_engine = std::string("LTP:") + std::string(engine_id) + std::string(":") + result;
+
+    for (iter = keys.begin(); iter != keys.end(); iter++)
+    {
+        if (iter->match_wildcard(ltp_engine.c_str(), cs_num)) {
+            oasys::StringBuffer *buf;
+            buf = new oasys::StringBuffer();
+            iter->dump(buf);
+            delete buf;
+            return &(*iter);
+        }
+    }
+    
+    // not found
+    return NULL;
+}
+
+void
+KeyDB::del_key(const char* engine_id, u_int16_t cs_num, u_int32_t cs_key_id)
+{
+    string ltp_engine;
+    EntryList& keys = instance()->keys_;
+    EntryList::iterator iter;
+    log_debug_p(log, "KeyDB::del_key()");
+
+    std::stringstream stream;
+    stream << cs_key_id;
+    std::string result = stream.str();
+
+    ltp_engine = std::string("LTP:") + std::string(engine_id) + std::string(":") + result;
+
+    for (iter = keys.begin(); iter != keys.end(); iter++)
+    {
+        if (iter->match(ltp_engine.c_str(), cs_num)) {
+            keys.erase(iter);
+            return;
+        }
+    }
+
+    // if not found, then nothing to do
+}
+#endif // LTPUDP_AUTH_ENABLED
+
 void
 KeyDB::flush_keys()
 {

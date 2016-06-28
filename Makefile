@@ -24,7 +24,7 @@
 # by default.
 #
 
-SUBDIRS := applib servlib daemon apps sim
+SUBDIRS := applib servlib daemon apps sim ehsrouter
 
 all: checkconfigure $(SUBDIRS)
 
@@ -43,10 +43,18 @@ endif
 include Rules.make
 include $(SRCDIR)/dtn-version.mk
 
+
+# Check if we should include DTPC apps
+include $(SRCDIR)/servlib/dtpc.make
+DTPC_APPS :=
+ifeq ($(DTPC_ENABLED),1)
+DTPC_APPS := apps/dtpc_apps/dtpc_send apps/dtpc_apps/dtpc_recv
+endif
+
 #
 # Dependency rules between subdirectories needed for make -j
 #
-applib servlib: dtn-version.o
+applib servlib ehsrouter: dtn-version.o
 daemon: applib servlib
 apps: applib servlib
 sim: servlib
@@ -110,12 +118,16 @@ installbin: installdirs
 		    apps/dtnperf/dtnperf-server \
 		    apps/dtnping/dtnping \
 		    apps/dtnping/dtntraceroute \
+		    $(DTPC_APPS) \
 		    apps/dtnpublish/dtnpublish \
+		    apps/dtnsource/dtnsource \
 		    apps/dtnrecv/dtnrecv \
 		    apps/dtnsend/dtnsend \
+		    apps/dtnsink/dtnsink \
 		    apps/dtntunnel/dtntunnel \
 		    apps/num2sdnv/num2sdnv \
-		    apps/num2sdnv/sdnv2num ; do \
+		    apps/num2sdnv/sdnv2num \
+		    ehsrouter/test_ehsrouter; do \
 	    ($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir)) ; \
 	done
 

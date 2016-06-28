@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _TABLE_BASED_ROUTER_H_
 #define _TABLE_BASED_ROUTER_H_
 
@@ -67,6 +85,7 @@ protected:
     virtual void handle_link_available(LinkAvailableEvent* event);
     virtual void handle_link_created(LinkCreatedEvent* event);
     virtual void handle_link_deleted(LinkDeletedEvent* event);
+    virtual void handle_link_check_deferred(LinkCheckDeferredEvent* event);
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
     virtual void handle_registration_added(RegistrationAddedEvent* event);
     virtual void handle_registration_removed(RegistrationRemovedEvent* event);
@@ -100,8 +119,10 @@ protected:
 
     /**
      * Add a route entry to the routing table. 
+     * Set skip_changed_routes to true to skip the call to 
+     * handle_changed_routes if the initiating method is going to call it.
      */
-    void add_route(RouteEntry *entry);
+    void add_route(RouteEntry *entry, bool skip_changed_routes=true);
 
     /**
      * Remove matrhing route entry(s) from the routing table. 
@@ -131,13 +152,15 @@ protected:
      * Check the route table entries that match the given bundle and
      * have not already been found in the bundle history. If a match
      * is found, call fwd_to_nexthop on it.
+     * Set skip_check_next_hop to true to skip the call to 
+     * check_next_hop().
      *
      * @param bundle		the bundle to forward
      *
      * Returns the number of links on which the bundle was queued
      * (i.e. the number of matching route entries.
      */
-    virtual int route_bundle(Bundle* bundle);
+    virtual int route_bundle(Bundle* bundle, bool skip_check_next_hop=false);
 
     /**
      * Once a vector of matching routes has been found, sort the
@@ -170,8 +193,10 @@ protected:
     /**
      * When new links are added or opened, and if we're configured to
      * add nexthop routes, try to add a new route for the given link.
+     * Set skip_changed_routes to true to skip the call to 
+     * handle_changed_routes if the initiating method is going to call it.
      */
-    void add_nexthop_route(const LinkRef& link);
+    void add_nexthop_route(const LinkRef& link, bool skip_changed_routes=false);
 
     /**
      * Hook to ask the router if the bundle can be deleted.
@@ -252,7 +277,7 @@ protected:
         void dump_stats(oasys::StringBuffer* buf);
         
     protected:
-        typedef std::map<u_int32_t, ForwardingInfo> InfoMap;
+        typedef std::map<bundleid_t, ForwardingInfo> InfoMap;
         BundleList list_;
         InfoMap    info_;
         size_t     count_;

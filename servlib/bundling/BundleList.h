@@ -14,14 +14,37 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _BUNDLE_LIST_H_
 #define _BUNDLE_LIST_H_
+
+#ifdef HAVE_CONFIG_H
+#  include <dtn-config.h>
+#endif
 
 #include <list>
 #include <oasys/compat/inttypes.h>
 #include <oasys/thread/Notifier.h>
 #include <oasys/serialize/Serialize.h>
 
+#include "BundleListBase.h"
 #include "BundleRef.h"
 #include "naming/EndpointID.h"
 #include "GbofId.h"
@@ -65,7 +88,7 @@ class BundleTimestamp;
  * order to properly maintain the reference counts.
  *
  */
-class BundleList : public oasys::Logger,  public oasys::SerializableObject {
+class BundleList : public BundleListBase {
 private:
     /**
      * Type for the list itself (private since it's irrelevant to the
@@ -84,7 +107,9 @@ public:
     /**
      * Constructor
      */
-    BundleList(const std::string& name, oasys::SpinLock* lock = NULL);
+    BundleList(const std::string& name, oasys::SpinLock* lock = NULL,
+               const std::string& ltype="BundleList", 
+               const std::string& subpath="/list/");
 
     /**
      * Destructor -- clears the list.
@@ -104,6 +129,11 @@ public:
      * them to the list.
      */
     void serialize(oasys::SerializeAction *a);
+
+    /**
+     * Dump contents to a buffer
+     */
+    void format(oasys::StringBuffer* buf);
 
     /**
      * Peek at the last bundle on the list.
@@ -225,7 +255,17 @@ public:
      * @return a reference to the bundle or a reference to NULL if the
      * list is empty.
      */
-    BundleRef find(u_int32_t bundleid) const;
+    BundleRef find(bundleid_t bundleid) const;
+
+    /**
+     * Search the list for a bundle with the given custody id.
+     *
+     * @return a reference to the bundle or a reference to NULL if the
+     * list is empty.
+     */
+#ifdef ACS_ENABLED
+    BundleRef find_custodyid(bundleid_t custody_id) const;
+#endif // ACS_ENABLED
 
     /**
      * Search the list for a bundle with the given source eid and
@@ -243,6 +283,13 @@ public:
      * @return the bundle or NULL if not found.
      */
     BundleRef find(GbofId& gbof_id) const;
+    
+    /**
+     * Search the list for a bundle with the given GBOF ID string
+     *
+     * @return the bundle or NULL if not found.
+     */
+    BundleRef find(std::string gbofid_str) const;
     
     /**
      * Search the list for a bundle with the given GBOF ID and extended
@@ -288,26 +335,11 @@ public:
     iterator end() const;
 
     /**
-     * Return the internal lock on this list.
-     */
-    oasys::SpinLock* lock() const { return lock_; }
-
-    /**
-     * Return the identifier name of this list.
-     */
-    const std::string& name() const { return name_; }
-
-    /**
      * Set the name (useful for classes that are unserialized).
      * Also sets the logpath
      */
     void set_name(const std::string& name);
     
-    /**
-     * As above, but sets ONLY the name, not the logpath.
-     */
-    void set_name_only(const std::string& name);
-
 private:
     /**
      * Helper routine to add a bundle at the indicated position.
@@ -326,13 +358,12 @@ private:
      */
     Bundle* del_bundle(const iterator& pos, bool used_notifier);
     
-    std::string      name_;	///< name of the list
     List             list_;	///< underlying list data structure
     
+    /// num bundles currently in the list
+    u_int64_t list_size_;
+
 protected:
-    oasys::SpinLock* lock_;	///< lock for notifier
-    bool             own_lock_; ///< bit to define lock ownership
-    oasys::Notifier* notifier_; ///< notifier for blocking list
 };
 
 /**
@@ -343,7 +374,9 @@ protected:
  */
 class BlockingBundleList : public BundleList {
 public:
-    BlockingBundleList(const std::string& name);
+    BlockingBundleList(const std::string& name, oasys::SpinLock* lock = NULL,
+                       const std::string& ltype="BlockingBundleList", 
+                       const std::string& subpath="/blockinglist/");
 
     virtual ~BlockingBundleList();
     

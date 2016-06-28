@@ -14,8 +14,33 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _DTNTUNNEL_H_
 #define _DTNTUNNEL_H_
+
+
+// if linux then include the version macros to only include the transparent
+// feature if the kernel version is greater than or equal to 2.6.31  
+#ifdef __linux__
+#    include <linux/version.h>
+#endif
 
 #include <map>
 
@@ -104,6 +129,9 @@ public:
     void fill_options();
     void validate_options(int argc, char* const argv[], int remainder);
 
+    /// output the statistics
+    void output_throughput_stats();
+
     /// Get destination eid from the dest_eid_table
     void get_dest_eid(in_addr_t remote_addr, dtn_endpoint_id_t* dest_eid);
 
@@ -114,6 +142,8 @@ public:
     bool reorder_udp()            { return reorder_udp_; }
     bool transparent()            { return transparent_; }
     dtn_endpoint_id_t* dest_eid() { return &dest_eid_; }
+    u_int32_t recv_bufsize()      { return socket_recv_bufsize_; }
+    u_int32_t send_bufsize()      { return socket_send_bufsize_; }
 
 protected:
     UDPTunnel*          udptunnel_;
@@ -139,7 +169,50 @@ protected:
     u_int		max_size_;
     std::string	        tunnel_spec_;
     bool	        tunnel_spec_set_;
+    u_int32_t           socket_recv_bufsize_;
+    u_int32_t           socket_send_bufsize_;
     bool		transparent_;
+    std::string         api_ip_;
+    u_int               api_port_;
+    bool                api_ip_set_;
+
+    // ECOS values
+    bool        ecos_enabled_;
+    bool        ecos_critical_;
+    bool        ecos_streaming_;
+    bool        ecos_reliable_;
+    bool        ecos_flow_label_set_;
+    u_int32_t   ecos_flags_;
+    u_int32_t   ecos_ordinal_;
+    u_int32_t   ecos_flow_label_;
+
+
+    /// Helper class to output statistics
+    class StatusThread : public oasys::Thread, public oasys::Logger {
+    public:
+        /// Constructor
+        StatusThread();
+
+    protected:
+        /// Main listen loop
+        void run();
+    };
+    
+    /// Statistics structure definition
+    struct ThroughputStats {
+        u_int64_t bundles_per_sec_;
+        u_int64_t bytes_per_sec_;
+        u_int64_t total_bundles_;
+        u_int64_t seq_ctr_;
+        u_int64_t seq_ctr_jumps_;
+        u_int64_t seq_ctr_jumpsize_;
+        u_int64_t seq_ctr_backfills_;
+        u_int64_t seq_ctr_missed_;
+    };
+    ThroughputStats throughput_stats_;
+    bool throughput_stats_enabled_;
+    bool throughput_stats_seqctr_enabled_;
+    mutable oasys::SpinLock throughput_stats_lock_;
 
     /// Helper struct for network IP address in CIDR notation
     struct CIDR {

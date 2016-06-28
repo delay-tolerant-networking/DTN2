@@ -220,10 +220,12 @@ TCPConvergenceLayer::interface_up(Interface* iface,
     log_debug("adding interface %s", iface->name().c_str());
     in_addr_t local_addr = INADDR_ANY;
     u_int16_t local_port = TCPCL_DEFAULT_PORT;
+    u_int32_t segment_len = TCPConvergenceLayer::default_link_params_.segment_length_;
 
     oasys::OptParser p;
     p.addopt(new oasys::InAddrOpt("local_addr", &local_addr));
     p.addopt(new oasys::UInt16Opt("local_port", &local_port));
+    p.addopt(new oasys::UIntOpt("segment_length", &segment_len));
 
     const char* invalid = NULL;
     if (! p.parse(argc, argv, &invalid)) {
@@ -232,6 +234,8 @@ TCPConvergenceLayer::interface_up(Interface* iface,
         return false;
     }
     
+    TCPConvergenceLayer::default_link_params_.segment_length_ = segment_len;
+
     // check that the local interface / port are valid
     if (local_addr == INADDR_NONE) {
         log_err("invalid local address setting of INADDR_NONE");
@@ -314,7 +318,7 @@ void
 TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
 {
     log_debug("new connection from %s:%d", intoa(addr), port);
-    
+
     Connection* conn =
         new Connection(cl_, &TCPConvergenceLayer::default_link_params_,
                        fd, addr, port);
@@ -338,6 +342,9 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     
     // the actual socket
     sock_ = new oasys::TCPClient(logpath_);
+
+    //dzdebug
+    //sock_->params_.tcp_nodelay_ = true;
 
     // XXX/demmer the basic socket logging emits errors and the like
     // when connections break. that may not be great since we kinda

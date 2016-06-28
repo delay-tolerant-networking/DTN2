@@ -90,27 +90,30 @@ main(int argc, const char** argv)
 
     progname = argv[0];
     
-    if (argc > 4) {
-        usage();
-    }
-    if (strcmp(argv[1], "-A") == 0)  
+    if (argc > 6) usage();
+
+    if (argc > 1 && strcmp(argv[1], "-A") == 0)  
     {      
         argv++;
         argc--;        
-        api_IP=argv[1];
+        if (argc < 2) usage();
+        api_IP=(char*)argv[1];
         api_IP_set = 1;
         argv++;
         argc--;        
     }        
-    if (strcmp(argv[1], "-B") == 0)        
+
+    if (argc > 1 && strcmp(argv[1], "-B") == 0)        
     {   
         argv++;
         argc--;        
+        if (argc < 2) usage();
         api_port=atoi(argv[1]);
         argv++;
         argc--;        
     }  
-    if (argv[1][0] != NULL) {
+
+    if (argc > 1 && argv[1] != NULL) {
         bundle_dir = (char *) argv[1];
     }
     else

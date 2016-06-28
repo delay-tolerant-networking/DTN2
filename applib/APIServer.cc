@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -43,12 +61,18 @@
 #include "bundling/SDNV.h"
 #include "bundling/GbofId.h"
 #include "naming/EndpointID.h"
+#include "naming/IPNScheme.h"
 #include "cmd/APICommand.h"
 #include "reg/APIRegistration.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
 #include "storage/GlobalStore.h"
 #include "session/Session.h"
+
+#ifdef DTPC_ENABLED
+#    include "dtpc/DtpcApplicationDataItem.h"
+#    include "dtpc/DtpcDaemon.h"
+#endif // DTPC_ENABLED
 
 #ifndef MIN
 #define MIN(x, y) ((x)<(y) ? (x) : (y))
@@ -192,14 +216,32 @@ APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port, APIServer *parent)
       notifier_(logpath_),
       parent_(parent),
       total_sent_(0),
-      total_rcvd_(0)
+      total_rcvd_(0),
+      raw_convergence_layer_(NULL)
+
 {
+    //dz debug - valgrind reports:
+    // ==25844== Syscall param writev(vector[...]) points to uninitialised byte(s)
+    // ==25844==    at 0x334B6CDF73: writev (in /lib64/libc-2.5.so)
+    // ==25844==    by 0x6D6DF8: oasys::IO::rwdata(oasys::IO::IO_Op_t, int, iovec const*, int, int, int, oasys::IO::RwDataExtraArgs*, timeval const*, oasys::Notifier*, boo      l, char const*) (IO.cc:917)
+    // ==25844==    by 0x6D71CF: oasys::IO::rwvall(oasys::IO::IO_Op_t, int, iovec const*, int, int, timeval const*, oasys::Notifier*, char const*, char const*) (IO.cc:988)
+    // ==25844==    by 0x6D754F: oasys::IO::writeall(int, char const*, unsigned long, oasys::Notifier*, char const*) (IO.cc:495)
+    // ==25844==    by 0x6D948D: oasys::IPClient::writeall(char const*, unsigned long) (IPClient.cc:100)
+    // ==25844==    by 0x44BF08: dtn::APIClient::send_response(int) (APIServer.cc:504)
+    // ==25844==    by 0x44CCBB: dtn::APIClient::run() (APIServer.cc:461)
+    memset(buf_, 0, sizeof(buf_));
+
+
+
     // note that we skip space for the message length and code/status
     xdrmem_create(&xdr_encode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_ENCODE);
     xdrmem_create(&xdr_decode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_DECODE);
 
     bindings_ = new APIRegistrationList();
     sessions_ = new APIRegistrationList();
+#ifdef DTPC_ENABLED
+    dtpc_bindings_ = new DtpcRegistrationList();
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -208,6 +250,19 @@ APIClient::~APIClient()
     log_debug("client destroyed");
     delete_z(bindings_);
     delete_z(sessions_);
+#ifdef DTPC_ENABLED
+    delete_z(dtpc_bindings_);
+#endif
+
+    if (NULL != raw_convergence_layer_linkref_.object()) {
+        raw_convergence_layer_linkref_->delete_link();
+        raw_convergence_layer_linkref_ = NULL;
+    }
+
+    if (NULL != raw_convergence_layer_) {
+        delete raw_convergence_layer_;
+        raw_convergence_layer_ = NULL;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -228,6 +283,25 @@ APIClient::close_client()
             BundleDaemon::post(new RegistrationExpiredEvent(reg));
         }
     }
+
+#ifdef DTPC_ENABLED
+    DtpcRegistration* dtpc_reg;
+    while (! dtpc_bindings_->empty()) {
+        dtpc_reg = dynamic_cast<DtpcRegistration*>(dtpc_bindings_->front());
+        dtpc_bindings_->pop_front();
+
+        if (NULL != dtpc_reg) {
+            dtpc_reg->set_active(false);
+
+            log_debug("Unregistering DTPC Topic: %d", dtpc_reg->topic_id());
+            int result = 0;
+            DtpcDaemon::post_at_head(new DtpcTopicUnregistrationEvent(dtpc_reg->topic_id(), dtpc_reg, &result));
+            if (0 != result) {
+                log_warn("close_client - error unregistering DTPC Topic: %"PRIu32, dtpc_reg->topic_id());
+            }
+        }
+    }
+#endif
 
     // XXX/demmer memory leak here?
     sessions_->clear();
@@ -388,6 +462,17 @@ APIClient::run()
             DISPATCH(DTN_CLOSE,             handle_close);
             DISPATCH(DTN_SESSION_UPDATE,    handle_session_update);
             DISPATCH(DTN_PEEK,              handle_peek);
+            DISPATCH(DTN_RECV_RAW,          handle_recv_raw);
+
+#ifdef DTPC_ENABLED
+            // DTPC methods
+            DISPATCH(DTPC_REGISTER,         handle_dtpc_register);
+            DISPATCH(DTPC_UNREGISTER,       handle_dtpc_unregister);
+            DISPATCH(DTPC_SEND,             handle_dtpc_send);
+            DISPATCH(DTPC_RECV,             handle_dtpc_recv);
+            DISPATCH(DTPC_ELISION_RESPONSE, handle_dtpc_elision_response);
+#endif // DTPC_ENABLED
+
 #undef DISPATCH
 
         default:
@@ -892,7 +977,7 @@ APIClient::handle_send()
     b->mutable_dest()->assign(&spec.dest);
 
     // magic values for zeroing out creation timestamp time
-    log_info("spec: %llu %llu", spec.creation_ts.secs, spec.creation_ts.seqno);
+    log_info("spec: %"PRIu64" %"PRIu64, spec.creation_ts.secs, spec.creation_ts.seqno);
     if(spec.creation_ts.secs == 42 && 
        spec.creation_ts.seqno == 1337) {
         b->set_creation_ts(BundleTimestamp(0, b->creation_ts().seqno_));
@@ -990,6 +1075,24 @@ APIClient::handle_send()
     {
         // Allow source EIDs that subsume the local eid
     }
+    else if (b->source().scheme() == IPNScheme::instance() && 
+             BundleDaemon::instance()->local_eid_ipn().scheme() == IPNScheme::instance())
+    {
+        size_t p1 = b->source().uri().uri().find(".") + 1;
+        size_t p2 = BundleDaemon::instance()->local_eid_ipn().uri().uri().find(".") + 1;
+        if (p1 == p2 &&
+            (0 == strncmp(b->source().uri().c_str(), BundleDaemon::instance()->local_eid_ipn().uri().c_str(), p1)))
+        {
+            // Allow source EIDs that subsume the local eid
+        }
+        else
+        {
+            log_err("this node is not a member of the bundle's source IPN EID (%s) vs (%s)",
+                    b->source().uri().uri().c_str(),
+                    BundleDaemon::instance()->local_eid_ipn().uri().uri().c_str());
+            return DTN_EINVAL;
+        }
+    }
     else
     {
         log_err("this node is not a member of the bundle's source EID (%s)",
@@ -1071,6 +1174,52 @@ APIClient::handle_send()
         }
     }
 
+    // ECOS Block specified?
+#ifdef ECOS_ENABLED
+
+    if (spec.ecos_enabled)
+    {
+      b->set_ecos_enabled(true);
+      b->set_ecos_flags(spec.ecos_flags & 0x0f);
+      b->set_ecos_ordinal(spec.ecos_ordinal & 0xff);
+      b->set_ecos_flowlabel(spec.ecos_flow_label);
+
+      // prepare flags and data for our ECOS block
+      u_int8_t block_flags = 0;    // overridden in block processor so not set here
+      u_int8_t ecos_flags = b->ecos_flags();
+      u_int8_t ecos_ordinal = b->ecos_ordinal();
+ 
+      oasys::ScratchBuffer<u_char*, 16> scratch_ecos;
+      int max_len = 2 + SDNV::encoding_len(spec.ecos_flow_label); // assume flow label just in case - no harm if not needed
+      // get pointer to a buffer that has the required length
+      u_char* data = scratch_ecos.buf(max_len);
+
+      int len = 0;
+      data[len++] = ecos_flags;
+      scratch_ecos.incr_len(1);
+      data[len++] = ecos_ordinal;
+      scratch_ecos.incr_len(1);
+
+      if (b->ecos_has_flowlabel()) {
+        int bytes = SDNV::encode(spec.ecos_flow_label, &data[len], max_len - len);
+
+        if (bytes > 0) {
+          len += bytes;
+          scratch_ecos.incr_len(bytes);
+        } else {
+          log_err("Error SDNV encoding flow label");
+        }
+      }
+
+      // add our ECOS as an API block
+      u_int16_t block_type = BundleProtocol::EXTENDED_CLASS_OF_SERVICE_BLOCK;
+      BlockProcessor* ecosbpr = BundleProtocol::find_processor(block_type);
+      BlockInfo* info = b->api_blocks()->append_block(ecosbpr);
+      ecosbpr->init_block(info, b->api_blocks(), NULL, block_type,
+                          block_flags, scratch_ecos.buf(), len);
+    }
+#endif
+
     // extension blocks
     for (u_int i = 0; i < spec.blocks.blocks_len; i++) {
         dtn_extension_block_t* block = &spec.blocks.blocks_val[i];
@@ -1078,7 +1227,7 @@ APIClient::handle_send()
         BlockProcessor* new_bp = BundleProtocol::find_processor(block->type);
         if (new_bp == UnknownBlockProcessor::instance()) {
         	new_bp = APIBlockProcessor::instance();
-        	log_warn("sent bundle %d has block type %d not known by this daemon",
+        	log_warn("sent bundle %"PRIbid" has block type %d not known by this daemon",
         			 b->bundleid(), block->type);
         }
         BlockInfo* info =
@@ -1273,21 +1422,21 @@ APIClient::handle_send()
     
     log_info("DTN_SEND bundle *%p", b.object());
 
-    // Sync the bundle payload to disk
-    b->mutable_payload()->sync_payload();
+    // XXX/dz Sync the bundle payload to disk moved to BDStorage thread
 
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
-    BundleDaemon::post_and_wait(
-        new BundleReceivedEvent(b.object(), EVENTSRC_APP),
-        &notifier_);
+    BundleReceivedEvent* ev = new BundleReceivedEvent(b.object(), EVENTSRC_APP, reg);
+    ev->bytes_received_ = payload_len;
+
+    BundleDaemon::post_and_wait(ev, &notifier_);
     
     // return the bundle id struct
     if (!xdr_dtn_bundle_id_t(&xdr_encode_, &id)) {
         log_err("internal error in xdr: xdr_dtn_bundle_id_t");
         return DTN_EXDR;
     }
-    
+
     return DTN_SUCCESS;
 }
 
@@ -1307,17 +1456,23 @@ APIClient::handle_cancel()
     }
     
     GbofId gbof_id;
-    gbof_id.source_ = EndpointID( std::string(id.source.uri) );
-    gbof_id.creation_ts_.seconds_ = id.creation_ts.secs;
-    gbof_id.creation_ts_.seqno_ = id.creation_ts.seqno;
-    gbof_id.is_fragment_ = (id.orig_length > 0);
-    gbof_id.frag_length_ = id.orig_length;
-    gbof_id.frag_offset_ = id.frag_offset;
+    gbof_id.mutable_source()->assign( std::string(id.source.uri) );
+    gbof_id.mutable_creation_ts()->seconds_ = id.creation_ts.secs;
+    gbof_id.mutable_creation_ts()->seqno_ = id.creation_ts.seqno;
+    gbof_id.set_is_fragment(id.orig_length > 0);
+    gbof_id.set_frag_length(id.orig_length);
+    gbof_id.set_frag_offset(id.frag_offset);
     
     BundleRef bundle;
+
+#ifdef PENDING_BUNDLES_IS_MAP
+    bundle = BundleDaemon::instance()->dupefinder_bundles()->find(gbof_id.str());
+#else
+    //XXX/dz this is the original code...
     oasys::ScopeLock pending_lock(
         BundleDaemon::instance()->pending_bundles()->lock(), "handle_cancel");
-    bundle = BundleDaemon::instance()->pending_bundles()->find(gbof_id);
+    bundle = BundleDaemon::instance()->pending_bundles()->find(gbof_id.str());
+#endif
     
     if (!bundle.object()) {
         log_warn("no bundle matching [%s]; cannot cancel", 
@@ -1386,17 +1541,23 @@ APIClient::handle_recv()
         log_err("error in xdr unpacking arguments");
         return DTN_EXDR;
     }
+
+    //XXX/dz Using the external router, a bundle may get deleted while 
+    //       it is on registration's queue and when that happens the
+    //       reg gets returned as NULL. Treating that as anomaly and
+    //       restarting the timeout wait.
+    while (NULL == reg) {
+        int err = wait_for_notify("recv", timeout, &reg, NULL, &sock_ready);
+        if (err != 0) {
+            return err;
+        }
     
-    int err = wait_for_notify("recv", timeout, &reg, NULL, &sock_ready);
-    if (err != 0) {
-        return err;
-    }
-    
-    // if there's data on the socket, that either means the socket was
-    // closed by an exiting application or the app is violating the
-    // protocol...
-    if (sock_ready) {
-        return handle_unexpected_data("handle_recv");
+        // if there's data on the socket, that either means the socket was
+        // closed by an exiting application or the app is violating the
+        // protocol...
+        if (sock_ready) {
+            return handle_unexpected_data("handle_recv");
+        }
     }
 
     ASSERT(reg != NULL);
@@ -1416,7 +1577,15 @@ APIClient::handle_recv()
     // actively acking or not.
     bref = reg->deliver_front();
     Bundle* b = bref.object();
-    ASSERT(b != NULL);
+
+    //dz debug  ASSERT(b != NULL);
+    // possible bundle expired between notification and here?
+    if (b == NULL) {
+        if (timeout != 0)
+            return DTN_ETIMEOUT;
+        else
+            return DTN_EINTERNAL;
+    }
 #endif
     
     log_debug("handle_recv: popped *%p for registration %d (timeout %d)",
@@ -1431,6 +1600,20 @@ APIClient::handle_recv()
     b->source().copyto(&spec.source);
     b->dest().copyto(&spec.dest);
     b->replyto().copyto(&spec.replyto);
+
+    // dz 2011.10.17 - set the priority code field (carry forward of 2.7 patch)
+    // the priority code
+    switch (b->priority()) {
+#define COS(_cos) case _cos: spec.priority = _cos; break;
+        COS(COS_BULK);
+        COS(COS_NORMAL);
+        COS(COS_EXPEDITED);
+        COS(COS_RESERVED);
+#undef COS
+    //default:
+        //log_err("invalid priority level %d", (int)spec.priority);
+        //return DTN_EINVAL;
+    };
 
     spec.dopts = 0;
     if (b->custody_requested()) spec.dopts |= DOPTS_CUSTODY;
@@ -1694,12 +1877,255 @@ APIClient::handle_recv()
 
     // prevent xdr_free of non-malloc'd pointer
     payload.status_report = NULL;
-    
+    // XXX/dz free temporary allocations 
+    if (spec.blocks.blocks_val) {
+        free(spec.blocks.blocks_val);
+    }
+    if (spec.metadata.metadata_val) {
+        free(spec.metadata.metadata_val);
+    }
+
     log_info("DTN_RECV: "
-             "successfully delivered bundle %d to registration %d",
+             "successfully delivered bundle %"PRIbid" to registration %d",
              b->bundleid(), reg->regid());
     
     BundleDaemon::post(new BundleDeliveredEvent(b, reg));
+
+    return DTN_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_recv_raw()
+{
+    dtn_bundle_spec_t             spec;
+    dtn_bundle_payload_t          raw_bundle;
+    dtn_bundle_payload_location_t location;
+    dtn_bundle_status_report_t    status_report;
+    dtn_timeval_t                 timeout;
+    oasys::ScratchBuffer<u_char*> buf;
+    APIRegistration*              reg = NULL;
+    bool                          sock_ready = false;
+    oasys::FileIOClient           tmpfile;
+
+    // unpack the arguments
+    if ((!xdr_dtn_bundle_payload_location_t(&xdr_decode_, &location)) ||
+        (!xdr_dtn_timeval_t(&xdr_decode_, &timeout)))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    int err = wait_for_notify("recv_raw", timeout, &reg, NULL, &sock_ready);
+    if (err != 0) {
+        return err;
+    }
+    
+    // if there's data on the socket, that either means the socket was
+    // closed by an exiting application or the app is violating the
+    // protocol...
+    if (sock_ready) {
+        return handle_unexpected_data("handle_recv_raw");
+    }
+
+    ASSERT(reg != NULL);
+
+#if 0
+    BundleRef bref = reg->bundle_list()->pop_front();
+    Bundle* b = bref.object();
+    ASSERT(b != NULL);
+
+    // Move the bundle to either the app unacked or acked list, depending
+    // on whether the app is actively acking or not.
+    reg->save(b);
+#else
+    // Pull the front bundle off the bundle_list and also move it to either
+    // the app unacked or acked list, depending on whether the app is
+    // actively acking or not.
+    BundleRef bref = reg->deliver_front();
+    Bundle* b = bref.object();
+
+    //dz debug  ASSERT(b != NULL);
+    // possible bundle expired between notification and here?
+    if (b == NULL) {
+        if (timeout != 0)
+            return DTN_ETIMEOUT;
+        else
+            return DTN_EINTERNAL;
+    }
+#endif
+    
+    log_debug("handle_recv_raw: popped *%p for registration %d (timeout %d)",
+              b, reg->regid(), timeout);
+    
+    memset(&spec, 0, sizeof(spec));
+    memset(&raw_bundle, 0, sizeof(raw_bundle));
+    memset(&status_report, 0, sizeof(status_report));
+
+    // copyto will malloc string buffer space that needs to be freed
+    // at the end of the fn
+    b->source().copyto(&spec.source);
+    b->dest().copyto(&spec.dest);
+    b->replyto().copyto(&spec.replyto);
+
+    // dz 2011.10.17 - set the priority code field (carry forward of 2.7 patch)
+    // the priority code
+    switch (b->priority()) {
+#define COS(_cos) case _cos: spec.priority = _cos; break;
+        COS(COS_BULK);
+        COS(COS_NORMAL);
+        COS(COS_EXPEDITED);
+        COS(COS_RESERVED);
+#undef COS
+    //default:
+        //log_err("invalid priority level %d", (int)spec.priority);
+        //return DTN_EINVAL;
+    };
+
+    spec.dopts = 0;
+    if (b->custody_requested()) spec.dopts |= DOPTS_CUSTODY;
+    if (b->delivery_rcpt())     spec.dopts |= DOPTS_DELIVERY_RCPT;
+    if (b->receive_rcpt())      spec.dopts |= DOPTS_RECEIVE_RCPT;
+    if (b->forward_rcpt())      spec.dopts |= DOPTS_FORWARD_RCPT;
+    if (b->custody_rcpt())      spec.dopts |= DOPTS_CUSTODY_RCPT;
+    if (b->deletion_rcpt())     spec.dopts |= DOPTS_DELETE_RCPT;
+
+    spec.expiration = b->expiration();
+    spec.creation_ts.secs = b->creation_ts().seconds_;
+    spec.creation_ts.seqno = b->creation_ts().seqno_;
+    spec.delivery_regid = reg->regid();
+
+    // copy out the sequence id and obsoletes id
+    std::string sequence_id_str, obsoletes_id_str;
+    if (! b->sequence_id().empty()) {
+        sequence_id_str = b->sequence_id().to_str();
+        spec.sequence_id.data.data_val = const_cast<char*>(sequence_id_str.c_str());
+        spec.sequence_id.data.data_len = sequence_id_str.length();
+    }
+
+    if (! b->obsoletes_id().empty()) {
+        obsoletes_id_str = b->obsoletes_id().to_str();
+        spec.obsoletes_id.data.data_val = const_cast<char*>(obsoletes_id_str.c_str());
+        spec.obsoletes_id.data.data_len = obsoletes_id_str.length();
+    }
+
+    if (NULL == raw_convergence_layer_) {
+        raw_convergence_layer_ = new RecvRawConvergenceLayer();
+        raw_convergence_layer_linkref_ = Link::create_link("dtn_recv_raw", 
+                                                       Link::ALWAYSON, 
+                                                       raw_convergence_layer_,
+                                                       "dtn::none", 0, NULL);
+    }
+    if (NULL == raw_convergence_layer_linkref_.object()) {
+        log_crit("APIServer.dtn_recv_raw: "
+                 "unexpected error creating raw convergence layer linkref");
+        return -1;
+    }
+
+    BlockInfoVec* blocks = BundleProtocol::prepare_blocks(b, raw_convergence_layer_linkref_);
+    size_t total_len = BundleProtocol::generate_blocks(b, blocks, raw_convergence_layer_linkref_);
+    ASSERT(blocks != NULL);
+
+    buf.reserve(total_len);
+
+    bool complete = false;
+    size_t prod_len = BundleProtocol::produce(b, blocks,
+                                              buf.buf(), 0, total_len,
+                                              &complete);
+    if (!complete) {
+        size_t formatted_len = BundleProtocol::total_length(blocks);
+        log_err("APIServer.dtn_recv_raw: bundle too big (%zu)",
+                formatted_len);
+        return -1;
+    }
+
+    if (total_len != prod_len) {
+        log_err("APIServer.dtn_recv_raw: Produced length (%zu) does not match expected length (%zu)",
+                prod_len, total_len);
+    }
+        
+    if (location == DTN_PAYLOAD_MEM && total_len > DTN_MAX_BUNDLE_MEM)
+    {
+        //dz debug log_debug(
+        log_crit("app requested memory delivery but raw_bundle is too big (%zu bytes)... "
+                  "using files instead",
+                  total_len);
+        location = DTN_PAYLOAD_FILE;
+    }
+
+    if (location == DTN_PAYLOAD_MEM) {
+        // the app wants the raw_bundle in memory
+        raw_bundle.buf.buf_len = total_len;
+        if (total_len != 0) {
+            raw_bundle.buf.buf_val = (char*)buf.buf();
+        } else {
+            raw_bundle.buf.buf_val = 0;
+        }
+        
+    } else if (location == DTN_PAYLOAD_FILE) {
+        const char *tdir;
+        char templ[64];
+        
+        tdir = getenv("TMP");
+        if (tdir == NULL) {
+            tdir = getenv("TEMP");
+        }
+        if (tdir == NULL) {
+            tdir = "/tmp";
+        }
+        
+        snprintf(templ, sizeof(templ), "%s/bundlePayload_XXXXXX", tdir);
+
+        if (tmpfile.mkstemp(templ) == -1) {
+            log_err("can't open temporary file to deliver bundle");
+            return DTN_EINTERNAL;
+        }
+        
+        if (chmod(tmpfile.path(), 0666) < 0) {
+            log_warn("can't set the permission of temp file to 0666: %s",
+                     strerror(errno));
+        }
+
+        tmpfile.write((const char*)buf.buf(), total_len);        
+
+        raw_bundle.filename.filename_val = (char*)tmpfile.path();
+        raw_bundle.filename.filename_len = tmpfile.path_len() + 1;
+        tmpfile.close();
+        
+    } else {
+        log_err("raw_bundle location %d not understood", location);
+        return DTN_EINVAL;
+    }
+
+    raw_bundle.location = location;
+    
+    if (!xdr_dtn_bundle_spec_t(&xdr_encode_, &spec))
+    {
+        log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
+        return DTN_EXDR;
+    }
+    
+    if (!xdr_dtn_bundle_payload_t(&xdr_encode_, &raw_bundle))
+    {
+        log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
+        return DTN_EXDR;
+    }
+
+    // prevent xdr_free of non-malloc'd pointer
+    raw_bundle.status_report = NULL;
+    // XXX/dz free temporary allocations 
+    if (spec.blocks.blocks_val) {
+        free(spec.blocks.blocks_val);
+    }
+    if (spec.metadata.metadata_val) {
+        free(spec.metadata.metadata_val);
+    }
+
+    log_info("DTN_RECV_RAW: "
+             "successfully delivered bundle %"PRIbid" to registration %d",
+             b->bundleid(), reg->regid());
+    
+    BundleDaemon::post(new BundleDeliveredEvent(bref.object(), reg));
 
     return DTN_SUCCESS;
 }
@@ -1972,7 +2398,7 @@ APIClient::handle_peek()
     payload.status_report = NULL;
     
     log_info("DTN_PEEK: "
-             "successfully delivered bundle %d to registration %d",
+             "successfully delivered bundle %"PRIbid" to registration %d",
              b->bundleid(), reg->regid());
 
     return DTN_SUCCESS;
@@ -2213,6 +2639,9 @@ APIClient::wait_for_notify(const char*       operation,
                   operation, bindings_->size());
         
         for (iter = bindings_->begin(); iter != bindings_->end(); ++iter) {
+
+            if (should_stop()) return DTN_ETIMEOUT; 
+
             reg = *iter;
             
             if (! reg->bundle_list()->empty()) {
@@ -2238,6 +2667,9 @@ APIClient::wait_for_notify(const char*       operation,
     
         for (iter = sessions_->begin(); iter != sessions_->end(); ++iter)
         {
+
+            if (should_stop()) return DTN_ETIMEOUT; 
+
             reg = *iter;
             ASSERT(reg->session_notify_list() != NULL);
             if (! reg->session_notify_list()->empty()) {
@@ -2294,6 +2726,9 @@ APIClient::wait_for_notify(const char*       operation,
               recv_ready_reg);
     if (recv_ready_reg) {
         for (iter = bindings_->begin(); iter != bindings_->end(); ++iter) {
+
+            if (should_stop()) return DTN_ETIMEOUT; 
+
             reg = *iter;
             if (! reg->bundle_list()->empty()) {
                 log_debug("wait_for_notify: found one %p", reg);
@@ -2306,6 +2741,9 @@ APIClient::wait_for_notify(const char*       operation,
     if (session_ready_reg) {
         for (iter = sessions_->begin(); iter != sessions_->end(); ++iter)
         {
+
+            if (should_stop()) return DTN_ETIMEOUT; 
+
             reg = *iter;
             if (! reg->session_notify_list()->empty()) {
                 *session_ready_reg = reg;
@@ -2343,5 +2781,577 @@ APIClient::handle_unexpected_data(const char* operation)
              "application must have exited");
     return -1;
 }
+
+#ifdef DTPC_ENABLED
+//----------------------------------------------------------------------
+int
+APIClient::handle_dtpc_register()
+{
+    dtpc_reg_info_t reginfo;
+    memset(&reginfo, 0, sizeof(reginfo));
+    
+    // unpack and parse the request
+    if (!xdr_dtpc_reg_info_t(&xdr_decode_, &reginfo))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    u_int32_t topic_id = reginfo.topic_id;
+    bool has_elision_func = reginfo.has_elision_func;
+    int result = 0;
+    DtpcRegistration* reg = NULL;
+
+    // make sure we free any dynamically-allocated bits in the
+    // incoming structure before we exit the proc
+    oasys::ScopeXDRFree x((xdrproc_t)xdr_dtpc_reg_info_t, (char*)&reginfo);
+   
+
+    log_info_p("/dtpc/apiclient", "post and wait for DtpcTopicRegistrationEvent");
+ 
+    DtpcDaemon::post_and_wait(new DtpcTopicRegistrationEvent(topic_id, 
+                                                             has_elision_func, 
+                                                             &result, &reg),
+                                &notifier_);
+    
+    switch (result) {
+        case -1: 
+            log_err("DTPC_REGISTER rejected: no predefined Topic ID: %"PRIu32, topic_id);
+            return DTN_EINVAL;
+        case -2: 
+            log_err("DTPC_REGISTER failed: internal error adding registration Topic ID: %"PRIu32, topic_id);
+            return DTN_EINTERNAL;
+        case -3: 
+            log_err("DTPC_REGISTER failed: registration already exists for Topic ID: %"PRIu32, topic_id);
+            return DTN_EINTERNAL;
+        default: 
+            log_info("DTPC_REGISTER successfully registered for Topic ID: %"PRIu32, topic_id);
+            break;
+    }
+    
+    // a registration was created so add it to our bindings
+    ASSERT(NULL != reg);
+    dtpc_bindings_->push_back(reg);
+    reg->set_active(true);
+
+    return DTN_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_dtpc_unregister()
+{
+    DtpcRegistration* reg = NULL;
+    dtpc_topic_id_t topic_id;
+    
+    // unpack and parse the request
+    if (!xdr_dtpc_topic_id_t(&xdr_decode_, &topic_id))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    if (!is_dtpc_bound(topic_id, &reg)) {
+        log_err("DTPC_UNREGISTER failed: registration not found by client for Topic ID: %"PRIu32, topic_id);
+        return DTN_ENOTFOUND;
+    }
+    ASSERT(NULL != reg);
+
+    // remove the registration from the binding - DtpcDaemon will delete the Reg object
+    DtpcRegistrationList::iterator iter;
+    for (iter = dtpc_bindings_->begin(); iter != dtpc_bindings_->end(); ++iter) {
+        if (*iter == reg) {
+            dtpc_bindings_->erase(iter);
+            log_debug("DTPC_UNREGISTER: removed DTPC binding for Topic ID: %"PRIu32, topic_id);
+            break;
+        }
+    }
+
+    int result = 0;
+    DtpcDaemon::post_and_wait(new DtpcTopicUnregistrationEvent(topic_id, reg, &result),
+                                &notifier_);
+    
+    switch (result) {
+        case -1: 
+            log_err("DTPC_UNREGISTER failed: registration not found for Topic ID: %"PRIu32, topic_id);
+            return DTN_EBUSY;
+        default: 
+            log_info("DTPC_UNREGISTER successful for Topic ID: %"PRIu32, topic_id);
+            break;
+    }
+    
+    return DTN_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_dtpc_send()
+{
+    dtpc_data_item_t data_item_xdr;
+    dtpc_topic_id_t topic_id_xdr;
+    dtpc_endpoint_id_t dest_eid_xdr;
+    dtpc_profile_id_t profile_id_xdr;
+
+    memset(&data_item_xdr, 0, sizeof(data_item_xdr));
+    
+    /* Unpack the arguments */
+    if (!xdr_dtpc_data_item_t(&xdr_decode_, &data_item_xdr) ||
+        !xdr_dtpc_topic_id_t(&xdr_decode_, &topic_id_xdr) ||
+        !xdr_dtpc_endpoint_id_t(&xdr_decode_, &dest_eid_xdr) ||
+        !xdr_dtpc_profile_id_t(&xdr_decode_, &profile_id_xdr))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    u_int32_t topic_id = topic_id_xdr;
+
+    // check if send is restricted to the registered topic
+    if (DtpcDaemon::params_.restrict_send_to_registered_client_) {
+        DtpcRegistration* reg = NULL;
+        if (!is_dtpc_bound(topic_id, &reg)) {
+            log_err("DTPC_SEND rejected: only registered client may send data item for Topic ID: %"PRIu32, topic_id);
+            return DTN_ENOTFOUND;
+        }
+    }
+
+
+    u_int32_t profile_id = profile_id_xdr;
+    EndpointID dest_eid;
+    dest_eid.assign(dest_eid_xdr.uri);
+    if (!dest_eid.valid()) {
+        log_err("invalid dest_eid id in DTPC send: '%s'",
+                dest_eid_xdr.uri);
+        return DTN_EINVAL;
+    }
+
+    DtpcApplicationDataItem* data_item = new DtpcApplicationDataItem(dest_eid, topic_id);
+
+    data_item->set_data(data_item_xdr.buf.buf_len, (u_int8_t*)data_item_xdr.buf.buf_val);
+    
+    // make sure any xdr calls to malloc are cleaned up
+    oasys::ScopeXDRFree f1((xdrproc_t)xdr_dtpc_data_item_t,
+                           (char*)&data_item_xdr);
+
+    log_info("DTPC_SEND Data Item of size %zu", data_item->size());
+
+    // send the data item
+    int result = 0;
+    DtpcDaemon::post_and_wait(
+        new DtpcSendDataItemEvent(topic_id, data_item, dest_eid, profile_id, &result),
+        &notifier_);
+    
+    switch (result) {
+        case -1: 
+            log_err("DTPC_SEND rejected: no predefined Topic ID: %"PRIu32, topic_id);
+            return DTN_EINVAL;
+        case -2: 
+            log_err("DTPC_SEND failed: internal error adding send Topic ID: %"PRIu32, topic_id);
+            return DTN_EINTERNAL;
+        case -3:
+            log_err("DTPC_SEND failed: no defined Profile ID: %"PRIu32, profile_id);
+            return DTN_EINTERNAL;
+        default: 
+            log_info("DTPC_SEND successful - Topic ID: %"PRIu32, topic_id);
+            break;
+    }
+    
+    return DTN_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_dtpc_recv()
+{
+    dtpc_recv_type_t              msg_type;
+    dtpc_endpoint_id_t            src_eid;
+    dtpc_topic_id_t               topic_id;
+    dtpc_data_item_t              data_item_xdr;
+    dtn_timeval_t                 timeout;
+    oasys::ScratchBuffer<u_char*> buf;
+
+    DtpcRegistration*             dtpc_reg = NULL;
+    DtpcApplicationDataItem*      adi = NULL;
+    bool                          sock_ready = false;
+
+    // unpack the arguments
+    if (!xdr_dtpc_timeval_t(&xdr_decode_, &timeout))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    // loop until timeout or non-NULL ApplicationDataItem is available
+    // (NULL could result if pop_data_item detects expired items)
+    while (NULL == adi) {
+        int err = wait_for_dtpc_notify("recv", timeout, &dtpc_reg, &sock_ready);
+        if (err != 0) {
+            return err;
+        }
+    
+        // if there's data on the socket, that either means the socket was
+        // closed by an exiting application or the app is violating the
+        // protocol...
+        if (sock_ready) {
+            return handle_unexpected_data("handle_dtpc_recv");
+        }
+
+        // check for elision function call pending and process
+        if (!dtpc_reg->aggregator_list()->empty()) {
+            return invoke_elision_func(dtpc_reg);
+        }
+
+        adi = dtpc_reg->collector_list()->pop_data_item();
+    }
+
+    // have good ADI to return
+    memset(&src_eid, 0, sizeof(src_eid));
+    memset(&data_item_xdr, 0, sizeof(data_item_xdr));
+
+    // let the application know where the ADI came from
+    ASSERT(adi->remote_eid().uri().uri().length() <= DTPC_MAX_ENDPOINT_ID - 1);
+    strcpy(src_eid.uri, adi->remote_eid().uri().c_str());
+    topic_id = adi->topic_id();
+
+    size_t adi_len = adi->size();
+
+    // data items are only sent in memory for now
+    // XXX/dz would file mode work if client on remote system anyway?
+    data_item_xdr.buf.buf_len = adi_len;
+    if (adi_len != 0) {
+        data_item_xdr.buf.buf_val =  (char*) adi->data();
+    } else {
+        data_item_xdr.buf.buf_val = 0;
+    }
+
+    int status = DTN_SUCCESS;        
+    msg_type = DTPC_RECV_TYPE_DATA_ITEM;
+    if (!xdr_dtpc_recv_type_t(&xdr_encode_, &msg_type) ||
+        !xdr_dtpc_data_item_t(&xdr_encode_, &data_item_xdr) ||
+        !xdr_dtpc_topic_id_t(&xdr_encode_, &topic_id) ||
+        !xdr_dtpc_endpoint_id_t(&xdr_encode_, &src_eid))
+    {
+        log_err("dtpc_recv internal error in xdr encoding");
+        status = DTN_EXDR;
+    } else {
+        log_info("DTPC_RECV: "
+                 "successfully delivered DTPC Data Item for Topic ID: %"PRIu32,
+                 dtpc_reg->regid());
+    }
+    
+    // clean up before we return
+    delete adi;
+
+    return status;
+}
+
+
+//----------------------------------------------------------------------
+int
+APIClient::invoke_elision_func(DtpcRegistration* dtpc_reg)
+{
+    dtpc_data_item_list_t xdr_data_item_list;
+
+    memset(&xdr_data_item_list, 0, sizeof(xdr_data_item_list));
+
+    DtpcTopicAggregator* topic_agg = dtpc_reg->aggregator_list()->pop_front();
+
+    topic_agg->lock().lock("APIClient::invoke_elision_func");
+
+    // loop through the list of ADIs and load the xdr list
+    DtpcApplicationDataItemList* adi_list = topic_agg->adi_list();
+    size_t num_adis = adi_list->size();
+
+    // fill in the header info
+    DtpcPayloadAggregator* payload_agg = topic_agg->payload_agg();
+    strcpy(xdr_data_item_list.dest_eid.uri, (char*)payload_agg->dest_eid().uri().c_str());
+    xdr_data_item_list.profile_id = payload_agg->profile_id();
+    xdr_data_item_list.topic_id = topic_agg->topic_id();
+
+    // allocate the space to hold the ADI pointers
+    xdr_data_item_list.data_items.data_items_len = num_adis;
+    xdr_data_item_list.data_items.data_items_val = (dtpc_data_item_t*)malloc(num_adis * sizeof(dtpc_data_item_t));
+    oasys::ScopeMalloc adi_list_malloc;
+    adi_list_malloc = xdr_data_item_list.data_items.data_items_val;
+
+    // Now loop through the data items setting up the ADI pointers
+    size_t idx = 0;
+    DtpcApplicationDataItem* data_item = NULL;
+    DtpcApplicationDataItemIterator iter = adi_list->begin();
+    while (iter != adi_list->end()) {
+        data_item = *iter;
+        xdr_data_item_list.data_items.data_items_val[idx].buf.buf_len = data_item->size();
+        xdr_data_item_list.data_items.data_items_val[idx].buf.buf_val = (char*)data_item->data();
+
+        ++iter;
+        ++idx;
+    }
+
+    int status = DTN_SUCCESS;        
+    dtpc_recv_type_t msg_type = DTPC_RECV_TYPE_ELISION_FUNC;
+    if (!xdr_dtpc_recv_type_t(&xdr_encode_, &msg_type)) {
+        log_err("invoke_elision_func internal error in xdr encoding msg type");
+        status = DTN_EXDR;
+    } else if (!xdr_dtpc_data_item_list_t(&xdr_encode_, &xdr_data_item_list)) {
+        log_err("invoke_elision_func internal error in xdr encoding data_item_list");
+        status = DTN_EXDR;
+    } else {
+        log_info("DTPC_RECV: "
+                 "successfully encoded elision func data for transmission on Topic ID: %"PRIu32,
+                 dtpc_reg->regid());
+    }
+    
+    topic_agg->lock().unlock();
+
+    return status;
+}
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_dtpc_elision_response()
+{
+    int status = DTN_SUCCESS;        
+    dtpc_elision_func_modified_t modified = 0;
+    DtpcElisionFuncResponse* ef_response = NULL;
+    EndpointID dest_eid;
+
+    // unpack the arguments
+    if (!xdr_dtpc_elision_func_modified_t(&xdr_decode_, &modified))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    if (modified) {
+        // read the ADI list to apply
+        dtpc_data_item_list_t data_item_list;
+        memset(&data_item_list, 0, sizeof(data_item_list));
+        if (!xdr_dtpc_data_item_list_t(&xdr_decode_, &data_item_list)) {
+            log_err("error in xdr unpacking arguments");
+            return DTN_EXDR;
+        }
+
+        dest_eid.assign(data_item_list.dest_eid.uri);
+        DtpcApplicationDataItemList* adi_list = new DtpcApplicationDataItemList();
+        DtpcApplicationDataItem* data_item;
+
+        u_int num_adis = data_item_list.data_items.data_items_len;
+        log_crit("handle_dtpc_elision_response - modified = %d, topic = %"PRIu32", dest = %s, "
+                 "profile = %"PRIu32", num ADIs = %d", 
+                 modified, data_item_list.topic_id, data_item_list.dest_eid.uri, 
+                 data_item_list.profile_id, num_adis);
+        for (u_int ix=0; ix<num_adis; ++ix) {
+            data_item = new DtpcApplicationDataItem(dest_eid, data_item_list.topic_id);
+            data_item->set_data(data_item_list.data_items.data_items_val[ix].buf.buf_len, 
+                                (u_int8_t*)data_item_list.data_items.data_items_val[ix].buf.buf_val);
+            adi_list->push_back(data_item);
+
+            log_crit("      ADI[%d] len = %u data = %-30.30s\n",
+                     ix+1, data_item_list.data_items.data_items_val[ix].buf.buf_len,
+                     data_item_list.data_items.data_items_val[ix].buf.buf_val);
+        }
+
+
+        ef_response = new DtpcElisionFuncResponse(data_item_list.topic_id, adi_list, dest_eid,
+                                                  data_item_list.profile_id, true);
+    } else {
+        dtpc_topic_id_t topic_id_xdr;
+        dtpc_endpoint_id_t dest_eid_xdr;
+        dtpc_profile_id_t profile_id_xdr;
+        if (!xdr_dtpc_topic_id_t(&xdr_decode_, &topic_id_xdr) ||
+            !xdr_dtpc_endpoint_id_t(&xdr_decode_, &dest_eid_xdr) ||
+            !xdr_dtpc_profile_id_t(&xdr_decode_, &profile_id_xdr))
+        {
+            log_err("error in xdr unpacking arguments");
+            return DTN_EXDR;
+        }
+
+        log_crit("handle_dtpc_elision_response - modified = %d, topic = %"PRIu32", dest = %s, profile = %"PRIu32, 
+             modified, topic_id_xdr, dest_eid_xdr.uri, profile_id_xdr);
+
+        dest_eid.assign(dest_eid_xdr.uri);
+        ef_response = new DtpcElisionFuncResponse(topic_id_xdr, NULL, dest_eid,
+                                                  profile_id_xdr, false);
+    }
+
+    // post the elision function response at the head of the event queue to expedite delivery
+    DtpcDaemon::post_at_head(ef_response);
+
+    return status;
+}
+
+
+
+
+
+//----------------------------------------------------------------------
+int
+APIClient::wait_for_dtpc_notify(const char*        operation,
+                                dtn_timeval_t      dtn_timeout,
+                                DtpcRegistration** recv_ready_reg,
+                                bool*              sock_ready)
+{
+    DtpcRegistration* dtpc_reg;
+
+    ASSERT(sock_ready != NULL);
+    if (recv_ready_reg)    *recv_ready_reg    = NULL;
+
+    if (dtpc_bindings_->empty()) {
+        log_err("wait_for_dtpc_notify(%s): no bound registrations", operation);
+        return DTN_EINVAL;
+    }
+
+    int timeout = (int)dtn_timeout;
+    if (timeout < -1) {
+        log_err("wait_for_dtpc_notify(%s): "
+                "invalid timeout value %d", operation, timeout);
+        return DTN_EINVAL;
+    }
+
+    // try to optimize by using a statically sized pollfds array,
+    // otherwise we need to malloc the array.
+    //
+    // XXX/demmer this would be cleaner by tweaking the
+    // StaticScratchBuffer class to be handle arrays of arbitrary
+    // sized structs
+    struct pollfd static_pollfds[64];
+    struct pollfd* pollfds;
+    oasys::ScopeMalloc pollfd_malloc;
+    size_t npollfds = 1;
+    size_t maxpollfds = 1;
+    
+    if (recv_ready_reg)    maxpollfds += (2 * dtpc_bindings_->size());
+                                         //allowing for elision func invocations
+    
+    if (maxpollfds <= 64) {
+        pollfds = &static_pollfds[0];
+    } else {
+        pollfds = (struct pollfd*)malloc(maxpollfds * sizeof(struct pollfd));
+        pollfd_malloc = pollfds;
+    }
+    
+    struct pollfd* sock_poll = &pollfds[0];
+    sock_poll->fd            = TCPClient::fd_;
+    sock_poll->events        = POLLIN | POLLERR;
+    sock_poll->revents       = 0;
+
+    // loop through all the registrations -- if one has bundles on its
+    // list, we don't need to poll, just return it immediately.
+    // otherwise we'll need to poll it
+    DtpcRegistrationList::iterator iter;
+    if (recv_ready_reg) {
+        log_debug("wait_for_dtpc_notify(%s): checking %zu dtpc_bindings",
+                  operation, dtpc_bindings_->size());
+        
+        for (iter = dtpc_bindings_->begin(); iter != dtpc_bindings_->end(); ++iter) {
+            dtpc_reg = dynamic_cast<DtpcRegistration*>(*iter);
+            
+            if (! dtpc_reg->collector_list()->empty()) {
+                log_debug("wait_for_dtpc_notify(%s): "
+                          "immediately returning bundle for dtpc_reg %d",
+                          operation, dtpc_reg->regid());
+                *recv_ready_reg = dtpc_reg;
+                return 0;
+            }
+        
+            pollfds[npollfds].fd = dtpc_reg->collector_list()->notifier()->read_fd();
+            pollfds[npollfds].events = POLLIN;
+            pollfds[npollfds].revents = 0;
+            ++npollfds;
+            ASSERT(npollfds <= maxpollfds);
+
+            if (dtpc_reg->has_elision_func()) {
+                pollfds[npollfds].fd = dtpc_reg->aggregator_list()->notifier()->read_fd();
+                pollfds[npollfds].events = POLLIN;
+                pollfds[npollfds].revents = 0;
+                ++npollfds;
+                ASSERT(npollfds <= maxpollfds);
+            }
+        }
+    }
+
+    if (timeout == 0) {
+        log_debug("wait_for_dtpc_notify(%s): "
+                  "no ready registrations and timeout=%d, returning immediately",
+                  operation, timeout);
+        return DTN_ETIMEOUT;
+    }
+    
+    log_debug("wait_for_dtpc_notify(%s): "
+              "blocking to get events from %zu sources (timeout %d)",
+              operation, npollfds, timeout);
+    int nready = oasys::IO::poll_multiple(&pollfds[0], npollfds, timeout,
+                                          NULL, logpath_);
+
+    if (nready == oasys::IOTIMEOUT) {
+        log_debug("wait_for_dtpc_notify(%s): timeout waiting for events",
+                  operation);
+        return DTN_ETIMEOUT;
+
+    } else if (nready <= 0) {
+        log_err("wait_for_dtpc_notify(%s): unexpected error polling for events",
+                operation);
+        return DTN_EINTERNAL;
+    }
+
+    // if there's data on the socket, immediately exit without
+    // checking the registrations
+    if (sock_poll->revents != 0) {
+        log_debug("wait_for_dtpc_notify(%s) sock_poll->revents!=0", operation);
+        *sock_ready = true;
+        return 0;
+    }
+
+    // otherwise, there should be an elision function callback pending or data on one 
+    // (or more) collector lists, so scan the list to find the first one with priority
+    // given to an elision function.
+    log_debug("wait_for_dtpc_notify: looking for data on bundle lists: recv_ready_reg(%p)\n",
+              recv_ready_reg);
+    if (recv_ready_reg) {
+        for (iter = dtpc_bindings_->begin(); iter != dtpc_bindings_->end(); ++iter) {
+            dtpc_reg = dynamic_cast<DtpcRegistration*>(*iter);
+
+            if (!dtpc_reg->aggregator_list()->empty()) {
+                log_debug("wait_for_dtpc_notify: found elision func pending %p", dtpc_reg);
+                *recv_ready_reg = dtpc_reg;
+                break;
+            }
+
+            if (NULL == *recv_ready_reg && !dtpc_reg->collector_list()->empty()) {
+                log_debug("wait_for_dtpc_notify: found one %p", dtpc_reg);
+                *recv_ready_reg = dtpc_reg;
+                // save first reg with data but continue looking for elision funcs pending
+            }
+        }
+    }
+
+    if (recv_ready_reg && *recv_ready_reg == NULL) 
+    {
+        log_err("wait_for_dtpc_notify(%s): error -- no lists have any events",
+                operation);
+        return DTN_EINTERNAL;
+    }
+    
+    return 0;
+}
+
+//----------------------------------------------------------------------
+bool
+APIClient::is_dtpc_bound(u_int32_t topic_id, DtpcRegistration** reg)
+{
+    DtpcRegistrationList::iterator iter;
+    for (iter = dtpc_bindings_->begin(); iter != dtpc_bindings_->end(); ++iter) {
+	if ((*iter)->dtpc_topic_id() == topic_id) {
+            if (NULL != reg) {
+                *reg = (*iter);
+            }
+	    return true;
+	}
+    }
+
+    return false;
+}
+
+#endif // DTPC_ENABLED
 
 } // namespace dtn

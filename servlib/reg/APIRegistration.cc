@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -86,9 +104,11 @@ APIRegistration::serialize(oasys::SerializeAction* a)
 
     Registration::serialize(a);
 
-    bundle_list_->serialize(a);
-    unacked_bundle_list_->serialize(a);
-    acked_bundle_list_->serialize(a);
+    if (BundleDaemon::instance()->params_.serialize_apireg_bundle_lists_) {
+        bundle_list_->serialize(a);
+        unacked_bundle_list_->serialize(a);
+        acked_bundle_list_->serialize(a);
+    }
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL &&
         (session_flags_ & Session::CUSTODY))
@@ -96,7 +116,7 @@ APIRegistration::serialize(oasys::SerializeAction* a)
         session_notify_list_ = new BlockingBundleList(logpath_);
         session_notify_list_->logpath_appendf("/session_notify");
     }
-    log_debug("APIRegistration::serialze -- done.");
+    log_debug("APIRegistration::serialize -- done.");
 }
 
 //----------------------------------------------------------------------
@@ -116,7 +136,7 @@ APIRegistration::deliver_bundle(Bundle* bundle)
 {
     if (!active() && (failure_action_ == DROP)) {
         log_info("deliver_bundle: "
-                 "dropping bundle id %d for passive registration %d (%s)",
+                 "dropping bundle id %"PRIbid" for passive registration %d (%s)",
                  bundle->bundleid(), regid_, endpoint_.c_str());
         
         // post an event saying we "delivered" it
@@ -135,7 +155,7 @@ APIRegistration::deliver_bundle(Bundle* bundle)
         // fall through
     }
 
-    log_info("deliver_bundle: queuing bundle id %d for %s delivery to %s",
+    log_info("deliver_bundle: queuing bundle id %"PRIbid" for %s delivery to %s",
              bundle->bundleid(),
              active() ? "active" : "deferred",
              endpoint_.c_str());
@@ -151,10 +171,19 @@ APIRegistration::deliver_bundle(Bundle* bundle)
         // application is not connected
         // either the replay action is NONE, which is an implicit ack, or
         // this bundle will be included in an ALL playback on reconnect
+
+        // XXX/dz bundle used to be flagged as delivered before the actual
+        // delivery so we need to issue the delivered event to mark it
+        if (replay_action() == Registration::NONE) {
+            BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
+        }
+
         acked_bundle_list_->push_back(bundle);
     }
     
-    update();
+    if (BundleDaemon::instance()->params_.serialize_apireg_bundle_lists_) {
+        update();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -171,7 +200,9 @@ APIRegistration::delete_bundle(Bundle* bundle)
     if (acked_bundle_list_->erase(bundle))
         return;
 
-    update();
+    if (BundleDaemon::instance()->params_.serialize_apireg_bundle_lists_) {
+        update();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -182,7 +213,9 @@ APIRegistration::session_notify(Bundle* bundle)
     log_debug("session_notify *%p", bundle);
     session_notify_list_->push_back(bundle);
 
-    update();
+    if (BundleDaemon::instance()->params_.serialize_apireg_bundle_lists_) {
+        update();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -200,7 +233,9 @@ APIRegistration::set_active_callback(bool a)
     // (move after an ALL bundle playback to preserve ordering?)
     if (! (unacked_bundle_list_->empty())) {
         unacked_bundle_list_->move_contents(bundle_list_);
-        update();
+        if (BundleDaemon::instance()->params_.serialize_apireg_bundle_lists_) {
+            update();
+        }
     }
 
     if ((replay_action() == Registration::NONE) ||
@@ -211,7 +246,9 @@ APIRegistration::set_active_callback(bool a)
 
     if (! (acked_bundle_list_->empty())) {
         acked_bundle_list_->move_contents(bundle_list_);
-        update();
+        if (BundleDaemon::instance()->params_.serialize_apireg_bundle_lists_) {
+            update();
+        }
     }
 }
 
@@ -225,7 +262,11 @@ APIRegistration::deliver_front()
     bref = bundle_list_->pop_front();
 
     Bundle* b = bref.object();
-    ASSERT(b != NULL);
+    //dz debug ASSERT(b != NULL);
+    // possible that bundle expired between calls in APIServer::handle_recv??
+    if (b == NULL) {
+        return bref;
+    }
 
     if (delivery_acking()) {
         // must wait for an explicit ack from the app
@@ -236,7 +277,9 @@ APIRegistration::deliver_front()
     }
 
     // Update registration on disk
-    update();
+    if (BundleDaemon::instance()->params_.serialize_apireg_bundle_lists_) {
+        update();
+    }
 
     return bref;
 }
@@ -281,10 +324,12 @@ APIRegistration::bundle_ack(const EndpointID& source_eid,
     acked_bundle_list_->push_back(b.object());
     unacked_bundle_list_->erase(b.object());
 
-    log_info("registration %d (%s) acknowledged delivery of bundle %d",
+    log_info("registration %d (%s) acknowledged delivery of bundle %"PRIbid,
              regid_, endpoint_.c_str(), (b.object())->bundleid());
 
-    update();
+    if (BundleDaemon::instance()->params_.serialize_apireg_bundle_lists_) {
+        update();
+    }
 }
 
 } // namespace dtn

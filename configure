@@ -661,6 +661,7 @@ RANLIB
 AR
 DEPFLAGS
 TARGET
+DTPC_ENABLED
 CXXCPP
 ENABLE_SCRIPT_APIS
 ac_ct_CXX
@@ -737,11 +738,19 @@ enable_ecl
 enable_edp
 with_norm
 with_ltp
+with_ltpudp
+with_ltpudpauth
 enable_scriptapis
 with_odbc
 with_bsp
 with_openssl
 with_bpq
+with_acs
+with_bdstats
+enable_bid64bit
+with_dtpc
+with_ecos
+with_ehsrouter
 with_cc
 with_cxx
 enable_debug
@@ -1380,6 +1389,7 @@ Optional Features:
   --disable-ecl           disable external convergence layer support
   --disable-edp           disable external decision plane support
   --enable-scriptapis     Enable PYTHON, PERL and TCL APIs
+  --enable-bid64bit       set the size of the Bundle ID to 64 bits
   --disable-debug         compile with debugging turned off
   --enable-debug-memory   enable memory debugging
   --disable-debug-locking disable lock debugging
@@ -1400,11 +1410,21 @@ Optional Packages:
   --with-norm             enable NORM convergence layer support (EXPERIMENTAL)
   --with-ltp              enable LTP convergence layer support using TCD's
                           LTPlib (EXPERIMENTAL)
+  --with-ltpudp           enable LTPUDP Convvergence Layer support
+                          (EXPERIMENTAL)
+  --with-ltpudpauth       enable LTPUDP Authentication support (EXPERIMENTAL)
   --with-odbc             compile in odbc support (default try)
   --with-bsp              enable Bundle Security Protocol support
                           (EXPERIMENTAL)
   --with-openssl=DIR      location of an OpenSSL installation (default system)
   --with-bpq              enable Bundle Protocol Query Extension support
+  --with-acs              enable Aggregate Custody Signals support
+  --with-bdstats          enable BundleDaemon Statistics support
+  --with-dtpc             enable DTPC - Delay Tolerant Payload Conditioning
+                          support
+  --with-ecos             enable Extended Class Of Service Block support
+  --with-ehsrouter        enable building the EHS External Router which also
+                          requires Xerces C
   --with-cc=CC            name (or path) of the C compiler to use
   --with-cxx=CXX          name (or path) of the C++ compiler to use
   --with-extra-cflags=?   additional options to pass to the compiler
@@ -3282,25 +3302,38 @@ fi
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)" >&5
 $as_echo_n "checking for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)... " >&6; }
 
-    ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
+    # if --with-oasys was not specified then look for the fallback locations
+    # which are ../oasys.<major>.<minor>.* and ../oasys
+    if test "$ac_oasysdir" = ""; then
+      ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
 
-    if test -d "$ac_oasysdir_ver" ; then
-      ac_oasysdir=$ac_oasysdir_ver
+      if test -d "$ac_oasysdir_ver" ; then
+        ac_oasysdir=$ac_oasysdir_ver
 
-    elif test -d ../oasys ; then
-      ac_oasysdir=../oasys
-      ac_oasysdir_ver=$ac_oasysdir
+      elif test -d ../oasys ; then
+        ac_oasysdir=../oasys
+        ac_oasysdir_ver=$ac_oasysdir
+      fi
     fi
 
-    if test -d "$ac_oasysdir_ver" ; then
+
+    if test -d "$ac_oasysdir" ; then
       mkdir oasys oasys/include
       OASYS_INCDIR="oasys/include"
       OASYS_LIBDIR="oasys/lib"
       OASYS_ETCDIR="oasys/share"
-      ln -s ../../$ac_oasysdir $OASYS_INCDIR
-      ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
-      ln -s ../$ac_oasysdir $OASYS_ETCDIR
-
+      if test "${ac_oasysdir:0:1}" = "/" ; then
+        # we have an absolute path
+        # assume this is an installed instance and not a source directory
+        ln -s $ac_oasysdir/include/oasys $OASYS_INCDIR/oasys
+        ln -s $ac_oasysdir/lib $OASYS_LIBDIR
+        ln -s $ac_oasysdir/share/oasys $OASYS_ETCDIR
+      else
+        # relative path to source directory
+        ln -s ../../$ac_oasysdir $OASYS_INCDIR/oasys
+        ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
+        ln -s ../$ac_oasysdir $OASYS_ETCDIR
+      fi
     else
       if test "$ac_oasysdir" = "" ; then
         ac_oasysdir=/usr
@@ -4799,6 +4832,44 @@ $as_echo "#define LTP_ENABLED 1" >>confdefs.h
     fi
 
 
+    ac_ltpudp='no'
+
+# Check whether --with-ltpudp was given.
+if test "${with_ltpudp+set}" = set; then :
+  withval=$with_ltpudp; ac_ltpudp=$withval
+fi
+
+                if test "$ac_ltpudp" = no; then
+        LTPUDP_ENABLED=0
+    else
+        LTPUDP_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define LTPUDP_ENABLED 1
+_ACEOF
+
+    fi # LTPUDP_ENABLED
+
+
+    ac_ltpudpauth='no'
+
+# Check whether --with-ltpudpauth was given.
+if test "${with_ltpudpauth+set}" = set; then :
+  withval=$with_ltpudpauth; ac_ltpudpauth=$withval
+fi
+
+                if test "$ac_ltpudpauth" = no; then
+        LTPUDP_AUTH_ENABLED=0
+    else
+        LTPUDP_AUTH_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define LTPUDP_AUTH_ENABLED 1
+_ACEOF
+
+    fi # LTPUDP_AUTH_ENABLED
+
+
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --enable-scriptapis" >&5
 $as_echo_n "checking for --enable-scriptapis... " >&6; }
         # Check whether --enable-scriptapis was given.
@@ -5387,6 +5458,206 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
     fi # BPQ_ENABLED
+
+
+#--------------------------------------------------------------------------
+# Check if ACS should be enabled
+#--------------------------------------------------------------------------
+
+    ac_acs='no'
+
+# Check whether --with-acs was given.
+if test "${with_acs+set}" = set; then :
+  withval=$with_acs; ac_acs=$withval
+fi
+
+                if test "$ac_acs" = no; then
+        ACS_ENABLED=0
+    else
+        ACS_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define ACS_ENABLED 1
+_ACEOF
+
+    fi # ACS_ENABLED
+
+
+#--------------------------------------------------------------------------
+# Check if BundleDaemon Statistics should be enabled
+#--------------------------------------------------------------------------
+
+    ac_bdstats='no'
+
+# Check whether --with-bdstats was given.
+if test "${with_bdstats+set}" = set; then :
+  withval=$with_bdstats; ac_bdstats=$withval
+fi
+
+                if test "$ac_bdstats" = no; then
+        BDSTATS_ENABLED=0
+    else
+        BDSTATS_ENABLED=1
+        with_extra_ldflags="$with_extra_ldflags -lrt"
+
+cat >>confdefs.h <<_ACEOF
+#define BDSTATS_ENABLED 1
+_ACEOF
+
+    fi # BDSTATS_ENABLED
+
+
+#--------------------------------------------------------------------------
+# Configure for 64 bit Bundle IDs
+#--------------------------------------------------------------------------
+
+    ac_bid64bit='no'
+    # Check whether --enable-bid64bit was given.
+if test "${enable_bid64bit+set}" = set; then :
+  enableval=$enable_bid64bit; ac_bid64bit=$enableval
+fi
+
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable 64bit Bundle ID" >&5
+$as_echo_n "checking whether to enable 64bit Bundle ID... " >&6; }
+    if test "$ac_bid64bit" = no; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+        #BUNDLEID_SIZE=32
+        #bundleid_t=u_int32_t
+        #BUNDLE_ID_MAX=0xffffffff
+        #BUNDLE_ID_MAX64=__UINT64_C(0x00000000ffffffff)
+        #PRIbid=PRIu32
+
+cat >>confdefs.h <<_ACEOF
+#define BUNDLEID_SIZE 32
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define bundleid_t u_int32_t
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define BUNDLE_ID_MAX 0xffffffff
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define BUNDLE_ID_MAX64 __UINT64_C(0x00000000ffffffff)
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define PRIbid PRIu32
+_ACEOF
+
+    else
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+        #BUNDLEID_SIZE=64
+        #bundleid_t=u_int64_t
+        #BUNDLE_ID_MAX=__UINT64_C(0xffffffffffffffff)
+        #BUNDLE_ID_MAX64=BUNDLE_ID_MAX
+        #PRIbid=PRIu64
+
+cat >>confdefs.h <<_ACEOF
+#define BUNDLEID_SIZE 64
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define bundleid_t u_int64_t
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define BUNDLE_ID_MAX __UINT64_C(0xffffffffffffffff)
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define BUNDLE_ID_MAX64 BUNDLE_ID_MAX
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define PRIbid PRIu64
+_ACEOF
+
+    fi # BID64BIT
+
+
+#--------------------------------------------------------------------------
+# Check if DTPC should be enabled
+#--------------------------------------------------------------------------
+
+    ac_dtpc='no'
+
+# Check whether --with-dtpc was given.
+if test "${with_dtpc+set}" = set; then :
+  withval=$with_dtpc; ac_dtpc=$withval
+fi
+
+                if test "$ac_dtpc" = no; then
+        DTPC_ENABLED=0
+    else
+        DTPC_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define DTPC_ENABLED 1
+_ACEOF
+
+
+    fi # DTPC_ENABLED
+
+
+#--------------------------------------------------------------------------
+# Check if ECOS should be enabled
+#--------------------------------------------------------------------------
+
+    ac_ecos='no'
+
+# Check whether --with-ecos was given.
+if test "${with_ecos+set}" = set; then :
+  withval=$with_ecos; ac_ecos=$withval
+fi
+
+                if test "$ac_ecos" = no; then
+        ECOS_ENABLED=0
+    else
+        ECOS_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define ECOS_ENABLED 1
+_ACEOF
+
+    fi # ECOS_ENABLED
+
+
+#--------------------------------------------------------------------------
+# Check if the EHS External Router should be built
+#--------------------------------------------------------------------------
+
+     ac_ehsrouter='no'
+
+# Check whether --with-ehsrouter was given.
+if test "${with_ehsrouter+set}" = set; then :
+  withval=$with_ehsrouter; ac_ehsrouter=$withval
+fi
+
+                    if test "$ac_ehsrouter" = no; then
+         EHSROUTER_ENABLED=0
+     else
+         EHSROUTER_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define EHSROUTER_ENABLED 1
+_ACEOF
+
+     fi # EHSROUTER_ENABLED
 
 
 # -------------------------------------------------------------------------
@@ -6281,7 +6552,7 @@ $as_echo "$oasys_cv_prog_gxxver" >&6; }
 	# For 3.2 and beyond, use auto-dependency flags.
 	# Note that for m4 to output a '$' requires the '$' heinosity below.
 	#
-	3.*|4.*)
+	3.*|4.*|5.*)
 	    DEPFLAGS='-MMD -MP -MT "$*.o $*.E"'
 	    ;;
 	#
@@ -6809,6 +7080,8 @@ ac_config_files="$ac_config_files Rules.make:$OASYS_ETCDIR/Rules.make.in"
 ac_config_files="$ac_config_files System.make:$OASYS_ETCDIR/System.make:System.make.in"
 
 ac_config_files="$ac_config_files servlib/ipnd.make:servlib/ipnd.make.in"
+
+ac_config_files="$ac_config_files servlib/dtpc.make:servlib/dtpc.make.in"
 
 
 if test ! $SRCDIR = `pwd` ; then
@@ -7521,6 +7794,7 @@ do
     "Rules.make") CONFIG_FILES="$CONFIG_FILES Rules.make:$OASYS_ETCDIR/Rules.make.in" ;;
     "System.make") CONFIG_FILES="$CONFIG_FILES System.make:$OASYS_ETCDIR/System.make:System.make.in" ;;
     "servlib/ipnd.make") CONFIG_FILES="$CONFIG_FILES servlib/ipnd.make:servlib/ipnd.make.in" ;;
+    "servlib/dtpc.make") CONFIG_FILES="$CONFIG_FILES servlib/dtpc.make:servlib/dtpc.make.in" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile:Makefile-Builddir.in" ;;
     "applib/Makefile") CONFIG_FILES="$CONFIG_FILES applib/Makefile:applib/Makefile-Builddir.in" ;;
     "servlib/Makefile") CONFIG_FILES="$CONFIG_FILES servlib/Makefile:servlib/Makefile-Builddir.in" ;;

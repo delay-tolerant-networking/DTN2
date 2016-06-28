@@ -34,10 +34,13 @@ SINGLE_SOURCE_APPS := 			\
 	dtnpublish/dtnpublish		\
 	dtnrecv/dtnrecv			\
 	dtnpeek/dtnpeek			\
+	dtnecho/dtnecho			\
 	dtnquery/dtnquery   		\
 	dtnrespond/dtnrespond  		\
 	dtnsink/dtnsink			\
 	num2sdnv/num2sdnv		\
+	dtpc_apps/dtpc_send		\
+	dtpc_apps/dtpc_recv		\
 
 OTHER_APPS :=				\
 	dtnmoteproxy/dtnmoteproxy	\
@@ -68,7 +71,7 @@ $(DTN_LIBS_STATIC):
 
 CFLAGS += -I$(SRCDIR)/applib
 CXXFLAGS += -I$(SRCDIR)/applib
-LDFLAGS += -L../applib
+LDFLAGS += -L../applib -lrt
 
 BINFILES += $(APPS)
 

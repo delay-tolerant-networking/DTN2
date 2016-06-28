@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include <dtn-config.h>
 #endif
@@ -242,7 +260,7 @@ DTLSRRouter::can_delete_bundle(const BundleRef& bundle)
     }
 
     if (current_lsas_.contains(bundle)) {
-        log_debug("can_delete_bundle(%u): current lsa", bundle->bundleid());
+        log_debug("can_delete_bundle(%"PRIbid"): current lsa", bundle->bundleid());
         return false;
     }
 
@@ -257,7 +275,7 @@ DTLSRRouter::delete_bundle(const BundleRef& bundle)
 
     if (current_lsas_.contains(bundle))
     {
-        log_crit("deleting bundle id %u whilea still on current lsas list",
+        log_crit("deleting bundle id %"PRIbid" while still on current lsas list",
                  bundle->bundleid());
         current_lsas_.erase(bundle);
     }
@@ -637,8 +655,8 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
         bundle->creation_ts().seconds_ < node->info().last_lsa_creation_ts_)
     {
         log_info("update_current_lsa: "
-                 "ignoring stale LSA (seqno %llu <= last %llu, "
-                 "creation_ts %llu <= last %llu)",
+                 "ignoring stale LSA (seqno %"PRIu64" <= last %"PRIu64", "
+                 "creation_ts %"PRIu64" <= last %"PRIu64")",
                  seqno, node->info().last_lsa_seqno_,
                  bundle->creation_ts().seconds_,
                  node->info().last_lsa_creation_ts_);
@@ -653,8 +671,8 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
     else
     {
         log_info("update_current_lsa: "
-                 "got new LSA (seqno %llu > last %llu || "
-                 "creation_ts %llu > last %llu)",
+                 "got new LSA (seqno %"PRIu64" > last %"PRIu64" || "
+                 "creation_ts %"PRIu64" > last %"PRIu64")",
                  seqno, node->info().last_lsa_seqno_,
                  bundle->creation_ts().seconds_,
                  node->info().last_lsa_creation_ts_);
@@ -700,11 +718,11 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
     if (node->info().last_lsa_seqno_ == 0) {
         ASSERT(!found_stale_lsa);
         log_info("update_current_lsa: "
-                 "first LSA from %s (seqno %llu)",
+                 "first LSA from %s (seqno %"PRIu64")",
                  node->id().c_str(), seqno);
     } else {
         log_info("update_current_lsa: "
-                 "replaced %s LSA from %s (seqno %llu) with latest (%llu)",
+                 "replaced %s LSA from %s (seqno %"PRIu64") with latest (%"PRIu64")",
                  found_stale_lsa ? "stale" : "expired",
                  node->id().c_str(), node->info().last_lsa_seqno_, seqno);
     }
@@ -943,10 +961,10 @@ DTLSRRouter::send_lsa()
     Bundle* bundle = new TempBundle();
 
     if (config()->area_ != "") {
-        snprintf(tmp, sizeof(tmp), "dtn://*/%s?area=%s;lsa_seqno=%llu",
+        snprintf(tmp, sizeof(tmp), "dtn://*/%s?area=%s;lsa_seqno=%"PRIu64,
                  announce_tag_, config()->area_.c_str(), lsa.seqno_);
     } else {
-        snprintf(tmp, sizeof(tmp), "dtn://*/%s?lsa_seqno=%llu",
+        snprintf(tmp, sizeof(tmp), "dtn://*/%s?lsa_seqno=%"PRIu64,
                  announce_tag_, lsa.seqno_);
     }
     bundle->mutable_dest()->assign(tmp);

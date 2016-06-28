@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _CONTACT_MANAGER_H_
 #define _CONTACT_MANAGER_H_
 
@@ -43,7 +61,12 @@ public:
      */
     ContactManager();
     virtual ~ContactManager();
-    
+ 
+    /**
+     * Prevent most processing while shutting down
+     */   
+    virtual void set_shutting_down();
+ 
     /**
      * Dump a string representation of the info inside contact manager.
      */
@@ -272,6 +295,9 @@ protected:
      * Lock to protect internal data structures.
      */
     mutable oasys::SpinLock lock_;
+
+    /// Flag indicating dtnd is shutting down
+    bool shutting_down_;
 
     friend class LinkCommand;
 

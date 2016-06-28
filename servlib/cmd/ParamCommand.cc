@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -78,6 +96,10 @@ ParamCommand::ParamCommand()
                                 "when restarting "
                                 "(default is true)"));
 
+    bind_var(new oasys::BoolOpt("persistent_links",
+                                &BundleDaemon::params_.persistent_links_,
+                                "Maintain Links and their stats in database (default is true)"));
+
     static oasys::EnumOpt::Case IsSingletonCases[] = {
         {"unknown",   EndpointID::UNKNOWN},
         {"singleton", EndpointID::SINGLETON},
@@ -124,6 +146,26 @@ ParamCommand::ParamCommand()
                                 &CustodyTimerSpec::defaults_.max_,
                                 "max",
                                 "default value for custody timer max"));
+
+    bind_var(new oasys::BoolOpt("announce_ipn",
+                                &BundleDaemon::params_.announce_ipn_,
+                                "announce eid_ipn or announce eid "
+                                "on connection "
+                                "(default is false)"));
+
+    bind_var(new oasys::BoolOpt("serialize_apireg_bundle_lists",
+                                &BundleDaemon::params_.serialize_apireg_bundle_lists_,
+                                "write API Registration bundle lists to the database"
+                                " (default is false)"));
+
+    bind_var(new oasys::UInt64Opt("ipn_echo_service_number",
+                                  &(BundleDaemon::params_.ipn_echo_service_number_), 
+                                  "service", " should be greater than 0."));
+
+    bind_var(new oasys::UInt64Opt("ipn_echo_max_return_length",
+                                  &(BundleDaemon::params_.ipn_echo_max_return_length_),
+                                  "service", " should be greater than 0."));
+
 }
     
 } // namespace dtn

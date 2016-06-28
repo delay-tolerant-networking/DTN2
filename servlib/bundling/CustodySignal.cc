@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -74,7 +92,7 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     // the 2 SDNV fragment fields:
     if (orig_bundle->is_fragment()) {
         signal_len += SDNV::encoding_len(orig_bundle->frag_offset());
-        signal_len += SDNV::encoding_len(orig_bundle->orig_length());
+        signal_len += SDNV::encoding_len(orig_bundle->payload().length());
     }
     
     // Time field, set to the current time:
@@ -87,11 +105,8 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     signal_len += BundleProtocol::ts_encoding_len(orig_bundle->creation_ts());
 
     // the Source Endpoint ID length and value
-int ipn = 0;
-if(strncmp((const char*)orig_bundle->source().c_str(), "ipn", 3) == 0)
- ipn = 2;
-    signal_len += SDNV::encoding_len(orig_bundle->source().length() - ipn) +
-                  orig_bundle->source().length() - ipn;
+    signal_len += SDNV::encoding_len(orig_bundle->source().length()) +
+                  orig_bundle->source().length();
 
     //
     // now format the buffer
@@ -118,7 +133,7 @@ if(strncmp((const char*)orig_bundle->source().c_str(), "ipn", 3) == 0)
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
         
-        sdnv_encoding_len = SDNV::encode(orig_bundle->orig_length(), bp, len);
+        sdnv_encoding_len = SDNV::encode(orig_bundle->payload().length(), bp, len);
         ASSERT(sdnv_encoding_len > 0);
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
@@ -137,24 +152,6 @@ if(strncmp((const char*)orig_bundle->source().c_str(), "ipn", 3) == 0)
     len -= sdnv_encoding_len;
 
     // The Endpoint ID length and data
-char buf[80];
-u_int64_t a, b;
-size_t eidlen;
-
-if(sscanf((const char*)orig_bundle->source().c_str(), "ipn://%" PRIu64 "/%" PRIu64, &a, &b) == 2)
-{
-        sprintf(buf, "ipn:%" PRIu64 ".%" PRIu64, a, b);
-        eidlen = strlen(buf);
-	sdnv_encoding_len = SDNV::encode(eidlen, bp, len);
-	ASSERT(sdnv_encoding_len > 0);
-	len -= sdnv_encoding_len;
-	bp += sdnv_encoding_len;
-
-        memcpy(bp, buf, len);
-}
-else
-{
-
     sdnv_encoding_len = SDNV::encode(orig_bundle->source().length(), bp, len);
     ASSERT(sdnv_encoding_len > 0);
     len -= sdnv_encoding_len;
@@ -163,12 +160,37 @@ else
     ASSERT((u_int)len == orig_bundle->source().length());
 
     memcpy(bp, orig_bundle->source().c_str(), orig_bundle->source().length());
-}
-//printf("WTF %s\n", orig_bundle->source().c_str()); 
+
     // 
     // Finished generating the payload
     //
     bundle->mutable_payload()->set_data(scratch.buf(), signal_len);
+
+#ifdef ECOS_ENABLED
+    // prepare flags and data for our ECOS block
+    u_int8_t block_flags = 0;    // overridden in block processor so not set here
+    u_int8_t ecos_flags = 0x08;  // Reliable Transmission bit
+    u_int8_t ecos_ordinal = 255; // reserved for Custody Signals
+ 
+    bundle->set_ecos_enabled(true);
+    bundle->set_ecos_flags(ecos_flags);
+    bundle->set_ecos_ordinal(ecos_ordinal);
+
+    oasys::ScratchBuffer<u_char*, 16> scratch_ecos;
+    len = 2;
+    u_char* data = scratch_ecos.buf(len);
+    *data = ecos_flags;
+    ++data;
+    *data = ecos_ordinal;
+ 
+    // add our ECOS as an API block
+    u_int16_t block_type = BundleProtocol::EXTENDED_CLASS_OF_SERVICE_BLOCK;
+    BlockProcessor* ecosbpr = BundleProtocol::find_processor(block_type);
+    BlockInfo* info = bundle->api_blocks()->append_block(ecosbpr);
+    ecosbpr->init_block(info, bundle->api_blocks(), NULL, block_type,
+                        block_flags, scratch_ecos.buf(), len);
+#endif // ECOS_ENABLED
+
 }
 
 //----------------------------------------------------------------------
@@ -232,25 +254,7 @@ CustodySignal::parse_custody_signal(data_t* data,
 
     if (len != EID_len) { return false; }
 
-    bool ok;
-    u_int64_t a, b;
-    if(sscanf((const char*)bp, "ipn:%" PRIu64 ".%" PRIu64, &a, &b) == 2)
-    {
-       char buf[80];
-       sscanf((const char*)bp, "ipn:%" PRIu64 ".%" PRIu64, &a, &b);
-       sprintf(buf, "ipn://%" PRIu64 "/%" PRIu64, a, b);
-       len = strlen(buf);
-       ok = data->orig_source_eid_.assign(std::string((const char*)buf, len));
-    }
-    else
-    {
-       ok = data->orig_source_eid_.assign(std::string((const char*)bp, len));
-    }
-    if (!ok) {
-        return false;
-    }
-    
-    return true;
+    return data->orig_source_eid_.assign(std::string((const char*)bp, len));
 }
 
 //----------------------------------------------------------------------

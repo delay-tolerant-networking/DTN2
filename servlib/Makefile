@@ -23,25 +23,36 @@
 #
 
 include $(CURDIR)/../servlib/ipnd.make
+include $(CURDIR)/../servlib/dtpc.make
 
 BUNDLING_SRCS := 				\
-        bundling/AgeBlockProcessor.cc           \
-        bundling/APIBlockProcessor.cc           \
+	bundling/AcsExpirationTimer.cc          \
+	bundling/AgeBlockProcessor.cc           \
+	bundling/AggregateCustodySignal.cc      \
+	bundling/APIBlockProcessor.cc           \
 	bundling/BlockInfo.cc			\
 	bundling/BlockProcessor.cc		\
 	bundling/Bundle.cc			\
-	bundling/BPQBlockProcessor.cc			\
+	bundling/BPQBlockProcessor.cc		\
 	bundling/BPQBlock.cc			\
 	bundling/BPQCache.cc			\
-	bundling/BPQCacheEntry.cc			\
-	bundling/BPQFragmentList.cc			\
+	bundling/BPQCacheEntry.cc		\
+	bundling/BPQFragmentList.cc		\
 	bundling/BPQResponse.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
+	bundling/BundleDaemonACS.cc		\
+	bundling/BundleDaemonInput.cc		\
+	bundling/BundleDaemonOutput.cc		\
+	bundling/BundleDaemonStorage.cc		\
 	bundling/BundleDetail.cc		\
 	bundling/BundleEventHandler.cc		\
 	bundling/BundleInfoCache.cc		\
 	bundling/BundleList.cc			\
+	bundling/BundleListBase.cc		\
+	bundling/BundleListIntMap.cc		\
+	bundling/BundleListStrMap.cc		\
+	bundling/BundleListStrMultiMap.cc	\
 	bundling/BundleMappings.cc		\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
@@ -49,7 +60,9 @@ BUNDLING_SRCS := 				\
 	bundling/BundleTimestamp.cc		\
 	bundling/CustodySignal.cc		\
 	bundling/CustodyTimer.cc		\
+	bundling/CustodyTransferEnhancementBlockProcessor.cc	\
 	bundling/Dictionary.cc          	\
+	bundling/ExtendedClassOfServiceBlockProcessor.cc	\
 	bundling/ForwardingInfo.cc		\
 	bundling/ForwardingLog.cc		\
 	bundling/FragmentManager.cc		\
@@ -96,6 +109,10 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/TCPConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
 	conv_layers/LTPConvergenceLayer.cc	\
+	conv_layers/LTPUDPReplayConvergenceLayer.cc	\
+	conv_layers/LTPUDPConvergenceLayer.cc	\
+	conv_layers/LTPUDPCommon.cc	        \
+	conv_layers/STCPConvergenceLayer.cc     \
 	conv_layers/NORMConvergenceLayer.cc	\
 	conv_layers/NORMReceiver.cc		\
 	conv_layers/NORMSender.cc		\
@@ -104,6 +121,7 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/ECLModule.cc \
 	conv_layers/CLEventHandler.cc \
 	conv_layers/CLEvent.cc \
+	conv_layers/RecvRawConvergenceLayer.cc
 
 IPND_DISCOVERY_SRCS :=	\
 	discovery/IPNDDiscovery.cc		\
@@ -136,6 +154,7 @@ DISCOVERY_SRCS :=			\
 endif
 
 CMD_SRCS :=					\
+	cmd/AcsCommand.cc			\
 	cmd/APICommand.cc			\
 	cmd/BlockCommand.cc			\
 	cmd/BundleCommand.cc			\
@@ -153,6 +172,8 @@ CMD_SRCS :=					\
 	cmd/ProphetCommand.cc			\
 	cmd/ECLACommand.cc			\
 	cmd/SecurityCommand.cc			\
+
+
 
 NAMING_SRCS :=					\
 	naming/EndpointID.cc			\
@@ -189,11 +210,14 @@ PROPHET_SRCS :=					\
 
 REGISTRATION_SRCS :=				\
 	reg/AdminRegistration.cc		\
+	reg/AdminRegistrationIpn.cc		\
 	reg/APIRegistration.cc			\
 	reg/Registration.cc			\
+	reg/RegistrationInitialLoadThread.cc	\
 	reg/RegistrationTable.cc		\
 	reg/LoggingRegistration.cc		\
 	reg/PingRegistration.cc			\
+	reg/IpnEchoRegistration.cc			\
 	reg/TclRegistration.cc			\
 
 ROUTING_SRCS :=					\
@@ -239,6 +263,7 @@ STORAGE_SRCS :=					\
 	storage/LinkStore.cc			\
 	storage/GlobalStore.cc			\
 	storage/RegistrationStore.cc		\
+	storage/PendingAcsStore.cc		\
 
 SECURITY_SRCS :=				\
 	security/Ciphersuite.cc			\
@@ -277,6 +302,34 @@ SECURITY_SRCS :=				\
 	gcm/gcm.cc				\
 	gcm/gf128mul.cc				\
 
+
+DTPC_SRCS :=					\
+	cmd/DtpcCommand.cc			\
+	dtpc/DtpcApplicationDataItem.cc		\
+	dtpc/DtpcDaemon.cc			\
+	dtpc/DtpcDataPduCollector.cc		\
+	dtpc/DtpcDataPduCollectorStore.cc	\
+	dtpc/DtpcDeliverPduTimer.cc		\
+	dtpc/DtpcPayloadAggregationTimer.cc	\
+	dtpc/DtpcPayloadAggregator.cc		\
+	dtpc/DtpcPayloadAggregatorStore.cc	\
+	dtpc/DtpcProfile.cc			\
+	dtpc/DtpcProfileStore.cc		\
+	dtpc/DtpcProfileTable.cc		\
+	dtpc/DtpcProtocolDataUnit.cc		\
+	dtpc/DtpcReceiver.cc			\
+	dtpc/DtpcRegistration.cc		\
+	dtpc/DtpcRetransmitTimer.cc		\
+	dtpc/DtpcTopicAggregator.cc		\
+	dtpc/DtpcTopicAggregatorList.cc		\
+	dtpc/DtpcTopic.cc			\
+	dtpc/DtpcTopicCollector.cc		\
+	dtpc/DtpcTopicCollectorList.cc		\
+	dtpc/DtpcTopicExpirationTimer.cc	\
+	dtpc/DtpcTopicStore.cc			\
+	dtpc/DtpcTopicTable.cc			\
+
+
 SERVLIB_SRCS := 				\
 	DTNServer.cc				\
 	$(BUNDLING_SRCS) 			\
@@ -291,6 +344,14 @@ SERVLIB_SRCS := 				\
 	$(SESSION_SRCS)				\
 	$(STORAGE_SRCS)				\
 	$(SECURITY_SRCS)			\
+
+# Check if we should include DTPC sources in the SERVLIB sources
+ifeq ($(DTPC_ENABLED),1)
+SERVLIB_SRCS :=			\
+	$(SERVLIB_SRCS)		\
+	$(DTPC_SRCS)
+endif
+
 
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
@@ -348,7 +409,7 @@ XSD_TOOL_CLA_ARGS := \
 	--namespace-map =dtn::clmessage \
 	--output-dir conv_layers \
 	--cxx-prologue '\#ifdef HAVE_CONFIG_H' \
-	--cxx-prologue '\#  include <config.h>' \
+	--cxx-prologue '\#  include <dtn-config.h>' \
 	--cxx-prologue '\#endif' \
 	--cxx-prologue '\#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)' \
 	--cxx-epilogue '\#endif' \
@@ -368,7 +429,7 @@ XSD_TOOL_RTR_ARGS := \
 	--custom-type registrationType=/registrationType_base \
 	--hxx-epilogue '\#include "router-custom.h"' \
 	--cxx-prologue '\#ifdef HAVE_CONFIG_H' \
-	--cxx-prologue '\#  include <config.h>' \
+	--cxx-prologue '\#  include <dtn-config.h>' \
 	--cxx-prologue '\#endif' \
 	--cxx-prologue '\#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)' \
 	--cxx-epilogue '\#endif' \

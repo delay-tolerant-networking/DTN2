@@ -291,7 +291,7 @@ to_bundles()
 	// if we're given a regid, bind to it, otherwise make a
 	// registration for incoming reports
         if (regid != DTN_REGID_NONE) {
-            if (dtn_bind(handle, regid) != DTN_SUCCESS) {
+            if ((ret = dtn_bind(handle, regid)) != DTN_SUCCESS) {
                 fprintf(stderr, "%s: error in bind (id=0x%x): %d (%s)\n",
                         progname, regid, ret, dtn_strerror(dtn_errno(handle)));
                 exit(EXIT_FAILURE);
@@ -447,6 +447,7 @@ parse_options(int argc, char**argv)
             api_IP = optarg;
             break;
         case 'B':
+            api_IP_set = 1;
             api_port = atoi(optarg);
             break;    	    
         case 'l':

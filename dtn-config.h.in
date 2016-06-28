@@ -1,7 +1,13 @@
 /* dtn-config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* whether Aggregate Custody Signals support is enabled */
+#undef ACS_ENABLED
+
 /* whether BBN IPND discovery protocol is enabled */
 #undef BBN_IPND_ENABLED
+
+/* whether BundleDaemon Statistics support is enabled */
+#undef BDSTATS_ENABLED
 
 /* whether Bundle Protocol Query Extension support is enabled */
 #undef BPQ_ENABLED
@@ -9,8 +15,26 @@
 /* whether Bundle Security Protocol support is enabled */
 #undef BSP_ENABLED
 
+/* Bundle ID size */
+#undef BUNDLEID_SIZE
+
+/* Max value of the Bundle ID */
+#undef BUNDLE_ID_MAX
+
+/* 64 bit version of the max Bundle ID value */
+#undef BUNDLE_ID_MAX64
+
 /* always defined so code can ensure that dtn-config.h is properly included */
 #undef DTN_CONFIG_STATE
+
+/* whether Delay Tolerant Payload Conditioning support is enabled */
+#undef DTPC_ENABLED
+
+/* whether Extend Class Of Service Block support is enabled */
+#undef ECOS_ENABLED
+
+/* whether to build the EHS External Router */
+#undef EHSROUTER_ENABLED
 
 /* whether external convergence layer support is enabled */
 #undef EXTERNAL_CL_ENABLED
@@ -60,6 +84,12 @@
 /* whether odbc is enabled */
 #undef LIBODBC_ENABLED
 
+/* whether LTPUDP Authentication support is enabled */
+#undef LTPUDP_AUTH_ENABLED
+
+/* whether LTPUDP Authentication support is enabled */
+#undef LTPUDP_ENABLED
+
 /* whether LTP support is enabled */
 #undef LTP_ENABLED
 
@@ -93,8 +123,23 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Macro for printing a Bundle ID */
+#undef PRIbid
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
+
+/* Bundle ID is 64 bits */
+#undef bundleid_t
+
+/* Enable inclusion of the STD C Macros */
+#ifndef __STDC_FORMAT_MACROS
+    #define __STDC_FORMAT_MACROS
+#endif
+#ifndef __STDC_LIMIT_MACROS
+    #define __STDC_LIMIT_MACROS
+#endif
+#include <inttypes.h>
 
 /* Include oasys configuration state */
 #include <oasys/oasys-config.h>

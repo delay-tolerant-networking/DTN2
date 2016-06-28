@@ -53,6 +53,15 @@ autoheader
 
 cat >> dtn-config.h.in <<EOF
 
+/* Enable inclusion of the STD C Macros */
+#ifndef __STDC_FORMAT_MACROS
+    #define __STDC_FORMAT_MACROS
+#endif
+#ifndef __STDC_LIMIT_MACROS
+    #define __STDC_LIMIT_MACROS
+#endif
+#include <inttypes.h>
+
 /* Include oasys configuration state */
 #include <oasys/oasys-config.h>
 EOF

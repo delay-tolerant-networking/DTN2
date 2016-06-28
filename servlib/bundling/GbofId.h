@@ -15,6 +15,24 @@
  * $Id$
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifndef _GBOFID_H_
 #define _GBOFID_H_
 
@@ -38,6 +56,20 @@ public:
            u_int32_t       frag_length,
            u_int32_t       frag_offset);
     ~GbofId();
+
+    /**
+     * Copy constructor
+     */
+    GbofId (const GbofId& other);
+
+    /**
+     * (Re)Initialization using provided values
+     */
+    void init(EndpointID      source,
+              BundleTimestamp creation_ts,
+              bool            is_fragment,
+              u_int32_t       frag_length,
+              u_int32_t       frag_offset);
 
     /**
      * Compares if GBOF IDs are the same.
@@ -70,13 +102,41 @@ public:
      */
     std::string str() const;
 
+    /// @{ Accessors
+    const EndpointID& source()           const { return source_; }
+    const BundleTimestamp& creation_ts() const { return creation_ts_; }
+    bool is_fragment()                   const { return is_fragment_; }
+    u_int32_t frag_length()              const { return frag_length_; }
+    u_int32_t frag_offset()              const { return frag_offset_; }
+    /// @}
+
+    /// @{ Setters and mutable accessors
+    EndpointID* mutable_source()         { invalidate(); return &source_; }
+    BundleTimestamp* mutable_creation_ts() { 
+        invalidate(); return &creation_ts_; 
+    }
+    void set_creation_ts(const BundleTimestamp& ts) { 
+            invalidate(); creation_ts_ = ts; 
+    }
+    void set_is_fragment(bool t)         { invalidate(); is_fragment_ = t; }
+    void set_frag_length(u_int32_t t)    { invalidate(); frag_length_ = t; }
+    void set_frag_offset(u_int32_t t)    { invalidate(); frag_offset_ = t; }
+    /// @}
+
+    friend class oasys::InlineFormatter<GbofId>;
+
+private:
+    void invalidate()  { is_gbofid_str_set_ = false; }
+    void set_gbofid_str();
+
     EndpointID source_;		  ///< Source eid
     BundleTimestamp creation_ts_; ///< Creation timestamp
     bool is_fragment_;		  ///< Fragmentary Bundle
     u_int32_t frag_length_;  	  ///< Length of original bundle
     u_int32_t frag_offset_;	  ///< Offset of fragment in original bundle
+    bool is_gbofid_str_set_;      ///< Indication the gbofid string is initialized
+    std::string gbofid_str_;      ///< String version of the gbof
 
-    friend class oasys::InlineFormatter<GbofId>;
 };
 
 } // namespace dtn

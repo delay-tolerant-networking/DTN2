@@ -15,6 +15,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -44,8 +62,15 @@ BundleDetail::BundleDetail(Bundle				   *bndl,
 	payload_length_ = bndl->payload().length();
 	log_debug("size of size_t: %d", sizeof(size_t));
 
-	add_detail("bundle_id",			oasys::DK_LONG,
-			   (void *)&bundleid_,	sizeof(int32_t));
+        // XXX/dz how to handle 32 vs 64 bit systems and bundle id size?
+        if (4 == sizeof(bundleid_)) {
+    		add_detail("bundle_id",			oasys::DK_ULONG,
+				   (void *)&bundleid_,	sizeof(bundleid_));
+	} else {
+		add_detail("bundle_id",			oasys::DK_ULONG_LONG,
+				   (void *)&bundleid_,	sizeof(bundleid_));
+	}
+
 	add_detail("creation_time",		oasys::DK_ULONG_LONG,
 			   (void *)&creation_time_, sizeof(u_int64_t));
 	add_detail("creation_seq",		oasys::DK_ULONG_LONG,
@@ -115,7 +140,7 @@ BundleDetail::BundleDetail(const oasys::Builder&) :
 		StoreDetail("BundleDetail", "/dtn/bundle/bundle_detail", oasys::DGP_PUT),
 		bundle_(NULL)
 {
-	bundleid_ = 0xFFFFFFFF;
+	bundleid_ = BUNDLE_ID_MAX;
 #ifdef BPQ_ENABLED
 	has_BPQ_blk_ = false;
 #endif /* BPQ_ENABLED */

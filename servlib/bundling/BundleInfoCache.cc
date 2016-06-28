@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -34,13 +52,8 @@ BundleInfoCache::BundleInfoCache(const std::string& logpath, size_t capacity)
 bool
 BundleInfoCache::add_entry(const Bundle* bundle, const EndpointID& prevhop)
 {
-    GbofId id(bundle->source(),
-              bundle->creation_ts(),
-              bundle->is_fragment(),
-              bundle->payload().length(),
-              bundle->frag_offset());
-    
     Cache::Handle h;
+    std::string id = bundle->gbofid_str();
     bool ok = cache_.put_and_pin(id, prevhop, &h);
     if (!ok) {
         return false;
@@ -55,26 +68,14 @@ BundleInfoCache::add_entry(const Bundle* bundle, const EndpointID& prevhop)
 void
 BundleInfoCache::remove_entry(const Bundle* bundle)
 {
-    GbofId id(bundle->source(),
-              bundle->creation_ts(),
-              bundle->is_fragment(),
-              bundle->payload().length(),
-              bundle->frag_offset());
-
-    cache_.evict(id);
+    cache_.evict(bundle->gbofid_str());
 }
 
 //----------------------------------------------------------------------
 bool
 BundleInfoCache::lookup(const Bundle* bundle, EndpointID* prevhop)
 {
-    GbofId id(bundle->source(),
-              bundle->creation_ts(),
-              bundle->is_fragment(),
-              bundle->payload().length(),
-              bundle->frag_offset());
-
-    return cache_.get(id, prevhop);
+    return cache_.get(bundle->gbofid_str(), prevhop);
 }
 
 //----------------------------------------------------------------------

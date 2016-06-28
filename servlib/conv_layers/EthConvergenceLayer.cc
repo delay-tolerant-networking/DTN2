@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -331,7 +349,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     Bundle* bundle = NULL;       
     EthCLHeader ethclhdr;
     size_t bundle_len;
-    struct ether_header* ethhdr=(struct ether_header*)bp;
+    //struct ether_header* ethhdr=(struct ether_header*)bp;
     
     log_debug("Received DTN packet on interface %s, %zu.",if_name_, len);    
 
@@ -378,7 +396,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
             return;
         }
 
-        log_debug("process_data: new bundle id %d arrival, bundle length %zu",
+        log_debug("process_data: new bundle id %"PRIbid" arrival, bundle length %zu",
                   bundle->bundleid(), bundle_len);
         
         BundleDaemon::post(
@@ -424,7 +442,7 @@ EthConvergenceLayer::Receiver::run()
     iface.sll_protocol=htons(ETHERTYPE_DTN);
     iface.sll_ifindex=req.ifr_ifindex;
    
-    if (::bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
+    if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
         perror("bind");
         exit(1);
     }
@@ -515,7 +533,7 @@ EthConvergenceLayer::Sender::Sender(const char* if_name,
     } 
     memcpy(src_hw_addr_.octet,req.ifr_hwaddr.sa_data,6);    
 
-    if (::bind(sock_, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
+    if (bind(sock_, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
         perror("bind");
         exit(1);
     }

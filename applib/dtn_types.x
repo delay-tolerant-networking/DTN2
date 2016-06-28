@@ -246,16 +246,83 @@ enum dtn_extension_block_flags_t {
     BLOCK_FLAG_DISCARD_BLOCK = 16,
     BLOCK_FLAG_UNPROCESSED   = 32
 };
+typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
 
 %
 %/**
+% *	   BPQ extension block type
+% */
+%
+%#define DTN_BPQ_BLOCK_TYPE 0x0B
+%
+%/**
+% * BPQ Extension block kind.
+% *
+% *     BPQ_BLOCK_KIND_QUERY				- query bundles
+% *     BPQ_BLOCK_KIND_RESPONSE				- response bundles
+% *     BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG	- response bundles that should not be cached unless complete
+% *     BPQ_BLOCK_KIND_PUBLISH				- publish bundles - treated like response except local storage
+% */
+%
+enum dtn_bpq_extension_block_kind_t {
+    BPQ_BLOCK_KIND_QUERY = 0x00,
+    BPQ_BLOCK_KIND_RESPONSE = 0x01,
+    BPQ_BLOCK_KIND_RESPONSE_DO_NOT_CACHE_FRAG = 0x02,
+    BPQ_BLOCK_KIND_PUBLISH = 0x03
+};
+typedef enum dtn_bpq_extension_block_kind_t dtn_bpq_extension_block_kind_t;
+
+%/**
+% * BPQ Extension block matching rule. (More may be added later)
+% *
+% *     BPQ_MATCHING_RULE_EXACT
+% */
+%
+enum dtn_bpq_extension_block_matching_rule_t {
+    BPQ_MATCHING_RULE_EXACT = 0x00
+};
+typedef enum dtn_bpq_extension_block_matching_rule_t dtn_bpq_extension_block_matching_rule_t;
+
+%/**
 % * Extension block.
 % */
-struct dtn_extension_block_t {
-    u_int                       type;
-    u_int                       flags;
-    opaque                      data<DTN_MAX_BLOCK_LEN>;
+struct dtn_extension_block_data_t {
+    u_int data_len;
+    char *data_val;
 };
+
+struct dtn_extension_block_t {
+	u_int type;
+	u_int flags;
+        struct dtn_extension_block_data_t data;
+};
+typedef struct dtn_extension_block_t dtn_extension_block_t;
+
+
+struct dtn_bpq_ext_block_original_id_t {
+    dtn_timestamp_t creation_ts;
+    u_int source_len;
+    dtn_endpoint_id_t source;
+};
+struct dtn_bpq_ext_block_query_t {
+    u_int query_len;
+    char* query_val;
+};
+struct dtn_bpq_ext_block_fragments_t {
+    u_int num_frag_returned;
+    u_int *frag_offsets;
+    u_int *frag_lenghts;
+};
+
+
+struct dtn_bpq_extension_block_data_t {
+    u_int kind;
+    u_int matching_rule;
+    struct dtn_bpq_ext_block_original_id_t original_id;
+    struct dtn_bpq_ext_block_query_t query;
+    struct dtn_bpq_ext_block_fragments_t fragments;
+};
+typedef struct dtn_bpq_extension_block_data_t dtn_bpq_extension_block_data_t;
 
 %
 %/**
@@ -268,6 +335,25 @@ struct dtn_sequence_id_t {
     opaque data<DTN_MAX_BLOCK_LEN>;
 };
 
+%/**
+% * Extended Class of Service (ECOS) flags bit definitions.
+% *
+% *     ECOS_FLAG_CRITICAL         - critical - send on every logical path
+% *     ECOS_FLAG_STREAMING        - streaming - send on best efforts without retransmission
+% *     ECOS_FLAG_FLOW_LABEL       - indicates flow label exists after the ordinal byte
+% *     ECOS_FLAG_RELIABLE         - reliable - send on convergence layer that detects data loss and retransmits
+% *
+% * Use these bit definitions OR-ed together to set the ecos_flags parameter.
+% */
+%
+enum dtn_ecos_flags_bits_t {
+    ECOS_FLAG_CRITICAL    = 0x01,
+    ECOS_FLAG_STREAMING   = 0x02,
+    ECOS_FLAG_FLOW_LABEL  = 0x04,
+    ECOS_FLAG_RELIABLE    = 0x08
+};
+typedef enum dtn_ecos_flags_bits_t dtn_ecos_flags_bits_t;
+
 %
 %/**
 % * Bundle metadata. The delivery_regid is ignored when sending
@@ -279,14 +365,18 @@ struct dtn_bundle_spec_t {
     dtn_endpoint_id_t		dest;
     dtn_endpoint_id_t		replyto;
     dtn_bundle_priority_t	priority;
-    int				dopts;
-    dtn_timeval_t		expiration;
-    dtn_timestamp_t		creation_ts;
-    dtn_reg_id_t		delivery_regid;
-    dtn_sequence_id_t           sequence_id;
-    dtn_sequence_id_t           obsoletes_id;
-    dtn_extension_block_t       blocks<DTN_MAX_BLOCKS>;
-    dtn_extension_block_t       metadata<DTN_MAX_BLOCKS>;
+    int				        dopts;
+    dtn_timeval_t		    expiration;
+    dtn_timestamp_t		    creation_ts;
+    dtn_reg_id_t		    delivery_regid;
+    dtn_sequence_id_t       sequence_id;
+    dtn_sequence_id_t       obsoletes_id;
+    bool                    ecos_enabled;
+    u_int                   ecos_flags;
+    u_int                   ecos_ordinal;
+    u_int                   ecos_flow_label;
+    dtn_extension_block_t   blocks<DTN_MAX_BLOCKS>;
+    dtn_extension_block_t   metadata<DTN_MAX_BLOCKS>;
 };
 
 %

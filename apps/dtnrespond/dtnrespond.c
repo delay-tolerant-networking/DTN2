@@ -14,10 +14,29 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -48,6 +67,10 @@
 //global variables
 const char* progname;
 
+int  api_IP_set =  0;
+char api_IP[40] = "127.0.0.1";
+int  api_port   = 5010;
+
 /*******************************************************************************
 * usage:
 * display cmd line options to user.
@@ -62,7 +85,7 @@ usage()
     fprintf(stderr, " -r  < eid > reply to endpoint\n");
     fprintf(stderr, " -i  < regid > existing registration id\n");
     fprintf(stderr, " -E  < seconds > registration expiry time\n");
-    fprintf(stderr, " -A  < defer | drop | exec > failure action\n");
+    fprintf(stderr, " -a  < defer | drop | exec > failure action\n");
     fprintf(stderr, " -S  < script > failure script for exec action\n");
     fprintf(stderr, " -P  < bulk | normal | expedited | reserved > priority\n");
     fprintf(stderr, " -D  request end-to-end delivery receipt\n");
@@ -71,6 +94,8 @@ usage()
     fprintf(stderr, " -R  request bundle reception receipts\n");
     fprintf(stderr, " -c  request custody transfer\n");
     fprintf(stderr, " -C  request custody transfer receipts\n");
+    fprintf(stderr, " -A  api IP address optional (default is localhost)\n");
+    fprintf(stderr, " -B  api port optional (default is 5010)\n");
     fprintf(stderr, " -1  assert destination endpoint is a singleton\n");
     fprintf(stderr, " -N  assert destination endpoint is not a singleton\n");
     fprintf(stderr, " -W  set the do not fragment option\n");
@@ -112,7 +137,7 @@ parse_options(int argc, char** argv,
 
     while( !done )
     {
-        c = getopt(argc, argv, "l:f:n:r:i:E:A:S:P:DXFRcC1NWvhH");
+        c = getopt(argc, argv, "A:B:l:f:n:r:i:E:a:S:P:DXFRcC1NWvhH");
         switch(c)
         {
         case 'l':
@@ -134,6 +159,14 @@ parse_options(int argc, char** argv,
             *reg_expiry = atoi(optarg);
             break;
         case 'A':
+            api_IP_set = 1;
+            strcpy(api_IP,optarg);
+            break;
+        case 'B':
+            api_IP_set = 1;
+            api_port  = atoi(optarg);
+            break;
+        case 'a':
             if (!strcasecmp(optarg, "defer")) {
                 *reg_fail_action = DTN_REG_DEFER;
 
@@ -931,7 +964,7 @@ send_response_bpq(dtn_handle_t * handle,
         fprintf(stderr, "error sending response bundle: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(*handle)));
     } else if (verbose) {
-        fprintf(stdout, "bundle sent successfully: id %s,%llu.%llu\n",
+        fprintf(stdout, "bundle sent successfully: id %s,%"PRIu64".%"PRIu64"\n",
                     response_bundle_id.source.uri,
                     response_bundle_id.creation_ts.secs,
                     response_bundle_id.creation_ts.seqno);
@@ -986,7 +1019,7 @@ receive_bpq(dtn_handle_t * handle,
                     ret, dtn_strerror(dtn_errno(*handle)));
             return ret;
         } else if (verbose) {
-            fprintf(stdout, "bundle %d received successfully: id %s,%llu.%llu\n",
+            fprintf(stdout, "bundle %d received successfully: id %s,%"PRIu64".%"PRIu64"\n",
                              i,
                              bundle_spec.source.uri,
                              bundle_spec.creation_ts.secs,
@@ -1105,7 +1138,15 @@ main(int argc, char** argv)
 
     // open the ipc handle
     if (verbose) fprintf(stdout, "opening connection to dtn router...\n");
-    if ((err = dtn_open(&handle)) != DTN_SUCCESS) {
+    if (api_IP_set || api_port != 5010)
+    {
+        if((err = dtn_open_with_IP(api_IP,api_port,&handle)) != DTN_SUCCESS) 
+        {
+            fprintf(stderr, "fatal error opening dtn handle (%s:%d) : %s\n",
+                    api_IP, api_port, dtn_strerror(err));
+            exit(1);
+        }
+    } else if ((err = dtn_open(&handle)) != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 dtn_strerror(err));
         exit(1);

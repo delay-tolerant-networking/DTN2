@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -83,7 +101,7 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     // the 2 SDNV fragment fields:
     if (orig_bundle->is_fragment()) {
         report_length += SDNV::encoding_len(orig_bundle->frag_offset());
-        report_length += SDNV::encoding_len(orig_bundle->orig_length());
+        report_length += SDNV::encoding_len(orig_bundle->frag_length());
     }
 
     // Time field, set to the current time (with no sub-second
@@ -91,8 +109,14 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     BundleTimestamp now;
     now.seconds_ = BundleTimestamp::get_current_time();
     now.seqno_   = 0;
-    report_length += BundleProtocol::ts_encoding_len(now);
-    
+
+    // dz - multiple timestamps
+    for (uint32_t ix=(uint32_t)STATUS_RECEIVED; ix<=STATUS_DELETED; ix*=2) {
+        if (status_flags & ix) {
+            report_length += BundleProtocol::ts_encoding_len(now);
+        }
+    }
+
     // The bundle's creation timestamp:
     report_length += BundleProtocol::ts_encoding_len(orig_bundle->creation_ts());
 
@@ -129,16 +153,21 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
         
-        sdnv_encoding_len = SDNV::encode(orig_bundle->orig_length(), bp, len);
+        sdnv_encoding_len = SDNV::encode(orig_bundle->frag_length(), bp, len);
         ASSERT(sdnv_encoding_len > 0);
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
     }   
 
-    sdnv_encoding_len = BundleProtocol::set_timestamp(bp, len, now);
-    ASSERT(sdnv_encoding_len > 0);
-    bp  += sdnv_encoding_len;
-    len -= sdnv_encoding_len;
+    // dz multiple timestamps
+    for (uint32_t ix=(uint32_t)STATUS_RECEIVED; ix<=STATUS_DELETED; ix*=2) {
+        if (status_flags & ix) {
+            sdnv_encoding_len = BundleProtocol::set_timestamp(bp, len, now);
+            ASSERT(sdnv_encoding_len > 0);
+            bp  += sdnv_encoding_len;
+            len -= sdnv_encoding_len;
+        }
+    }
 
     // Copy of bundle X's Creation Timestamp
     sdnv_encoding_len = 
@@ -198,6 +227,9 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         if (sdnv_bytes == -1) { return false; }
         bp  += sdnv_bytes;
         len -= sdnv_bytes;
+    } else {
+        data->orig_frag_offset_ = 0;
+        data->orig_frag_length_ = 0;
     }
 
     // The 6 Optional ACK Timestamps:

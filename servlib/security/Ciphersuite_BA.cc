@@ -14,6 +14,23 @@
  *    limitations under the License.
  */
 
+/*
+ *    Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -180,14 +197,27 @@ int Ciphersuite_BA::create_digest(const Bundle *bundle, BlockInfo* block, const 
 
 //----------------------------------------------------------------------
 bool
-Ciphersuite_BA::validate(const Bundle*            bundle,
-                          BlockInfoVec*           block_list,
-                          BlockInfo*              block,
-                          status_report_reason_t* reception_reason,
-                          status_report_reason_t* deletion_reason)
+Ciphersuite_BA::validate(const Bundle*           bundle,
+                         BlockInfoVec*           block_list,
+                         BlockInfo*              block,
+                         status_report_reason_t* reception_reason,
+                         status_report_reason_t* deletion_reason)
 {
+    (void)bundle;
     (void)block_list;
+    (void)block;
     (void)reception_reason;
+    (void)deletion_reason;
+    // any structural elements that could be checked?
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+Ciphersuite_BA::validate_security_result(const Bundle*            bundle,
+                                          BlockInfoVec*           block_list,
+                                          BlockInfo*              block)
+{
 
     u_char          	result[EVP_MAX_MD_SIZE];
     BP_Local_CS*    	locals = NULL;
@@ -273,7 +303,6 @@ Ciphersuite_BA::validate(const Bundle*            bundle,
     return true;
 
  fail:
-    *deletion_reason = BundleProtocol::REASON_SECURITY_FAILED;
     return false;
 }
 

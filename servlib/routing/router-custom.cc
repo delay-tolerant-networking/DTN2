@@ -19,6 +19,24 @@
  *    derived from this software without specific prior written permission.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -34,6 +52,9 @@
 #include <conv_layers/BluetoothConvergenceLayer.h>
 #include <oasys/io/NetUtils.h>
 
+#include <conv_layers/LTPUDPConvergenceLayer.h>
+#include <conv_layers/LTPUDPReplayConvergenceLayer.h>
+
 namespace dtn {
 namespace rtrmessage {
 
@@ -48,6 +69,7 @@ lowercase(const char *c_str)
 // linkType
 
 linkType::linkType(const remote_eid::type& a,
+              const link_id::type& z,
               const type::type_& b,
               const nexthop::type& c,
               const state::type& d,
@@ -59,7 +81,7 @@ linkType::linkType(const remote_eid::type& a,
               const min_retry_interval::type& j,
               const max_retry_interval::type& k,
               const idle_close_time::type& l)
-    : linkType_base(a, b, c, d, e, f, g, h, i, j, k, l)
+    : linkType_base(a, z, b, c, d, e, f, g, h, i, j, k, l)
 {
 }
   
@@ -80,6 +102,7 @@ linkType::linkType(const linkType& a,
 linkType::linkType(Link* l)
     : linkType_base(
         eidType(l->remote_eid().str()),
+        l->name_str(),
         linkTypeType(lowercase(l->type_str())),
         l->nexthop(),
         (xml_schema::string)lowercase(l->state_to_str(l->state())),
@@ -172,6 +195,38 @@ linkType::linkType(Link* l)
         }
 #endif
 
+	    if(clayer().compare("ltpudp") == 0) {
+		    typedef LTPUDPConvergenceLayer::Params ltp_params;
+		    ltp_params *params = dynamic_cast<ltp_params*>(l->cl_info());
+		    if(params == 0) return;
+
+		    oasys::Intoa local_addr(params->local_addr_);
+      	    info->local_addr(local_addr.buf());
+            oasys::Intoa remote_addr(params->remote_addr_);
+            info->remote_addr(remote_addr.buf());
+            info->local_port(params->local_port_);
+            info->remote_port(params->remote_port_);
+            //info->rate(params->rate_);
+            //info->bucket_depth(params->bucket_depth_);
+	    }
+
+	    if(clayer().compare("ltpudpreplay") == 0) {
+		    typedef LTPUDPReplayConvergenceLayer::Params ltp_params;
+		    ltp_params *params = dynamic_cast<ltp_params*>(l->cl_info());
+		    if(params == 0) return;
+
+		    oasys::Intoa local_addr(params->local_addr_);
+      	    info->local_addr(local_addr.buf());
+            oasys::Intoa remote_addr(params->remote_addr_);
+            info->remote_addr(remote_addr.buf());
+            info->local_port(params->local_port_);
+            info->remote_port(params->remote_port_);
+            //info->rate(params->rate_);
+            //info->bucket_depth(params->bucket_depth_);
+	    }
+
+
+
         clinfo(info);
     }
 }
@@ -212,10 +267,14 @@ bundleType::bundleType (const source::type& a,
                         const expiration::type& x,
                         const orig_length::type& y,
                         const frag_offset::type& z,
-                        const owner::type& aa)
+                        const owner::type& aa,
+                        const custodyid::type& bb,
+                        const ecos_flags::type& cc,
+                        const ecos_ordinal::type& dd)
     : bundleType_base (a, b, c, d, e, f, g, h, i,
                        j, k, l, m, n, o, p, q, r,
-                       s, t, u, v, w, x, y, z, aa)
+                       s, t, u, v, w, x, y, z, aa, 
+                       bb, cc, dd)
 {
 }
 
@@ -261,7 +320,16 @@ bundleType::bundleType (Bundle* b)
         b->expiration(),
         b->orig_length(),
         b->frag_offset(),
-        b->owner())
+        b->owner(),
+
+#ifdef ACS_ENABLED
+        b->custodyid(),
+#else
+        0,
+#endif //ACS_ENABLED
+
+        b->ecos_flags(),
+        b->ecos_ordinal())
 {
 }
 

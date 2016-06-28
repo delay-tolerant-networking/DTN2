@@ -19,11 +19,30 @@
  *    derived from this software without specific prior written permission.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
 
 #include <ctype.h>
+#include <inttypes.h>
 
 #include "MetadataBlockProcessor.h"
 #include "MetadataBlock.h"
@@ -128,7 +147,8 @@ MetadataBlockProcessor::prepare(const Bundle*    bundle,
 
     // Do not include metadata unless there is a received source block.
     if (source == NULL) {
-        return BP_FAIL;
+        //return BP_FAIL;  // fail used to be okay but now aborts
+        return BP_SUCCESS; 
     }
     
     ASSERT(source != NULL);
@@ -143,7 +163,8 @@ MetadataBlockProcessor::prepare(const Bundle*    bundle,
     if (source_metadata == NULL) {
         log_debug_p(log, "MetadataBlockProcessor::prepare: "
                          "invalid NULL source metadata");
-        return BP_FAIL;
+        //return BP_FAIL;  // fail used to be okay but now aborts
+        return BP_SUCCESS; 
     }
 
     oasys::ScopeLock metadata_lock(source_metadata->lock(), 
@@ -152,12 +173,14 @@ MetadataBlockProcessor::prepare(const Bundle*    bundle,
     // Do not include invalid metadata if block flags indicate as such.
     if (source_metadata->error() &&
        (source->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR)) {
-        return BP_FAIL;
+        //return BP_FAIL;  // fail used to be okay but now aborts
+        return BP_SUCCESS; 
     }
 
     // Do not include metadata that has been marked for removal.
     if (source_metadata->metadata_removed(link)) {
-        return BP_FAIL;
+        //return BP_FAIL;  // fail used to be okay but now aborts
+        return BP_SUCCESS; 
     }
 
     BlockProcessor::prepare(bundle, xmit_blocks, source, link, list);
@@ -404,7 +427,7 @@ MetadataBlockProcessor::parse_metadata(Bundle* bundle, BlockInfo* block)
 
     if (len != length) {
         log_err_p(log, "MetadataBlockProcessor::parse_metadata_ontology: "
-                       "ontology length(%d) fails to match remaining block length(%lld)",
+                       "ontology length(%u) fails to match remaining block length(%"PRIu64")",
                        len, length);
         metadata->set_block_error();
         return false;

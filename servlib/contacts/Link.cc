@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -132,7 +150,11 @@ Link::Link(const std::string& name, link_type_t type,
       router_info_(NULL),
       remote_eid_(EndpointID::NULL_EID()),
       reincarnated_(false),
-      used_in_fwdlog_(false)
+      used_in_fwdlog_(false),
+      in_datastore_(false),
+      deferred_bundle_count_(0),
+      deferred_timer_(NULL)
+
 {
     ASSERT(clayer_);
 
@@ -168,7 +190,8 @@ Link::Link(const oasys::Builder&)
       router_info_(NULL),
       remote_eid_(EndpointID::NULL_EID()),
       reincarnated_(false),
-      used_in_fwdlog_(false)
+      used_in_fwdlog_(false),
+      in_datastore_(false)
 {
 }
 
@@ -210,11 +233,8 @@ Link::set_used_in_fwdlog()
 
         used_in_fwdlog_ = true;
 
-    	if (! LinkStore::instance()->update(this))
-    	{
-    		log_crit("error updating link %s: error in persistent store",
-    				 name_.c_str());
-		}
+        // Add (or update) this Link to the persistent store
+        BundleDaemon::post(new StoreLinkUpdateEvent(this));
     }
 
 }
@@ -733,5 +753,50 @@ Link::dump_stats(oasys::StringBuffer* buf)
         router_info_->dump_stats(buf);
     }
 }
+
+
+//----------------------------------------------------------------------    
+void 
+Link::increment_deferred_count()
+{
+    ++deferred_bundle_count_;
+    if (NULL == deferred_timer_) {
+        deferred_timer_ = new LinkDeferredTimer(this);
+        deferred_timer_->schedule_in(1000);
+    }
+}
+
+//----------------------------------------------------------------------    
+void
+Link::decrement_deferred_count()
+{
+    --deferred_bundle_count_;
+}
+
+//----------------------------------------------------------------------    
+void
+Link::check_deferred_bundles()
+{
+    deferred_timer_ = NULL;
+
+    if (deferred_bundle_count_ > 0) {
+        // timer expired - issue event and start a new timer
+        BundleDaemon::post(new LinkCheckDeferredEvent(this));
+
+        deferred_timer_ = new LinkDeferredTimer(this);
+        deferred_timer_->schedule_in(1000);
+    }
+}
+
+//----------------------------------------------------------------------    
+void
+Link::LinkDeferredTimer::timeout(
+        const struct timeval &now)
+{
+    (void)now;
+    linkref_->check_deferred_bundles();
+    delete this;
+}
+
 
 } // namespace dtn

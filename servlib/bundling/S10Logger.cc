@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -32,7 +50,7 @@
 
 #include "S10Logger.h"
 
-static char *flagstr[]= {
+static const char *flagstr[]= {
 		"",
 		"BFLAG_TXCACK",
 		"BFLAG_RXCACK",
@@ -41,7 +59,7 @@ static char *flagstr[]= {
 };
 
 // S10 event strings
-static char *eventstr[] = {
+static const char *eventstr[] = {
 				"",
 				"FROMAPP",
 				"FROMDB",
@@ -61,7 +79,7 @@ static char *eventstr[] = {
 				"EXITING",
 				"OHCRAPBADEVENT"};
 
-static char *contstr[] ={
+static const char *contstr[] ={
 	"",
 	"ALWAYSON",
 	"ONDEMAND",
@@ -103,7 +121,7 @@ int logLr(logrep_t	*lrp){
 		log_info_p("S10","rfc3339,time_t.usec,node,event,size,src,id,dest,expiry,flags,peer,ob-src,ob-id,otime.ousec,conttype,duration,cmt");
 		inited=true;
 	}
-	log_info_p("S10","%s,%lu.%06d,%s,%s,%d,%s,%s,%s,%s,%s,%s,%s,%s,%lu.%06d,%s,%d,%s\n",
+	log_info_p("S10","%s,%lu.%06d,%s,%s,%zu,%s,%s,%s,%s,%s,%s,%s,%s,%lu.%06d,%s,%d,%s\n",
 		lrp->rfc3339date, lrp->eventTime, lrp->eventUsec,
 		lrp->loggingNode, 
 		eventstr[lrp->event], // need to protect this index
@@ -133,7 +151,7 @@ int basicLr(logrep_t	*lrp)
     gettimeofday(&tv, 0);
 	lrp->eventTime=tv.tv_sec;
     lrp->eventUsec=tv.tv_usec;
-	char *fmtstr="%Y-%m-%d %H:%M:%S";
+	const char *fmtstr="%Y-%m-%d %H:%M:%S";
 	struct tm *tmval;
 	tmval=gmtime(&lrp->eventTime);
 	strftime(lrp->rfc3339date,1024,fmtstr,tmval);
@@ -169,6 +187,9 @@ int s10_bundle(
 		dtn::Bundle* otherBundle,
 		const char *cmt)
 {
+        (void) ot;
+        (void) ousec;
+
 	logrep_t lr;
 	basicLr(&lr);
 	if (event >0 && event <= S10_MAXEVENT) lr.event=event;
@@ -177,14 +198,14 @@ int s10_bundle(
 
 	// set src
 	snprintf(lr.srcEID,LOGFW,bp->source().c_str());
-	snprintf(lr.bundleID,LOGFW,"%llu.%llu",bp->creation_ts().seconds_,bp->creation_ts().seqno_);
+	snprintf(lr.bundleID,LOGFW,"%"PRIu64".%"PRIu64,bp->creation_ts().seconds_,bp->creation_ts().seqno_);
 	snprintf(lr.destEID,LOGFW,bp->dest().c_str());
 	lr.size=bp->payload().length();
-	snprintf(lr.expiry,LOGFW,"%llu",bp->expiration());
+	snprintf(lr.expiry,LOGFW,"%"PRIu64,bp->expiration());
 	if (peer) snprintf(lr.peer,LOGFW,peer);
 	if (otherBundle) {
 		snprintf(lr.otherBundleSrc,LOGFW,otherBundle->source().c_str());
-		snprintf(lr.otherBundleID,LOGFW,"%llu.%llu",
+		snprintf(lr.otherBundleID,LOGFW,"%"PRIu64".%"PRIu64,
 			otherBundle->creation_ts().seconds_,otherBundle->creation_ts().seqno_);
 	}
 	logLr(&lr);

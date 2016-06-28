@@ -1,4 +1,45 @@
 dnl
+dnl Autoconf support for Aggregate Custody Signals 
+dnl
+
+AC_DEFUN(AC_CONFIG_ACS, [
+    ac_acs='no'
+    AC_ARG_WITH(acs,
+        AC_HELP_STRING([--with-acs],
+                [enable Aggregate Custody Signals support]),
+        ac_acs=$withval)
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test "$ac_acs" = no; then
+        ACS_ENABLED=0
+    else
+        ACS_ENABLED=1
+        AC_DEFINE_UNQUOTED(ACS_ENABLED, 1, [whether Aggregate Custody Signals support is enabled])
+    fi # ACS_ENABLED
+])
+dnl
+dnl Autoconf support for BundleDaemon Statistics
+dnl
+
+AC_DEFUN(AC_CONFIG_BDSTATS, [
+    ac_bdstats='no'
+    AC_ARG_WITH(bdstats,
+        AC_HELP_STRING([--with-bdstats],
+                [enable BundleDaemon Statistics support]),
+        ac_bdstats=$withval)
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test "$ac_bdstats" = no; then
+        BDSTATS_ENABLED=0
+    else
+        BDSTATS_ENABLED=1
+        with_extra_ldflags="$with_extra_ldflags -lrt"
+        AC_DEFINE_UNQUOTED(BDSTATS_ENABLED, 1, [whether BundleDaemon Statistics support is enabled])
+    fi # BDSTATS_ENABLED
+])
+dnl
 dnl Autoconf support for Bundle Protocol Query Extension
 dnl
 
@@ -37,6 +78,108 @@ AC_DEFUN(AC_CONFIG_BSP, [
         AC_DEFINE_UNQUOTED(BSP_ENABLED, 1, [whether Bundle Security Protocol support is enabled])
     fi # BSP_ENABLED
 ])
+dnl
+dnl Autoconf support for specifying a 64bit Bundle ID 
+dnl
+
+AC_DEFUN(AC_CONFIG_BID64BIT, [
+    ac_bid64bit='no'
+    AC_ARG_ENABLE(bid64bit,
+        AC_HELP_STRING([--enable-bid64bit],
+    		   	[set the size of the Bundle ID to 64 bits]),
+        ac_bid64bit=$enableval) 
+    dnl
+    dnl First make sure we even want it
+    dnl
+    AC_MSG_CHECKING(whether to enable 64bit Bundle ID)
+    if test "$ac_bid64bit" = no; then
+        AC_MSG_RESULT(no)
+
+        #BUNDLEID_SIZE=32
+        #bundleid_t=u_int32_t
+        #BUNDLE_ID_MAX=0xffffffff
+        #BUNDLE_ID_MAX64=__UINT64_C(0x00000000ffffffff)
+        #PRIbid=PRIu32
+        AC_DEFINE_UNQUOTED(BUNDLEID_SIZE, 32, [Bundle ID size])
+        AC_DEFINE_UNQUOTED(bundleid_t, u_int32_t, [Bundle ID is 32 bits])
+        AC_DEFINE_UNQUOTED(BUNDLE_ID_MAX, 0xffffffff, [Max valus of the Bundle ID])
+        AC_DEFINE_UNQUOTED(BUNDLE_ID_MAX64, __UINT64_C(0x00000000ffffffff), [64 bit version of the max Bundle ID value])
+        AC_DEFINE_UNQUOTED(PRIbid, PRIu32, [Macro for printing a Bundle ID])
+    else
+        AC_MSG_RESULT(yes)
+
+        #BUNDLEID_SIZE=64
+        #bundleid_t=u_int64_t
+        #BUNDLE_ID_MAX=__UINT64_C(0xffffffffffffffff)
+        #BUNDLE_ID_MAX64=BUNDLE_ID_MAX
+        #PRIbid=PRIu64
+        AC_DEFINE_UNQUOTED(BUNDLEID_SIZE, 64, [Bundle ID size])
+        AC_DEFINE_UNQUOTED(bundleid_t, u_int64_t, [Bundle ID is 64 bits])
+        AC_DEFINE_UNQUOTED(BUNDLE_ID_MAX, __UINT64_C(0xffffffffffffffff), [Max value of the Bundle ID])
+        AC_DEFINE_UNQUOTED(BUNDLE_ID_MAX64, BUNDLE_ID_MAX, [64 bit version of the max Bundle ID value])
+        AC_DEFINE_UNQUOTED(PRIbid, PRIu64, [Macro for printing a Bundle ID])
+    fi # BID64BIT
+])
+dnl
+dnl Autoconf support for Delay Tolerant Payload Conditioning (DTPC)
+dnl
+
+AC_DEFUN(AC_CONFIG_DTPC, [
+    ac_dtpc='no'
+    AC_ARG_WITH(dtpc,
+        AC_HELP_STRING([--with-dtpc],
+                [enable DTPC - Delay Tolerant Payload Conditioning support]),
+        ac_dtpc=$withval)
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test "$ac_dtpc" = no; then
+        DTPC_ENABLED=0
+    else
+        DTPC_ENABLED=1
+        AC_DEFINE_UNQUOTED(DTPC_ENABLED, 1, [whether Delay Tolerant Payload Conditioning support is enabled])
+        AC_SUBST(DTPC_ENABLED)
+    fi # DTPC_ENABLED
+])
+dnl
+dnl Autoconf support for Extended Class Of Service Blocks
+dnl
+
+AC_DEFUN(AC_CONFIG_ECOS, [
+    ac_ecos='no'
+    AC_ARG_WITH(ecos,
+        AC_HELP_STRING([--with-ecos],
+                [enable Extended Class Of Service Block support]),
+        ac_ecos=$withval)
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test "$ac_ecos" = no; then
+        ECOS_ENABLED=0
+    else
+        ECOS_ENABLED=1
+        AC_DEFINE_UNQUOTED(ECOS_ENABLED, 1, [whether Extend Class Of Service Block support is enabled])
+    fi # ECOS_ENABLED
+])
+dnl
+dnl Autoconf support for the EHS External Router
+dnl
+ AC_DEFUN(AC_CONFIG_EHSROUTER, [
+     ac_ehsrouter='no'
+     AC_ARG_WITH(ehsrouter,
+         AC_HELP_STRING([--with-ehsrouter],
+                 [enable building the EHS External Router which also requires Xerces C]),
+         ac_ehsrouter=$withval)
+     dnl
+     dnl First make sure we even want it
+     dnl
+     if test "$ac_ehsrouter" = no; then
+         EHSROUTER_ENABLED=0
+     else
+         EHSROUTER_ENABLED=1
+         AC_DEFINE_UNQUOTED(EHSROUTER_ENABLED, 1, [whether to build the EHS External Router])
+     fi # EHSROUTER_ENABLED
+ ])
 dnl
 dnl Autoconf support for external convergence layer
 dnl
@@ -273,6 +416,46 @@ AC_DEFUN(AC_CONFIG_LTP, [
 ])
 
 
+dnl
+dnl Autoconf support for the LTPUDP Convergence Layer
+dnl
+
+AC_DEFUN(AC_CONFIG_LTPUDP, [
+    ac_ltpudp='no'
+    AC_ARG_WITH(ltpudp,
+        AC_HELP_STRING([--with-ltpudp],
+    		   	[enable LTPUDP Convvergence Layer support (EXPERIMENTAL)]),
+        ac_ltpudp=$withval)
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test "$ac_ltpudp" = no; then
+        LTPUDP_ENABLED=0
+    else
+        LTPUDP_ENABLED=1
+        AC_DEFINE_UNQUOTED(LTPUDP_ENABLED, 1, [whether LTPUDP Authentication support is enabled])
+    fi # LTPUDP_ENABLED
+])
+dnl
+dnl Autoconf support for LTPUDP Authentication
+dnl
+
+AC_DEFUN(AC_CONFIG_LTPUDPAUTH, [
+    ac_ltpudpauth='no'
+    AC_ARG_WITH(ltpudpauth,
+        AC_HELP_STRING([--with-ltpudpauth],
+    		   	[enable LTPUDP Authentication support (EXPERIMENTAL)]),
+        ac_ltpudpauth=$withval)
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test "$ac_ltpudpauth" = no; then
+        LTPUDP_AUTH_ENABLED=0
+    else
+        LTPUDP_AUTH_ENABLED=1
+        AC_DEFINE_UNQUOTED(LTPUDP_AUTH_ENABLED, 1, [whether LTPUDP Authentication support is enabled])
+    fi # LTPUDP_AUTH_ENABLED
+])
 dnl 
 dnl   Copyright 2008 The MITRE Corporation
 dnl
@@ -1353,7 +1536,7 @@ AC_DEFUN(AC_OASYS_CONFIG_GCC_VERSION, [
 	# For 3.2 and beyond, use auto-dependency flags. 
 	# Note that for m4 to output a '$' requires the '@S|@' heinosity below.
 	#
-	3.*|4.*)
+	3.*|4.*|5.*)
 	    DEPFLAGS=['-MMD -MP -MT "@S|@*.o @S|@*.E"']
 	    ;;
 	#
@@ -2025,6 +2208,39 @@ AC_DEFUN(AC_OASYS_FIND_MYSQL, [
         AC_MSG_ERROR([can't find usable mysql library])
     fi
 ])
+
+dnl
+dnl Check if oasys has support for the given feature. Returns result
+dnl in ac_oasys_supports_result.
+dnl
+AC_DEFUN(AC_OASYS_SUPPORTS, [
+    AC_MSG_CHECKING(whether oasys is configured with $1)
+
+    if test x$cv_oasys_supports_$1 != x ; then
+        ac_oasys_supports_result=$cv_oasys_supports_$1
+        AC_MSG_RESULT($ac_oasys_supports_result (cached))
+    else
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
+    AC_LINK_IFELSE(
+      AC_LANG_PROGRAM(
+        [
+            #include <oasys/oasys-config.h>
+            #ifndef $1
+            #error $1 not configured
+            #endif
+        ], [] ),
+      ac_oasys_supports_result=yes,
+      ac_oasys_supports_result=no)
+
+    cv_oasys_supports_$1=$ac_oasys_supports_result
+    
+    AC_MSG_RESULT([$ac_oasys_supports_result])
+    CPPFLAGS=$ac_save_CPPFLAGS
+
+    fi
+])
 dnl
 dnl    Copyright 2007 Intel Corporation
 dnl 
@@ -2091,25 +2307,38 @@ AC_DEFUN(AC_OASYS_CONFIG, [
 
     AC_MSG_CHECKING([for an oasys installation (version $ac_oasysver_major.$ac_oasysver_minor or better)])
 
-    ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
+    # if --with-oasys was not specified then look for the fallback locations
+    # which are ../oasys.<major>.<minor>.* and ../oasys
+    if test "$ac_oasysdir" = ""; then
+      ac_oasysdir_ver=`find .. -maxdepth 1 -type d -name $ac_oasysdir_ver_base.* | tail -1`
 
-    if test -d "$ac_oasysdir_ver" ; then
-      ac_oasysdir=$ac_oasysdir_ver
+      if test -d "$ac_oasysdir_ver" ; then
+        ac_oasysdir=$ac_oasysdir_ver
    
-    elif test -d ../oasys ; then
-      ac_oasysdir=../oasys
-      ac_oasysdir_ver=$ac_oasysdir 
+      elif test -d ../oasys ; then
+        ac_oasysdir=../oasys
+        ac_oasysdir_ver=$ac_oasysdir 
+      fi
     fi
 
-    if test -d "$ac_oasysdir_ver" ; then
+    
+    if test -d "$ac_oasysdir" ; then
       mkdir oasys oasys/include
       OASYS_INCDIR="oasys/include"
       OASYS_LIBDIR="oasys/lib"
       OASYS_ETCDIR="oasys/share"
-      ln -s ../../$ac_oasysdir $OASYS_INCDIR
-      ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
-      ln -s ../$ac_oasysdir $OASYS_ETCDIR
-
+      if test "${ac_oasysdir:0:1}" = "/" ; then
+        # we have an absolute path
+        # assume this is an installed instance and not a source directory
+        ln -s $ac_oasysdir/include/oasys $OASYS_INCDIR/oasys
+        ln -s $ac_oasysdir/lib $OASYS_LIBDIR
+        ln -s $ac_oasysdir/share/oasys $OASYS_ETCDIR
+      else
+        # relative path to source directory
+        ln -s ../../$ac_oasysdir $OASYS_INCDIR/oasys
+        ln -s ../$ac_oasysdir/lib $OASYS_LIBDIR
+        ln -s ../$ac_oasysdir $OASYS_ETCDIR
+      fi
     else
       if test "$ac_oasysdir" = "" ; then
         ac_oasysdir=/usr
@@ -2221,39 +2450,6 @@ AC_DEFUN(AC_OASYS_SUBST_CONFIG, [
 
     AC_SUBST(SYS_EXTLIB_CFLAGS)
     AC_SUBST(SYS_EXTLIB_LDFLAGS)
-])
-
-dnl
-dnl Check if oasys has support for the given feature. Returns result
-dnl in ac_oasys_supports_result.
-dnl
-AC_DEFUN(AC_OASYS_SUPPORTS, [
-    AC_MSG_CHECKING(whether oasys is configured with $1)
-
-    if test x$cv_oasys_supports_$1 != x ; then
-        ac_oasys_supports_result=$cv_oasys_supports_$1
-        AC_MSG_RESULT($ac_oasys_supports_result (cached))
-    else
-
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS -I$OASYS_INCDIR"
-    AC_LINK_IFELSE(
-      AC_LANG_PROGRAM(
-        [
-            #include <oasys/oasys-config.h>
-            #ifndef $1
-            #error $1 not configured
-            #endif
-        ], [] ),
-      ac_oasys_supports_result=yes,
-      ac_oasys_supports_result=no)
-
-    cv_oasys_supports_$1=$ac_oasys_supports_result
-    
-    AC_MSG_RESULT([$ac_oasys_supports_result])
-    CPPFLAGS=$ac_save_CPPFLAGS
-
-    fi
 ])
 dnl
 dnl    Copyright 2011 Alex McMahon, alex.mcmahon@cs.tcd.ie

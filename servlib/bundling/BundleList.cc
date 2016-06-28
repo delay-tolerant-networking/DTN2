@@ -14,6 +14,24 @@
  *    limitations under the License.
  */
 
+/*
+ *    Modifications made to this file by the patch file dtn2_mfs-33289-1.patch
+ *    are Copyright 2015 United States Government as represented by NASA
+ *       Marshall Space Flight Center. All Rights Reserved.
+ *
+ *    Released under the NASA Open Source Software Agreement version 1.3;
+ *    You may obtain a copy of the Agreement at:
+ * 
+ *        http://ti.arc.nasa.gov/opensource/nosa/
+ * 
+ *    The subject software is provided "AS IS" WITHOUT ANY WARRANTY of any kind,
+ *    either expressed, implied or statutory and this agreement does not,
+ *    in any manner, constitute an endorsement by government agency of any
+ *    results, designs or products resulting from use of the subject software.
+ *    See the Agreement for the specific language governing permissions and
+ *    limitations.
+ */
+
 #ifdef HAVE_CONFIG_H
 #  include <dtn-config.h>
 #endif
@@ -31,17 +49,11 @@
 namespace dtn {
 
 //----------------------------------------------------------------------
-BundleList::BundleList(const std::string& name, oasys::SpinLock* lock)
-    : Logger("BundleList", "/dtn/bundle/list/%s", name.c_str()),
-      name_(name), notifier_(NULL)
+BundleList::BundleList(const std::string& name, oasys::SpinLock* lock,
+                       const std::string& ltype, const std::string& subpath)
+    : BundleListBase(name, lock, ltype, subpath)
 {
-    if (lock != NULL) {
-        lock_     = lock;
-        own_lock_ = false;
-    } else {
-        lock_     = new oasys::SpinLock();
-        own_lock_ = true;
-    }
+    list_size_ = 0;
 }
 
 //----------------------------------------------------------------------
@@ -49,17 +61,13 @@ void
 BundleList::set_name(const std::string& name)
 {
     name_ = name;
-    logpathf("/dtn/bundle/list/%s", name.c_str());
+    logpathf("/dtn/bundle/list/list/%s", name.c_str());
 }
 
 //----------------------------------------------------------------------
 BundleList::~BundleList()
 {
     clear();
-    if (own_lock_) {
-        delete lock_;
-    }
-    lock_ = NULL;
 }
 
 //----------------------------------------------------------------------
@@ -69,7 +77,7 @@ BundleList::front() const
     oasys::ScopeLock l(lock_, "BundleList::front");
     
     BundleRef ret("BundleList::front() temporary");
-    if (list_.empty())
+    if (0 == list_size_)
         return ret;
 
     ret = list_.front();
@@ -83,7 +91,7 @@ BundleList::back() const
     oasys::ScopeLock l(lock_, "BundleList::back");
 
     BundleRef ret("BundleList::back() temporary");
-    if (list_.empty())
+    if (0 == list_size_)
         return ret;
 
     ret = list_.back();
@@ -94,8 +102,6 @@ BundleList::back() const
 void
 BundleList::add_bundle(Bundle* b, const iterator& pos)
 {
-	int ret;
-
     ASSERT(lock_->is_locked_by_me());
     ASSERT(b->lock()->is_locked_by_me());
     
@@ -106,21 +112,24 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
 
     if (b->is_queued_on(this)) {
         log_err("ERROR in add bundle: "
-                "bundle id %d already on list [%s]",
+                "bundle id %"PRIbid" already on list [%s]",
                 b->bundleid(), name_.c_str());
         
         return;
     }
     
-    iterator new_pos = list_.insert(pos, b);
-    b->mappings()->push_back(BundleMapping(this, new_pos));
-    b->add_ref("bundle_list", name_.c_str());
-    
-	if (notifier_ != 0) {
-		notifier_->notify();
-	}
+    SPV blpos ( new iterator(list_.insert(pos, b)) );
+    SPBMapping bmap ( new BundleMapping(this, blpos) );
+    b->mappings()->push_back(bmap);
+    b->add_ref(ltype_.c_str(), name_.c_str());
+   
+    ++list_size_;
+ 
+    if (notifier_ != 0) {
+        notifier_->notify();
+    }
 
-    log_debug("bundle id %d add mapping [%s] to list %p",
+    log_debug("bundle id %"PRIbid" add mapping [%s] to list %p",
               b->bundleid(), name_.c_str(), this);
 }
 
@@ -186,14 +195,14 @@ BundleList::insert_random(Bundle* b)
     oasys::ScopeLock bl(b->lock(), "BundleList::insert_random");
 
     iter = begin();
-    int location = 0;
+    size_t location = 0;
     if (! empty()) {
         location = random() % size();
     }
 
-    log_info("insert_random at %d/%zu", location, size());
+    log_info("insert_random at %zu/%zu", location, size());
     
-    for (int i = 0; i < location; ++i) {
+    for (size_t i = 0; i < location; ++i) {
         ++iter;
     }
 
@@ -211,21 +220,28 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
     oasys::ScopeLock l(b->lock(), "BundleList::del_bundle");
 
     // remove the mapping
-    log_debug("bundle id %d del_bundle: deleting mapping [%s]",
+    log_debug("bundle id %"PRIbid" del_bundle: deleting mapping [%s]",
               b->bundleid(), name_.c_str());
     BundleMappings::iterator mapping = b->mappings()->find(this);
     if (mapping == b->mappings()->end()) {
         log_err("ERROR in del bundle: "
-                "bundle id %d has no mapping for list [%s]",
+                "bundle id %"PRIbid" has no mapping for list [%s]",
                 b->bundleid(), name_.c_str());
     } else {
-        ASSERT(mapping->list() == this);
-        ASSERT(mapping->position() == pos);
+        // retrieve the iterator from the mapping wrapper
+        SPBMapping bmap ( *mapping );
+        ASSERT(bmap->list() == this);
+        SPV vpos = bmap->position();
+        iterator* bitr = (iterator*) vpos.get();
+        ASSERT(*bitr == pos);
+        // everything checks out so remove the mapping
         b->mappings()->erase(mapping);
     }
     
     // remove the bundle from the list
     list_.erase(pos);
+    --list_size_;
+ 
     
     // drain one element from the semaphore
     if (notifier_ && !used_notifier) {
@@ -242,11 +258,11 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
 BundleRef
 BundleList::pop_front(bool used_notifier)
 {
-    oasys::ScopeLock l(lock_, "pop_front");
-
     BundleRef ret("BundleList::pop_front() temporary");
 
-    if (list_.empty()) {
+    oasys::ScopeLock l(lock_, "pop_front");
+
+    if (0 == list_size_) {
         return ret;
     }
     
@@ -255,7 +271,7 @@ BundleList::pop_front(bool used_notifier)
     // Assign the bundle to a temporary reference, then remove the
     // list reference on the bundle and return the temporary
     ret = del_bundle(list_.begin(), used_notifier);
-    ret.object()->del_ref("bundle_list", name_.c_str()); 
+    ret->del_ref(ltype_.c_str(), name_.c_str()); 
     return ret;
 }
 
@@ -263,18 +279,18 @@ BundleList::pop_front(bool used_notifier)
 BundleRef
 BundleList::pop_back(bool used_notifier)
 {
-    oasys::ScopeLock l(lock_, "BundleList::pop_back");
-
     BundleRef ret("BundleList::pop_back() temporary");
 
-    if (list_.empty()) {
+    oasys::ScopeLock l(lock_, "BundleList::pop_back");
+
+    if (0 == list_size_) {
         return ret;
     }
 
     // Assign the bundle to a temporary reference, then remove the
     // list reference on the bundle and return the temporary
     ret = del_bundle(--list_.end(), used_notifier);
-    ret->del_ref("bundle_list", name_.c_str()); 
+    ret->del_ref(ltype_.c_str(), name_.c_str()); 
     return ret;
 }
 
@@ -303,16 +319,17 @@ BundleList::erase(Bundle* bundle, bool used_notifier)
         return false;
     }
 
-    ASSERT(mapping->list() == this);
-    ASSERT(*mapping->position() == bundle);
+    // retrieve the iterator from the mapping wrapper
+    SPBMapping bmap ( *mapping );
+    ASSERT(bmap->list() == this);
+    SPV vpos = bmap->position();
+    iterator* itr = (iterator*) vpos.get();
+    ASSERT(*(*itr) == bundle);
 
-    // Make a local copy of the position since del_bundle destroys the
-    // mapping object but still needs the position.
-    iterator pos = mapping->position();
-    Bundle* b = del_bundle(pos, used_notifier);
+    Bundle* b = del_bundle(*itr, used_notifier);
     ASSERT(b == bundle);
     
-    bundle->del_ref("bundle_list", name_.c_str());
+    bundle->del_ref(ltype_.c_str(), name_.c_str()); 
     return true;
 }
 
@@ -329,22 +346,22 @@ BundleList::erase(iterator& iter, bool used_notifier)
     Bundle* b = del_bundle(iter, used_notifier);
     ASSERT(b == bundle);
     
-    bundle->del_ref("bundle_list", name_.c_str());
+    bundle->del_ref(ltype_.c_str(), name_.c_str()); 
 }
 
 //----------------------------------------------------------------------
 bool
 BundleList::contains(Bundle* bundle) const
 {
-    oasys::ScopeLock l(lock_, "BundleList::contains");
-    
     if (bundle == NULL) {
         return false;
     }
     
+    oasys::ScopeLock l(lock_, "BundleList::contains");
+    
     bool ret = bundle->is_queued_on(this);
 
-#define DEBUG_MAPPINGS
+#undef DEBUG_MAPPINGS
 #ifdef DEBUG_MAPPINGS
     bool ret2 = (std::find(begin(), end(), bundle) != end());
     ASSERT(ret == ret2);
@@ -355,10 +372,11 @@ BundleList::contains(Bundle* bundle) const
 
 //----------------------------------------------------------------------
 BundleRef
-BundleList::find(u_int32_t bundle_id) const
+BundleList::find(bundleid_t bundle_id) const
 {
-    oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary (by bundle_id)");
+
+    oasys::ScopeLock l(lock_, "BundleList::find");
 
     for (iterator iter = begin(); iter != end(); ++iter) {
     	// We need to exclude freed bundles here, otherwise the refcounting
@@ -376,13 +394,39 @@ BundleList::find(u_int32_t bundle_id) const
 }
 
 //----------------------------------------------------------------------
+#ifdef ACS_ENABLED
+BundleRef
+BundleList::find_custodyid(bundleid_t custody_id) const
+{
+    BundleRef ret("BundleList::find() temporary (by custody_id)");
+
+    oasys::ScopeLock l(lock_, "BundleList::find");
+
+    for (iterator iter = begin(); iter != end(); ++iter) {
+    	// We need to exclude freed bundles here, otherwise the refcounting
+    	// gets really hosed up, as a find after a bundle is freed can cause
+    	// an extra reference to it.  Trying to simply not add refs to freed
+    	// bundles causes other problems when those refs are deleted, leading
+    	// to too low a refcount in the bundle.
+        if ((*iter)->custodyid() == custody_id && !((*iter)->is_freed())) {
+            ret = *iter;
+            return ret;
+        }
+    }
+
+    return ret;
+}
+#endif // ACS_ENABLED
+
+//----------------------------------------------------------------------
 BundleRef
 BundleList::find(const EndpointID& source_eid,
                  const BundleTimestamp& creation_ts) const
 {
-    oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     
+    oasys::ScopeLock l(lock_, "BundleList::find");
+
     for (iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->creation_ts().seconds_ == creation_ts.seconds_ &&
             (*iter)->creation_ts().seqno_ == creation_ts.seqno_ &&
@@ -401,9 +445,10 @@ BundleList::find(const EndpointID& source_eid,
 BundleRef
 BundleList::find(GbofId& gbof_id) const
 {
-    oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary (by gbof_id)");
     
+    oasys::ScopeLock l(lock_, "BundleList::find (by gbof_id)");
+
     for (iterator iter = begin(); iter != end(); ++iter) {
         if (gbof_id.equals((*iter)->source(),
                            (*iter)->creation_ts(),
@@ -422,11 +467,32 @@ BundleList::find(GbofId& gbof_id) const
 
 //----------------------------------------------------------------------
 BundleRef
+BundleList::find(std::string gbofid_str) const
+{
+    BundleRef ret("BundleList::find() temporary (by gbofid_str)");
+    
+    oasys::ScopeLock l(lock_, "BundleList::find (by gbofid_str)");
+
+    for (iterator iter = begin(); iter != end(); ++iter) {
+        if (!gbofid_str.compare((*iter)->gbofid_str()) &&
+            !((*iter)->is_freed()))
+        {
+            ret = *iter;
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+//----------------------------------------------------------------------
+BundleRef
 BundleList::find(const GbofId& gbof_id, const BundleTimestamp& extended_id) const
 {
-    oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary (by gbof_id and timestamp)");
     
+    oasys::ScopeLock l(lock_, "BundleList::find (by gbof_id and timestamp");
+
     for (iterator iter = begin(); iter != end(); ++iter) {
         if (extended_id == (*iter)->extended_id() &&
             gbof_id.equals((*iter)->source(),
@@ -464,8 +530,8 @@ BundleList::clear()
 {
     oasys::ScopeLock l(lock_, "BundleList::clear");
     
+    BundleRef b("BundleList::clear temporary");
     while (!list_.empty()) {
-        BundleRef b("BundleList::clear temporary");
         b = pop_front();
     }
 }
@@ -476,7 +542,7 @@ size_t
 BundleList::size() const
 {
     oasys::ScopeLock l(lock_, "BundleList::size");
-    return list_.size();
+    return list_size_;
 }
 
 //----------------------------------------------------------------------
@@ -484,7 +550,7 @@ bool
 BundleList::empty() const
 {
     oasys::ScopeLock l(lock_, "BundleList::empty");
-    return list_.empty();
+    return (0 == list_size_);
 }
 
 //----------------------------------------------------------------------
@@ -512,8 +578,9 @@ BundleList::end() const
 }
 
 //----------------------------------------------------------------------
-BlockingBundleList::BlockingBundleList(const std::string& name)
-    : BundleList(name)
+BlockingBundleList::BlockingBundleList(const std::string& name, oasys::SpinLock* lock,
+                                       const std::string& ltype, const std::string& subpath)
+    : BundleList(name, lock, ltype, subpath)
 {
     notifier_ = new oasys::Notifier(logpath_);
 }
@@ -571,8 +638,8 @@ BlockingBundleList::pop_blocking(int timeout)
 void
 BundleList::serialize(oasys::SerializeAction *a)
 {
-    u_int32_t bid;
-    u_int sz = size();
+    bundleid_t bid;
+    size_t sz = size();
 
     oasys::ScopeLock l2(lock_, "serialize");
 
@@ -586,7 +653,7 @@ BundleList::serialize(oasys::SerializeAction *a)
         for (i=list_.begin();
              i!=list_.end();
              ++i) {
-            log_debug("List %s Marshaling bundle id %d",
+            log_debug("List %s Marshaling bundle id %"PRIbid"",
             		name().c_str(), (*i)->bundleid());
             bid = (*i)->bundleid();
             a->process("element", &bid);
@@ -596,20 +663,37 @@ BundleList::serialize(oasys::SerializeAction *a)
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         for ( size_t i=0; i<sz; i++ ) {
             a->process("element", &bid);
-            log_debug("Unmarshaling bundle id %d", bid);
+            log_debug("Unmarshaling bundle id %"PRIbid"", bid);
             BundleRef b = BundleDaemon::instance()->all_bundles()->find(bid);
             if ( b==NULL ) {
-                log_debug("b is NULL for id %d; not on all_bundles list", bid);
+                log_debug("b is NULL for id %"PRIbid"; not on all_bundles list", bid);
             }
             if ( b!=NULL && b->bundleid()==bid ) {
-                log_debug("Found bundle id %d on all_bundles; adding.", bid);
+                log_debug("Found bundle id %"PRIbid" on all_bundles; adding.", bid);
                 push_back(b);
             }
-            log_debug("Done with UNMARSHAL %d", bid);
+            log_debug("Done with UNMARSHAL %"PRIbid"", bid);
         }
         log_debug("Done with UNMARSHAL");
     }
 }
 
+//----------------------------------------------------------------------
+void
+BundleList::format(oasys::StringBuffer* buf)
+{
+    oasys::ScopeLock l2(lock_, "format bundle list");
+
+    buf->appendf("          size: %zu\n", size());
+    BundleList::iterator i;
+
+    size_t ix = 0;
+    for (i=list_.begin();
+         i!=list_.end();
+         ++i) {
+        Bundle* bundle = (*i);
+        buf->appendf("          [%zu]: %"PRIbid"\n", ix++, bundle->bundleid());
+    }
+}
 
 } // namespace dtn
